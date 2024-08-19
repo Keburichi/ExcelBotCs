@@ -4,6 +4,7 @@ using MongoDB.Bson.Serialization.Serializers;
 using MongoDB.Driver;
 using MongoDB.Driver.Linq;
 
+namespace ExcelBotCs.Data;
 public class Database
 {
 	private readonly IMongoDatabase _database;

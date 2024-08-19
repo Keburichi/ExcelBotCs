@@ -3,6 +3,8 @@ using Discord.Interactions;
 using Discord.WebSocket;
 using System.Reflection;
 
+namespace ExcelBotCs.Discord;
+
 public class DiscordBotService : BackgroundService
 {
 	public DiscordSocketClient Client { get; }

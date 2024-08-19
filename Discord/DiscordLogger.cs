@@ -2,6 +2,8 @@ using Discord;
 using System.Diagnostics;
 using System.Text;
 
+namespace ExcelBotCs.Discord;
+
 public class DiscordLogger : TextWriter
 {
 	private readonly DiscordBotService _discord;

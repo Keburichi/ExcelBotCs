@@ -2,6 +2,7 @@ using MongoDB.Driver;
 using MongoDB.Driver.Linq;
 using System.Linq.Expressions;
 
+namespace ExcelBotCs.Data;
 public class Repository<T> where T : DatabaseObject
 {
 	private readonly IMongoCollection<T> _collection;
