@@ -48,4 +48,17 @@ public class RandomJobCommand : InteractionModuleBase<SocketInteractionContext>
 		"Bard", "Machinist", "Dancer",
 		"White Mage", "Scholar", "Astrologian", "Sage",
 		"Paladin", "Warrior", "Dark Knight", "Gunbreaker");
+
+
+	[SlashCommand("rdmmanaficoncd", "Tells you whether you should use Manafication on cooldown based on your expected kill time")]
+	public async Task ShouldIManaficRush(int minutes, int seconds)
+	{
+		var total = (minutes * 60) + seconds;
+		var emboldenUses = (int)Math.Floor(total / 120f);
+		var manaficUses = (int)Math.Floor(total / 110f);
+		
+		await RespondAsync(emboldenUses != manaficUses 
+			? "You should use Manafication on cooldown to gain the maximum amount of uses."
+			: "You should align Manafication with Embolden. Use it 1 or 5 seconds before Embolden to fit 6 finishers into buffs.");
+	}
 }
