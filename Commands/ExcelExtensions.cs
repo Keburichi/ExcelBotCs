@@ -3,24 +3,27 @@ using Discord.WebSocket;
 
 namespace ExcelBotCs.Commands;
 
-public static class ExcelExtensions
+public static class Constants
 {
 	public const ulong GuildId = 797520687941943336;
 
-	private const ulong OfficerRoleId = 797521763214557204;
-	private const ulong FcRoleId = 797810200269684787;
-	private const ulong FcFriendRoleId = 810208611472637973;
+	public const ulong OfficerRoleId = 797521763214557204;
+	public const ulong FcRoleId = 797810200269684787;
+	public const ulong FcFriendRoleId = 810208611472637973;
 
 	public const ulong LotteryChannel = 1385572037245796483;
+}
 
-	public static SocketGuild ExcelGuild(this DiscordSocketClient client) => client.Guilds.First(x => x.Id == GuildId);
-	public static bool IsMember(this IReadOnlyCollection<SocketRole> roles) => roles.Any(role => role.Id == FcRoleId);
+public static class Extensions
+{
+	public static SocketGuild ExcelGuild(this DiscordSocketClient client) => client.Guilds.First(x => x.Id == Constants.GuildId);
+	public static bool IsMember(this IReadOnlyCollection<SocketRole> roles) => roles.Any(role => role.Id == Constants.FcRoleId);
 
 	public static bool IsOfficer(this IReadOnlyCollection<SocketRole> roles) =>
-		roles.Any(role => role.Id == OfficerRoleId);
+		roles.Any(role => role.Id == Constants.OfficerRoleId);
 
 	public static bool IsFriendOfFc(this IReadOnlyCollection<SocketRole> roles) =>
-		roles.Any(role => role.Id == FcFriendRoleId);
+		roles.Any(role => role.Id == Constants.FcFriendRoleId);
 
 	public static SocketGuildUser GuildUser(this SocketInteractionContext context) =>
 		context.Guild.GetUser(context.User.Id);

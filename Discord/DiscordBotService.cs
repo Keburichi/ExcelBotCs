@@ -39,7 +39,7 @@ public class DiscordBotService : BackgroundService
 	private async Task ClientOnReady()
 	{
 		await Interaction.AddModulesAsync(Assembly.GetEntryAssembly(), _serviceProvider);
-		await Interaction.RegisterCommandsToGuildAsync(ExcelExtensions.GuildId);
+		await Interaction.RegisterCommandsToGuildAsync(Constants.GuildId);
 	}
 
 	private async Task ClientOnInteractionCreated(SocketInteraction interaction)

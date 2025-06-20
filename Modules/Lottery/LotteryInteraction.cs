@@ -11,13 +11,11 @@ namespace ExcelBotCs.Modules.Lottery;
 [Group("lottery", "Lottery commands")]
 public class LotteryInteraction : InteractionModuleBase<SocketInteractionContext>
 {
-	private readonly DiscordBotService _discord;
 	private readonly Repository<ExtraLotteryGuess> _extraLotteryGuesses;
 	private readonly Repository<LotteryGuess> _lotteryGuesses;
 
 	public LotteryInteraction(DiscordBotService discord, Database database)
 	{
-		_discord = discord;
 		_extraLotteryGuesses = database.GetCollection<ExtraLotteryGuess>("extra_lottery_guesses");
 		_lotteryGuesses = database.GetCollection<LotteryGuess>("lottery_guesses");
 	}
@@ -34,7 +32,7 @@ public class LotteryInteraction : InteractionModuleBase<SocketInteractionContext
 	record OutOfRangeGuessResponse : IGuessResponse;
 	record NotFcMemberGuessResponse : IGuessResponse;
 	record AlreadyGuessedNumberGuessResponse(int Number) : IGuessResponse;
-	record NotCurrentGuesseddNumberGuessResponse(int Number) : IGuessResponse;
+	record NotCurrentGuessedNumberGuessResponse(int Number) : IGuessResponse;
 	record NoMoreGuessesGuessResponse(IEnumerable<int> CurrentGuesses, string PrettyCurrentGuesses) : IGuessResponse;
 
 	private async Task<IGuessResponse> TryGuess(SocketGuildUser user, int number)
@@ -72,6 +70,7 @@ public class LotteryInteraction : InteractionModuleBase<SocketInteractionContext
 			? new NoMoreGuessesGuessResponse(numbers, prettyNumbers)
 			: new SuccessGuessResponse(numbers, prettyNumbers);
 	}
+
 	private async Task<IGuessResponse> TryChangeGuess(SocketGuildUser user, int oldNumber, int newNumber)
 	{
 		if (!CanParticipate(Context.GuildUser()))
@@ -85,7 +84,10 @@ public class LotteryInteraction : InteractionModuleBase<SocketInteractionContext
 			.ToListAsync();
 
 		if (currentGuesses.All(guess => guess.Number != oldNumber))
-			return new NotCurrentGuesseddNumberGuessResponse(oldNumber);
+			return new NotCurrentGuessedNumberGuessResponse(oldNumber);
+
+		if (currentGuesses.Any(guess => guess.Number == newNumber))
+			return new AlreadyGuessedNumberGuessResponse(newNumber);
 
 		currentGuesses.RemoveAll(guess => guess.Number == oldNumber);
 
@@ -95,6 +97,7 @@ public class LotteryInteraction : InteractionModuleBase<SocketInteractionContext
 
 		return new SuccessGuessResponse(numbers, prettyNumbers);
 	}
+
 	private async Task<string> ChangeGuess(SuccessGuessResponse success, int oldNumber, int newNumber)
 	{
 		await _lotteryGuesses.Delete(guess => guess.Number == oldNumber);
@@ -136,7 +139,8 @@ public class LotteryInteraction : InteractionModuleBase<SocketInteractionContext
 		{
 			NotFcMemberGuessResponse _ => "Only FC members can participate in the lottery",
 			OutOfRangeGuessResponse _ => "You can only pick a number between 1 and 99.",
-			NotCurrentGuesseddNumberGuessResponse _ => $"You have not guessed {old}. You need to use a number you have already guessed in order to change it.",
+			AlreadyGuessedNumberGuessResponse _ => $"You have already guessed {@new}.",
+			NotCurrentGuessedNumberGuessResponse _ => $"You have not guessed {old}. You need to use a number you have already guessed in order to change it.",
 			SuccessGuessResponse r => await ChangeGuess(r, old, @new),
 			_ => throw new NotImplementedException()
 		}, ephemeral: true);
@@ -204,7 +208,7 @@ public class LotteryInteraction : InteractionModuleBase<SocketInteractionContext
 
 		if (winners.Count == 0)
 		{
-			await PostInLotteryChannel($"{randomNumber}. Nobody won, better luck next time!");
+			await PostInLotteryChannel($"{randomNumberDisplay}. Nobody won, better luck next time!");
 		}
 		else
 		{
@@ -283,7 +287,7 @@ public class LotteryInteraction : InteractionModuleBase<SocketInteractionContext
 
 	private async Task PostInLotteryChannel(string message)
 	{
-		var lotteryChannel = Context.Guild.GetTextChannel(ExcelExtensions.LotteryChannel);
+		var lotteryChannel = Context.Guild.GetTextChannel(Constants.LotteryChannel);
 		await lotteryChannel.SendMessageAsync(message);
 	}
 }
