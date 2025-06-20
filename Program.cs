@@ -1,6 +1,5 @@
 using DotNetEnv;
 using ExcelBotCs;
-using ExcelBotCs.Commands;
 using ExcelBotCs.Data;
 using ExcelBotCs.Discord;
 using Microsoft.Extensions.FileProviders;
@@ -38,8 +37,6 @@ AddInstance(new DatabaseOptions
 });
 AddService<Database>();
 AddService<DiscordLogger>();
-
-AddService<RandomJobCommand>();
 
 var app = builder.Build();
 

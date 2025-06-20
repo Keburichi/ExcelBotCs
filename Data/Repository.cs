@@ -29,6 +29,11 @@ public class Repository<T> where T : DatabaseObject
 		return (int)result.DeletedCount;
 	}
 
+	public async Task DeleteAll()
+	{
+		await _collection.DeleteManyAsync(_ => true);
+	}
+
 	public async Task Update(T item)
 	{
 		item.DateModified = DateTime.UtcNow;
@@ -39,6 +44,11 @@ public class Repository<T> where T : DatabaseObject
 	{
 		item.DateModified = DateTime.UtcNow;
 		await _collection.ReplaceOneAsync(MatchById(item), item, new ReplaceOptions() { IsUpsert = true });
+	}
+
+	public IMongoQueryable<T> Where(Expression<Func<T, bool>> predicate)
+	{
+		return _collection.AsQueryable().Where(predicate);
 	}
 
 	private static FilterDefinition<T>? MatchById(T item)

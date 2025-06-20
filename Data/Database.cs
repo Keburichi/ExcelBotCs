@@ -33,7 +33,7 @@ public class Database
 		}
 	}
 
-	private Repository<T> GetCollection<T>(string collection) where T : DatabaseObject
+	public Repository<T> GetCollection<T>(string collection) where T : DatabaseObject
 	{
 		return new Repository<T>(_database.GetCollection<T>(collection));
 	}

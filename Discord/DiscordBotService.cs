@@ -1,6 +1,7 @@
 using Discord;
 using Discord.Interactions;
 using Discord.WebSocket;
+using ExcelBotCs.Commands;
 using System.Reflection;
 
 namespace ExcelBotCs.Discord;
@@ -19,6 +20,12 @@ public class DiscordBotService : BackgroundService
 		{
 			GatewayIntents = GatewayIntents.AllUnprivileged | GatewayIntents.MessageContent | GatewayIntents.GuildMembers | GatewayIntents.GuildPresences
 		});
+		Client.Log += message =>
+		{
+			Console.WriteLine(message);
+			return Task.CompletedTask;
+		};
+
 		Interaction = new InteractionService(Client);
 		_config = config;
 		_lifeTime = lifeTime;
@@ -32,6 +39,7 @@ public class DiscordBotService : BackgroundService
 	private async Task ClientOnReady()
 	{
 		await Interaction.AddModulesAsync(Assembly.GetEntryAssembly(), _serviceProvider);
+		await Interaction.RegisterCommandsToGuildAsync(ExcelExtensions.GuildId);
 	}
 
 	private async Task ClientOnInteractionCreated(SocketInteraction interaction)
