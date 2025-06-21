@@ -200,21 +200,24 @@ public class LotteryInteraction : InteractionModuleBase<SocketInteractionContext
 		await RespondAsync("Lottery running...", ephemeral: true);
 
 		var randomNumber = new Random().Next(99);
-		var randomNumberDisplay = $"The winning number is {randomNumber}";
+		var randomNumberDisplay = $"# The winning number is {randomNumber}";
 
-		var winners = await _lotteryGuesses
-			.Where(guess => guess.Number == randomNumber)
-			.ToListAsync();
+		var allResults = await _lotteryGuesses.Where(_ => true).ToListAsync();
+		var winners = allResults.Where(guess => guess.Number == randomNumber).ToList();
 
 		if (winners.Count == 0)
 		{
-			await PostInLotteryChannel($"{randomNumberDisplay}. Nobody won, better luck next time!");
+			await PostInLotteryChannel($"{randomNumberDisplay}.\nNobody won, better luck next time!");
 		}
 		else
 		{
 			var winnersDisplay = winners.Select(user => $"<@{user.DiscordId}>").ToList().PrettyJoin();
 			await PostInLotteryChannel($"{randomNumberDisplay}. Congratulations to {winnersDisplay}!");
 		}
+
+		var grouped = allResults.GroupBy(guess => guess.DiscordId).OrderBy(group => group.Count());
+		await PostInLotteryChannel(
+			$"## Participants\n{string.Join('\n', grouped.Select(group => $"<@{group.Key}>: {group.Select(guess => guess.Number.ToString()).ToList().PrettyJoin()}"))}");
 
 		await Flush();
 	}
