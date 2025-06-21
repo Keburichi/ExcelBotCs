@@ -2,7 +2,7 @@ using Discord.Interactions;
 using Discord.WebSocket;
 using ExcelBotCs.Discord;
 
-namespace ExcelBotCs.Commands;
+namespace ExcelBotCs.Modules.Misc;
 
 public class MiscInteraction : InteractionModuleBase<SocketInteractionContext>
 {
@@ -69,7 +69,7 @@ public class MiscInteraction : InteractionModuleBase<SocketInteractionContext>
 	[SlashCommand("rdmmanaficoncd", "Tells you whether you should use Manafication on cooldown based on your expected kill time")]
 	public async Task ShouldIManaficRush(int minutes, int seconds)
 	{
-		var total = (minutes * 60) + seconds;
+		var total = minutes * 60 + seconds;
 		var emboldenUses = (int)Math.Floor(total / 120f);
 		var manaficUses = (int)Math.Floor(total / 110f);
 

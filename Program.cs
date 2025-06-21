@@ -2,6 +2,7 @@ using DotNetEnv;
 using ExcelBotCs;
 using ExcelBotCs.Data;
 using ExcelBotCs.Discord;
+using ExcelBotCs.Modules.Lottery;
 using Microsoft.Extensions.FileProviders;
 
 Env.Load();
@@ -34,6 +35,10 @@ AddInstance(new DatabaseOptions
 {
 	ConnectionString = Utils.GetEnvVar("MONGODB_CONNECTION_STRING", nameof(DatabaseOptions)),
 	DatabaseName = Utils.GetEnvVar("DATABASE_NAME", nameof(DatabaseOptions)),
+});
+AddInstance(new LotteryOptions
+{
+	Channel = ulong.Parse(Utils.GetEnvVar("LOTTERY_CHANNEL", nameof(LotteryOptions)))
 });
 AddService<Database>();
 AddService<DiscordLogger>();

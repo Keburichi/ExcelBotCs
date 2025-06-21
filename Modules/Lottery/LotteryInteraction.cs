@@ -1,9 +1,7 @@
 using Discord;
 using Discord.Interactions;
 using Discord.WebSocket;
-using ExcelBotCs.Commands;
 using ExcelBotCs.Data;
-using ExcelBotCs.Discord;
 using MongoDB.Driver;
 
 namespace ExcelBotCs.Modules.Lottery;
@@ -11,11 +9,13 @@ namespace ExcelBotCs.Modules.Lottery;
 [Group("lottery", "Lottery commands")]
 public class LotteryInteraction : InteractionModuleBase<SocketInteractionContext>
 {
+	private readonly LotteryOptions _options;
 	private readonly Repository<ExtraLotteryGuess> _extraLotteryGuesses;
 	private readonly Repository<LotteryGuess> _lotteryGuesses;
 
-	public LotteryInteraction(DiscordBotService discord, Database database)
+	public LotteryInteraction(Database database, LotteryOptions options)
 	{
+		_options = options;
 		_extraLotteryGuesses = database.GetCollection<ExtraLotteryGuess>("extra_lottery_guesses");
 		_lotteryGuesses = database.GetCollection<LotteryGuess>("lottery_guesses");
 	}
@@ -290,7 +290,7 @@ public class LotteryInteraction : InteractionModuleBase<SocketInteractionContext
 
 	private async Task PostInLotteryChannel(string message)
 	{
-		var lotteryChannel = Context.Guild.GetTextChannel(Constants.LotteryChannel);
+		var lotteryChannel = Context.Guild.GetTextChannel(_options.Channel);
 		await lotteryChannel.SendMessageAsync(message);
 	}
 }

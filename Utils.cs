@@ -4,7 +4,7 @@ using Newtonsoft.Json;
 namespace ExcelBotCs;
 public static class Utils
 {
-	private static Random rng = new Random();
+	private static Random rng = new();
 
 	public static string GetEnvVar(string key, string container)
 	{

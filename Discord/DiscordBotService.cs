@@ -1,7 +1,6 @@
 using Discord;
 using Discord.Interactions;
 using Discord.WebSocket;
-using ExcelBotCs.Commands;
 using System.Reflection;
 
 namespace ExcelBotCs.Discord;
