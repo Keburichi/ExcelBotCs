@@ -5,4 +5,5 @@ namespace ExcelBotCs.Modules.Lottery;
 public class ExtraLotteryGuess : DatabaseObject
 {
 	public ulong DiscordId { get; set; }
+	public string Reason { get; set; }
 }
