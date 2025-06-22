@@ -29,12 +29,20 @@ public class LotteryInteraction : InteractionModuleBase<SocketInteractionContext
 	interface IGuessResponse
 	{
 	}
-	record SuccessGuessResponse(IEnumerable<int> CurrentGuesses, string PrettyCurrentGuesses, int Number) : IGuessResponse;
+
+	record SuccessGuessResponse(IEnumerable<int> CurrentGuesses, string PrettyCurrentGuesses, int Number)
+		: IGuessResponse;
+
 	record OutOfRangeGuessResponse : IGuessResponse;
+
 	record NotFcMemberGuessResponse : IGuessResponse;
+
 	record AlreadyGuessedNumberGuessResponse(int Number) : IGuessResponse;
+
 	record NotCurrentGuessedNumberGuessResponse(int Number) : IGuessResponse;
-	record NoMoreGuessesGuessResponse(IEnumerable<int> CurrentGuesses, string PrettyCurrentGuesses) : IGuessResponse;
+
+	record NoMoreGuessesGuessResponse(IEnumerable<int> CurrentGuesses, string PrettyCurrentGuesses)
+		: IGuessResponse;
 
 	private async Task<IGuessResponse> TryGuess(int number)
 	{
@@ -115,7 +123,9 @@ public class LotteryInteraction : InteractionModuleBase<SocketInteractionContext
 	}
 
 	record NoUsersAwardResponse : IAwardResponse;
-	record SuccessAwardResponse(IEnumerable<ulong> UserIds, string PrettyUsersAwarded, string Reason) : IAwardResponse;
+
+	record SuccessAwardResponse(IEnumerable<ulong> UserIds, string PrettyUsersAwarded, string Reason)
+		: IAwardResponse;
 
 	private async Task<IAwardResponse> TryAwardUsers(string reason, List<ulong> userIds)
 	{
@@ -130,16 +140,19 @@ public class LotteryInteraction : InteractionModuleBase<SocketInteractionContext
 	{
 		foreach (var userId in success.UserIds)
 		{
-			await _extraLotteryGuesses.Insert(new ExtraLotteryGuess() { DiscordId = userId, Reason = success.Reason });
+			await _extraLotteryGuesses.Insert(new ExtraLotteryGuess()
+			{ DiscordId = userId, Reason = success.Reason });
 		}
 
 		if (success.UserIds.Count() == 1)
 		{
-			await PostInLotteryChannel($"{success.PrettyUsersAwarded} has been granted another lottery guess for {success.Reason}! Use `/lottery guess` to make your choice.");
+			await PostInLotteryChannel(
+				$"{success.PrettyUsersAwarded} has been granted another lottery guess for {success.Reason}! Use `/lottery guess` to make your choice.");
 		}
 		else
 		{
-			await PostInLotteryChannel($"{success.PrettyUsersAwarded} have all been granted another lottery guess for {success.Reason}! Use `/lottery guess` to make your choice.");
+			await PostInLotteryChannel(
+				$"{success.PrettyUsersAwarded} have all been granted another lottery guess for {success.Reason}! Use `/lottery guess` to make your choice.");
 		}
 	}
 
@@ -160,8 +173,10 @@ public class LotteryInteraction : InteractionModuleBase<SocketInteractionContext
 			NotFcMemberGuessResponse _ => "Only FC members can participate in the lottery",
 			OutOfRangeGuessResponse _ => "You can only pick a number between 1 and 99.",
 			AlreadyGuessedNumberGuessResponse _ => $"You have already guessed {number}!",
-			NoMoreGuessesGuessResponse r => $"You don't have any guesses left! Current guesses: {r.PrettyCurrentGuesses}. You can use `/lottery change` to change an existing guess.",
-			SuccessGuessResponse r => $"Your guess for {r.Number} was recorded! Current guesses: {r.PrettyCurrentGuesses}. You can use `/lottery change` to change an existing guess.",
+			NoMoreGuessesGuessResponse r =>
+				$"You don't have any guesses left! Current guesses: {r.PrettyCurrentGuesses}. You can use `/lottery change` to change an existing guess.",
+			SuccessGuessResponse r =>
+				$"Your guess for {r.Number} was recorded! Current guesses: {r.PrettyCurrentGuesses}. You can use `/lottery change` to change an existing guess.",
 			_ => throw new NotImplementedException()
 		}, ephemeral: true);
 	}
@@ -188,8 +203,10 @@ public class LotteryInteraction : InteractionModuleBase<SocketInteractionContext
 			await FollowupAsync(result switch
 			{
 				NotFcMemberGuessResponse _ => "Only FC members can participate in the lottery",
-				NoMoreGuessesGuessResponse r => $"You don't have any guesses left! Current guesses: {r.PrettyCurrentGuesses}. You can use `/lottery change` to change an existing guess.",
-				SuccessGuessResponse r => $"Your guess for {r.Number} was recorded! Current guesses: {r.PrettyCurrentGuesses}. You can use `/lottery change` to change an existing guess.",
+				NoMoreGuessesGuessResponse r =>
+					$"You don't have any guesses left! Current guesses: {r.PrettyCurrentGuesses}. You can use `/lottery change` to change an existing guess.",
+				SuccessGuessResponse r =>
+					$"Your guess for {r.Number} was recorded! Current guesses: {r.PrettyCurrentGuesses}. You can use `/lottery change` to change an existing guess.",
 				_ => "Something went wrong, try again later. If this keeps happening, let Zahrymm know."
 			}, ephemeral: true);
 		}
@@ -234,8 +251,10 @@ public class LotteryInteraction : InteractionModuleBase<SocketInteractionContext
 			NotFcMemberGuessResponse _ => "Only FC members can participate in the lottery",
 			OutOfRangeGuessResponse _ => "You can only pick a number between 1 and 99.",
 			AlreadyGuessedNumberGuessResponse _ => $"You have already guessed {@new}.",
-			NotCurrentGuessedNumberGuessResponse _ => $"You have not guessed {old}. You need to use a number you have already guessed in order to change it.",
-			SuccessGuessResponse r => $"Your guess for {old} was changed to {@new}! Current guesses: {r.PrettyCurrentGuesses}. You can use `/lottery change` to change an existing guess.",
+			NotCurrentGuessedNumberGuessResponse _ =>
+				$"You have not guessed {old}. You need to use a number you have already guessed in order to change it.",
+			SuccessGuessResponse r =>
+				$"Your guess for {old} was changed to {@new}! Current guesses: {r.PrettyCurrentGuesses}. You can use `/lottery change` to change an existing guess.",
 			_ => throw new NotImplementedException()
 		}, ephemeral: true);
 	}
@@ -250,8 +269,10 @@ public class LotteryInteraction : InteractionModuleBase<SocketInteractionContext
 		await RespondAsync(currentGuesses.Count switch
 		{
 			0 => $"Nobody has guessed {number}.",
-			1 => $"{currentGuesses.Select(user => $"<@{user.DiscordId}>").ToList().PrettyJoin()} has guessed {number}.",
-			_ => $"{currentGuesses.Select(user => $"<@{user.DiscordId}>").ToList().PrettyJoin()} have all guessed {number}."
+			1 =>
+				$"{currentGuesses.Select(user => $"<@{user.DiscordId}>").ToList().PrettyJoin()} has guessed {number}.",
+			_ =>
+				$"{currentGuesses.Select(user => $"<@{user.DiscordId}>").ToList().PrettyJoin()} have all guessed {number}."
 		}, ephemeral: true);
 	}
 
@@ -361,49 +382,46 @@ public class LotteryInteraction : InteractionModuleBase<SocketInteractionContext
 		var builder = new ComponentBuilder()
 			.WithSelectMenu(awardSelection);
 
-		await RespondAsync("Who should be awarded an extra guess for this lottery period?", components: builder.Build(), ephemeral: true);
+		await RespondAsync("Who should be awarded an extra guess for this lottery period?",
+			components: builder.Build(), ephemeral: true);
 	}
 
 	private async Task AwardByContents(string reason, string postUrl)
 	{
-		var regex = new Regex("discord.com/channels/(?<guildId>\\d+)/(?<channelId>\\d+)/(?<messageId>\\d+)");
-		var match = regex.Matches(postUrl).FirstOrDefault();
-
-		if (match is not { Success: true })
+		switch (await Context.Client.GetMessageFromUrl(postUrl))
 		{
-			await RespondAsync("The provided URL does not seem to be a valid Discord URL", ephemeral: true);
-			return;
+			case Extensions.NotValidUrlMessageResponse:
+				await RespondAsync("The provided URL does not seem to be a valid Discord URL", ephemeral: true);
+				break;
+
+			case Extensions.NotFoundUrlMessageResponse:
+				await RespondAsync(
+					"Could not find the Guild/Channel this message belongs to. Do I have permission to view it?",
+					ephemeral: true);
+				break;
+
+			case Extensions.SuccessMessageResponse msg:
+				{
+					var result = await TryAwardUsers(reason, msg.Message.MentionedUserIds.ToList());
+
+					if (result is NoUsersAwardResponse)
+					{
+						await RespondAsync("No mentioned users could be found in the message.", ephemeral: true);
+						return;
+					}
+
+					if (result is not SuccessAwardResponse success)
+					{
+						await RespondAsync("Something went wrong. Tell Zahrymm.", ephemeral: true);
+						return;
+					}
+
+					await AwardUsers(success);
+					await RespondAsync($"An extra lottery guess have been granted to: {success.PrettyUsersAwarded}",
+						ephemeral: true);
+					break;
+				}
 		}
-
-		var guildId = ulong.Parse(match.Groups["guildId"].Value);
-		var channelId = ulong.Parse(match.Groups["channelId"].Value);
-		var messageId = ulong.Parse(match.Groups["messageId"].Value);
-
-		var channel = (Context.Client.GetGuild(guildId).GetChannel(channelId) as ITextChannel);
-
-		if (channel == null)
-		{
-			await RespondAsync("Could not find the Guild/Channel this message belongs to. Do I have permission to view it?", ephemeral: true);
-			return;
-		}
-
-		var message = await channel.GetMessageAsync(messageId);
-		var result = await TryAwardUsers(reason, message.MentionedUserIds.ToList());
-
-		if (result is NoUsersAwardResponse)
-		{
-			await RespondAsync("No mentioned users could be found in the message.", ephemeral: true);
-			return;
-		}
-
-		if (result is not SuccessAwardResponse success)
-		{
-			await RespondAsync("Something went wrong. Tell Zahrymm.", ephemeral: true);
-			return;
-		}
-
-		await AwardUsers(success);
-		await RespondAsync($"An extra lottery guess have been granted to: {success.PrettyUsersAwarded}", ephemeral: true);
 	}
 
 

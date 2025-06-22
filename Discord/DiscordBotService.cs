@@ -17,7 +17,9 @@ public class DiscordBotService : BackgroundService
 	{
 		Client = new DiscordSocketClient(new DiscordSocketConfig()
 		{
-			GatewayIntents = GatewayIntents.AllUnprivileged | GatewayIntents.MessageContent | GatewayIntents.GuildMembers | GatewayIntents.GuildPresences
+			GatewayIntents = GatewayIntents.AllUnprivileged | GatewayIntents.MessageContent | GatewayIntents.GuildMembers | GatewayIntents.GuildPresences,
+			AlwaysDownloadUsers = true,
+			MessageCacheSize = 200
 		});
 		Client.Log += message =>
 		{
