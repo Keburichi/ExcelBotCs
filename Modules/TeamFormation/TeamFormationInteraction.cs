@@ -99,6 +99,11 @@ public class TeamFormationInteraction : InteractionModuleBase<SocketInteractionC
 	{
 		var composedGroup = new Dictionary<string, List<ulong>>();
 
+		foreach (var group in _groups)
+		{
+			composedGroup.Add(group.Role, new List<ulong>());
+		}
+
 		while (composedGroup.Values.SelectMany(item => item).Count() != 8)
 		{
 			if (token.IsCancellationRequested)
@@ -133,6 +138,14 @@ public class TeamFormationInteraction : InteractionModuleBase<SocketInteractionC
 			// if we have enough, remove the role from the pool
 			if (composedGroup[user.Role].Count >= _groups.First(group => group.Role == user.Role).Maximum)
 				signups.RemoveAll(signup => signup.Role == user.Role);
+
+			// if we have enough dps, remove them all from the pool to prevent 5 dps nonsense
+			if (composedGroup["Melee"].Count + composedGroup["Caster"].Count + composedGroup["Ranged"].Count >= 4)
+			{
+				signups.RemoveAll(signup => signup.Role == "Melee");
+				signups.RemoveAll(signup => signup.Role == "Caster");
+				signups.RemoveAll(signup => signup.Role == "Ranged");
+			}
 
 			await Task.Yield();
 		}
