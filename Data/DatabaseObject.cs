@@ -13,5 +13,6 @@ public abstract class DatabaseObject
 	{
 		Id = ObjectId.GenerateNewId();
 		DateCreated = DateTime.UtcNow;
+		DateModified = DateCreated;
 	}
 }

@@ -13,12 +13,14 @@ public class LotteryInteraction : InteractionModuleBase<SocketInteractionContext
 	private readonly LotteryOptions _options;
 	private readonly Repository<ExtraLotteryGuess> _extraLotteryGuesses;
 	private readonly Repository<LotteryGuess> _lotteryGuesses;
+	private readonly Repository<LotteryResult> _lotteryResults;
 
 	public LotteryInteraction(Database database, LotteryOptions options)
 	{
 		_options = options;
 		_extraLotteryGuesses = database.GetCollection<ExtraLotteryGuess>("extra_lottery_guesses");
 		_lotteryGuesses = database.GetCollection<LotteryGuess>("lottery_guesses");
+		_lotteryResults = database.GetCollection<LotteryResult>("lottery_results");
 	}
 
 	private bool CanParticipate(SocketGuildUser user)
@@ -181,11 +183,42 @@ public class LotteryInteraction : InteractionModuleBase<SocketInteractionContext
 		}, ephemeral: true);
 	}
 
+	[SlashCommand("unusednumbers", "Check what numbers have not yet been used.")]
+	public async Task UnusedNumbers()
+	{
+		var numbers = (await GetNotGuessedNumbers()).Select(num => num.ToString()).ToList().PrettyJoin();
+		await RespondAsync($"Currently unused: {numbers}", ephemeral: true);
+	}
+
+
+	private async Task<List<int>> GetNotGuessedNumbers()
+	{
+		return Enumerable.Range(1, 99).Except(await GetGuessedNumbers()).ToList();
+	}
+
+	private async Task<List<int>> GetGuessedNumbers()
+	{
+		return (await _lotteryGuesses
+			.Where(_ => true)
+			.ToListAsync())
+			.Select(guess => guess.Number)
+			.Distinct()
+			.ToList();
+	}
+
+	public enum RandomGuessType
+	{
+		[ChoiceDisplay("Use any random number")] Any,
+		[ChoiceDisplay("Use only numbers that have not been guessed")] UnusedOnly,
+		[ChoiceDisplay("Use only numbers that have been guessed (monster!)")] UsedOnly,
+	}
+
+
 	[SlashCommand("luckydip", "Spin the wheel and maybe you'll win!")]
-	public async Task RandomGuess()
+	public async Task RandomGuess(RandomGuessType numberPool = RandomGuessType.Any)
 	{
 		var cts = new CancellationTokenSource();
-		var task = TryRandomGuess(cts.Token);
+		var task = TryRandomGuess(cts.Token, numberPool);
 		await DeferAsync(true);
 
 		if (await Task.WhenAny(task, Task.Delay(TimeSpan.FromSeconds(5), cts.Token)) == task)
@@ -219,14 +252,22 @@ public class LotteryInteraction : InteractionModuleBase<SocketInteractionContext
 		}
 	}
 
-	private async Task<IGuessResponse> TryRandomGuess(CancellationToken token)
+	private async Task<IGuessResponse> TryRandomGuess(CancellationToken token, RandomGuessType type)
 	{
+		var numberPool = (type switch
+		{
+			RandomGuessType.Any => Enumerable.Range(0, 99),
+			RandomGuessType.UsedOnly => await GetGuessedNumbers(),
+			RandomGuessType.UnusedOnly => await GetNotGuessedNumbers(),
+			_ => throw new ArgumentException()
+		}).ToList();
+
 		while (true)
 		{
 			if (token.IsCancellationRequested)
 				return new AlreadyGuessedNumberGuessResponse(0);
 
-			var randomNumber = new Random().Next(99);
+			var randomNumber = numberPool.Shuffle().First();
 			var result = await TryGuess(randomNumber);
 
 			if (result is SuccessGuessResponse or NotFcMemberGuessResponse or NoMoreGuessesGuessResponse)
@@ -332,6 +373,8 @@ public class LotteryInteraction : InteractionModuleBase<SocketInteractionContext
 		var allResults = await _lotteryGuesses.Where(_ => true).ToListAsync();
 		var winners = allResults.Where(guess => guess.Number == randomNumber).ToList();
 
+		await SaveGuesses(randomNumber, allResults);
+
 		if (winners.Count == 0)
 		{
 			await PostInLotteryChannel($"{randomNumberDisplay}.\nNobody won, better luck next time!");
@@ -347,6 +390,17 @@ public class LotteryInteraction : InteractionModuleBase<SocketInteractionContext
 			$"## Participants\n{string.Join('\n', grouped.Select(group => $"<@{group.Key}>: {group.Select(guess => guess.Number.ToString()).ToList().PrettyJoin()}"))}");
 
 		await Flush();
+	}
+
+	private async Task SaveGuesses(int winningNumber, List<LotteryGuess> allResults)
+	{
+		var result = new LotteryResult()
+		{
+			WinningNumber = winningNumber,
+			Guesses = allResults
+		};
+
+		await _lotteryResults.Insert(result);
 	}
 
 	private async Task Flush()
