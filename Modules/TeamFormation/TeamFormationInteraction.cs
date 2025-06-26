@@ -60,8 +60,19 @@ public class TeamFormationInteraction : InteractionModuleBase<SocketInteractionC
 				}
 
 				Dictionary<string, List<ulong>>? group = null;
-				while (group == null)
-					group = await TryFormGroup(signups.ToList());
+				var cts = new CancellationTokenSource();
+				var task = TryFormGroup(cts.Token, signups.ToList());
+
+				if (await Task.WhenAny(task, Task.Delay(TimeSpan.FromSeconds(10), cts.Token)) == task)
+				{
+					await cts.CancelAsync();
+					group = await task;
+				}
+				else
+				{
+					await cts.CancelAsync();
+					await FollowupAsync("Trying to generate a group took too long, it's probably not possible to form one.", ephemeral: true);
+				}
 
 				await FollowupAsync($"### Group generated from {postUrl}\n{GenerateRoleText(TankRoleEmote, group, "Tank")}{GenerateRoleText(HealerRoleEmote, group, "Healer")}{GenerateRoleText(MeleeRoleEmote, group, "Melee")}{GenerateRoleText(CasterRoleEmote, group, "Caster")}{GenerateRoleText(RangedRoleEmote, group, "Ranged")}");
 				break;
@@ -71,13 +82,28 @@ public class TeamFormationInteraction : InteractionModuleBase<SocketInteractionC
 	private string GenerateRoleText(string emote, Dictionary<string, List<ulong>> group, string role) =>
 		$"{emote}: {string.Join(' ', group[role].Select(id => $"<@{id}>"))}\n";
 
-	private async Task<Dictionary<string, List<ulong>>?> TryFormGroup(List<(string Role, ulong Id)> signups)
+	private async Task<Dictionary<string, List<ulong>>?> TryFormGroup(CancellationToken token, List<(string Role, ulong Id)> signups)
 	{
-		var cycles = 0;
+		while (true)
+		{
+			if (token.IsCancellationRequested)
+				return null;
+
+			var result = await FormGroup(token, signups.ToList());
+			if (result != null)
+				return result;
+		}
+	}
+
+	private async Task<Dictionary<string, List<ulong>>?> FormGroup(CancellationToken token, List<(string Role, ulong Id)> signups)
+	{
 		var composedGroup = new Dictionary<string, List<ulong>>();
 
 		while (composedGroup.Values.SelectMany(item => item).Count() != 8)
 		{
+			if (token.IsCancellationRequested)
+				return null;
+
 			// start with the role with the lowest signups for roles that haven't yet been selected
 			var lowestReaction = signups
 				.GroupBy(x => x.Role)
@@ -108,9 +134,7 @@ public class TeamFormationInteraction : InteractionModuleBase<SocketInteractionC
 			if (composedGroup[user.Role].Count >= _groups.First(group => group.Role == user.Role).Maximum)
 				signups.RemoveAll(signup => signup.Role == user.Role);
 
-			cycles++;
-			if (cycles >= 1000)
-				return null;
+			await Task.Yield();
 		}
 
 		return composedGroup;
