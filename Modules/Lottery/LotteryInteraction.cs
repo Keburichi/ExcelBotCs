@@ -208,14 +208,14 @@ public class LotteryInteraction : InteractionModuleBase<SocketInteractionContext
 
 	public enum RandomGuessType
 	{
-		[ChoiceDisplay("Use any random number")] Any,
+		[ChoiceDisplay("Use any random number from 1-99")] Any,
 		[ChoiceDisplay("Use only numbers that have not been guessed")] UnusedOnly,
 		[ChoiceDisplay("Use only numbers that have been guessed (monster!)")] UsedOnly,
 	}
 
 
 	[SlashCommand("luckydip", "Spin the wheel and maybe you'll win!")]
-	public async Task RandomGuess(RandomGuessType numberPool = RandomGuessType.Any)
+	public async Task RandomGuess([Summary("number-pool", "Determines whether to use a random number from 1-99, unguessed or guessed numbers (default: 1-99)")] RandomGuessType numberPool = RandomGuessType.Any)
 	{
 		var cts = new CancellationTokenSource();
 		var task = TryRandomGuess(cts.Token, numberPool);
@@ -235,11 +235,12 @@ public class LotteryInteraction : InteractionModuleBase<SocketInteractionContext
 
 			await FollowupAsync(result switch
 			{
-				NotFcMemberGuessResponse _ => "Only FC members can participate in the lottery",
+				NotFcMemberGuessResponse => "Only FC members can participate in the lottery",
 				NoMoreGuessesGuessResponse r =>
 					$"You don't have any guesses left! Current guesses: {r.PrettyCurrentGuesses}. You can use `/lottery change` to change an existing guess.",
 				SuccessGuessResponse r =>
 					$"Your guess for {r.Number} was recorded! Current guesses: {r.PrettyCurrentGuesses}. You can use `/lottery change` to change an existing guess.",
+				OutOfRangeGuessResponse => "This number pool has no valid numbers to use, try another number pool.",
 				_ => "Something went wrong, try again later. If this keeps happening, let Zahrymm know."
 			}, ephemeral: true);
 		}
@@ -261,6 +262,11 @@ public class LotteryInteraction : InteractionModuleBase<SocketInteractionContext
 			RandomGuessType.UnusedOnly => await GetNotGuessedNumbers(),
 			_ => throw new ArgumentException()
 		}).ToList();
+
+		if (numberPool.Count == 0)
+		{
+			return new OutOfRangeGuessResponse();
+		}
 
 		while (true)
 		{
