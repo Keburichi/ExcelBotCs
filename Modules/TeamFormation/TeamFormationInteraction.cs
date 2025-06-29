@@ -1,4 +1,4 @@
-using Discord;
+﻿using Discord;
 using Discord.Interactions;
 
 namespace ExcelBotCs.Modules.TeamFormation;
@@ -74,7 +74,17 @@ public class TeamFormationInteraction : InteractionModuleBase<SocketInteractionC
 
 			case Extensions.SuccessMessageResponse msg:
 				var group = await GetSignupsFromMessage(msg.Message);
-				await FollowupAsync($"### Signups from {postUrl}\n{GenerateRoleText(group, Role.Tank)}{GenerateRoleText(group, Role.Healer)}{GenerateRoleText(group, Role.Melee)}{GenerateRoleText(group, Role.Caster)}{GenerateRoleText(group, Role.Ranged)}");
+				var allSignups = group.Values.SelectMany(list => list.Select(id => id)).ToList();
+
+				string GenerateInlineText(Dictionary<Role, HashSet<ulong>> group, Role role) =>
+					$"{_groups[role].Emote} ({group[role].Count}): {group[role].Select(id => allSignups.Count(signupId => signupId == id) == 1 ? $"⭐<@{id}>" : $"<@{id}>").ToList().PrettyJoin()}\n";
+
+				await FollowupAsync($"### Signups from {postUrl}\nTotal unique signups: {allSignups.Distinct().Count()}\n" +
+									$"{GenerateInlineText(group, Role.Tank)}" +
+									$"{GenerateInlineText(group, Role.Healer)}" +
+									$"{GenerateInlineText(group, Role.Melee)}" +
+									$"{GenerateInlineText(group, Role.Caster)}" +
+									$"{GenerateInlineText(group, Role.Ranged)}");
 				break;
 		}
 	}
