@@ -178,7 +178,7 @@ public class LotteryInteraction : InteractionModuleBase<SocketInteractionContext
 			NoMoreGuessesGuessResponse r =>
 				$"You don't have any guesses left! Current guesses: {r.PrettyCurrentGuesses}. You can use `/lottery change` to change an existing guess.",
 			SuccessGuessResponse r =>
-				$"Your guess for {r.Number} was recorded! Current guesses: {r.PrettyCurrentGuesses}. You can use `/lottery change` to change an existing guess.",
+				$"Your guess for {r.Number} was recorded! Current guesses: {r.PrettyCurrentGuesses}. You can use `/lottery change` to change an existing guess. {(await GetRemainingGuesses(Context.GuildUser())).Output}",
 			_ => throw new NotImplementedException()
 		}, ephemeral: true);
 	}
@@ -237,7 +237,7 @@ public class LotteryInteraction : InteractionModuleBase<SocketInteractionContext
 			{
 				NotFcMemberGuessResponse => "Only FC members can participate in the lottery",
 				NoMoreGuessesGuessResponse r =>
-					$"You don't have any guesses left! Current guesses: {r.PrettyCurrentGuesses}. You can use `/lottery change` to change an existing guess.",
+					$"You don't have any guesses left! Current guesses: {r.PrettyCurrentGuesses}. You can use `/lottery change` to change an existing guess. {(await GetRemainingGuesses(Context.GuildUser())).Output}",
 				SuccessGuessResponse r =>
 					$"Your guess for {r.Number} was recorded! Current guesses: {r.PrettyCurrentGuesses}. You can use `/lottery change` to change an existing guess.",
 				OutOfRangeGuessResponse => "This number pool has no valid numbers to use, try another number pool.",
@@ -251,6 +251,27 @@ public class LotteryInteraction : InteractionModuleBase<SocketInteractionContext
 				"Picking a number took too long, try again later. If this keeps happening, let Zahrymm know.",
 				ephemeral: true);
 		}
+	}
+
+	private async Task<(List<LotteryGuess>? CurrentGuesses, string Output)> GetRemainingGuesses(SocketGuildUser user)
+	{
+		var currentGuesses = await _lotteryGuesses
+			.Where(guess => guess.DiscordId == user.Id)
+			.ToListAsync();
+
+		var extraAwardedGuesses = await _extraLotteryGuesses
+			.Where(guess => guess.DiscordId == user.Id)
+			.ToListAsync();
+
+		var currentGuessAmount = currentGuesses.Count;
+		var allowedGuessAmount = 1 + extraAwardedGuesses.Count;
+		var displayAmount = allowedGuessAmount == 1
+			? (currentGuessAmount == 1
+				? $"You have used your guess."
+				: $"You have not used your guess.")
+			: $"You have used {currentGuessAmount} of your {allowedGuessAmount} guesses.";
+
+		return (currentGuesses, displayAmount);
 	}
 
 	private async Task<IGuessResponse> TryRandomGuess(CancellationToken token, RandomGuessType type)
@@ -332,21 +353,7 @@ public class LotteryInteraction : InteractionModuleBase<SocketInteractionContext
 			return;
 		}
 
-		var currentGuesses = await _lotteryGuesses
-			.Where(guess => guess.DiscordId == Context.GuildUser().Id)
-			.ToListAsync();
-
-		var extraAwardedGuesses = await _extraLotteryGuesses
-			.Where(guess => guess.DiscordId == Context.GuildUser().Id)
-			.ToListAsync();
-
-		var currentGuessAmount = currentGuesses.Count;
-		var allowedGuessAmount = 1 + extraAwardedGuesses.Count;
-		var displayAmount = allowedGuessAmount == 1
-			? (currentGuessAmount == 1
-				? $"You have used your guess."
-				: $"You have not used your guess.")
-			: $"You have used {currentGuessAmount} of your {allowedGuessAmount} guesses.";
+		var (currentGuesses, displayAmount) = await GetRemainingGuesses(Context.GuildUser());
 
 		if (currentGuesses.Count == 0)
 		{
@@ -413,6 +420,56 @@ public class LotteryInteraction : InteractionModuleBase<SocketInteractionContext
 	{
 		await _lotteryGuesses.DeleteAll();
 		await _extraLotteryGuesses.DeleteAll();
+	}
+
+	[SlashCommand("remind", "Reminds users to use any remaining guesses")]
+	public async Task Remind()
+	{
+		if (!Context.GuildUser().Roles.IsOfficer())
+		{
+			await RespondAsync("Only officers can use this command!", ephemeral: true);
+			return;
+		}
+
+		await DeferAsync(true);
+
+		var fcMembers = Context.Guild.Users.Where(user => user.Roles.IsMember() && !user.IsBot).Select(user => user.Id);
+		var currentGuesses = (await _lotteryGuesses.Where(_ => true).ToListAsync()).Select(guess => guess.DiscordId)
+			.GroupBy(x => x)
+			.ToDictionary(x => x.Key, x => x.Count());
+		var awardedGuesses = (await _extraLotteryGuesses.Where(_ => true).ToListAsync())
+			.Select(award => award.DiscordId)
+			.GroupBy(x => x)
+			.ToDictionary(x => x.Key, x => x.Count());
+
+		foreach (var fcMember in fcMembers)
+			currentGuesses.TryAdd(fcMember, 0);
+
+		var remainingGuesses = new List<(ulong Id, int Remaining)>();
+
+		foreach (var (id, current) in currentGuesses)
+		{
+			if (awardedGuesses.TryGetValue(id, out var remaining))
+			{
+				var count = (remaining + 1) - current;
+				if (count > 0)
+					remainingGuesses.Add((id, count));
+			}
+			else
+			{
+				if (current == 0)
+					remainingGuesses.Add((id, 1));
+			}
+		}
+
+		var output = remainingGuesses
+			.GroupBy(x => x.Remaining)
+			.OrderBy(x => x.Key)
+			.Aggregate(string.Empty,
+				(current, guesses)
+					=> current + $"{guesses.Key} guess{(guesses.Key == 1 ? "" : "es")} remaining: {guesses.Select(user => $"<@{user.Id}>").ToList().PrettyJoin()}\n");
+
+		await FollowupAsync(output, ephemeral: true);
 	}
 
 	[SlashCommand("award", "Grants extra guesses for the current lottery period")]
