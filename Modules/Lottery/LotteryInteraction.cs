@@ -217,7 +217,7 @@ public class LotteryInteraction : InteractionModuleBase<SocketInteractionContext
 
 
 	[SlashCommand("luckydip", "Spin the wheel and maybe you'll win!")]
-	public async Task RandomGuess([Summary("number-pool", "Determines whether to use a random number from 1-99, unguessed or guessed numbers (default: 1-99)")] RandomGuessType numberPool = RandomGuessType.Any)
+	public async Task RandomGuess([Summary("number-pool", "Determines whether to use a random number from 1-99, unguessed or guessed numbers (default: unguessed numbers)")] RandomGuessType numberPool = RandomGuessType.UnusedOnly)
 	{
 		var cts = new CancellationTokenSource();
 		var task = TryRandomGuess(cts.Token, numberPool);
@@ -472,6 +472,22 @@ public class LotteryInteraction : InteractionModuleBase<SocketInteractionContext
 					=> current + $"{guesses.Key} guess{(guesses.Key == 1 ? "" : "es")} remaining: {guesses.Select(user => $"<@{user.Id}>").ToList().PrettyJoin()}\n");
 
 		await FollowupAsync(output, ephemeral: true);
+
+		var previousParticipants = (await _lotteryResults.Where(_ => true).ToListAsync())
+			.OrderBy(result => result.DateCreated)
+			.Take(3)
+			.SelectMany(result => result.Guesses)
+			.Select(guess => guess.DiscordId)
+			.Distinct();
+
+		var intersectionOutput = remainingGuesses
+			.Where(guess => previousParticipants.Contains(guess.Id))
+			.GroupBy(x => x.Remaining)
+			.OrderBy(x => x.Key)
+			.Aggregate("## Use your guesses before it's too late!\n",
+				(current, guesses)
+					=> current + $"{guesses.Key} guess{(guesses.Key == 1 ? "" : "es")} remaining: {guesses.Select(user => $"<@{user.Id}>").ToList().PrettyJoin()}\n");
+		await PostInLotteryChannel(intersectionOutput);
 	}
 
 	[SlashCommand("award", "Grants extra guesses for the current lottery period")]
