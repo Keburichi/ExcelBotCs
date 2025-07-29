@@ -7,10 +7,12 @@ namespace ExcelBotCs.Modules.Misc;
 public class MiscInteraction : InteractionModuleBase<SocketInteractionContext>
 {
 	private readonly DiscordBotService _discord;
+	private readonly Prng _rng;
 
-	public MiscInteraction(DiscordBotService discord)
+	public MiscInteraction(DiscordBotService discord, Prng rng)
 	{
 		_discord = discord;
+		_rng = rng;
 	}
 
 	[SlashCommand("whoisingame", "Tells you who is currently in-game")]
@@ -35,13 +37,25 @@ public class MiscInteraction : InteractionModuleBase<SocketInteractionContext>
 		await RespondAsync($"According to Discord, {users.Count} user{(users.Count == 1 ? " is" : "s are")} currently logged in to FFXIV: {string.Join(", ", users.Select(user => $"<@{user.Id}>"))}");
 	}
 
-	[SlashCommand("test", "Does whatever Zahrymm is testing")]
-	public async Task TestCommand()
+	[SlashCommand("testb", "Does whatever Zahrymm is testing")]
+	public async Task TestCommand(int maxValue, int total)
 	{
-		await RespondAsync("Hello!");
+		await DeferAsync();
+
+		var dict = new Dictionary<int, int>();
+
+		for (var i = 0; i < total; i++)
+		{
+			var result = _rng.NextInt(0, maxValue);
+
+			if (!dict.TryAdd(result, 1))
+				dict[result]++;
+		}
+
+		await FollowupAsync($"Histogram:\n{string.Join(Environment.NewLine, dict.Select(kvp => $"{kvp.Key}:{kvp.Value}"))}");
 	}
 
-	private async Task RandomJob(params string[] jobs) => await RespondAsync($"I picked {jobs.PickRandom()} for you!");
+	private async Task RandomJob(params string[] jobs) => await RespondAsync($"I picked {_rng.Pick(jobs).First()} for you!");
 
 	[SlashCommand("randommelee", "Gives you a random Melee DPS job")]
 	public async Task RandomMelee() => await RandomJob("Dragoon", "Monk", "Ninja", "Samurai", "Reaper", "Viper");

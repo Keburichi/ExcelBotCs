@@ -6,6 +6,8 @@ namespace ExcelBotCs.Modules.TeamFormation;
 [Group("team", "Team commands")]
 public class TeamFormationInteraction : InteractionModuleBase<SocketInteractionContext>
 {
+	private readonly Prng _rng;
+
 	public enum Role
 	{
 		Tank,
@@ -30,6 +32,11 @@ public class TeamFormationInteraction : InteractionModuleBase<SocketInteractionC
 			{ Role.Caster, (CasterRoleEmote, 1, 2) },
 			{ Role.Ranged, (RangedRoleEmote, 1, 1) }
 		};
+
+	public TeamFormationInteraction(Prng rng)
+	{
+		_rng = rng;
+	}
 
 	private async Task<Dictionary<Role, HashSet<ulong>>> GetSignupsFromMessage(IMessage message)
 	{
@@ -176,7 +183,7 @@ public class TeamFormationInteraction : InteractionModuleBase<SocketInteractionC
 			if (nextPriority.Count == 0)
 				return null;
 
-			var user = nextPriority.Shuffle().First();
+			var user = _rng.Pick(nextPriority).First();
 
 			if (!composedGroup.TryAdd(user.Key, [user.id]))
 				composedGroup[user.Key].Add(user.id);

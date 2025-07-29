@@ -42,6 +42,7 @@ AddInstance(new LotteryOptions
 });
 AddService<Database>();
 AddService<DiscordLogger>();
+AddInstance(new Prng());
 
 var app = builder.Build();
 

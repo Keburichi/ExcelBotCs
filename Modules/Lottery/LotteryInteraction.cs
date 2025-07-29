@@ -11,13 +11,15 @@ namespace ExcelBotCs.Modules.Lottery;
 public class LotteryInteraction : InteractionModuleBase<SocketInteractionContext>
 {
 	private readonly LotteryOptions _options;
+	private readonly Prng _rng;
 	private readonly Repository<ExtraLotteryGuess> _extraLotteryGuesses;
 	private readonly Repository<LotteryGuess> _lotteryGuesses;
 	private readonly Repository<LotteryResult> _lotteryResults;
 
-	public LotteryInteraction(Database database, LotteryOptions options)
+	public LotteryInteraction(Database database, LotteryOptions options, Prng rng)
 	{
 		_options = options;
+		_rng = rng;
 		_extraLotteryGuesses = database.GetCollection<ExtraLotteryGuess>("extra_lottery_guesses");
 		_lotteryGuesses = database.GetCollection<LotteryGuess>("lottery_guesses");
 		_lotteryResults = database.GetCollection<LotteryResult>("lottery_results");
@@ -111,7 +113,7 @@ public class LotteryInteraction : InteractionModuleBase<SocketInteractionContext
 
 	private async Task ChangeGuess(int oldNumber, int newNumber)
 	{
-		await _lotteryGuesses.Delete(guess => guess.Number == oldNumber);
+		await _lotteryGuesses.Delete(guess => guess.DiscordId == Context.GuildUser().Id && guess.Number == oldNumber);
 		await _lotteryGuesses.Insert(new LotteryGuess() { DiscordId = Context.GuildUser().Id, Number = newNumber });
 	}
 
@@ -212,12 +214,12 @@ public class LotteryInteraction : InteractionModuleBase<SocketInteractionContext
 	{
 		[ChoiceDisplay("Use any random number from 1-99")] Any,
 		[ChoiceDisplay("Use only numbers that have not been guessed")] UnusedOnly,
-		[ChoiceDisplay("Use only numbers that have been guessed (monster!)")] UsedOnly,
+		[ChoiceDisplay("Use only numbers that have been guessed")] UsedOnly,
 	}
 
 
 	[SlashCommand("luckydip", "Spin the wheel and maybe you'll win!")]
-	public async Task RandomGuess([Summary("number-pool", "Determines whether to use a random number from 1-99, unguessed or guessed numbers (default: 1-99)")] RandomGuessType numberPool = RandomGuessType.Any)
+	public async Task RandomGuess([Summary("number-pool", "Choose a set of numbers to use")] RandomGuessType numberPool = RandomGuessType.UnusedOnly)
 	{
 		var cts = new CancellationTokenSource();
 		var task = TryRandomGuess(cts.Token, numberPool);
@@ -296,7 +298,7 @@ public class LotteryInteraction : InteractionModuleBase<SocketInteractionContext
 			if (token.IsCancellationRequested)
 				return new AlreadyGuessedNumberGuessResponse(0);
 
-			var randomNumber = numberPool.Shuffle().First();
+			var randomNumber = _rng.Pick(numberPool).First();
 			var result = await TryGuess(randomNumber);
 
 			if (result is SuccessGuessResponse or NotFcMemberGuessResponse or NoMoreGuessesGuessResponse)
@@ -382,7 +384,7 @@ public class LotteryInteraction : InteractionModuleBase<SocketInteractionContext
 
 		await RespondAsync("Lottery running...", ephemeral: true);
 
-		var randomNumber = new Random().Next(99);
+		var randomNumber = _rng.NextInt(0, 99);
 		var randomNumberDisplay = $"# The winning number is {randomNumber}";
 
 		var allResults = await _lotteryGuesses.Where(_ => true).ToListAsync();
