@@ -474,6 +474,22 @@ public class LotteryInteraction : InteractionModuleBase<SocketInteractionContext
 					=> current + $"{guesses.Key} guess{(guesses.Key == 1 ? "" : "es")} remaining: {guesses.Select(user => $"<@{user.Id}>").ToList().PrettyJoin()}\n");
 
 		await FollowupAsync(output, ephemeral: true);
+
+		var previousParticipants = (await _lotteryResults.Where(_ => true).ToListAsync())
+			.OrderBy(result => result.DateCreated)
+			.Take(3)
+			.SelectMany(result => result.Guesses)
+			.Select(guess => guess.DiscordId)
+			.Distinct();
+
+		var intersectionOutput = remainingGuesses
+			.Where(guess => previousParticipants.Contains(guess.Id))
+			.GroupBy(x => x.Remaining)
+			.OrderBy(x => x.Key)
+			.Aggregate("## Use your guesses before it's too late!\n",
+				(current, guesses)
+					=> current + $"{guesses.Key} guess{(guesses.Key == 1 ? "" : "es")} remaining: {guesses.Select(user => $"<@{user.Id}>").ToList().PrettyJoin()}\n");
+		await PostInLotteryChannel(intersectionOutput);
 	}
 
 	[SlashCommand("award", "Grants extra guesses for the current lottery period")]
