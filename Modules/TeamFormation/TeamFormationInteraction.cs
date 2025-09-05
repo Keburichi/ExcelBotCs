@@ -208,4 +208,62 @@ public class TeamFormationInteraction : InteractionModuleBase<SocketInteractionC
 
 		return composedGroup;
 	}
+
+	public enum Month
+	{
+		January = 1,
+		February,
+		March,
+		April,
+		May,
+		June,
+		July,
+		August,
+		September,
+		October,
+		November,
+		December
+	}
+
+
+	[SlashCommand("schedule", "Creates the group to run")]
+	public async Task ScheduleGroup(string eventName, Month month, [MinValue(1)][MaxValue(31)] int day, [MinValue(0)][MaxValue(23)] int startHourSt,
+		[MinValue(0)][MaxValue(59)] int startMinuteSt, [MinValue(0)][MaxValue(23)] int endHourSt, [MinValue(0)][MaxValue(59)] int endMinuteSt,
+		IUser tank1, IUser tank2, IUser healer1, IUser healer2, IUser melee1, IUser caster1, IUser ranged1,
+		IUser? melee2 = null, IUser? caster2 = null, IUser? ranged2 = null)
+	{
+		if (!Context.GuildUser().Roles.IsOfficer())
+		{
+			await RespondAsync("Only officers can use this command!", ephemeral: true);
+			return;
+		}
+
+		var sanityCheck = new List<IUser?>() { melee2, caster2, ranged2 }.Count(user => user != null);
+		if (sanityCheck != 1)
+		{
+			// we have too few or too many members, reject it
+			await RespondAsync("An incorrect number of members was specified, fix your input", ephemeral: true);
+			return;
+		}
+
+		var year = DateTime.Now.Year;
+		var startTime = new DateTime(year, (int)month, day, startHourSt, startMinuteSt, 0, DateTimeKind.Utc);
+		var endTime = new DateTime(year, (int)month, day, endHourSt, endMinuteSt, 0, DateTimeKind.Utc);
+		var startEpoch = ((DateTimeOffset)startTime).ToUnixTimeSeconds();
+		var endEpoch = ((DateTimeOffset)endTime).ToUnixTimeSeconds();
+
+		await RespondAsync($"Forming group and posting schedule...", ephemeral: true);
+
+		var output =
+			$"## {eventName}\r\n" +
+			$"<t:{startEpoch}:F> - <t:{endEpoch}:F>\r\n\r\n" +
+			$"<:RoleTank:1380979172423499846> <@{tank1.Id}> <@{tank2.Id}>\r\n" +
+			$"<:RoleHealer:1380979170787721368> <@{healer1.Id}> <@{healer2.Id}>\r\n" +
+			$"<:RoleMelee:873621778214318091> <@{melee1.Id}> {(melee2 != null ? $"<@{melee2.Id}>" : string.Empty)}\r\n" +
+			$"<:RoleCaster:873621778566635540> <@{caster1.Id}> {(caster2 != null ? $"<@{caster2.Id}>" : string.Empty)}\r\n" +
+			$"<:RoleRanged:873621778453368895> <@{ranged1.Id}> {(ranged2 != null ? $"<@{ranged2.Id}>" : string.Empty)}";
+
+		var rosterChannel = Context.Guild.GetTextChannel(1411293182133665792);
+		await rosterChannel.SendMessageAsync(output);
+	}
 }
