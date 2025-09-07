@@ -270,11 +270,11 @@ public class TeamFormationInteraction : InteractionModuleBase<SocketInteractionC
 			"VERSION:2.0\n" +
 			"PRODID:Excelsior Events\n" +
 			"CALSCALE:GREGORIAN\n" +
-			"METHOD:PUBLISH\n" +
 			"BEGIN:VTIMEZONE\n" +
 			"TZID:Etc/UTC\n" +
 			"END:VTIMEZONE\n" +
 			"BEGIN:VEVENT\n" +
+			$"UID:{startTime.Ticks}-{eventName}\n" +
 			$"DTSTART:{startTime:yyyyMMddTHHmm00}\n" +
 			$"DTEND:{endTime:yyyyMMddTHHmm00}\n" +
 			$"SUMMARY:{eventName}\n" +
