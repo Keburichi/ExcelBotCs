@@ -44,6 +44,8 @@ AddService<Database>();
 AddService<DiscordLogger>();
 AddInstance(new Prng());
 
+builder.Services.AddControllers();
+
 var app = builder.Build();
 
 app.UseStaticFiles(new StaticFileOptions
@@ -53,4 +55,7 @@ app.UseStaticFiles(new StaticFileOptions
 });
 
 app.MapGet("/", () => "Hello World!");
+
+app.MapControllers();
+
 app.Run();

@@ -1,22 +1,13 @@
 ﻿using Discord;
 using Discord.Interactions;
-using System.Text;
+using ExcelBotCs.Data;
 
 namespace ExcelBotCs.Modules.TeamFormation;
 
-[Group("team", "Team commands")]
+[Group("event", "Event commands")]
 public class TeamFormationInteraction : InteractionModuleBase<SocketInteractionContext>
 {
 	private readonly Prng _rng;
-
-	public enum Role
-	{
-		Tank,
-		Healer,
-		Melee,
-		Caster,
-		Ranged
-	}
 
 	private const string TankRoleEmote = "<:RoleTank:1380979172423499846>";
 	private const string HealerRoleEmote = "<:RoleHealer:1380979170787721368>";
@@ -34,9 +25,14 @@ public class TeamFormationInteraction : InteractionModuleBase<SocketInteractionC
 			{ Role.Ranged, (RangedRoleEmote, 1, 1) }
 		};
 
-	public TeamFormationInteraction(Prng rng)
+	private readonly Repository<EventDetails> _eventDetails;
+	private readonly string _rootUrl;
+
+	public TeamFormationInteraction(Prng rng, Database database)
 	{
 		_rng = rng;
+		_eventDetails = database.GetCollection<EventDetails>("event_details");
+		_rootUrl = Utils.GetEnvVar("EVENT_ENDPOINT_URL", nameof(TeamFormationInteraction));
 	}
 
 	private async Task<Dictionary<Role, HashSet<ulong>>> GetSignupsFromMessage(IMessage message)
@@ -66,6 +62,12 @@ public class TeamFormationInteraction : InteractionModuleBase<SocketInteractionC
 	[SlashCommand("list", "Get a list of signups from the post provided")]
 	public async Task GetSignups(string postUrl)
 	{
+		if (!Context.GuildUser().Roles.IsOfficer())
+		{
+			await RespondAsync("Only officers can use this command!", ephemeral: true);
+			return;
+		}
+
 		await DeferAsync();
 
 		switch (await Context.Client.GetMessageFromUrl(postUrl))
@@ -97,119 +99,6 @@ public class TeamFormationInteraction : InteractionModuleBase<SocketInteractionC
 		}
 	}
 
-
-	[SlashCommand("make", "Randomly assemble a group from the post provided")]
-	public async Task MakeGroup(string postUrl)
-	{
-		await DeferAsync();
-
-		switch (await Context.Client.GetMessageFromUrl(postUrl))
-		{
-			case Extensions.NotValidUrlMessageResponse:
-				await FollowupAsync("The provided URL does not seem to be a valid Discord URL", ephemeral: true);
-				break;
-
-			case Extensions.NotFoundUrlMessageResponse:
-				await FollowupAsync(
-					"Could not find the Guild/Channel this message belongs to. Do I have permission to view it?",
-					ephemeral: true);
-				break;
-
-			case Extensions.SuccessMessageResponse msg:
-				var signups = await GetSignupsFromMessage(msg.Message);
-
-				if (signups.Values.Sum(set => set.Count) < 8)
-				{
-					await RespondAsync("There are not enough signups to form a group.");
-					return;
-				}
-
-				Dictionary<Role, HashSet<ulong>>? group = null;
-				var cts = new CancellationTokenSource();
-				var task = TryFormGroup(cts.Token, signups);
-
-				if (await Task.WhenAny(task, Task.Delay(TimeSpan.FromSeconds(5), cts.Token)) == task)
-				{
-					await cts.CancelAsync();
-					group = await task;
-				}
-				else
-				{
-					await cts.CancelAsync();
-					await FollowupAsync("Trying to generate a group took too long, it's probably not possible to form one.", ephemeral: true);
-				}
-
-				await FollowupAsync($"### Group generated from {postUrl}\n{GenerateRoleText(group, Role.Tank)}{GenerateRoleText(group, Role.Healer)}{GenerateRoleText(group, Role.Melee)}{GenerateRoleText(group, Role.Caster)}{GenerateRoleText(group, Role.Ranged)}");
-				break;
-		}
-	}
-
-	private string GenerateRoleText(Dictionary<Role, HashSet<ulong>> group, Role role) =>
-		$"{_groups[role].Emote}: {string.Join(' ', group[role].Select(id => $"<@{id}>"))}\n";
-
-	private async Task<Dictionary<Role, HashSet<ulong>>?> TryFormGroup(CancellationToken token, Dictionary<Role, HashSet<ulong>> signups)
-	{
-		while (true)
-		{
-			if (token.IsCancellationRequested)
-				return null;
-
-			var result = await FormGroup(token, signups);
-			if (result != null)
-				return result;
-		}
-	}
-
-	private async Task<Dictionary<Role, HashSet<ulong>>?> FormGroup(CancellationToken token, Dictionary<Role, HashSet<ulong>> signups)
-	{
-		var clone = signups.ToDictionary();
-		var composedGroup = new Dictionary<Role, HashSet<ulong>>();
-
-		foreach (var (role, _) in _groups)
-		{
-			composedGroup.Add(role, []);
-		}
-
-		while (composedGroup.Values.SelectMany(item => item).Count() != 8)
-		{
-			if (token.IsCancellationRequested)
-				return null;
-
-			var min = clone.Min(kvp => kvp.Value.Count);
-			var nextPriority = clone
-				.Where(kvp => kvp.Value.Count == min)
-				.SelectMany(kvp => kvp.Value.Select(id => (kvp.Key, id)))
-				.ToList();
-
-			if (nextPriority.Count == 0)
-				return null;
-
-			var user = _rng.Pick(nextPriority).First();
-
-			if (!composedGroup.TryAdd(user.Key, [user.id]))
-				composedGroup[user.Key].Add(user.id);
-
-			// remove user from the pool
-			clone[user.Key].Remove(user.id);
-
-			// if we have enough, remove the role from the pool
-			if (composedGroup[user.Key].Count >= _groups[user.Key].Maximum)
-				clone.Remove(user.Key);
-
-			// if we have enough dps, remove them all from the pool to prevent 5 dps nonsense
-			if (composedGroup[Role.Melee].Count + composedGroup[Role.Caster].Count + composedGroup[Role.Ranged].Count >= 4)
-			{
-				clone.Remove(Role.Melee);
-				clone.Remove(Role.Caster);
-				clone.Remove(Role.Ranged);
-			}
-
-			await Task.Yield();
-		}
-
-		return composedGroup;
-	}
-
 	public enum Month
 	{
 		January = 1,
@@ -225,7 +114,6 @@ public class TeamFormationInteraction : InteractionModuleBase<SocketInteractionC
 		November,
 		December
 	}
-
 
 	[SlashCommand("schedule", "Creates the group to run")]
 	public async Task ScheduleGroup(string eventName, Month month, [MinValue(1)][MaxValue(31)] int day, [MinValue(0)][MaxValue(23)] int startHourSt,
@@ -265,28 +153,41 @@ public class TeamFormationInteraction : InteractionModuleBase<SocketInteractionC
 			$"<:RoleCaster:873621778566635540> <@{caster1.Id}> {(caster2 != null ? $"<@{caster2.Id}>" : string.Empty)}\r\n" +
 			$"<:RoleRanged:873621778453368895> <@{ranged1.Id}> {(ranged2 != null ? $"<@{ranged2.Id}>" : string.Empty)}";
 
-		var ics =
-			"BEGIN:VCALENDAR\n" +
-			"VERSION:2.0\n" +
-			"PRODID:Excelsior Events\n" +
-			"CALSCALE:GREGORIAN\n" +
-			"BEGIN:VTIMEZONE\n" +
-			"TZID:Etc/UTC\n" +
-			"END:VTIMEZONE\n" +
-			"BEGIN:VEVENT\n" +
-			$"UID:{startTime.Ticks}-{eventName}\n" +
-			$"DTSTART:{startTime:yyyyMMddTHHmm00}\n" +
-			$"DTEND:{endTime:yyyyMMddTHHmm00}\n" +
-			$"SUMMARY:{eventName}\n" +
-			"LOCATION:Final Fantasy XIV Online\n" +
-			"END:VEVENT\n" +
-			"END:VCALENDAR";
-
-		var bytes = Encoding.UTF8.GetBytes(ics);
-		using var stream = new MemoryStream(bytes);
-
 		var rosterChannel = Context.Guild.GetTextChannel(1411293182133665792);
 		await rosterChannel.SendMessageAsync(output);
-		await rosterChannel.SendFileAsync(stream, "event.ics", "Import to Calendar");
+
+		var participants = new List<EventMemberDetails>
+		{
+			new() { DiscordId = tank1.Id, Role = Role.Tank },
+			new() { DiscordId = tank2.Id, Role = Role.Tank },
+			new() { DiscordId = healer1.Id, Role = Role.Healer },
+			new() { DiscordId = healer2.Id, Role = Role.Healer },
+			new() { DiscordId = melee1.Id, Role = Role.Melee },
+			new() { DiscordId = caster1.Id, Role = Role.Caster },
+			new() { DiscordId = ranged1.Id, Role = Role.Ranged }
+		};
+
+		if (melee2 != null)
+			participants.Add(new EventMemberDetails() { DiscordId = melee2.Id, Role = Role.Melee });
+
+		if (caster2 != null)
+			participants.Add(new EventMemberDetails() { DiscordId = caster2.Id, Role = Role.Caster });
+
+		if (ranged2 != null)
+			participants.Add(new EventMemberDetails() { DiscordId = ranged2.Id, Role = Role.Ranged });
+
+		await _eventDetails.Insert(new EventDetails()
+		{
+			StartTime = startTime,
+			EndTime = endTime,
+			Name = eventName,
+			Participants = participants
+		});
+	}
+
+	[SlashCommand("remind", "Get an auto-updating calendar link for keeping track")]
+	public async Task RemindEvents()
+	{
+		await RespondAsync($"[Add to Calendar]({_rootUrl}event/retrieve/{Context.User.Id})\n-# This is a personalised calender that will automatically update with events you sign up to and can be added to iOS/Android notifications, Google Calendar, Apple Calendar and more", ephemeral: true);
 	}
 }
