@@ -72,7 +72,8 @@ public class EventController : ControllerBase
 				$"DTEND:{e.EndTime:yyyyMMddTHHmm00}Z\n" +
 				$"SUMMARY:{e.Name}\n" +
 				"LOCATION:Final Fantasy XIV Online\n" +
-				"STATUS:CONFIRMED\n +END:VEVENT\n";
+				"STATUS:CONFIRMED\n" +
+				"END:VEVENT\n";
 		}
 	}
 }
