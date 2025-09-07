@@ -54,8 +54,8 @@ public class EventController : ControllerBase
 			return
 				"BEGIN:VEVENT\n" +
 				$"UID:{e.StartTime.Ticks}-{e.Name}\n" +
-				$"DTSTART:{e.StartTime:yyyyMMddTHHmm00}\n" +
-				$"DTEND:{e.EndTime:yyyyMMddTHHmm00}\n" +
+				$"DTSTART:{e.StartTime:yyyyMMddTHHmm00}Z\n" +
+				$"DTEND:{e.EndTime:yyyyMMddTHHmm00}Z\n" +
 				$"SUMMARY:{e.Name}\n" +
 				"LOCATION:Final Fantasy XIV Online\n" +
 				"END:VEVENT\n";
