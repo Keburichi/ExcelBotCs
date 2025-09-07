@@ -22,7 +22,7 @@ public class EventController : ControllerBase
 	[Route("calendar/{id}")]
 	public IActionResult GetPage(string id)
 	{
-		var html = $"<!DOCTYPE html><html><body><p>(I promise I'll make this page prettier later! -Zahrymm)</p><a href=\"webcal://{_rootUrl}event/retrieve/{id}\">Subscribe to an auto-updating calendar</a></body></html>";
+		var html = $"<!DOCTYPE html><html><body><p>(I promise I'll make this page prettier later! -Zahrymm)</p><a href=\"webcal://https://{_rootUrl}event/retrieve/{id}.ics\">Subscribe to an auto-updating calendar</a></body></html>";
 		return Content(html, "text/html");
 	}
 
