@@ -19,7 +19,7 @@ public class EventController : ControllerBase
 	}
 
 	[HttpGet]
-	[Route("retrieve/{id}")]
+	[Route("retrieve/{id}.ics")]
 	public async Task<IActionResult> GetEvent(string id)
 	{
 		try
