@@ -1,7 +1,7 @@
-﻿using System.Text;
-using ExcelBotCs.Data;
+﻿using ExcelBotCs.Data;
 using Microsoft.AspNetCore.Mvc;
 using MongoDB.Driver;
+using System.Text;
 
 namespace ExcelBotCs.Modules.TeamFormation;
 
@@ -42,7 +42,7 @@ public class EventController : ControllerBase
 				"END:VCALENDAR";
 
 			var bytes = Encoding.UTF8.GetBytes(ics);
-			return File(bytes, "text/calendar", "event.ics");
+			return File(bytes, "text/calendar");
 		}
 		catch
 		{
