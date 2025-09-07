@@ -185,21 +185,9 @@ public class TeamFormationInteraction : InteractionModuleBase<SocketInteractionC
 		});
 	}
 
-	[SlashCommand("remind", "Get an auto-updating calendar link for keeping track")]
+	[SlashCommand("remindtest", "Get an auto-updating calendar link for keeping track")]
 	public async Task RemindEvents()
 	{
-		var link = $"{_rootUrl}event/retrieve/{Context.User.Id}.ics";
-		var embed = new EmbedBuilder()
-			.WithTitle("Get reminders for events!")
-			.WithDescription("This is a personalised calender that will automatically update with events you sign up to and can be added to iOS/Android notifications, Google Calendar, Apple Calendar and more.")
-			.WithColor(Color.Blue)
-			.Build();
-
-		var button = new ComponentBuilder()
-			.WithButton("Subscribe to an auto-updating calendar", style: ButtonStyle.Primary, url: $"webcal://{link}")
-			.WithButton("Download a single-use .ics calendar instead", style: ButtonStyle.Link, url: $"https://{link}")
-			.Build();
-
-		await RespondAsync(embed: embed, components: button, ephemeral: true);
+		await RespondAsync($"[Add to Calendar](https://{_rootUrl}event/calendar/{Context.User.Id})\n-# This is a personalised calender that will automatically update with events you sign up to and can be added to iOS/Android notifications, Google Calendar, Apple Calendar and more", ephemeral: true);
 	}
 }
