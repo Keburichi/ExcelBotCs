@@ -19,6 +19,14 @@ public class EventController : ControllerBase
 	}
 
 	[HttpGet]
+	[Route("calendar/{id}")]
+	public IActionResult GetPage(string id)
+	{
+		var html = $"<!DOCTYPE html><html><body><p>(I promise I'll make this page prettier later! -Zahrymm)</p><a href=\"webcal://{_rootUrl}event/retrieve/{id}\">Subscribe to an auto-updating calendar</a></body></html>";
+		return Content(html, "text/html");
+	}
+
+	[HttpGet]
 	[Route("retrieve/{id}.ics")]
 	public async Task<IActionResult> GetEvent(string id)
 	{
