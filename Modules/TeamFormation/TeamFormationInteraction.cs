@@ -188,6 +188,9 @@ public class TeamFormationInteraction : InteractionModuleBase<SocketInteractionC
 	[SlashCommand("remind", "Get an auto-updating calendar link for keeping track")]
 	public async Task RemindEvents()
 	{
-		await RespondAsync($"[Add to Calendar](https://{_rootUrl}event/calendar/{Context.User.Id})\n-# This is a personalised calender that will automatically update with events you sign up to and can be added to iOS/Android notifications, Google Calendar, Apple Calendar and more", ephemeral: true);
+		var subLink = $"https://{_rootUrl}event/calendar/{Context.User.Id}";
+		var downloadLink = $"https://{_rootUrl}event/retrieve/{Context.User.Id}.ics";
+
+		await RespondAsync($"[Subscribe to an auto-updating Calendar]({subLink})\n-# This is a personalised calender that will automatically update with events you sign up to and can be added to iOS/Android notifications, Google Calendar, Apple Calendar and more \n\n-# [Download a single-use .ics calendar instead]({downloadLink})", ephemeral: true);
 	}
 }
