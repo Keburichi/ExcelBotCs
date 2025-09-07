@@ -40,7 +40,7 @@ public class EventController : ControllerBase
 				"VERSION:2.0\n" +
 				"PRODID:Excelsior Events\n" +
 				"CALSCALE:GREGORIAN\n" +
-				$"URL:{_rootUrl}event/retrieve/{id}\n" +
+				$"URL:https://{_rootUrl}event/retrieve/{id}.ics\n" +
 				"BEGIN:VTIMEZONE\n" +
 				"TZID:Etc/UTC\n" +
 				"END:VTIMEZONE\n" +
