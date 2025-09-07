@@ -33,7 +33,9 @@ public class EventController : ControllerBase
 		try
 		{
 			var discordId = ulong.Parse(id);
-			var joinedEvents = await _eventDetails.Where(e => e.Participants.Any(p => p.DiscordId == discordId)).ToListAsync();
+			var joinedEvents = await _eventDetails
+				.Where(e => e.EndTime > DateTime.UtcNow && e.Participants.Any(p => p.DiscordId == discordId))
+				.ToListAsync();
 
 			var ics =
 				"BEGIN:VCALENDAR\n" +
@@ -41,11 +43,14 @@ public class EventController : ControllerBase
 				"PRODID:Excelsior Events\n" +
 				"CALSCALE:GREGORIAN\n" +
 				$"URL:https://{_rootUrl}event/retrieve/{id}.ics\n" +
+				"METHOD:PUBLISH\n" +
+				"REFRESH-INTERVAL;VALUE=DURATION:PT6H\n" +
+				"X-PUBLISHED-TTL:PT6H\n" +
+				"X-WR-CALNAME:Excelsior Events\n" +
+				"NAME:Excelsior Events\n" +
 				"BEGIN:VTIMEZONE\n" +
 				"TZID:Etc/UTC\n" +
 				"END:VTIMEZONE\n" +
-				"REFRESH-INTERVAL;VALUE=DURATION:PT6H\n" +
-				"X-PUBLISHED-TTL:PT6H\n" +
 				string.Join("", joinedEvents.Select(GenerateEvent)) +
 				"END:VCALENDAR";
 
@@ -62,11 +67,12 @@ public class EventController : ControllerBase
 			return
 				"BEGIN:VEVENT\n" +
 				$"UID:{e.StartTime.Ticks}-{e.Name}\n" +
+				$"DTSTAMP:{e.DateCreated:yyyyMMddTHHmm00}Z\n" +
 				$"DTSTART:{e.StartTime:yyyyMMddTHHmm00}Z\n" +
 				$"DTEND:{e.EndTime:yyyyMMddTHHmm00}Z\n" +
 				$"SUMMARY:{e.Name}\n" +
 				"LOCATION:Final Fantasy XIV Online\n" +
-				"END:VEVENT\n";
+				"STATUS:CONFIRMED\n +END:VEVENT\n";
 		}
 	}
 }
