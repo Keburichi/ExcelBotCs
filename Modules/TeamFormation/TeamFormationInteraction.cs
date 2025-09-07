@@ -189,6 +189,17 @@ public class TeamFormationInteraction : InteractionModuleBase<SocketInteractionC
 	public async Task RemindEvents()
 	{
 		var link = $"{_rootUrl}event/retrieve/{Context.User.Id}.ics";
-		await RespondAsync($"[Subscribe to an auto-updating Calendar](webcal://{link})\n-# This is a personalised calender that will automatically update with events you sign up to and can be added to iOS/Android notifications, Google Calendar, Apple Calendar and more \n\n-# [Download a single-use .ics calendar instead](https://{link})", ephemeral: true);
+		var embed = new EmbedBuilder()
+			.WithTitle("Get reminders for events!")
+			.WithDescription("This is a personalised calender that will automatically update with events you sign up to and can be added to iOS/Android notifications, Google Calendar, Apple Calendar and more.")
+			.WithColor(Color.Blue)
+			.Build();
+
+		var button = new ComponentBuilder()
+			.WithButton("Subscribe to an auto-updating calendar", style: ButtonStyle.Primary, url: $"webcal://{link}")
+			.WithButton("Download a single-use .ics calendar instead", style: ButtonStyle.Link, url: $"https://{link}")
+			.Build();
+
+		await RespondAsync(embed: embed, components: button, ephemeral: true);
 	}
 }
