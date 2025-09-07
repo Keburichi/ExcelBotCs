@@ -257,6 +257,7 @@ public class TeamFormationInteraction : InteractionModuleBase<SocketInteractionC
 
 		var output =
 			$"## {eventName}\r\n" +
+			$"<t:{startEpoch}:R>\r\n" +
 			$"<t:{startEpoch}:F> - <t:{endEpoch}:F>\r\n\r\n" +
 			$"<:RoleTank:1380979172423499846> <@{tank1.Id}> <@{tank2.Id}>\r\n" +
 			$"<:RoleHealer:1380979170787721368> <@{healer1.Id}> <@{healer2.Id}>\r\n" +
