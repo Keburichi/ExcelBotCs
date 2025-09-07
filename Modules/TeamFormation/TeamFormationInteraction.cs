@@ -1,5 +1,6 @@
 ﻿using Discord;
 using Discord.Interactions;
+using System.Text;
 
 namespace ExcelBotCs.Modules.TeamFormation;
 
@@ -228,9 +229,9 @@ public class TeamFormationInteraction : InteractionModuleBase<SocketInteractionC
 
 	[SlashCommand("schedule", "Creates the group to run")]
 	public async Task ScheduleGroup(string eventName, Month month, [MinValue(1)][MaxValue(31)] int day, [MinValue(0)][MaxValue(23)] int startHourSt,
-		[MinValue(0)][MaxValue(59)] int startMinuteSt, [MinValue(0)][MaxValue(23)] int endHourSt, [MinValue(0)][MaxValue(59)] int endMinuteSt,
-		IUser tank1, IUser tank2, IUser healer1, IUser healer2, IUser melee1, IUser caster1, IUser ranged1,
-		IUser? melee2 = null, IUser? caster2 = null, IUser? ranged2 = null)
+		[MinValue(0)][MaxValue(23)] int endHourSt, IUser tank1, IUser tank2, IUser healer1, IUser healer2, IUser melee1, IUser caster1, IUser ranged1,
+		IUser? melee2 = null, IUser? caster2 = null, IUser? ranged2 = null, [MinValue(0)][MaxValue(59)] int startMinuteSt = 0,
+		[MinValue(0)][MaxValue(59)] int endMinuteSt = 0)
 	{
 		if (!Context.GuildUser().Roles.IsOfficer())
 		{
@@ -263,7 +264,28 @@ public class TeamFormationInteraction : InteractionModuleBase<SocketInteractionC
 			$"<:RoleCaster:873621778566635540> <@{caster1.Id}> {(caster2 != null ? $"<@{caster2.Id}>" : string.Empty)}\r\n" +
 			$"<:RoleRanged:873621778453368895> <@{ranged1.Id}> {(ranged2 != null ? $"<@{ranged2.Id}>" : string.Empty)}";
 
+		var ics =
+			"BEGIN:VCALENDAR\n" +
+			"VERSION:2.0\n" +
+			"PRODID:Excelsior Events\n" +
+			"CALSCALE:GREGORIAN\n" +
+			"METHOD:PUBLISH\n" +
+			"BEGIN:VTIMEZONE\n" +
+			"TZID:Etc/UTC\n" +
+			"END:VTIMEZONE\n" +
+			"BEGIN:VEVENT\n" +
+			$"DTSTART:{startTime:yyyyMMddTHHmm00}\n" +
+			$"DTEND:{endTime:yyyyMMddTHHmm00}\n" +
+			$"SUMMARY:{eventName}\n" +
+			"LOCATION:Final Fantasy XIV Online\n" +
+			"END:VEVENT\n" +
+			"END:VCALENDAR";
+
+		var bytes = Encoding.UTF8.GetBytes(ics);
+		using var stream = new MemoryStream(bytes);
+
 		var rosterChannel = Context.Guild.GetTextChannel(1411293182133665792);
 		await rosterChannel.SendMessageAsync(output);
+		await rosterChannel.SendFileAsync(stream, "event.ics", "Import to Calendar");
 	}
 }
