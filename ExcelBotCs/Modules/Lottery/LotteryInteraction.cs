@@ -3,7 +3,6 @@ using Discord.Interactions;
 using Discord.WebSocket;
 using ExcelBotCs.Data;
 using MongoDB.Driver;
-using System.Text.RegularExpressions;
 
 namespace ExcelBotCs.Modules.Lottery;
 
@@ -16,7 +15,7 @@ public class LotteryInteraction : InteractionModuleBase<SocketInteractionContext
 	private readonly Repository<LotteryGuess> _lotteryGuesses;
 	private readonly Repository<LotteryResult> _lotteryResults;
 
-	public LotteryInteraction(Database database, LotteryOptions options, Prng rng)
+	public LotteryInteraction(Data.Database database, LotteryOptions options, Prng rng)
 	{
 		_options = options;
 		_rng = rng;
@@ -527,17 +526,17 @@ public class LotteryInteraction : InteractionModuleBase<SocketInteractionContext
 	{
 		switch (await Context.Client.GetMessageFromUrl(postUrl))
 		{
-			case Extensions.NotValidUrlMessageResponse:
+			case DiscordSocketExtensions.NotValidUrlMessageResponse:
 				await RespondAsync("The provided URL does not seem to be a valid Discord URL", ephemeral: true);
 				break;
 
-			case Extensions.NotFoundUrlMessageResponse:
+			case DiscordSocketExtensions.NotFoundUrlMessageResponse:
 				await RespondAsync(
 					"Could not find the Guild/Channel this message belongs to. Do I have permission to view it?",
 					ephemeral: true);
 				break;
 
-			case Extensions.SuccessMessageResponse msg:
+			case DiscordSocketExtensions.SuccessMessageResponse msg:
 				{
 					var result = await TryAwardUsers(reason, msg.Message.MentionedUserIds.ToList());
 

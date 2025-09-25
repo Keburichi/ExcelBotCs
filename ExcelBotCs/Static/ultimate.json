@@ -1,0 +1,40 @@
+﻿{
+  "fights": [
+    {
+      "name": "The Unending Coil of Bahamut (Ultimate)",
+      "description": "The first Ultimate raid in FFXIV, featuring multiple phases from the original Binding Coil series. Unlocked through 'The Ultimate Coil' quest from the Wandering Minstrel in Kugane after clearing O4S.",
+      "type": "Ultimate",
+      "image_url": "https://finalfantasy.fandom.com/wiki/Bahamut_(Final_Fantasy_XIV)?file=FFXIV_Bahamut_Ultimate_Art.png"
+    },
+    {
+      "name": "The Weapon's Refrain (Ultimate)",
+      "description": "Ultimate version combining Garuda, Ifrit, and Titan in a single encounter. Unlocked through 'The Weapon's Refrain' quest from the Wandering Minstrel in Kugane after clearing O8S.",
+      "type": "Ultimate",
+      "image_url": "https://finalfantasy.fandom.com/wiki/Ultima_Weapon_(Final_Fantasy_XIV)?file=FFXIV_Ultima_Weapon_Ultimate_Art.png"
+    },
+    {
+      "name": "The Epic of Alexander (Ultimate)",
+      "description": "Ultimate raid featuring bosses from the Alexander raid series. Unlocked through 'The Epic of Alexander' quest from the Wandering Minstrel in the Crystarium after clearing E4S.",
+      "type": "Ultimate",
+      "image_url": "https://finalfantasy.fandom.com/wiki/Alexander_(Final_Fantasy_XIV)?file=FFXIV_Alexander_Ultimate_Art.png"
+    },
+    {
+      "name": "Dragonsong's Reprise (Ultimate)",
+      "description": "Ultimate raid based on the Heavensward storyline featuring King Thordan and Nidhogg. Unlocked through 'Dragonsong's Reprise' quest from the Wandering Minstrel in Old Sharlayan after clearing P4S.",
+      "type": "Ultimate",
+      "image_url": "https://finalfantasy.fandom.com/wiki/King_Thordan?file=FFXIV_King_Thordan_Ultimate_Art.png"
+    },
+    {
+      "name": "The Omega Protocol (Ultimate)",
+      "description": "Ultimate raid featuring Omega from the Stormblood raid series. Unlocked through 'The Omega Protocol' quest from the Wandering Minstrel in Old Sharlayan after clearing P8S.",
+      "type": "Ultimate",
+      "image_url": "https://finalfantasy.fandom.com/wiki/Omega_(Final_Fantasy_XIV)?file=FFXIV_Omega_Ultimate_Art.png"
+    },
+    {
+      "name": "Futures Rewritten (Ultimate)",
+      "description": "The latest Ultimate raid from Dawntrail expansion. Unlocked through 'Futures Rewritten' quest from the Wandering Minstrel in Solution Nine after clearing M4S.",
+      "type": "Ultimate",
+      "image_url": "https://finalfantasy.fandom.com/wiki/Fatebreaker_(Ultimate)?file=FFXIV_Fatebreaker_Ultimate_Art.png"
+    }
+  ]
+}

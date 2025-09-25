@@ -1,0 +1,352 @@
+﻿{
+  "fights": [
+    {
+      "name": "The Binding Coil of Bahamut - Turn 1 (Savage)",
+      "description": "Savage version of T1 from the original Coil raid series. Part of the Second Coil Savage tier.",
+      "type": "Savage",
+      "image_url": "https://finalfantasy.fandom.com/wiki/Caduceus_(Final_Fantasy_XIV)?file=FFXIV_Caduceus_Art.png"
+    },
+    {
+      "name": "The Binding Coil of Bahamut - Turn 2 (Savage)",
+      "description": "Savage version of T2 from the original Coil raid series. Part of the Second Coil Savage tier.",
+      "type": "Savage",
+      "image_url": "https://finalfantasy.fandom.com/wiki/ADS_(Final_Fantasy_XIV)?file=FFXIV_ADS_Art.png"
+    },
+    {
+      "name": "The Second Coil of Bahamut - Turn 1 (Savage)",
+      "description": "Savage version of T6. The first official Savage raid tier in FFXIV, featuring significantly increased difficulty.",
+      "type": "Savage",
+      "image_url": "https://finalfantasy.fandom.com/wiki/Rafflesia_(Final_Fantasy_XIV)?file=FFXIV_Rafflesia_Art.png"
+    },
+    {
+      "name": "The Second Coil of Bahamut - Turn 2 (Savage)",
+      "description": "Savage version of T7. Part of the Second Coil Savage tier with enhanced mechanics and damage.",
+      "type": "Savage",
+      "image_url": "https://finalfantasy.fandom.com/wiki/Melusine_(Final_Fantasy_XIV)?file=FFXIV_Melusine_Art.png"
+    },
+    {
+      "name": "The Second Coil of Bahamut - Turn 3 (Savage)",
+      "description": "Savage version of T8. Part of the Second Coil Savage tier with enhanced mechanics and damage.",
+      "type": "Savage",
+      "image_url": "https://finalfantasy.fandom.com/wiki/Avatar_(Final_Fantasy_XIV)?file=FFXIV_Avatar_Art.png"
+    },
+    {
+      "name": "The Second Coil of Bahamut - Turn 4 (Savage)",
+      "description": "Savage version of T9. Part of the Second Coil Savage tier with enhanced mechanics and damage.",
+      "type": "Savage",
+      "image_url": "https://finalfantasy.fandom.com/wiki/Nael_deus_Darnus?file=FFXIV_Nael_deus_Darnus_Art.png"
+    },
+    {
+      "name": "Alexander - The Fist of the Father (Savage)",
+      "description": "A1S from Heavensward's Alexander raid series. First floor of Gordias Savage tier.",
+      "type": "Savage",
+      "image_url": "https://finalfantasy.fandom.com/wiki/Oppressor_(Final_Fantasy_XIV)?file=FFXIV_Oppressor_Art.png"
+    },
+    {
+      "name": "Alexander - The Cuff of the Father (Savage)",
+      "description": "A2S from Heavensward's Alexander raid series. Second floor of Gordias Savage tier.",
+      "type": "Savage",
+      "image_url": "https://finalfantasy.fandom.com/wiki/Alexander_(Final_Fantasy_XIV)?file=FFXIV_Alexander_Gordias_Art.png"
+    },
+    {
+      "name": "Alexander - The Arm of the Father (Savage)",
+      "description": "A3S from Heavensward's Alexander raid series. Third floor of Gordias Savage tier.",
+      "type": "Savage",
+      "image_url": "https://finalfantasy.fandom.com/wiki/Living_Liquid?file=FFXIV_Living_Liquid_Art.png"
+    },
+    {
+      "name": "Alexander - The Burden of the Father (Savage)",
+      "description": "A4S from Heavensward's Alexander raid series. Final floor of Gordias Savage tier.",
+      "type": "Savage",
+      "image_url": "https://finalfantasy.fandom.com/wiki/Manipulator?file=FFXIV_Manipulator_Art.png"
+    },
+    {
+      "name": "Alexander - The Fist of the Son (Savage)",
+      "description": "A5S from Heavensward's Alexander raid series. First floor of Midas Savage tier.",
+      "type": "Savage",
+      "image_url": "https://finalfantasy.fandom.com/wiki/Ratfinx_Twinkledinks?file=FFXIV_Ratfinx_Art.png"
+    },
+    {
+      "name": "Alexander - The Cuff of the Son (Savage)",
+      "description": "A6S from Heavensward's Alexander raid series. Second floor of Midas Savage tier.",
+      "type": "Savage",
+      "image_url": "https://finalfantasy.fandom.com/wiki/Vortexer?file=FFXIV_Vortexer_Art.png"
+    },
+    {
+      "name": "Alexander - The Arm of the Son (Savage)",
+      "description": "A7S from Heavensward's Alexander raid series. Third floor of Midas Savage tier.",
+      "type": "Savage",
+      "image_url": "https://finalfantasy.fandom.com/wiki/Quickthinx_Allthoughts?file=FFXIV_Quickthinx_Art.png"
+    },
+    {
+      "name": "Alexander - The Burden of the Son (Savage)",
+      "description": "A8S from Heavensward's Alexander raid series. Final floor of Midas Savage tier.",
+      "type": "Savage",
+      "image_url": "https://finalfantasy.fandom.com/wiki/Brute_Justice?file=FFXIV_Brute_Justice_Art.png"
+    },
+    {
+      "name": "Alexander - The Eyes of the Creator (Savage)",
+      "description": "A9S from Heavensward's Alexander raid series. First floor of Creator Savage tier.",
+      "type": "Savage",
+      "image_url": "https://finalfantasy.fandom.com/wiki/Refurbisher_0?file=FFXIV_Refurbisher_Art.png"
+    },
+    {
+      "name": "Alexander - The Breath of the Creator (Savage)",
+      "description": "A10S from Heavensward's Alexander raid series. Second floor of Creator Savage tier.",
+      "type": "Savage",
+      "image_url": "https://finalfantasy.fandom.com/wiki/Lampas?file=FFXIV_Lampas_Art.png"
+    },
+    {
+      "name": "Alexander - The Heart of the Creator (Savage)",
+      "description": "A11S from Heavensward's Alexander raid series. Third floor of Creator Savage tier.",
+      "type": "Savage",
+      "image_url": "https://finalfantasy.fandom.com/wiki/Cruise_Chaser?file=FFXIV_Cruise_Chaser_Art.png"
+    },
+    {
+      "name": "Alexander - The Soul of the Creator (Savage)",
+      "description": "A12S from Heavensward's Alexander raid series. Final floor of Creator Savage tier.",
+      "type": "Savage",
+      "image_url": "https://finalfantasy.fandom.com/wiki/Alexander_(Final_Fantasy_XIV)?file=FFXIV_Alexander_Prime_Art.png"
+    },
+    {
+      "name": "Deltascape V1.0 (Savage)",
+      "description": "O1S from Stormblood's Omega raid series. First floor of Deltascape Savage tier.",
+      "type": "Savage",
+      "image_url": "https://finalfantasy.fandom.com/wiki/Alte_Roite?file=FFXIV_Alte_Roite_Art.png"
+    },
+    {
+      "name": "Deltascape V2.0 (Savage)",
+      "description": "O2S from Stormblood's Omega raid series. Second floor of Deltascape Savage tier.",
+      "type": "Savage",
+      "image_url": "https://finalfantasy.fandom.com/wiki/Catastrophe_(Final_Fantasy_XIV)?file=FFXIV_Catastrophe_Art.png"
+    },
+    {
+      "name": "Deltascape V3.0 (Savage)",
+      "description": "O3S from Stormblood's Omega raid series. Third floor of Deltascape Savage tier.",
+      "type": "Savage",
+      "image_url": "https://finalfantasy.fandom.com/wiki/Halicarnassus?file=FFXIV_Halicarnassus_Art.png"
+    },
+    {
+      "name": "Deltascape V4.0 (Savage)",
+      "description": "O4S from Stormblood's Omega raid series. Final floor of Deltascape Savage tier.",
+      "type": "Savage",
+      "image_url": "https://finalfantasy.fandom.com/wiki/Exdeath_(Final_Fantasy_XIV)?file=FFXIV_Exdeath_Art.png"
+    },
+    {
+      "name": "Sigmascape V1.0 (Savage)",
+      "description": "O5S from Stormblood's Omega raid series. First floor of Sigmascape Savage tier.",
+      "type": "Savage",
+      "image_url": "https://finalfantasy.fandom.com/wiki/Phantom_Train_(Final_Fantasy_XIV)?file=FFXIV_Phantom_Train_Art.png"
+    },
+    {
+      "name": "Sigmascape V2.0 (Savage)",
+      "description": "O6S from Stormblood's Omega raid series. Second floor of Sigmascape Savage tier.",
+      "type": "Savage",
+      "image_url": "https://finalfantasy.fandom.com/wiki/Demon_Chadarnook?file=FFXIV_Demon_Chadarnook_Art.png"
+    },
+    {
+      "name": "Sigmascape V3.0 (Savage)",
+      "description": "O7S from Stormblood's Omega raid series. Third floor of Sigmascape Savage tier.",
+      "type": "Savage",
+      "image_url": "https://finalfantasy.fandom.com/wiki/Guardian_(Final_Fantasy_XIV)?file=FFXIV_Guardian_Art.png"
+    },
+    {
+      "name": "Sigmascape V4.0 (Savage)",
+      "description": "O8S from Stormblood's Omega raid series. Final floor of Sigmascape Savage tier.",
+      "type": "Savage",
+      "image_url": "https://finalfantasy.fandom.com/wiki/Kefka_(Final_Fantasy_XIV)?file=FFXIV_Kefka_Art.png"
+    },
+    {
+      "name": "Alphascape V1.0 (Savage)",
+      "description": "O9S from Stormblood's Omega raid series. First floor of Alphascape Savage tier.",
+      "type": "Savage",
+      "image_url": "https://finalfantasy.fandom.com/wiki/Chaos_(Final_Fantasy_XIV)?file=FFXIV_Chaos_Art.png"
+    },
+    {
+      "name": "Alphascape V2.0 (Savage)",
+      "description": "O10S from Stormblood's Omega raid series. Second floor of Alphascape Savage tier.",
+      "type": "Savage",
+      "image_url": "https://finalfantasy.fandom.com/wiki/Midgardsormr_(Final_Fantasy_XIV)?file=FFXIV_Midgardsormr_Art.png"
+    },
+    {
+      "name": "Alphascape V3.0 (Savage)",
+      "description": "O11S from Stormblood's Omega raid series. Third floor of Alphascape Savage tier.",
+      "type": "Savage",
+      "image_url": "https://finalfantasy.fandom.com/wiki/Omega_(Final_Fantasy_XIV)?file=FFXIV_Omega_Art.png"
+    },
+    {
+      "name": "Alphascape V4.0 (Savage)",
+      "description": "O12S from Stormblood's Omega raid series. Final floor of Alphascape Savage tier.",
+      "type": "Savage",
+      "image_url": "https://finalfantasy.fandom.com/wiki/Omega_(Final_Fantasy_XIV)?file=FFXIV_Omega_Final_Form_Art.png"
+    },
+    {
+      "name": "Eden's Gate: Resurrection (Savage)",
+      "description": "E1S from Shadowbringers' Eden raid series. First floor of Eden's Gate Savage tier.",
+      "type": "Savage",
+      "image_url": "https://finalfantasy.fandom.com/wiki/Eden_Prime?file=FFXIV_Eden_Prime_Art.png"
+    },
+    {
+      "name": "Eden's Gate: Descent (Savage)",
+      "description": "E2S from Shadowbringers' Eden raid series. Second floor of Eden's Gate Savage tier.",
+      "type": "Savage",
+      "image_url": "https://finalfantasy.fandom.com/wiki/Voidwalker?file=FFXIV_Voidwalker_Art.png"
+    },
+    {
+      "name": "Eden's Gate: Inundation (Savage)",
+      "description": "E3S from Shadowbringers' Eden raid series. Third floor of Eden's Gate Savage tier.",
+      "type": "Savage",
+      "image_url": "https://finalfantasy.fandom.com/wiki/Leviathan_(Final_Fantasy_XIV)?file=FFXIV_Eden_Leviathan_Art.png"
+    },
+    {
+      "name": "Eden's Gate: Sepulture (Savage)",
+      "description": "E4S from Shadowbringers' Eden raid series. Final floor of Eden's Gate Savage tier.",
+      "type": "Savage",
+      "image_url": "https://finalfantasy.fandom.com/wiki/Titan_(Final_Fantasy_XIV)?file=FFXIV_Eden_Titan_Art.png"
+    },
+    {
+      "name": "Eden's Verse: Fulmination (Savage)",
+      "description": "E5S from Shadowbringers' Eden raid series. First floor of Eden's Verse Savage tier.",
+      "type": "Savage",
+      "image_url": "https://finalfantasy.fandom.com/wiki/Ramuh_(Final_Fantasy_XIV)?file=FFXIV_Eden_Ramuh_Art.png"
+    },
+    {
+      "name": "Eden's Verse: Furor (Savage)",
+      "description": "E6S from Shadowbringers' Eden raid series. Second floor of Eden's Verse Savage tier.",
+      "type": "Savage",
+      "image_url": "https://finalfantasy.fandom.com/wiki/Garuda_(Final_Fantasy_XIV)?file=FFXIV_Eden_Garuda_Art.png"
+    },
+    {
+      "name": "Eden's Verse: Iconoclasm (Savage)",
+      "description": "E7S from Shadowbringers' Eden raid series. Third floor of Eden's Verse Savage tier.",
+      "type": "Savage",
+      "image_url": "https://finalfantasy.fandom.com/wiki/Idol_of_Darkness?file=FFXIV_Idol_of_Darkness_Art.png"
+    },
+    {
+      "name": "Eden's Verse: Refulgence (Savage)",
+      "description": "E8S from Shadowbringers' Eden raid series. Final floor of Eden's Verse Savage tier.",
+      "type": "Savage",
+      "image_url": "https://finalfantasy.fandom.com/wiki/Shiva_(Final_Fantasy_XIV)?file=FFXIV_Eden_Shiva_Art.png"
+    },
+    {
+      "name": "Eden's Promise: Umbra (Savage)",
+      "description": "E9S from Shadowbringers' Eden raid series. First floor of Eden's Promise Savage tier.",
+      "type": "Savage",
+      "image_url": "https://finalfantasy.fandom.com/wiki/Cloud_of_Darkness_(Final_Fantasy_XIV)?file=FFXIV_Cloud_of_Darkness_Art.png"
+    },
+    {
+      "name": "Eden's Promise: Litany (Savage)",
+      "description": "E10S from Shadowbringers' Eden raid series. Second floor of Eden's Promise Savage tier.",
+      "type": "Savage",
+      "image_url": "https://finalfantasy.fandom.com/wiki/Shadowkeeper?file=FFXIV_Shadowkeeper_Art.png"
+    },
+    {
+      "name": "Eden's Promise: Anamorphosis (Savage)",
+      "description": "E11S from Shadowbringers' Eden raid series. Third floor of Eden's Promise Savage tier.",
+      "type": "Savage",
+      "image_url": "https://finalfantasy.fandom.com/wiki/Fatebreaker?file=FFXIV_Fatebreaker_Art.png"
+    },
+    {
+      "name": "Eden's Promise: Eternity (Savage)",
+      "description": "E12S from Shadowbringers' Eden raid series. Final floor of Eden's Promise Savage tier.",
+      "type": "Savage",
+      "image_url": "https://finalfantasy.fandom.com/wiki/Eden_(Final_Fantasy_XIV)?file=FFXIV_Eden_Final_Art.png"
+    },
+    {
+      "name": "Asphodelos: The First Circle (Savage)",
+      "description": "P1S from Endwalker's Pandaemonium raid series. First floor of Asphodelos Savage tier.",
+      "type": "Savage",
+      "image_url": "https://finalfantasy.fandom.com/wiki/Erichthonios_(Final_Fantasy_XIV)?file=FFXIV_Erichthonios_Art.png"
+    },
+    {
+      "name": "Asphodelos: The Second Circle (Savage)",
+      "description": "P2S from Endwalker's Pandaemonium raid series. Second floor of Asphodelos Savage tier.",
+      "type": "Savage",
+      "image_url": "https://finalfantasy.fandom.com/wiki/Hippokampos?file=FFXIV_Hippokampos_Art.png"
+    },
+    {
+      "name": "Asphodelos: The Third Circle (Savage)",
+      "description": "P3S from Endwalker's Pandaemonium raid series. Third floor of Asphodelos Savage tier.",
+      "type": "Savage",
+      "image_url": "https://finalfantasy.fandom.com/wiki/Phoinix?file=FFXIV_Phoinix_Art.png"
+    },
+    {
+      "name": "Asphodelos: The Fourth Circle (Savage)",
+      "description": "P4S from Endwalker's Pandaemonium raid series. Final floor of Asphodelos Savage tier.",
+      "type": "Savage",
+      "image_url": "https://finalfantasy.fandom.com/wiki/Hesperos?file=FFXIV_Hesperos_Art.png"
+    },
+    {
+      "name": "Abyssos: The Fifth Circle (Savage)",
+      "description": "P5S from Endwalker's Pandaemonium raid series. First floor of Abyssos Savage tier.",
+      "type": "Savage",
+      "image_url": "https://finalfantasy.fandom.com/wiki/Proto-Carbuncle?file=FFXIV_Proto_Carbuncle_Art.png"
+    },
+    {
+      "name": "Abyssos: The Sixth Circle (Savage)",
+      "description": "P6S from Endwalker's Pandaemonium raid series. Second floor of Abyssos Savage tier.",
+      "type": "Savage",
+      "image_url": "https://finalfantasy.fandom.com/wiki/Hegemone?file=FFXIV_Hegemone_Art.png"
+    },
+    {
+      "name": "Abyssos: The Seventh Circle (Savage)",
+      "description": "P7S from Endwalker's Pandaemonium raid series. Third floor of Abyssos Savage tier.",
+      "type": "Savage",
+      "image_url": "https://finalfantasy.fandom.com/wiki/Agdistis?file=FFXIV_Agdistis_Art.png"
+    },
+    {
+      "name": "Abyssos: The Eighth Circle (Savage)",
+      "description": "P8S from Endwalker's Pandaemonium raid series. Final floor of Abyssos Savage tier.",
+      "type": "Savage",
+      "image_url": "https://finalfantasy.fandom.com/wiki/Hephaistos?file=FFXIV_Hephaistos_Art.png"
+    },
+    {
+      "name": "Anabaseios: The Ninth Circle (Savage)",
+      "description": "P9S from Endwalker's Pandaemonium raid series. First floor of Anabaseios Savage tier.",
+      "type": "Savage",
+      "image_url": "https://finalfantasy.fandom.com/wiki/Kokytos?file=FFXIV_Kokytos_Art.png"
+    },
+    {
+      "name": "Anabaseios: The Tenth Circle (Savage)",
+      "description": "P10S from Endwalker's Pandaemonium raid series. Second floor of Anabaseios Savage tier.",
+      "type": "Savage",
+      "image_url": "https://finalfantasy.fandom.com/wiki/Pandaemonium_(Final_Fantasy_XIV)?file=FFXIV_Pandaemonium_Art.png"
+    },
+    {
+      "name": "Anabaseios: The Eleventh Circle (Savage)",
+      "description": "P11S from Endwalker's Pandaemonium raid series. Third floor of Anabaseios Savage tier.",
+      "type": "Savage",
+      "image_url": "https://finalfantasy.fandom.com/wiki/Themis_(Final_Fantasy_XIV)?file=FFXIV_Themis_Art.png"
+    },
+    {
+      "name": "Anabaseios: The Twelfth Circle (Savage)",
+      "description": "P12S from Endwalker's Pandaemonium raid series. Final floor of Anabaseios Savage tier.",
+      "type": "Savage",
+      "image_url": "https://finalfantasy.fandom.com/wiki/Athena_(Final_Fantasy_XIV)?file=FFXIV_Athena_Art.png"
+    },
+    {
+      "name": "AAC Light-heavyweight M1 (Savage)",
+      "description": "M1S from Dawntrail's Arcadion raid series. First floor of AAC Light-heavyweight Savage tier.",
+      "type": "Savage",
+      "image_url": "https://finalfantasy.fandom.com/wiki/Black_Cat_(Final_Fantasy_XIV)?file=FFXIV_Black_Cat_Art.png"
+    },
+    {
+      "name": "AAC Light-heavyweight M2 (Savage)",
+      "description": "M2S from Dawntrail's Arcadion raid series. Second floor of AAC Light-heavyweight Savage tier.",
+      "type": "Savage",
+      "image_url": "https://finalfantasy.fandom.com/wiki/Honey_B_Lovely?file=FFXIV_Honey_B_Lovely_Art.png"
+    },
+    {
+      "name": "AAC Light-heavyweight M3 (Savage)",
+      "description": "M3S from Dawntrail's Arcadion raid series. Third floor of AAC Light-heavyweight Savage tier.",
+      "type": "Savage",
+      "image_url": "https://finalfantasy.fandom.com/wiki/Brute_Bomber?file=FFXIV_Brute_Bomber_Art.png"
+    },
+    {
+      "name": "AAC Light-heavyweight M4 (Savage)",
+      "description": "M4S from Dawntrail's Arcadion raid series. Final floor of AAC Light-heavyweight Savage tier.",
+      "type": "Savage",
+      "image_url": "https://finalfantasy.fandom.com/wiki/Wicked_Thunder?file=FFXIV_Wicked_Thunder_Art.png"
+    }
+  ]
+}

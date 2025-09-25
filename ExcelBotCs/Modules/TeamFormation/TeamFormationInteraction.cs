@@ -28,7 +28,7 @@ public class TeamFormationInteraction : InteractionModuleBase<SocketInteractionC
 	private readonly Repository<EventDetails> _eventDetails;
 	private readonly string _rootUrl;
 
-	public TeamFormationInteraction(Prng rng, Database database)
+	public TeamFormationInteraction(Prng rng, Data.Database database)
 	{
 		_rng = rng;
 		_eventDetails = database.GetCollection<EventDetails>("event_details");
@@ -72,17 +72,17 @@ public class TeamFormationInteraction : InteractionModuleBase<SocketInteractionC
 
 		switch (await Context.Client.GetMessageFromUrl(postUrl))
 		{
-			case Extensions.NotValidUrlMessageResponse:
+			case DiscordSocketExtensions.NotValidUrlMessageResponse:
 				await FollowupAsync("The provided URL does not seem to be a valid Discord URL", ephemeral: true);
 				break;
 
-			case Extensions.NotFoundUrlMessageResponse:
+			case DiscordSocketExtensions.NotFoundUrlMessageResponse:
 				await FollowupAsync(
 					"Could not find the Guild/Channel this message belongs to. Do I have permission to view it?",
 					ephemeral: true);
 				break;
 
-			case Extensions.SuccessMessageResponse msg:
+			case DiscordSocketExtensions.SuccessMessageResponse msg:
 				var group = await GetSignupsFromMessage(msg.Message);
 				var allSignups = group.Values.SelectMany(list => list.Select(id => id)).ToList();
 

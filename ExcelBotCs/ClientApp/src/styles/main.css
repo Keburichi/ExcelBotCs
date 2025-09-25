@@ -1,0 +1,242 @@
+﻿:root {
+    /* Prefer system, can be overridden by [data-theme] on html */
+    color-scheme: light dark;
+
+    /* Semantic palette */
+    --bg: #ffffff;
+    --fg: #0f172a; /* slate-900 */
+    --muted: #64748b; /* slate-500 */
+    --border: #e5e7eb; /* gray-200 */
+    --link: #3b82f6; /* blue-500 */
+    --link-hover: #2563eb; /* blue-600 */
+    --danger: #dc2626; /* red-600 */
+    --ring: rgba(59, 130, 246, .4);
+    --card: #ffffff;
+    --card-border: #e5e7eb;
+    --elev: 0 10px 20px rgba(0, 0, 0, .06);
+    --input-bg: #ffffff;
+    --input-fg: var(--fg);
+    --input-border: #d1d5db;
+    --muted-bg: #f8fafc;
+}
+
+:root[data-theme='dark'] {
+    color-scheme: dark;
+    --bg: #0b1020; /* deep slate */
+    --fg: #e5e7eb; /* gray-200 */
+    --muted: #94a3b8; /* slate-400 */
+    --border: #273043; /* dark border */
+    --link: #60a5fa; /* blue-400 */
+    --link-hover: #93c5fd; /* blue-300 */
+    --danger: #f87171; /* red-400 */
+    --ring: rgba(96, 165, 250, .45);
+    --card: #121a2d;
+    --card-border: #1f2937;
+    --elev: 0 10px 24px rgba(0, 0, 0, .35);
+    --input-bg: #0f172a;
+    --input-fg: #e5e7eb;
+    --input-border: #334155;
+    --muted-bg: #0f172a;
+}
+
+@media (prefers-color-scheme: dark) {
+    :root:not([data-theme='light']) {
+        color-scheme: dark;
+        --bg: #0b1020;
+        --fg: #e5e7eb;
+        --muted: #94a3b8;
+        --border: #273043;
+        --link: #60a5fa;
+        --link-hover: #93c5fd;
+        --danger: #f87171;
+        --ring: rgba(96, 165, 250, .45);
+        --card: #121a2d;
+        --card-border: #1f2937;
+        --elev: 0 10px 24px rgba(0, 0, 0, .35);
+        --input-bg: #0f172a;
+        --input-fg: #e5e7eb;
+        --input-border: #334155;
+        --muted-bg: #0f172a;
+    }
+}
+
+html, body, #app {
+    height: 100%;
+}
+
+* {
+    box-sizing: border-box;
+}
+
+body {
+    margin: 0;
+    font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, Cantarell, Noto Sans, "Helvetica Neue", Arial, "Apple Color Emoji", "Segoe UI Emoji";
+    background: radial-gradient(1200px 600px at 10% -10%, var(--muted-bg), transparent 40%), var(--bg);
+    color: var(--fg);
+    line-height: 1.5;
+}
+
+.container {
+    max-width: 1100px;
+    margin: 0 auto;
+    padding: 1.25rem;
+}
+
+a {
+    color: var(--link);
+    text-decoration: none;
+}
+
+a:hover {
+    color: var(--link-hover);
+    text-decoration: underline;
+}
+
+.btn {
+    display: inline-flex;
+    align-items: center;
+    gap: .5rem;
+    padding: 0.55rem 0.95rem;
+    border-radius: 10px;
+    background: var(--link);
+    color: #fff;
+    text-decoration: none;
+    font-weight: 600;
+    border: 1px solid transparent;
+    cursor: pointer;
+    box-shadow: var(--elev);
+}
+
+.btn.secondary {
+    background: transparent;
+    color: var(--fg);
+    border-color: var(--border);
+}
+
+.btn.danger {
+    background: var(--danger);
+}
+
+.btn:hover {
+    filter: brightness(0.97);
+    transform: translateY(-1px);
+}
+
+.unauthorized {
+    text-align: center;
+}
+
+.home h2 {
+    margin-top: 0;
+}
+
+.error {
+    color: var(--danger);
+}
+
+.create-form {
+    margin: 1rem 0 2rem;
+    padding: 1rem;
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    background: var(--card);
+}
+
+.row {
+    display: flex;
+    gap: 1rem;
+    align-items: center;
+    flex-wrap: wrap;
+}
+
+label {
+    display: flex;
+    flex-direction: column;
+    font-size: 0.9rem;
+    color: var(--muted);
+}
+
+input, select, textarea {
+    background: var(--input-bg);
+    color: var(--input-fg);
+    border: 1px solid var(--input-border);
+    border-radius: 10px;
+    padding: 0.5rem 0.65rem;
+    outline: 0;
+}
+
+input:focus, select:focus, textarea:focus, .btn:focus {
+    box-shadow: 0 0 0 3px var(--ring);
+}
+
+label input {
+    padding: 0.5rem 0.65rem;
+    font-size: 1rem;
+}
+
+label.checkbox {
+    flex-direction: row;
+    gap: 0.5rem;
+    align-items: center;
+    margin-top: 1.25rem;
+}
+
+.table-actions {
+    display: flex;
+    gap: 0.5rem;
+}
+
+table {
+    width: 100%;
+    border-collapse: collapse;
+    background: var(--card);
+    border: 1px solid var(--card-border);
+    border-radius: 12px;
+    overflow: hidden;
+}
+
+th, td {
+    padding: 0.75rem;
+    border-bottom: 1px solid var(--border);
+}
+
+th {
+    text-align: left;
+}
+
+tr:hover td {
+    background: color-mix(in oklab, var(--card) 90%, var(--link) 10%);
+}
+
+.center {
+    text-align: center;
+}
+
+/* Avatar styles */
+.avatar {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    object-fit: cover;
+    display: inline-block;
+}
+
+.avatar.placeholder {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background: var(--border);
+    color: var(--muted);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 600;
+}
+
+/* Reduce motion for users who prefer so */
+@media (prefers-reduced-motion: reduce) {
+    * {
+        transition: none !important;
+        animation: none !important;
+    }
+}

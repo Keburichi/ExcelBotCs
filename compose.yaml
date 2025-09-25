@@ -1,0 +1,32 @@
+﻿services:
+  ExcelBotCs:
+    image: excelbotcs
+    build:
+      context: .
+      dockerfile: ExcelBotCs/Dockerfile
+    ports:
+      - "8080:8080"
+    environment:
+      MONGODB_CONNECTION_STRING: mongodb://root:example@mongo:27017/
+      DATABASE_NAME: excelbotcs
+      DISCORD_CONFIG: "{\"Token\": \"MTQxMzg0NDI3MzUyNjQ3Mjc4NA.GfEad9.-eptB0pMlect-1yKN06o11bGpoJga1uXt62hwQ\"}"
+      LOTTERY_CHANNEL: "1274793943950692393"
+      EVENT_ENDPOINT_URL: "localhost:8080"
+
+  mongo:
+    image: mongo
+    restart: always
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: root
+      MONGO_INITDB_ROOT_PASSWORD: example
+
+  mongo-express:
+    image: mongo-express
+    restart: always
+    ports:
+      - "8081:8081"
+    environment:
+      ME_CONFIG_MONGODB_URL: mongodb://root:example@mongo:27017/
+      ME_CONFIG_BASICAUTH_ENABLED: true
+      ME_CONFIG_BASICAUTH_USERNAME: mongoexpressuser
+      ME_CONFIG_BASICAUTH_PASSWORD: mongoexpresspass

@@ -1,28 +1,326 @@
 <Project Sdk="Microsoft.NET.Sdk.Web">
 
   <PropertyGroup>
-    <TargetFramework>net8.0</TargetFramework>
+    <TargetFramework>net9.0</TargetFramework>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="Discord.Net" Version="3.15.3" />
-    <PackageReference Include="DotNetEnv" Version="3.1.0" />
+    <PackageReference Include="AspNet.Security.OAuth.Discord" Version="8.3.0" />
+    <PackageReference Include="Discord.Net" Version="3.18.0" />
+    <PackageReference Include="DotNetEnv" Version="3.1.1" />
+    <PackageReference Include="Ical.Net" Version="5.1.0" />
+    <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="8.0.20" />
+    <PackageReference Include="Microsoft.AspNetCore.Authorization" Version="9.0.8" />
+    <PackageReference Include="Microsoft.AspNetCore.OpenApi" Version="8.0.20" />
     <PackageReference Include="Microsoft.Extensions.DependencyInjection.AutoActivation" Version="8.8.0" />
     <PackageReference Include="MongoDB.Driver" Version="2.28.0" />
     <PackageReference Include="MongoDB.Driver.Linq.AsyncEnumerable" Version="2.15.4" />
     <PackageReference Include="NetStone" Version="1.4.1" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <Folder Include="Static\" />
+    <PackageReference Include="System.IdentityModel.Tokens.Jwt" Version="8.14.0" />
   </ItemGroup>
 
   <ItemGroup>
     <None Update="Static\hello.txt">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
+    <None Include="ClientApp\node_modules\@babel\parser\typings\babel-parser.d.ts" />
+    <None Include="ClientApp\node_modules\@babel\types\lib\index-legacy.d.ts" />
+    <None Include="ClientApp\node_modules\@babel\types\lib\index.d.ts" />
+    <None Include="ClientApp\node_modules\@jridgewell\sourcemap-codec\src\scopes.ts" />
+    <None Include="ClientApp\node_modules\@jridgewell\sourcemap-codec\src\sourcemap-codec.ts" />
+    <None Include="ClientApp\node_modules\@jridgewell\sourcemap-codec\src\strings.ts" />
+    <None Include="ClientApp\node_modules\@jridgewell\sourcemap-codec\src\vlq.ts" />
+    <None Include="ClientApp\node_modules\@types\estree\flow.d.ts" />
+    <None Include="ClientApp\node_modules\@types\estree\index.d.ts" />
+    <None Include="ClientApp\node_modules\@vitejs\plugin-vue\dist\index.d.ts" />
+    <None Include="ClientApp\node_modules\@volar\language-core\index.d.ts" />
+    <None Include="ClientApp\node_modules\@volar\language-core\lib\editor.d.ts" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Content Include="ClientApp\node_modules\.bin\esbuild" />
+    <Content Include="ClientApp\node_modules\.bin\esbuild.cmd" />
+    <Content Include="ClientApp\node_modules\.bin\esbuild.ps1" />
+    <Content Include="ClientApp\node_modules\.bin\he" />
+    <Content Include="ClientApp\node_modules\.bin\he.cmd" />
+    <Content Include="ClientApp\node_modules\.bin\he.ps1" />
+    <Content Include="ClientApp\node_modules\.bin\nanoid" />
+    <Content Include="ClientApp\node_modules\.bin\nanoid.cmd" />
+    <Content Include="ClientApp\node_modules\.bin\nanoid.ps1" />
+    <Content Include="ClientApp\node_modules\.bin\parser" />
+    <Content Include="ClientApp\node_modules\.bin\parser.cmd" />
+    <Content Include="ClientApp\node_modules\.bin\parser.ps1" />
+    <Content Include="ClientApp\node_modules\.bin\rollup" />
+    <Content Include="ClientApp\node_modules\.bin\rollup.cmd" />
+    <Content Include="ClientApp\node_modules\.bin\rollup.ps1" />
+    <Content Include="ClientApp\node_modules\.bin\tsc" />
+    <Content Include="ClientApp\node_modules\.bin\tsc.cmd" />
+    <Content Include="ClientApp\node_modules\.bin\tsc.ps1" />
+    <Content Include="ClientApp\node_modules\.bin\tsserver" />
+    <Content Include="ClientApp\node_modules\.bin\tsserver.cmd" />
+    <Content Include="ClientApp\node_modules\.bin\tsserver.ps1" />
+    <Content Include="ClientApp\node_modules\.bin\vite" />
+    <Content Include="ClientApp\node_modules\.bin\vite.cmd" />
+    <Content Include="ClientApp\node_modules\.bin\vite.ps1" />
+    <Content Include="ClientApp\node_modules\.bin\vue-tsc" />
+    <Content Include="ClientApp\node_modules\.bin\vue-tsc.cmd" />
+    <Content Include="ClientApp\node_modules\.bin\vue-tsc.ps1" />
+    <Content Include="ClientApp\node_modules\.package-lock.json" />
+    <Content Include="ClientApp\node_modules\.vite\deps\chunk-Q3UG47YJ.js" />
+    <Content Include="ClientApp\node_modules\.vite\deps\chunk-Q3UG47YJ.js.map" />
+    <Content Include="ClientApp\node_modules\.vite\deps\package.json" />
+    <Content Include="ClientApp\node_modules\.vite\deps\pinia.js" />
+    <Content Include="ClientApp\node_modules\.vite\deps\pinia.js.map" />
+    <Content Include="ClientApp\node_modules\.vite\deps\vue-router.js" />
+    <Content Include="ClientApp\node_modules\.vite\deps\vue-router.js.map" />
+    <Content Include="ClientApp\node_modules\.vite\deps\vue.js" />
+    <Content Include="ClientApp\node_modules\.vite\deps\vue.js.map" />
+    <Content Include="ClientApp\node_modules\.vite\deps\_metadata.json" />
+    <Content Include="ClientApp\node_modules\@babel\helper-string-parser\lib\index.js" />
+    <Content Include="ClientApp\node_modules\@babel\helper-string-parser\lib\index.js.map" />
+    <Content Include="ClientApp\node_modules\@babel\helper-string-parser\LICENSE" />
+    <Content Include="ClientApp\node_modules\@babel\helper-string-parser\package.json" />
+    <Content Include="ClientApp\node_modules\@babel\helper-string-parser\README.md" />
+    <Content Include="ClientApp\node_modules\@babel\helper-validator-identifier\lib\identifier.js" />
+    <Content Include="ClientApp\node_modules\@babel\helper-validator-identifier\lib\identifier.js.map" />
+    <Content Include="ClientApp\node_modules\@babel\helper-validator-identifier\lib\index.js" />
+    <Content Include="ClientApp\node_modules\@babel\helper-validator-identifier\lib\index.js.map" />
+    <Content Include="ClientApp\node_modules\@babel\helper-validator-identifier\lib\keyword.js" />
+    <Content Include="ClientApp\node_modules\@babel\helper-validator-identifier\lib\keyword.js.map" />
+    <Content Include="ClientApp\node_modules\@babel\helper-validator-identifier\LICENSE" />
+    <Content Include="ClientApp\node_modules\@babel\helper-validator-identifier\package.json" />
+    <Content Include="ClientApp\node_modules\@babel\helper-validator-identifier\README.md" />
+    <Content Include="ClientApp\node_modules\@babel\parser\bin\babel-parser.js" />
+    <Content Include="ClientApp\node_modules\@babel\parser\CHANGELOG.md" />
+    <Content Include="ClientApp\node_modules\@babel\parser\lib\index.js" />
+    <Content Include="ClientApp\node_modules\@babel\parser\lib\index.js.map" />
+    <Content Include="ClientApp\node_modules\@babel\parser\LICENSE" />
+    <Content Include="ClientApp\node_modules\@babel\parser\package.json" />
+    <Content Include="ClientApp\node_modules\@babel\parser\README.md" />
+    <Content Include="ClientApp\node_modules\@babel\types\lib\asserts\assertNode.js" />
+    <Content Include="ClientApp\node_modules\@babel\types\lib\asserts\assertNode.js.map" />
+    <Content Include="ClientApp\node_modules\@babel\types\lib\asserts\generated\index.js" />
+    <Content Include="ClientApp\node_modules\@babel\types\lib\asserts\generated\index.js.map" />
+    <Content Include="ClientApp\node_modules\@babel\types\lib\ast-types\generated\index.js" />
+    <Content Include="ClientApp\node_modules\@babel\types\lib\ast-types\generated\index.js.map" />
+    <Content Include="ClientApp\node_modules\@babel\types\lib\builders\flow\createFlowUnionType.js" />
+    <Content Include="ClientApp\node_modules\@babel\types\lib\builders\flow\createFlowUnionType.js.map" />
+    <Content Include="ClientApp\node_modules\@babel\types\lib\builders\flow\createTypeAnnotationBasedOnTypeof.js" />
+    <Content Include="ClientApp\node_modules\@babel\types\lib\builders\flow\createTypeAnnotationBasedOnTypeof.js.map" />
+    <Content Include="ClientApp\node_modules\@babel\types\lib\builders\generated\index.js" />
+    <Content Include="ClientApp\node_modules\@babel\types\lib\builders\generated\index.js.map" />
+    <Content Include="ClientApp\node_modules\@babel\types\lib\builders\generated\lowercase.js" />
+    <Content Include="ClientApp\node_modules\@babel\types\lib\builders\generated\lowercase.js.map" />
+    <Content Include="ClientApp\node_modules\@babel\types\lib\builders\generated\uppercase.js" />
+    <Content Include="ClientApp\node_modules\@babel\types\lib\builders\generated\uppercase.js.map" />
+    <Content Include="ClientApp\node_modules\@babel\types\lib\builders\productions.js" />
+    <Content Include="ClientApp\node_modules\@babel\types\lib\builders\productions.js.map" />
+    <Content Include="ClientApp\node_modules\@babel\types\lib\builders\react\buildChildren.js" />
+    <Content Include="ClientApp\node_modules\@babel\types\lib\builders\react\buildChildren.js.map" />
+    <Content Include="ClientApp\node_modules\@babel\types\lib\builders\typescript\createTSUnionType.js" />
+    <Content Include="ClientApp\node_modules\@babel\types\lib\builders\typescript\createTSUnionType.js.map" />
+    <Content Include="ClientApp\node_modules\@babel\types\lib\builders\validateNode.js" />
+    <Content Include="ClientApp\node_modules\@babel\types\lib\builders\validateNode.js.map" />
+    <Content Include="ClientApp\node_modules\@babel\types\lib\clone\clone.js" />
+    <Content Include="ClientApp\node_modules\@babel\types\lib\clone\clone.js.map" />
+    <Content Include="ClientApp\node_modules\@babel\types\lib\clone\cloneDeep.js" />
+    <Content Include="ClientApp\node_modules\@babel\types\lib\clone\cloneDeep.js.map" />
+    <Content Include="ClientApp\node_modules\@babel\types\lib\clone\cloneDeepWithoutLoc.js" />
+    <Content Include="ClientApp\node_modules\@babel\types\lib\clone\cloneDeepWithoutLoc.js.map" />
+    <Content Include="ClientApp\node_modules\@babel\types\lib\clone\cloneNode.js" />
+    <Content Include="ClientApp\node_modules\@babel\types\lib\clone\cloneNode.js.map" />
+    <Content Include="ClientApp\node_modules\@babel\types\lib\clone\cloneWithoutLoc.js" />
+    <Content Include="ClientApp\node_modules\@babel\types\lib\clone\cloneWithoutLoc.js.map" />
+    <Content Include="ClientApp\node_modules\@babel\types\lib\comments\addComment.js" />
+    <Content Include="ClientApp\node_modules\@babel\types\lib\comments\addComment.js.map" />
+    <Content Include="ClientApp\node_modules\@babel\types\lib\comments\addComments.js" />
+    <Content Include="ClientApp\node_modules\@babel\types\lib\comments\addComments.js.map" />
+    <Content Include="ClientApp\node_modules\@babel\types\lib\comments\inheritInnerComments.js" />
+    <Content Include="ClientApp\node_modules\@babel\types\lib\comments\inheritInnerComments.js.map" />
+    <Content Include="ClientApp\node_modules\@babel\types\lib\comments\inheritLeadingComments.js" />
+    <Content Include="ClientApp\node_modules\@babel\types\lib\comments\inheritLeadingComments.js.map" />
+    <Content Include="ClientApp\node_modules\@babel\types\lib\comments\inheritsComments.js" />
+    <Content Include="ClientApp\node_modules\@babel\types\lib\comments\inheritsComments.js.map" />
+    <Content Include="ClientApp\node_modules\@babel\types\lib\comments\inheritTrailingComments.js" />
+    <Content Include="ClientApp\node_modules\@babel\types\lib\comments\inheritTrailingComments.js.map" />
+    <Content Include="ClientApp\node_modules\@babel\types\lib\comments\removeComments.js" />
+    <Content Include="ClientApp\node_modules\@babel\types\lib\comments\removeComments.js.map" />
+    <Content Include="ClientApp\node_modules\@babel\types\lib\constants\generated\index.js" />
+    <Content Include="ClientApp\node_modules\@babel\types\lib\constants\generated\index.js.map" />
+    <Content Include="ClientApp\node_modules\@babel\types\lib\constants\index.js" />
+    <Content Include="ClientApp\node_modules\@babel\types\lib\constants\index.js.map" />
+    <Content Include="ClientApp\node_modules\@babel\types\lib\converters\ensureBlock.js" />
+    <Content Include="ClientApp\node_modules\@babel\types\lib\converters\ensureBlock.js.map" />
+    <Content Include="ClientApp\node_modules\@babel\types\lib\converters\gatherSequenceExpressions.js" />
+    <Content Include="ClientApp\node_modules\@babel\types\lib\converters\gatherSequenceExpressions.js.map" />
+    <Content Include="ClientApp\node_modules\@babel\types\lib\converters\toBindingIdentifierName.js" />
+    <Content Include="ClientApp\node_modules\@babel\types\lib\converters\toBindingIdentifierName.js.map" />
+    <Content Include="ClientApp\node_modules\@babel\types\lib\converters\toBlock.js" />
+    <Content Include="ClientApp\node_modules\@babel\types\lib\converters\toBlock.js.map" />
+    <Content Include="ClientApp\node_modules\@babel\types\lib\converters\toComputedKey.js" />
+    <Content Include="ClientApp\node_modules\@babel\types\lib\converters\toComputedKey.js.map" />
+    <Content Include="ClientApp\node_modules\@babel\types\lib\converters\toExpression.js" />
+    <Content Include="ClientApp\node_modules\@babel\types\lib\converters\toExpression.js.map" />
+    <Content Include="ClientApp\node_modules\@babel\types\lib\converters\toIdentifier.js" />
+    <Content Include="ClientApp\node_modules\@babel\types\lib\converters\toIdentifier.js.map" />
+    <Content Include="ClientApp\node_modules\@babel\types\lib\converters\toKeyAlias.js" />
+    <Content Include="ClientApp\node_modules\@babel\types\lib\converters\toKeyAlias.js.map" />
+    <Content Include="ClientApp\node_modules\@babel\types\lib\converters\toSequenceExpression.js" />
+    <Content Include="ClientApp\node_modules\@babel\types\lib\converters\toSequenceExpression.js.map" />
+    <Content Include="ClientApp\node_modules\@babel\types\lib\converters\toStatement.js" />
+    <Content Include="ClientApp\node_modules\@babel\types\lib\converters\toStatement.js.map" />
+    <Content Include="ClientApp\node_modules\@babel\types\lib\converters\valueToNode.js" />
+    <Content Include="ClientApp\node_modules\@babel\types\lib\converters\valueToNode.js.map" />
+    <Content Include="ClientApp\node_modules\@babel\types\lib\definitions\core.js" />
+    <Content Include="ClientApp\node_modules\@babel\types\lib\definitions\core.js.map" />
+    <Content Include="ClientApp\node_modules\@babel\types\lib\definitions\deprecated-aliases.js" />
+    <Content Include="ClientApp\node_modules\@babel\types\lib\definitions\deprecated-aliases.js.map" />
+    <Content Include="ClientApp\node_modules\@babel\types\lib\definitions\experimental.js" />
+    <Content Include="ClientApp\node_modules\@babel\types\lib\definitions\experimental.js.map" />
+    <Content Include="ClientApp\node_modules\@babel\types\lib\definitions\flow.js" />
+    <Content Include="ClientApp\node_modules\@babel\types\lib\definitions\flow.js.map" />
+    <Content Include="ClientApp\node_modules\@babel\types\lib\definitions\index.js" />
+    <Content Include="ClientApp\node_modules\@babel\types\lib\definitions\index.js.map" />
+    <Content Include="ClientApp\node_modules\@babel\types\lib\definitions\jsx.js" />
+    <Content Include="ClientApp\node_modules\@babel\types\lib\definitions\jsx.js.map" />
+    <Content Include="ClientApp\node_modules\@babel\types\lib\definitions\misc.js" />
+    <Content Include="ClientApp\node_modules\@babel\types\lib\definitions\misc.js.map" />
+    <Content Include="ClientApp\node_modules\@babel\types\lib\definitions\placeholders.js" />
+    <Content Include="ClientApp\node_modules\@babel\types\lib\definitions\placeholders.js.map" />
+    <Content Include="ClientApp\node_modules\@babel\types\lib\definitions\typescript.js" />
+    <Content Include="ClientApp\node_modules\@babel\types\lib\definitions\typescript.js.map" />
+    <Content Include="ClientApp\node_modules\@babel\types\lib\definitions\utils.js" />
+    <Content Include="ClientApp\node_modules\@babel\types\lib\definitions\utils.js.map" />
+    <Content Include="ClientApp\node_modules\@babel\types\lib\index.js" />
+    <Content Include="ClientApp\node_modules\@babel\types\lib\index.js.flow" />
+    <Content Include="ClientApp\node_modules\@babel\types\lib\index.js.map" />
+    <Content Include="ClientApp\node_modules\@babel\types\lib\modifications\appendToMemberExpression.js" />
+    <Content Include="ClientApp\node_modules\@babel\types\lib\modifications\appendToMemberExpression.js.map" />
+    <Content Include="ClientApp\node_modules\@babel\types\lib\modifications\flow\removeTypeDuplicates.js" />
+    <Content Include="ClientApp\node_modules\@babel\types\lib\modifications\flow\removeTypeDuplicates.js.map" />
+    <Content Include="ClientApp\node_modules\@babel\types\lib\modifications\inherits.js" />
+    <Content Include="ClientApp\node_modules\@babel\types\lib\modifications\inherits.js.map" />
+    <Content Include="ClientApp\node_modules\@babel\types\lib\modifications\prependToMemberExpression.js" />
+    <Content Include="ClientApp\node_modules\@babel\types\lib\modifications\prependToMemberExpression.js.map" />
+    <Content Include="ClientApp\node_modules\@babel\types\lib\modifications\removeProperties.js" />
+    <Content Include="ClientApp\node_modules\@babel\types\lib\modifications\removeProperties.js.map" />
+    <Content Include="ClientApp\node_modules\@babel\types\lib\modifications\removePropertiesDeep.js" />
+    <Content Include="ClientApp\node_modules\@babel\types\lib\modifications\removePropertiesDeep.js.map" />
+    <Content Include="ClientApp\node_modules\@babel\types\lib\modifications\typescript\removeTypeDuplicates.js" />
+    <Content Include="ClientApp\node_modules\@babel\types\lib\modifications\typescript\removeTypeDuplicates.js.map" />
+    <Content Include="ClientApp\node_modules\@babel\types\lib\retrievers\getAssignmentIdentifiers.js" />
+    <Content Include="ClientApp\node_modules\@babel\types\lib\retrievers\getAssignmentIdentifiers.js.map" />
+    <Content Include="ClientApp\node_modules\@babel\types\lib\retrievers\getBindingIdentifiers.js" />
+    <Content Include="ClientApp\node_modules\@babel\types\lib\retrievers\getBindingIdentifiers.js.map" />
+    <Content Include="ClientApp\node_modules\@babel\types\lib\retrievers\getFunctionName.js" />
+    <Content Include="ClientApp\node_modules\@babel\types\lib\retrievers\getFunctionName.js.map" />
+    <Content Include="ClientApp\node_modules\@babel\types\lib\retrievers\getOuterBindingIdentifiers.js" />
+    <Content Include="ClientApp\node_modules\@babel\types\lib\retrievers\getOuterBindingIdentifiers.js.map" />
+    <Content Include="ClientApp\node_modules\@babel\types\lib\traverse\traverse.js" />
+    <Content Include="ClientApp\node_modules\@babel\types\lib\traverse\traverse.js.map" />
+    <Content Include="ClientApp\node_modules\@babel\types\lib\traverse\traverseFast.js" />
+    <Content Include="ClientApp\node_modules\@babel\types\lib\traverse\traverseFast.js.map" />
+    <Content Include="ClientApp\node_modules\@babel\types\lib\utils\deprecationWarning.js" />
+    <Content Include="ClientApp\node_modules\@babel\types\lib\utils\deprecationWarning.js.map" />
+    <Content Include="ClientApp\node_modules\@babel\types\lib\utils\inherit.js" />
+    <Content Include="ClientApp\node_modules\@babel\types\lib\utils\inherit.js.map" />
+    <Content Include="ClientApp\node_modules\@babel\types\lib\utils\react\cleanJSXElementLiteralChild.js" />
+    <Content Include="ClientApp\node_modules\@babel\types\lib\utils\react\cleanJSXElementLiteralChild.js.map" />
+    <Content Include="ClientApp\node_modules\@babel\types\lib\utils\shallowEqual.js" />
+    <Content Include="ClientApp\node_modules\@babel\types\lib\utils\shallowEqual.js.map" />
+    <Content Include="ClientApp\node_modules\@babel\types\lib\validators\buildMatchMemberExpression.js" />
+    <Content Include="ClientApp\node_modules\@babel\types\lib\validators\buildMatchMemberExpression.js.map" />
+    <Content Include="ClientApp\node_modules\@babel\types\lib\validators\generated\index.js" />
+    <Content Include="ClientApp\node_modules\@babel\types\lib\validators\generated\index.js.map" />
+    <Content Include="ClientApp\node_modules\@babel\types\lib\validators\is.js" />
+    <Content Include="ClientApp\node_modules\@babel\types\lib\validators\is.js.map" />
+    <Content Include="ClientApp\node_modules\@babel\types\lib\validators\isBinding.js" />
+    <Content Include="ClientApp\node_modules\@babel\types\lib\validators\isBinding.js.map" />
+    <Content Include="ClientApp\node_modules\@babel\types\lib\validators\isBlockScoped.js" />
+    <Content Include="ClientApp\node_modules\@babel\types\lib\validators\isBlockScoped.js.map" />
+    <Content Include="ClientApp\node_modules\@babel\types\lib\validators\isImmutable.js" />
+    <Content Include="ClientApp\node_modules\@babel\types\lib\validators\isImmutable.js.map" />
+    <Content Include="ClientApp\node_modules\@babel\types\lib\validators\isLet.js" />
+    <Content Include="ClientApp\node_modules\@babel\types\lib\validators\isLet.js.map" />
+    <Content Include="ClientApp\node_modules\@babel\types\lib\validators\isNode.js" />
+    <Content Include="ClientApp\node_modules\@babel\types\lib\validators\isNode.js.map" />
+    <Content Include="ClientApp\node_modules\@babel\types\lib\validators\isNodesEquivalent.js" />
+    <Content Include="ClientApp\node_modules\@babel\types\lib\validators\isNodesEquivalent.js.map" />
+    <Content Include="ClientApp\node_modules\@babel\types\lib\validators\isPlaceholderType.js" />
+    <Content Include="ClientApp\node_modules\@babel\types\lib\validators\isPlaceholderType.js.map" />
+    <Content Include="ClientApp\node_modules\@babel\types\lib\validators\isReferenced.js" />
+    <Content Include="ClientApp\node_modules\@babel\types\lib\validators\isReferenced.js.map" />
+    <Content Include="ClientApp\node_modules\@babel\types\lib\validators\isScope.js" />
+    <Content Include="ClientApp\node_modules\@babel\types\lib\validators\isScope.js.map" />
+    <Content Include="ClientApp\node_modules\@babel\types\lib\validators\isSpecifierDefault.js" />
+    <Content Include="ClientApp\node_modules\@babel\types\lib\validators\isSpecifierDefault.js.map" />
+    <Content Include="ClientApp\node_modules\@babel\types\lib\validators\isType.js" />
+    <Content Include="ClientApp\node_modules\@babel\types\lib\validators\isType.js.map" />
+    <Content Include="ClientApp\node_modules\@babel\types\lib\validators\isValidES3Identifier.js" />
+    <Content Include="ClientApp\node_modules\@babel\types\lib\validators\isValidES3Identifier.js.map" />
+    <Content Include="ClientApp\node_modules\@babel\types\lib\validators\isValidIdentifier.js" />
+    <Content Include="ClientApp\node_modules\@babel\types\lib\validators\isValidIdentifier.js.map" />
+    <Content Include="ClientApp\node_modules\@babel\types\lib\validators\isVar.js" />
+    <Content Include="ClientApp\node_modules\@babel\types\lib\validators\isVar.js.map" />
+    <Content Include="ClientApp\node_modules\@babel\types\lib\validators\matchesPattern.js" />
+    <Content Include="ClientApp\node_modules\@babel\types\lib\validators\matchesPattern.js.map" />
+    <Content Include="ClientApp\node_modules\@babel\types\lib\validators\react\isCompatTag.js" />
+    <Content Include="ClientApp\node_modules\@babel\types\lib\validators\react\isCompatTag.js.map" />
+    <Content Include="ClientApp\node_modules\@babel\types\lib\validators\react\isReactComponent.js" />
+    <Content Include="ClientApp\node_modules\@babel\types\lib\validators\react\isReactComponent.js.map" />
+    <Content Include="ClientApp\node_modules\@babel\types\lib\validators\validate.js" />
+    <Content Include="ClientApp\node_modules\@babel\types\lib\validators\validate.js.map" />
+    <Content Include="ClientApp\node_modules\@babel\types\LICENSE" />
+    <Content Include="ClientApp\node_modules\@babel\types\package.json" />
+    <Content Include="ClientApp\node_modules\@babel\types\README.md" />
+    <Content Include="ClientApp\node_modules\@esbuild\win32-x64\esbuild.exe" />
+    <Content Include="ClientApp\node_modules\@esbuild\win32-x64\package.json" />
+    <Content Include="ClientApp\node_modules\@esbuild\win32-x64\README.md" />
+    <Content Include="ClientApp\node_modules\@jridgewell\sourcemap-codec\dist\sourcemap-codec.mjs" />
+    <Content Include="ClientApp\node_modules\@jridgewell\sourcemap-codec\dist\sourcemap-codec.mjs.map" />
+    <Content Include="ClientApp\node_modules\@jridgewell\sourcemap-codec\dist\sourcemap-codec.umd.js" />
+    <Content Include="ClientApp\node_modules\@jridgewell\sourcemap-codec\dist\sourcemap-codec.umd.js.map" />
+    <Content Include="ClientApp\node_modules\@jridgewell\sourcemap-codec\LICENSE" />
+    <Content Include="ClientApp\node_modules\@jridgewell\sourcemap-codec\package.json" />
+    <Content Include="ClientApp\node_modules\@jridgewell\sourcemap-codec\README.md" />
+    <Content Include="ClientApp\node_modules\@jridgewell\sourcemap-codec\types\scopes.d.cts" />
+    <Content Include="ClientApp\node_modules\@jridgewell\sourcemap-codec\types\scopes.d.cts.map" />
+    <Content Include="ClientApp\node_modules\@jridgewell\sourcemap-codec\types\scopes.d.mts" />
+    <Content Include="ClientApp\node_modules\@jridgewell\sourcemap-codec\types\scopes.d.mts.map" />
+    <Content Include="ClientApp\node_modules\@jridgewell\sourcemap-codec\types\sourcemap-codec.d.cts" />
+    <Content Include="ClientApp\node_modules\@jridgewell\sourcemap-codec\types\sourcemap-codec.d.cts.map" />
+    <Content Include="ClientApp\node_modules\@jridgewell\sourcemap-codec\types\sourcemap-codec.d.mts" />
+    <Content Include="ClientApp\node_modules\@jridgewell\sourcemap-codec\types\sourcemap-codec.d.mts.map" />
+    <Content Include="ClientApp\node_modules\@jridgewell\sourcemap-codec\types\strings.d.cts" />
+    <Content Include="ClientApp\node_modules\@jridgewell\sourcemap-codec\types\strings.d.cts.map" />
+    <Content Include="ClientApp\node_modules\@jridgewell\sourcemap-codec\types\strings.d.mts" />
+    <Content Include="ClientApp\node_modules\@jridgewell\sourcemap-codec\types\strings.d.mts.map" />
+    <Content Include="ClientApp\node_modules\@jridgewell\sourcemap-codec\types\vlq.d.cts" />
+    <Content Include="ClientApp\node_modules\@jridgewell\sourcemap-codec\types\vlq.d.cts.map" />
+    <Content Include="ClientApp\node_modules\@jridgewell\sourcemap-codec\types\vlq.d.mts" />
+    <Content Include="ClientApp\node_modules\@jridgewell\sourcemap-codec\types\vlq.d.mts.map" />
+    <Content Include="ClientApp\node_modules\@rollup\rollup-win32-x64-msvc\package.json" />
+    <Content Include="ClientApp\node_modules\@rollup\rollup-win32-x64-msvc\README.md" />
+    <Content Include="ClientApp\node_modules\@rollup\rollup-win32-x64-msvc\rollup.win32-x64-msvc.node" />
+    <Content Include="ClientApp\node_modules\@types\estree\LICENSE" />
+    <Content Include="ClientApp\node_modules\@types\estree\package.json" />
+    <Content Include="ClientApp\node_modules\@types\estree\README.md" />
+    <Content Include="ClientApp\node_modules\@vitejs\plugin-vue\dist\index.cjs" />
+    <Content Include="ClientApp\node_modules\@vitejs\plugin-vue\dist\index.d.cts" />
+    <Content Include="ClientApp\node_modules\@vitejs\plugin-vue\dist\index.d.mts" />
+    <Content Include="ClientApp\node_modules\@vitejs\plugin-vue\dist\index.mjs" />
+    <Content Include="ClientApp\node_modules\@vitejs\plugin-vue\LICENSE" />
+    <Content Include="ClientApp\node_modules\@vitejs\plugin-vue\package.json" />
+    <Content Include="ClientApp\node_modules\@vitejs\plugin-vue\README.md" />
+    <Content Include="ClientApp\node_modules\@volar\language-core\index.js" />
+    <Content Include="ClientApp\node_modules\@volar\language-core\LICENSE" />
+    <Content Include="ClientApp\node_modules\@volar\language-core\package.json" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Folder Include="ClientApp\src\static\img\" />
   </ItemGroup>
 
 </Project>
