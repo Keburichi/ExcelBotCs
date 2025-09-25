@@ -12,7 +12,7 @@ public class EventController : ControllerBase
 	private readonly Repository<EventDetails> _eventDetails;
 	private readonly string _rootUrl;
 
-	public EventController(Database database)
+	public EventController(Data.Database database)
 	{
 		_eventDetails = database.GetCollection<EventDetails>("event_details");
 		_rootUrl = Utils.GetEnvVar("EVENT_ENDPOINT_URL", nameof(TeamFormationInteraction));

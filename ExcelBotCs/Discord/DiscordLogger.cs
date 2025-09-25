@@ -32,14 +32,22 @@ public class DiscordLogger : TextWriter
 			{
 				if (_channel == null)
 				{
-					var channel = await _discord.Client.GetChannelAsync(LogChannel);
-					if (channel is not ITextChannel textChannel)
-						return;
+					try
+					{
+						var channel = await _discord.Client.GetChannelAsync(LogChannel);
+						if (channel is not ITextChannel textChannel)
+							return;
 
-					_channel = textChannel;
+						_channel = textChannel;
+					}
+					catch (Exception e)
+					{
+						Debug.WriteLine($"Exception: {e} {Environment.NewLine}Unable to access log channel");
+					}
 				}
 
-				await _channel.SendMessageAsync(line);
+				if(_channel != null)
+					await _channel.SendMessageAsync(line);
 			}
 
 			await Task.Delay(TimeSpan.FromSeconds(0.5));
