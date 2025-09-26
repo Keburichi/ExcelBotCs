@@ -19,4 +19,14 @@ public class MemberService : BaseDatabaseService<Member>
 
     public async Task<Member> GetByDiscordId(ulong discordId) 
         => await GetByDiscordId(discordId.ToString());
+
+    /// <summary>
+    /// Get all members that are members of the fc.
+    /// </summary>
+    /// <returns></returns>
+    public async Task<List<Member>> GetFcMembers()
+    {
+        var allMembers = await GetAsync();
+        return allMembers.Where(x => x.IsMember.HasValue && x.IsMember.Value).ToList();
+    }
 }

@@ -7,7 +7,6 @@ using ExcelBotCs.Extensions;
 using ExcelBotCs.Filters;
 using ExcelBotCs.Middleware;
 using ExcelBotCs.Models.Config;
-using ExcelBotCs.Modules.Lottery;
 using ExcelBotCs.Services;
 using ExcelBotCs.Services.Import;
 using ExcelBotCs.Utilities;
@@ -42,16 +41,6 @@ void AddService<T>(bool activate = true) where T : class
 }
 
 AddHostedService<DiscordBotService>();
-// AddConfig<DiscordBotOptions>("DISCORD_CONFIG");
-// AddInstance(new DatabaseOptions
-// {
-//     ConnectionString = Utils.GetEnvVar("MONGODB_CONNECTION_STRING", nameof(DatabaseOptions)),
-//     DatabaseName = Utils.GetEnvVar("DATABASE_NAME", nameof(DatabaseOptions)),
-// });
-// AddInstance(new LotteryOptions
-// {
-//     Channel = ulong.Parse(Utils.GetEnvVar("LOTTERY_CHANNEL", nameof(LotteryOptions)))
-// });
 AddService<Database>();
 AddService<DiscordLogger>();
 AddInstance(new Prng());
@@ -60,9 +49,6 @@ AddInstance(new Prng());
 AddService<ImportService>();
 
 builder.Services.LoadSettings(builder);
-
-// builder.Services.Configure<DatabaseOptions>(builder.Configuration.GetSection("ExcelDatabase"));
-// builder.Services.Configure<JwtOptions>(builder.Configuration.GetSection("Jwt"));
 
 builder.Services.AddDataProtection().SetApplicationName("ExcelBotCs");
 
@@ -74,12 +60,6 @@ builder.Services
             db.Value.ConnectionString,
             db.Value.DatabaseName);
     });
-
-// builder.Services.Configure<KeyManagementOptions>(opt =>
-// {
-//     opt.XmlRepository = new MongoXmlRepository(Utils.GetEnvVar("MONGODB_CONNECTION_STRING", nameof(DatabaseOptions)),
-//         Utils.GetEnvVar("DATABASE_NAME", nameof(DatabaseOptions)));
-// });
 
 // Add services to the container.
 builder.Services.AddAuthorization();

@@ -17,7 +17,8 @@ public static class AuthenticationExtensions
 {
     public static IServiceCollection AddAppAuthentication(this IServiceCollection services, IConfiguration configuration)
     {
-        var auth = services.AddAuthentication(options =>
+        var auth = services
+            .AddAuthentication(options =>
         {
             options.DefaultScheme = CookieAuthenticationDefaults.AuthenticationScheme;
             options.DefaultChallengeScheme = DiscordAuthenticationDefaults.AuthenticationScheme;
