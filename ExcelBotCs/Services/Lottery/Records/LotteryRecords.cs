@@ -23,9 +23,9 @@ record NoMoreGuessesGuessResponse(IEnumerable<int> CurrentGuesses, string Pretty
 
 #region Award Responses
 
+public record NoUsersAwardResponse() : IAwardResponse;
+
 public record SuccessAwardResponse(IEnumerable<ulong> DiscordUserIds, string PrettyUsersAwarded, string Reason)
     : IAwardResponse;
-
-public record NoUsersAwardResponse() : IAwardResponse;
 
 #endregion
