@@ -36,6 +36,7 @@ const routes: RouteRecordRaw[] = [
 
     // Admin routes
     {path: '/admin', name: 'admin', component: AdminView, meta: {requiresAuth: true, requiresAdmin: true}},
+    {path: '/admin/roles', name: 'admin-roles', component: AdminView, meta: {requiresAuth: true, requiresAdmin: true}},
 
     // Redirect everything unknown to NotFound
     {path: '/:pathMatch(.*)*', name: 'not-found', component: () => import('@/app/NotFound.vue')}
