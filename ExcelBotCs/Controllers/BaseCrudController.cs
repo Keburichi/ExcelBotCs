@@ -19,6 +19,7 @@ public abstract class BaseCrudController<T> : ControllerBase where T : BaseEntit
     protected virtual Task<ActionResult<T>> OnBeforeGetAsync(T entity) => Task.FromResult<ActionResult<T>>(null);
     protected virtual Task<ActionResult<T>> OnBeforePutAsync(T entity) => Task.FromResult<ActionResult<T>>(null);
     protected virtual Task<ActionResult<T>> OnBeforePostAsync(T entity) => Task.FromResult<ActionResult<T>>(null);
+    protected virtual Task<ActionResult<T>> OnAfterPostAsync(T entity) => Task.FromResult<ActionResult<T>>(null);
     protected virtual Task<ActionResult<T>> OnBeforeDeleteAsync(T entity) => Task.FromResult<ActionResult<T>>(null);
 
     [HttpGet]
@@ -88,6 +89,11 @@ public abstract class BaseCrudController<T> : ControllerBase where T : BaseEntit
         dbEntity.EditDate = DateTime.UtcNow;
 
         await _databaseService.UpdateAsync(id, dbEntity);
+        
+        var after = await OnAfterPostAsync(dbEntity);
+        if (after is not null)
+            return after;
+        
         return NoContent();
     }
 

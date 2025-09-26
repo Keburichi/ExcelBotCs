@@ -1,6 +1,8 @@
 ﻿using System.Text.Json;
 using ExcelBotCs.Database.DTO;
+using ExcelBotCs.Discord;
 using ExcelBotCs.Services;
+using ExcelBotCs.Services.Import;
 using Microsoft.AspNetCore.Mvc;
 
 namespace ExcelBotCs.Controllers;
@@ -12,12 +14,15 @@ public class ImportController : ControllerBase
     private readonly IWebHostEnvironment _env;
     private readonly FightService _fightService;
     private readonly ILogger<ImportController> _logger;
+    private readonly ImportService _importService;
 
-    public ImportController(IWebHostEnvironment env, FightService fightService, ILogger<ImportController> logger)
+    public ImportController(IWebHostEnvironment env, FightService fightService, ILogger<ImportController> logger,
+        ImportService importService)
     {
         _env = env;
         _fightService = fightService;
         _logger = logger;
+        _importService = importService;
     }
 
     [HttpGet]
@@ -87,16 +92,18 @@ public class ImportController : ControllerBase
 
     [HttpGet]
     [Route("members")]
-    public IActionResult ImportMembers()
+    public async Task<IActionResult> ImportMembers()
     {
-        return Ok();
+        var members = await _importService.ImportMembers();
+        return Ok(members);
     }
 
     [HttpGet]
     [Route("roles")]
-    public IActionResult ImportRoles()
+    public async Task<IActionResult> ImportRoles()
     {
-        return Ok();
+        var roles = await _importService.ImportRoles();
+        return Ok(roles);
     }
 
     private class FightImportFile

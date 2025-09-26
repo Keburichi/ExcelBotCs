@@ -9,6 +9,7 @@ using ExcelBotCs.Middleware;
 using ExcelBotCs.Models.Config;
 using ExcelBotCs.Modules.Lottery;
 using ExcelBotCs.Services;
+using ExcelBotCs.Services.Import;
 using ExcelBotCs.Utilities;
 using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.DataProtection.KeyManagement;
@@ -54,6 +55,10 @@ AddService<Database>();
 AddService<DiscordLogger>();
 AddInstance(new Prng());
 
+
+AddService<ImportService>();
+
+builder.Services.Configure<DatabaseOptions>(builder.Configuration.GetSection("ExcelDatabase"));
 builder.Services.Configure<JwtOptions>(builder.Configuration.GetSection("Jwt"));
 
 builder.Services.AddDataProtection().SetApplicationName("ExcelBotCs");

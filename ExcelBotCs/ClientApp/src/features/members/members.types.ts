@@ -22,8 +22,9 @@ export interface MemberNote {
 }
 
 export interface MemberRole {
-    Id: string
+    Id?: string
     Name: string
+    DiscordId: number
     IsAdmin: boolean
     IsMember: boolean
 }
