@@ -16,4 +16,7 @@ public class MemberService : BaseDatabaseService<Member>
     {
         return await Collection.Find(x => x.DiscordId == discordId).FirstOrDefaultAsync();
     }
+
+    public async Task<Member> GetByDiscordId(ulong discordId) 
+        => await GetByDiscordId(discordId.ToString());
 }

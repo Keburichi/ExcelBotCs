@@ -4,6 +4,7 @@ import {useMembers} from './useMembers'
 import MembersTable from './MembersTable.vue'
 import MemberCard from './MemberCard.vue'
 import {useAuth} from "@/features/auth/useAuth";
+import CardList from "@/components/CardList.vue";
 
 const m = useMembers()
 const {isAdmin, ensureAuth, isMember} = useAuth()
@@ -14,17 +15,21 @@ onMounted(m.load)
 <template>
   <section class="home">
     <h2>Members</h2>
+    
+    <CardList 
+        :items="m.members.value"
+        :columns="4"
+        item-key="Id"
+    >
+      <template #item="{ item }">
+        <MemberCard :member="item" :is-member="isMember?.valueOf()" />
+      </template>
+    </CardList>
+    
     <p v-if="m.error" class="error">{{ m.error }}</p>
 
     <div class="list">
       <h3>All Members ({{ m.members.value.length }})</h3>
-
-      <div class="cards_container--small">
-        <MemberCard v-for="m in m.members.value" :key="m.Id"
-                    :member="m"
-                    :is-member="isMember?.valueOf()"
-        />
-      </div>
 
       <MembersTable
           :items="m.members.value"

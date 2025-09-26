@@ -33,6 +33,10 @@ const routes: RouteRecordRaw[] = [
 
     // Profile routes
     {path: '/profile', name: 'profile', component: ProfileView, meta: {requiresAuth: true}},
+    
+    // Lottery routes
+    {path: '/lottery', name: 'lottery', component: ProfileView, meta: {requiresAuth: true}},
+    {path: '/lottery/new', name: 'lottery-create', component: ProfileView, meta: {requiresAuth: true}},
 
     // Admin routes
     {path: '/admin', name: 'admin', component: AdminView, meta: {requiresAuth: true, requiresAdmin: true}},

@@ -1,3 +1,5 @@
+using ExcelBotCs.Models.Config;
+using Microsoft.Extensions.Options;
 using MongoDB.Bson;
 using MongoDB.Bson.Serialization;
 using MongoDB.Bson.Serialization.Serializers;
@@ -9,9 +11,9 @@ public class Database
 {
 	private readonly IMongoDatabase _database;
 
-	public Database(DatabaseOptions options)
+	public Database(IOptions<DatabaseOptions> options)
 	{
-		var settings = MongoClientSettings.FromConnectionString(options.ConnectionString);
+		var settings = MongoClientSettings.FromConnectionString(options.Value.ConnectionString);
 		settings.ServerApi = new ServerApi(ServerApiVersion.V1);
 		settings.LinqProvider = LinqProvider.V3;
 
@@ -24,7 +26,7 @@ public class Database
 			var result = client.GetDatabase("admin").RunCommand<BsonDocument>(new BsonDocument("ping", 1));
 			Console.WriteLine("Successfully connected to Mongodb");
 
-			_database = client.GetDatabase(options.DatabaseName);
+			_database = client.GetDatabase(options.Value.DatabaseName);
 		}
 		catch (Exception ex)
 		{

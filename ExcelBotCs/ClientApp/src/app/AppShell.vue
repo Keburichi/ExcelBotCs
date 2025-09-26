@@ -18,6 +18,7 @@ const {isMember, isAdmin} = useAuth()
           <RouterLink to="/events">Events</RouterLink>
           <RouterLink to="/members">Members</RouterLink>
           <RouterLink to="/fights">Fights</RouterLink>
+          <RouterLink to="/lottery">Lottery</RouterLink>
           <RouterLink v-if="isAdmin" to="/admin">Admin Stuff</RouterLink>
         </nav>
       </template>

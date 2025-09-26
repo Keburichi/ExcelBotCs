@@ -1,11 +1,16 @@
 ﻿<script setup lang="ts">
 
+import RulesView from "@/app/RulesView.vue";
+import AnnouncementsView from "@/app/AnnouncementsView.vue";
 </script>
 
 <template>
-  <section>
-    <h2>Welcome</h2>
-    <p>You’re signed in. Use the navigation to explore the app.</p>
+  <section class="home">
+    <h2>Welcome!</h2>
+    <p>On this website you can find upcoming FC Events, helpful resources for fights and interact with our Discord Bot in a graphical way.</p>
+    
+    <RulesView />
+    <AnnouncementsView />
   </section>
 </template>
 

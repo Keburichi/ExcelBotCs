@@ -2,6 +2,8 @@ using Discord;
 using Discord.Interactions;
 using Discord.WebSocket;
 using ExcelBotCs.Data;
+using ExcelBotCs.Models.Config;
+using Microsoft.Extensions.Options;
 using MongoDB.Driver;
 
 namespace ExcelBotCs.Modules.Lottery;
@@ -15,9 +17,9 @@ public class LotteryInteraction : InteractionModuleBase<SocketInteractionContext
 	private readonly Repository<LotteryGuess> _lotteryGuesses;
 	private readonly Repository<LotteryResult> _lotteryResults;
 
-	public LotteryInteraction(Data.Database database, LotteryOptions options, Prng rng)
+	public LotteryInteraction(Data.Database database, IOptions<DiscordBotOptions> options, Prng rng)
 	{
-		_options = options;
+		_options = options.Value.LotteryOptions;
 		_rng = rng;
 		_extraLotteryGuesses = database.GetCollection<ExtraLotteryGuess>("extra_lottery_guesses");
 		_lotteryGuesses = database.GetCollection<LotteryGuess>("lottery_guesses");

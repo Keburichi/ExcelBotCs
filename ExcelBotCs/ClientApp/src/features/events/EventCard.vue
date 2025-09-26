@@ -9,6 +9,13 @@ const props = defineProps<{
   isAdmin?: boolean
 }>()
 
+const emit = defineEmits<{
+  'start-edit': [event: FCEvent]
+  'cancel-edit': []
+  'save-edit': [],
+  'delete-event': [event: FCEvent]
+}>()
+
 </script>
 
 <template>
@@ -24,15 +31,11 @@ const props = defineProps<{
     </template>
     <template #footer>
       <p>Organized by: {{ props.event.Organizer }}</p>
+      <button v-if="isMember" class="btn primary">Sign up</button>
     </template>
-    <!--    <template #actions>-->
-    <!--      <button class="btn" v-if="props.isMember">Join</button>-->
-    <!--      <button class="btn" v-else>View</button>-->
-    <!--      <button class="btn" v-if="props.isAdmin">Edit</button>-->
-    <!--      <button class="btn" v-else>View</button>-->
-    <!--      <button class="btn" v-if="props.isAdmin">Delete</button>-->
-    <!--      <button class="btn" v-else>View</button>-->
-    <!--    </template>-->
+    <template #actions>
+      <button v-if="isAdmin" class="btn" @click="emit('start-edit', props.event)">Edit</button>
+    </template>
   </BaseCard>
 
 </template>

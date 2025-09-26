@@ -13,6 +13,7 @@ using ExcelBotCs.Services.Import;
 using ExcelBotCs.Utilities;
 using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.DataProtection.KeyManagement;
+using Microsoft.Extensions.Options;
 
 Env.Load();
 
@@ -41,16 +42,16 @@ void AddService<T>(bool activate = true) where T : class
 }
 
 AddHostedService<DiscordBotService>();
-AddConfig<DiscordBotOptions>("DISCORD_CONFIG");
-AddInstance(new DatabaseOptions
-{
-    ConnectionString = Utils.GetEnvVar("MONGODB_CONNECTION_STRING", nameof(DatabaseOptions)),
-    DatabaseName = Utils.GetEnvVar("DATABASE_NAME", nameof(DatabaseOptions)),
-});
-AddInstance(new LotteryOptions
-{
-    Channel = ulong.Parse(Utils.GetEnvVar("LOTTERY_CHANNEL", nameof(LotteryOptions)))
-});
+// AddConfig<DiscordBotOptions>("DISCORD_CONFIG");
+// AddInstance(new DatabaseOptions
+// {
+//     ConnectionString = Utils.GetEnvVar("MONGODB_CONNECTION_STRING", nameof(DatabaseOptions)),
+//     DatabaseName = Utils.GetEnvVar("DATABASE_NAME", nameof(DatabaseOptions)),
+// });
+// AddInstance(new LotteryOptions
+// {
+//     Channel = ulong.Parse(Utils.GetEnvVar("LOTTERY_CHANNEL", nameof(LotteryOptions)))
+// });
 AddService<Database>();
 AddService<DiscordLogger>();
 AddInstance(new Prng());
@@ -58,15 +59,27 @@ AddInstance(new Prng());
 
 AddService<ImportService>();
 
-builder.Services.Configure<DatabaseOptions>(builder.Configuration.GetSection("ExcelDatabase"));
-builder.Services.Configure<JwtOptions>(builder.Configuration.GetSection("Jwt"));
+builder.Services.LoadSettings(builder);
+
+// builder.Services.Configure<DatabaseOptions>(builder.Configuration.GetSection("ExcelDatabase"));
+// builder.Services.Configure<JwtOptions>(builder.Configuration.GetSection("Jwt"));
 
 builder.Services.AddDataProtection().SetApplicationName("ExcelBotCs");
-builder.Services.Configure<KeyManagementOptions>(opt =>
-{
-    opt.XmlRepository = new MongoXmlRepository(Utils.GetEnvVar("MONGODB_CONNECTION_STRING", nameof(DatabaseOptions)),
-        Utils.GetEnvVar("DATABASE_NAME", nameof(DatabaseOptions)));
-});
+
+builder.Services
+    .AddOptions<KeyManagementOptions>()
+    .Configure<IOptions<DatabaseOptions>>((opt, db) =>
+    {
+        opt.XmlRepository = new MongoXmlRepository(
+            db.Value.ConnectionString,
+            db.Value.DatabaseName);
+    });
+
+// builder.Services.Configure<KeyManagementOptions>(opt =>
+// {
+//     opt.XmlRepository = new MongoXmlRepository(Utils.GetEnvVar("MONGODB_CONNECTION_STRING", nameof(DatabaseOptions)),
+//         Utils.GetEnvVar("DATABASE_NAME", nameof(DatabaseOptions)));
+// });
 
 // Add services to the container.
 builder.Services.AddAuthorization();
@@ -108,9 +121,9 @@ app.UseHttpsRedirection();
 app.UseDefaultFiles();
 app.UseStaticFiles();
 
-app.UseAuthentication();
 // Populate the current Member for authenticated requests
 app.UseMiddleware<CurrentMemberMiddleware>();
+app.UseAuthentication();
 app.UseAuthorization();
 
 // disable static file serving for the public folder for now

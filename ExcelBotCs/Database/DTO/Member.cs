@@ -4,22 +4,30 @@ namespace ExcelBotCs.Database.DTO;
 
 public class Member : BaseEntity
 {
-    [RequiresMemberRole] public string DiscordId { get; set; }
+    [RequiresMemberRole] 
+    public string DiscordId { get; set; }
 
-    [RequiresMemberRole] public string DiscordName { get; set; }
+    [RequiresMemberRole] 
+    public string DiscordName { get; set; }
 
-    [RequiresMemberRole] public string DiscordAvatar { get; set; }
+    [RequiresMemberRole] 
+    public string DiscordAvatar { get; set; }
     public string? PlayerName { get; set; }
 
-    [RequiresAdminRole] public bool? Subbed { get; set; }
+    [RequiresAdminRole] 
+    public bool? Subbed { get; set; }
 
-    [RequiresMemberRole] public string? LodestoneId { get; set; }
+    [RequiresMemberRole] 
+    public string? LodestoneId { get; set; }
 
-    [RequiresMemberRole] public List<Fight>? Experience { get; set; }
+    [RequiresMemberRole] 
+    public List<Fight>? Experience { get; set; }
 
-    [RequiresAdminRole] public List<MemberNote>? Notes { get; set; }
+    [RequiresAdminRole] 
+    public List<MemberNote>? Notes { get; set; }
 
-    [RequiresMemberRole] public List<MemberRole> Roles { get; set; }
+    [RequiresMemberRole] 
+    public List<MemberRole> Roles { get; set; }
 
     [RequiresMemberRole]
     public bool? IsAdmin
@@ -30,6 +38,7 @@ public class Member : BaseEntity
     [RequiresMemberRole]
     public bool? IsMember
     {
-        get { return Roles != null && Roles.Any(x => x.IsMember); }
+        // This is true if the user is an admin or has a member role
+        get { return Roles != null && (Roles.Any(x => x.IsMember) || IsAdmin.GetValueOrDefault()); }
     }
 }

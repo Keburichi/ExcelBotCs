@@ -1,0 +1,28 @@
+﻿# To-Dos
+
+- [ ] Hall of Clears
+    - [ ] Showing Recent FC clears
+    - [ ] Showing which fights have been cleared
+    - [ ] List of people who cleared what
+  - [ ] Create entry from Event with signed up people
+- [ ] Welcome Page
+    - [x] Display rules
+    - [ ] Announcements
+- [ ] Current Streams
+- [ ] Upcoming Roster
+- [ ] Polls
+- [ ] Lottery
+  - [ ] Show current lottery guesses
+  - [ ] Add new lottery guess
+  - [ ] Edit lottery guess
+  - [ ] Show past lottery results
+  - [ ] Run lottery
+  - [ ] Start new lottery
+- [ ] Events
+    - [ ] Calendar view of upcoming events
+- [ ] Fights
+    - [x] Allow filtering of fights
+    - [ ] Allow searching of fights
+    - [ ] Add resource view for fights
+  - [ ] Add ability to add resources to fights
+- [ ] Fetch announcements from the discord server

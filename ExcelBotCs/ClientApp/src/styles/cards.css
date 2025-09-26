@@ -136,9 +136,21 @@
     height: 124px;
     border-radius: 50%;
     object-fit: cover;
-    /*background-color: aqua;*/
     margin: 0 auto;
-    padding-top: 1rem;
+    border-width: 2px;
+    border-style: solid;
+    border-color: #3f4c6b;
+}
+
+.card__avatar_container{
+    width: 100%;
+    border-radius: 12px 12px 0 0;
+    display: flex;
+    padding: 1rem 1rem 1rem 1rem;
+    box-shadow: 0 -3px 6px rgba(0, 0, 0, .15);
+    
+    /*background: linear-gradient(to bottom, #8e9eab, #eef2f3);*/
+    background: linear-gradient(to bottom, #606c88, #3f4c6b);
 }
 
 .card__overlay {
