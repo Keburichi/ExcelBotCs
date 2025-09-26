@@ -6,27 +6,33 @@
       dockerfile: ExcelBotCs/Dockerfile
     ports:
       - "8080:8080"
+    env_file:
+      - .env
     environment:
-      MONGODB_CONNECTION_STRING: mongodb://root:example@mongo:27017/
-      DATABASE_NAME: excelbotcs
-      DISCORD_CONFIG: "{\"Token\": \"MTQxMzg0NDI3MzUyNjQ3Mjc4NA.GfEad9.-eptB0pMlect-1yKN06o11bGpoJga1uXt62hwQ\"}"
-      LOTTERY_CHANNEL: "1274793943950692393"
-      EVENT_ENDPOINT_URL: "localhost:8080"
+      MONGODB_CONNECTION_STRING: ${MONGODB_CONNECTION_STRING}
+      DATABASE_NAME: ${DATABASE_NAME:-excelbotcs}
+      DISCORD_CONFIG: ${DISCORD_CONFIG}
+      LOTTERY_CHANNEL: ${LOTTERY_CHANNEL}
+      EVENT_ENDPOINT_URL: ${EVENT_ENDPOINT_URL:-localhost:8080}
 
   mongo:
     image: mongo
     restart: always
+    env_file:
+      - .env
     environment:
-      MONGO_INITDB_ROOT_USERNAME: root
-      MONGO_INITDB_ROOT_PASSWORD: example
+      MONGO_INITDB_ROOT_USERNAME: ${MONGO_INITDB_ROOT_USERNAME}
+      MONGO_INITDB_ROOT_PASSWORD: ${MONGO_INITDB_ROOT_PASSWORD}
 
   mongo-express:
     image: mongo-express
     restart: always
     ports:
       - "8081:8081"
+    env_file:
+      - .env
     environment:
-      ME_CONFIG_MONGODB_URL: mongodb://root:example@mongo:27017/
-      ME_CONFIG_BASICAUTH_ENABLED: true
-      ME_CONFIG_BASICAUTH_USERNAME: mongoexpressuser
-      ME_CONFIG_BASICAUTH_PASSWORD: mongoexpresspass
+      ME_CONFIG_MONGODB_URL: ${ME_CONFIG_MONGODB_URL}
+      ME_CONFIG_BASICAUTH_ENABLED: ${ME_CONFIG_BASICAUTH_ENABLED:-true}
+      ME_CONFIG_BASICAUTH_USERNAME: ${ME_CONFIG_BASICAUTH_USERNAME}
+      ME_CONFIG_BASICAUTH_PASSWORD: ${ME_CONFIG_BASICAUTH_PASSWORD}

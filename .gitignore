@@ -370,10 +370,3 @@ MigrationBackup/
 FodyWeavers.xsd
 
 .env
-
-# --- Misc ---
-# npm/pnpm/yarn state
-package-lock.json
-# Uncomment the next two if you prefer not to commit lock files
-# yarn.lock
-# pnpm-lock.yaml
