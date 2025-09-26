@@ -1,0 +1,17 @@
+using System.ComponentModel.DataAnnotations;
+using ExcelBotCs.Attributes;
+
+namespace ExcelBotCs.Models.Config;
+
+[OptionsSection("DiscordBot")]
+public class DiscordBotOptions
+{
+	[Required, MinLength(1)]
+	public string Token { get; set; } = string.Empty;
+	
+	[Required]
+	public ulong LotteryChannel { get; set; }
+
+	[Required]
+	public LotteryOptions LotteryOptions { get; set; }
+}

@@ -12,24 +12,27 @@ const props = defineProps<{
 
 <template>
 
-  <BaseCard :title="props.member.PlayerName" :size="'small'" :variant="'elevated'">
+  <BaseCard :title="props.member.PlayerName" :subtitle="props.member.DiscordName" :variant="'elevated'">
     <template #avatar>
-      <img v-if="props.member.DiscordAvatar" :src="props.member.DiscordAvatar" alt="avatar" class="card__avatar"
+      <img v-if="props.member.DiscordAvatar" :src="props.member.DiscordAvatar" :alt="props.member.PlayerName"
+           class="card__avatar"
            referrerpolicy="no-referrer"/>
-      <span v-else class="avatar placeholder">?</span>
+      <span v-else class="avatar card">?</span>
+    </template>
+    <template #body>
+      <p>Lodestone: </p>
+      <p>FFLogs: </p>
+      <p>Tomestone: </p>
+      <p>Hello Body World</p>
+    </template>
+    <template #footer>
+      <a href="">lodestone</a>
+      <a href="">fflogs</a>
+      <a href="">tomestone</a>
+      <p>Hello footer World</p>
     </template>
     <slot :member="member"/>
   </BaseCard>
-
-  <!--<div id="members-container">-->
-  <!--  <div v-for="m in props.items" :key="m.Id" class="member-card">-->
-  <!--    <img v-if="m.DiscordAvatar" :src="m.DiscordAvatar" alt="avatar" class="avatar" referrerpolicy="no-referrer"/>-->
-  <!--    <span v-else class="avatar placeholder">?</span>-->
-  <!--    <div class="member-card-content">-->
-  <!--      <h3><b>{{ m.PlayerName }}</b></h3>-->
-  <!--    </div>-->
-  <!--  </div>-->
-  <!--</div>-->
 </template>
 
 <style scoped>

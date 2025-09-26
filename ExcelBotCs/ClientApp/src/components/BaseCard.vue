@@ -54,9 +54,8 @@ function onClick() {
       <slot name="image" class="card__image"/>
     </div>
 
-    <div v-if="$slots.avatar" class="card__avatar">
+    <div v-if="$slots.avatar" class="card__avatar_container">
       <slot name="avatar"/>
-      <hr/>
     </div>
 
     <!-- Header -->

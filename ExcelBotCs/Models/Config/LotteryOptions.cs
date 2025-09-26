@@ -1,4 +1,4 @@
-namespace ExcelBotCs.Modules.Lottery;
+namespace ExcelBotCs.Models.Config;
 
 public class LotteryOptions
 {
