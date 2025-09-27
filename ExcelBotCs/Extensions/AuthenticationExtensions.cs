@@ -112,8 +112,8 @@ public static class AuthenticationExtensions
             if (jwtOptions is null) throw new InvalidOperationException("JwtOptions is not configured");
 
             // Ensure RSA key pair exists in MongoDB and use it for JWT validation
-            var dbCfgLocal = configuration.GetSection("ExcelDatabase").Get<DatabaseOptions>()
-                             ?? throw new InvalidOperationException("ExcelDatabase configuration missing");
+            var dbCfgLocal = configuration.GetSection("Database").Get<DatabaseOptions>()
+                             ?? throw new InvalidOperationException("Database configuration missing");
             var rsaService = new RsaKeyService(new OptionsWrapper<DatabaseOptions>(dbCfgLocal));
             rsaService.EnsureRsaKeysPresent(jwtOptions, AppContext.BaseDirectory);
             var publicRsa = rsaService.GetPublicRsa();

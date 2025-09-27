@@ -8,9 +8,7 @@ using Microsoft.AspNetCore.Mvc;
 namespace ExcelBotCs.Controllers;
 
 [Route("api/[controller]")]
-[Authorize(AuthenticationSchemes =
-    CookieAuthenticationDefaults.AuthenticationScheme + "," + JwtBearerDefaults.AuthenticationScheme)]
-public class AuthController : ControllerBase
+public class AuthController : AuthorizedController
 {
     private readonly ICurrentMemberAccessor _currentMemberAccessor;
     private readonly MemberService _memberService;

@@ -15,14 +15,24 @@ public class ImportController : ControllerBase
     private readonly FightService _fightService;
     private readonly ILogger<ImportController> _logger;
     private readonly ImportService _importService;
+    private readonly LodestoneService _lodestoneService;
 
     public ImportController(IWebHostEnvironment env, FightService fightService, ILogger<ImportController> logger,
-        ImportService importService)
+        ImportService importService, LodestoneService lodestoneService)
     {
         _env = env;
         _fightService = fightService;
         _logger = logger;
         _importService = importService;
+        _lodestoneService = lodestoneService;
+    }
+
+    [HttpGet]
+    [Route("lodestone")]
+    public async Task<IActionResult> ImportLodestone()
+    {
+        var fcMembers = await _lodestoneService.ImportMembers(); 
+        return Ok(new {number = fcMembers.Count, members = fcMembers});
     }
 
     [HttpGet]
