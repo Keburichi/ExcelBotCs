@@ -22,9 +22,18 @@ export function useAdmin() {
         }
     }
 
-    async function importMembers() {
+    async function importDiscordMembers() {
         try {
-            await AdminApi.importMembers()
+            await AdminApi.importDiscordMembers()
+            alert('Members imported')
+        } catch (e) {
+            alert('Error importing members' + e)
+        }
+    }
+
+    async function importFcMembers() {
+        try {
+            await AdminApi.importFcMembers()
             alert('Members imported')
         } catch (e) {
             alert('Error importing members' + e)
@@ -79,7 +88,7 @@ export function useAdmin() {
 
     return {
         importFights,
-        importMembers,
+        importMembers: importDiscordMembers,
         importRoles,
         getMemberRoles,
         memberRoles,
@@ -88,6 +97,7 @@ export function useAdmin() {
         memberRoleEditBuffer,
         saveMemberRole,
         startRoleEdit,
-        cancelRoleEdit
+        cancelRoleEdit,
+        importFcMembers
     }
 }
