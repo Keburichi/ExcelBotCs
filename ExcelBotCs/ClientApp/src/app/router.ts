@@ -9,6 +9,7 @@ import ProfileView from "@/features/profile/ProfileView.vue";
 import HomeView from "@/app/HomeView.vue";
 import AdminView from "@/features/adminPanel/AdminView.vue";
 import FightsView from "@/features/fights/FightsView.vue";
+import FcMembersListView from "@/features/fcMembers/FcMembersListView.vue";
 
 const routes: RouteRecordRaw[] = [
     {path: '/login', name: 'login', component: LoginView},
@@ -16,7 +17,7 @@ const routes: RouteRecordRaw[] = [
     {path: '/home', name: 'home', component: HomeView, meta: {requiresAuth: true}},
 
     // Member routes
-    {path: '/members', name: 'members', component: MembersListView, meta: {requiresAuth: true}},
+    {path: '/members', name: 'members', component: FcMembersListView, meta: {requiresAuth: true}},
     {path: '/members/:id', name: 'member-edit', component: MemberEditView, meta: {requiresAuth: true}},
 
     // Event routes

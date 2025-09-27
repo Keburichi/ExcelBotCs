@@ -4,7 +4,7 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace ExcelBotCs.Controllers;
 
-public abstract class BaseCrudController<T> : ControllerBase where T : BaseEntity
+public abstract class BaseCrudController<T> : AuthorizedController where T : BaseEntity
 {
     protected readonly ILogger _logger;
     private readonly BaseDatabaseService<T> _databaseService;

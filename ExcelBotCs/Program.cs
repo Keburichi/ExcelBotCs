@@ -8,7 +8,11 @@ using ExcelBotCs.Filters;
 using ExcelBotCs.Middleware;
 using ExcelBotCs.Models.Config;
 using ExcelBotCs.Services;
+using ExcelBotCs.Services.Discord;
+using ExcelBotCs.Services.Discord.Interfaces;
 using ExcelBotCs.Services.Import;
+using ExcelBotCs.Services.Lottery;
+using ExcelBotCs.Services.Lottery.Interfaces;
 using ExcelBotCs.Utilities;
 using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.DataProtection.KeyManagement;
@@ -49,6 +53,10 @@ AddInstance(new Prng());
 AddService<ImportService>();
 
 builder.Services.LoadSettings(builder);
+
+builder.Services.AddScoped<ILotteryService, LotteryService>();
+builder.Services.AddScoped<IDiscordMessageService, DiscordMessageService>();
+AddService<LodestoneService>();
 
 builder.Services.AddDataProtection().SetApplicationName("ExcelBotCs");
 
