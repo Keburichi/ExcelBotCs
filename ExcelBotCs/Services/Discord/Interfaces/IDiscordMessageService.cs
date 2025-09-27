@@ -1,3 +1,5 @@
+using Discord.Interactions;
+
 namespace ExcelBotCs.Services.Discord.Interfaces;
 
 public interface IDiscordMessageService

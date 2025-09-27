@@ -17,20 +17,33 @@ public class LotteryController : ControllerBase
         _currentMemberAccessor = currentMemberAccessor;
     }
 
+    [HttpPost]
+    [Route("guess/{number:int}")]
+    public async Task<IActionResult> Guess(int number)
+    {
+        var guessResponse = await _lotteryService.GuessAsync(await GetCurrentUserDiscordId(), number);
+        return Ok(new {guessResponse});
+    }
+
     [HttpGet]
-    [Route("guessedNumbers")]
-    public async Task<IActionResult> GetGuessNumbers()
+    [Route("unused")]
+    public async Task<IActionResult> GetUnusedNumbers()
     {
         var result = await _lotteryService.GetUnusedNumbersAsync();
-        return Ok(result);
+        return Ok(new {result});
     }
 
     [HttpGet]
     [Route("view")]
     public async Task<IActionResult> View()
     {
-        var user = await _currentMemberAccessor.GetCurrentAsync();
-        var view = await _lotteryService.ViewAsync(ulong.Parse(user.DiscordId));
-        return Ok(view);
+        var view = await _lotteryService.ViewAsync(await GetCurrentUserDiscordId());
+        return Ok(new {view});
+    }
+    
+    private async Task<ulong> GetCurrentUserDiscordId()
+    {
+        var user =  await _currentMemberAccessor.GetCurrentAsync();
+        return ulong.Parse(user?.DiscordId ?? "0");
     }
 }

@@ -10,6 +10,7 @@ import HomeView from "@/app/HomeView.vue";
 import AdminView from "@/features/adminPanel/AdminView.vue";
 import FightsView from "@/features/fights/FightsView.vue";
 import FcMembersListView from "@/features/fcMembers/FcMembersListView.vue";
+import LotteryView from "@/features/lottery/LotteryView.vue";
 
 const routes: RouteRecordRaw[] = [
     {path: '/login', name: 'login', component: LoginView},
@@ -36,7 +37,7 @@ const routes: RouteRecordRaw[] = [
     {path: '/profile', name: 'profile', component: ProfileView, meta: {requiresAuth: true}},
     
     // Lottery routes
-    {path: '/lottery', name: 'lottery', component: ProfileView, meta: {requiresAuth: true}},
+    {path: '/lottery', name: 'lottery', component: LotteryView, meta: {requiresAuth: true}},
     {path: '/lottery/new', name: 'lottery-create', component: ProfileView, meta: {requiresAuth: true}},
 
     // Admin routes
