@@ -320,7 +320,6 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Folder Include="ClientApp\src\features\lottery\" />
     <Folder Include="ClientApp\src\static\img\" />
   </ItemGroup>
 

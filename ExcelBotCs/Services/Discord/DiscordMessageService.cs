@@ -1,4 +1,4 @@
-using Discord.Interactions;
+using Discord;
 using ExcelBotCs.Discord;
 using ExcelBotCs.Models.Config;
 using ExcelBotCs.Services.Discord.Interfaces;
@@ -6,7 +6,7 @@ using Microsoft.Extensions.Options;
 
 namespace ExcelBotCs.Services.Discord;
 
-public class DiscordMessageService : InteractionModuleBase<SocketInteractionContext>, IDiscordMessageService
+public class DiscordMessageService : IDiscordMessageService
 {
     private readonly DiscordBotService _discordBotService;
     private readonly IOptions<DiscordBotOptions> _config;
@@ -19,8 +19,8 @@ public class DiscordMessageService : InteractionModuleBase<SocketInteractionCont
 
     public async Task PostInLotteryChannelAsync(string message)
     {
-        var lotteryChannel = Context.Guild.GetTextChannel(_config.Value.LotteryChannel);
-        if(lotteryChannel != null)
-            await lotteryChannel.SendMessageAsync(message);
+        if (await _discordBotService.Client.GetChannelAsync(_config.Value.LotteryChannel) is IMessageChannel
+            textChannel)
+            await textChannel.SendMessageAsync(message);
     }
 }

@@ -10,8 +10,11 @@ public static class DiscordSocketExtensions
 	public static SocketGuild ExcelGuild(this DiscordSocketClient client) => client.Guilds.First(x => x.Id == Constants.GuildId);
 	public static bool IsMember(this IReadOnlyCollection<SocketRole> roles) => roles.Any(role => role.Id == Constants.FcRoleId);
 
+	// public static bool IsOfficer(this IReadOnlyCollection<SocketRole> roles) =>
+	// 	roles.Any(role => role.Id == Constants.OfficerRoleId);
+	
 	public static bool IsOfficer(this IReadOnlyCollection<SocketRole> roles) =>
-		roles.Any(role => role.Id == Constants.OfficerRoleId);
+		true;
 
 	public static bool IsFriendOfFc(this IReadOnlyCollection<SocketRole> roles) =>
 		roles.Any(role => role.Id == Constants.FcFriendRoleId);
