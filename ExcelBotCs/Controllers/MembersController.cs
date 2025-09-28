@@ -20,6 +20,28 @@ public class MembersController : BaseCrudController<Member>
         _lodestoneService = lodestoneService;
     }
 
+    protected override async Task<ActionResult<Member>> OnBeforePutAsync(Member entity)
+    {
+        // Only allow users to update their own profile
+        var me = await _currentMemberAccessor.GetCurrentAsync();
+        if (me is null || me.Id != entity.Id)
+            return new ForbidResult();
+
+        // Load the current DB state
+        var db = await _memberService.GetAsync(entity.Id);
+        if (db is null)
+            return new NotFoundResult();
+
+        // Enforce: LodestoneId can only be set/changed via the verification flow
+        // Prevent any modifications to LodestoneId through generic PUT updates
+        entity.LodestoneId = db.LodestoneId;
+
+        // Also prevent clients from tampering with the verification token via generic PUT
+        entity.LodestoneVerificationToken = db.LodestoneVerificationToken;
+
+        return null; // continue with update for other fields
+    }
+
     public record LodestoneVerifyRequest(string LodestoneInput);
 
     [HttpPost("{id:length(24)}/lodestone-token")]
