@@ -10,6 +10,8 @@ const auth = useAuth()
 const form = reactive<Partial<Member>>({})
 
 const saving = ref(false)
+const verifying = ref(false)
+const tokenLoading = ref(false)
 const error = ref<string | null>(null)
 const success = ref<string | null>(null)
 const editMode = ref(false)
@@ -32,6 +34,7 @@ function hydrateForm() {
 
 const avatarUrl = computed(() => auth.user.value?.DiscordAvatar || '')
 const displayName = computed(() => auth.user.value?.PlayerName || auth.user.value?.DiscordName || 'My Profile')
+const verificationToken = computed(() => auth.user.value?.LodestoneVerificationToken || '')
 
 function startEdit() {
   editMode.value = true
@@ -69,6 +72,46 @@ async function save() {
     error.value = e?.message ?? 'Failed to update profile.'
   } finally {
     saving.value = false
+  }
+}
+
+async function generateVerificationToken() {
+  if (!form.Id) return
+  tokenLoading.value = true
+  error.value = null
+  success.value = null
+  try {
+    await MembersApi.generateLodestoneToken(form.Id)
+    await auth.loadMe()
+    success.value = 'Generated verification message. Copy it and place it in your Lodestone Bio.'
+  } catch (e: any) {
+    error.value = e?.message ?? 'Failed to generate verification message.'
+  } finally {
+    tokenLoading.value = false
+  }
+}
+
+async function verifyClaim() {
+  if (!form.Id || !form.LodestoneId) {
+    error.value = 'Please enter your Lodestone character ID or profile URL.'
+    return
+  }
+  verifying.value = true
+  error.value = null
+  success.value = null
+  try {
+    const res = await MembersApi.verifyLodestone(form.Id, String(form.LodestoneId))
+    if (res.success) {
+      success.value = res.message
+      editMode.value = false
+      await auth.loadMe()
+    } else {
+      error.value = res.message
+    }
+  } catch (e: any) {
+    error.value = e?.message ?? 'Verification failed.'
+  } finally {
+    verifying.value = false
   }
 }
 </script>
@@ -114,9 +157,30 @@ async function save() {
         <div class="kv-row" :class="{ editable: editMode }">
           <label for="lodestoneId">Lodestone ID</label>
           <template v-if="editMode">
-            <input id="lodestoneId" v-model="form.LodestoneId" placeholder="e.g. 1234567" />
+            <input id="lodestoneId" v-model="form.LodestoneId" placeholder="Character ID or Lodestone URL" />
           </template>
           <div v-else class="kv-value">{{ auth.user.value?.LodestoneId || '—' }}</div>
+        </div>
+
+        <div class="kv-row" v-if="editMode && !auth.user.value?.LodestoneId">
+          <label>Verification</label>
+          <div>
+            <p class="muted">To prove ownership: 1) Click "Generate message" 2) Paste it into your Lodestone Bio 3) Click "Verify now".</p>
+            <div class="alert">
+              <div><strong>Message to place in your Lodestone Bio:</strong></div>
+              <div class="kv-value"><code>{{ verificationToken || 'ExcelsiorFc-XXXXXXXX...' }}</code></div>
+            </div>
+            <div class="form-actions">
+              <button class="btn secondary" :disabled="tokenLoading" @click="generateVerificationToken">
+                <span v-if="tokenLoading">Generating...</span>
+                <span v-else>Generate message</span>
+              </button>
+              <button class="btn primary" :disabled="verifying || !form.LodestoneId" @click="verifyClaim">
+                <span v-if="verifying">Verifying...</span>
+                <span v-else>Verify now</span>
+              </button>
+            </div>
+          </div>
         </div>
 
         <div class="kv-row" :class="{ editable: editMode }">

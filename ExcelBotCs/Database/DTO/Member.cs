@@ -20,6 +20,10 @@ public class Member : BaseEntity
     [RequiresMemberRole] 
     public string? LodestoneId { get; set; }
 
+    // Token the user must place in their Lodestone Bio to verify ownership
+    [RequiresMemberRole]
+    public string? LodestoneVerificationToken { get; set; }
+
     [RequiresMemberRole] 
     public List<Fight>? Experience { get; set; }
 
