@@ -101,15 +101,30 @@ public class MembersController : BaseCrudController<Member>
     private static string ParseLodestoneId(string input)
     {
         if (string.IsNullOrWhiteSpace(input)) return string.Empty;
-        input = input.Trim();
-        // If it's a URL, extract trailing digits
-        var idx = input.LastIndexOf('/');
-        var candidate = idx >= 0 ? input.Substring(idx + 1) : input;
-        // Remove query/hash
-        var q = candidate.IndexOfAny(new[] { '?', '#' });
-        if (q >= 0) candidate = candidate.Substring(0, q);
-        // Only digits expected by Lodestone
-        if (candidate.All(char.IsDigit)) return candidate;
+        var s = input.Trim();
+
+        // Quick path: plain numeric id
+        if (s.All(char.IsDigit)) return s;
+
+        // Strip query/hash for URL handling
+        var noQueryOrHash = s.Split('?', '#')[0];
+
+        // Try to extract after "/character/" segment
+        const string marker = "/character/";
+        var markerIdx = noQueryOrHash.IndexOf(marker, StringComparison.OrdinalIgnoreCase);
+        if (markerIdx >= 0)
+        {
+            var after = noQueryOrHash.Substring(markerIdx + marker.Length);
+            // Take the next path segment (in case of trailing slash)
+            var idPart = after.Split('/', StringSplitOptions.RemoveEmptyEntries).FirstOrDefault() ?? string.Empty;
+            if (idPart.All(char.IsDigit)) return idPart;
+        }
+
+        // Fallback: take last non-empty segment from path and remove non-digits
+        var lastSegment = noQueryOrHash.Split('/', StringSplitOptions.RemoveEmptyEntries).LastOrDefault() ?? string.Empty;
+        var digits = new string(lastSegment.Where(char.IsDigit).ToArray());
+        if (!string.IsNullOrWhiteSpace(digits)) return digits;
+
         return string.Empty;
     }
 }
