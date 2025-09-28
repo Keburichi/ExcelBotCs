@@ -8,6 +8,7 @@ export interface Member {
     PlayerName: string
     Subbed: boolean
     LodestoneId: string
+    LodestoneVerificationToken?: string
     Experience: Fight[]
     Notes: MemberNote[]
     Roles: MemberRole[]

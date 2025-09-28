@@ -32,6 +32,13 @@ public class LodestoneService
         }
     }
 
+    public async Task<string> GetCharacterBioById(string characterId)
+    {
+        if (_lodestoneClient == null) throw new InvalidOperationException("Lodestone client not initialized");
+        var character = await _lodestoneClient.GetCharacter(characterId);
+        return character?.Bio ?? string.Empty;
+    }
+
     public async Task<List<FreeCompanyMembersEntry>> ImportMembers()
     {
         if (_lodestoneClient == null)
