@@ -2,8 +2,9 @@
 import BaseModal from "@/components/BaseModal.vue";
 import {EventSignup, FCEvent, Role} from "@/features/events/events.types";
 import {useAuth} from "@/features/auth/useAuth";
-import {computed, onMounted} from "vue";
+import {computed, onMounted, ref} from "vue";
 import {useMembers} from "@/features/members/useMembers";
+import {useEvents} from "@/features/events/useEvents";
 
 const props = defineProps<{
   modelValue: boolean
@@ -16,6 +17,7 @@ const emit = defineEmits<{
 
 const {user} = useAuth();
 const members = useMembers();
+const fcEvent = ref<FCEvent | null>(props.event)
 
 // Load members data when component mounts
 onMounted(() => {
@@ -29,27 +31,27 @@ function isSignedUpForRole(role: Role): boolean {
   if (!user.value?.DiscordId) 
     return false;
 
-  return props.event.Signups?.some(signup =>
+  return fcEvent.value?.Signups?.some(signup =>
       signup.DiscordUserId === user.value?.DiscordId && signup.Roles.some(signupRole => signupRole === role)
   ) ?? false;
 }
 
 // Get signup count for a specific role
 function getSignupCountForRole(role: Role): number {
-  if (!props.event.Signups) 
+  if (!fcEvent.value?.Signups) 
     return 0;
   
-  return props.event.Signups.filter(signup => 
+  return fcEvent.value.Signups.filter(signup => 
     signup.Roles.some(signupRole => signupRole === role)
   ).length;
 }
 
 // Get list of user display names signed up for a specific role
 function getSignedUpUsersForRole(role: Role): string[] {
-  if (!props.event.Signups) 
+  if (!fcEvent.value?.Signups) 
     return [];
   
-  return props.event.Signups
+  return fcEvent.value.Signups
     .filter(signup => signup.Roles.some(signupRole => signupRole === role))
     .map(signup => {
       const member = members.members.value.find(m => m.DiscordId === signup.DiscordUserId);
@@ -82,8 +84,18 @@ const meleeUsers = computed(() => getSignedUpUsersForRole(Role.Melee));
 const casterUsers = computed(() => getSignedUpUsersForRole(Role.Caster));
 const rangedUsers = computed(() => getSignedUpUsersForRole(Role.Ranged));
 
-function signUp(fcEvent: FCEvent, role: Role) {
-  alert('Signed up for: ' + fcEvent.Name + ' - ' + role)
+async function signUp(signupEvent: FCEvent, role: Role) {
+  await useEvents().signup(signupEvent, role)
+      .then(async () => {
+        // emit('update:modelValue', false)
+        // Reload event after signup and update button states
+         fcEvent.value = await useEvents().getEvent(signupEvent.Id)
+      })
+      .catch(error => {
+            console.error('Error signing up:', error)
+            alert('Error signing up. Please try again.')
+          }
+      )
 }
 
 </script>
@@ -97,35 +109,35 @@ function signUp(fcEvent: FCEvent, role: Role) {
 
     <template #actions>
       <button 
-        :class="['btn', { 'danger': isSignedUpTank }]" 
+        :class="['btn', { 'success': isSignedUpTank }]" 
         @click="signUp(event, Role.Tank)"
         :data-tooltip="tankUsers.length > 0 ? tankUsers.join(', ') : 'No signups yet'"
       >
         Tank ({{ tankCount }})
       </button>
       <button 
-        :class="['btn', { 'danger': isSignedUpHealer }]" 
+        :class="['btn', { 'success': isSignedUpHealer }]" 
         @click="signUp(event, Role.Healer)"
         :data-tooltip="healerUsers.length > 0 ? healerUsers.join(', ') : 'No signups yet'"
       >
         Healer ({{ healerCount }})
       </button>
       <button 
-        :class="['btn', { 'danger': isSignedUpMelee }]" 
+        :class="['btn', { 'success': isSignedUpMelee }]" 
         @click="signUp(event, Role.Melee)"
         :data-tooltip="meleeUsers.length > 0 ? meleeUsers.join(', ') : 'No signups yet'"
       >
         Melee ({{ meleeCount }})
       </button>
       <button 
-        :class="['btn', { 'danger': isSignedUpCaster }]" 
+        :class="['btn', { 'success': isSignedUpCaster }]" 
         @click="signUp(event, Role.Caster)"
         :data-tooltip="casterUsers.length > 0 ? casterUsers.join(', ') : 'No signups yet'"
       >
         Caster ({{ casterCount }})
       </button>
       <button 
-        :class="['btn', { 'danger': isSignedUpRanged }]" 
+        :class="['btn', { 'success': isSignedUpRanged }]" 
         @click="signUp(event, Role.Ranged)"
         :data-tooltip="rangedUsers.length > 0 ? rangedUsers.join(', ') : 'No signups yet'"
       >

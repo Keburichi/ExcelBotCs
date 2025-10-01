@@ -316,6 +316,9 @@ tr:hover td {
     --btn-danger-bg: var(--danger);
     --btn-danger-fg: #ffffff;
 
+    --btn-success-bg: #10b981; /* green-500 */
+    --btn-success-fg: #ffffff;
+
     --alert-error-bg: #fef2f2;
     --alert-error-fg: #991b1b;
     --alert-error-border: #fecaca;
@@ -358,6 +361,9 @@ tr:hover td {
 
     --btn-danger-bg: #ef4444;
     --btn-danger-fg: #0b1020;
+
+    --btn-success-bg: #10b981; /* green-500 */
+    --btn-success-fg: #0b1020;
 
     /* Softer alerts in dark */
     --alert-error-bg: rgba(248, 113, 113, 0.15);
@@ -422,6 +428,11 @@ tr:hover td {
     color: var(--btn-danger-fg);
 }
 
+.btn.success {
+    background: var(--btn-success-bg);
+    color: var(--btn-success-fg);
+}
+
 /* Alert theming */
 .alert { padding: 10px 12px; border-radius: 8px; margin: 8px 0; font-size: 14px; }
 .alert.error { background: var(--alert-error-bg); color: var(--alert-error-fg); border: 1px solid var(--alert-error-border); }
@@ -480,7 +491,7 @@ tr:hover td {
     position: absolute;
     top: 1rem;
     right: 1rem;
-    background: transparent;
+    /*background: transparent;*/
     border: none;
     color: var(--muted);
     cursor: pointer;

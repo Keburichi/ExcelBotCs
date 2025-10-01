@@ -1,5 +1,6 @@
 ﻿using System.Text;
 using ExcelBotCs.Models.Database;
+using ExcelBotCs.Models.DTO;
 using ExcelBotCs.Modules.TeamFormation;
 using ExcelBotCs.Services;
 using Ical.Net;
@@ -36,6 +37,46 @@ public class EventsController : BaseCrudController<Event>
         return null;
     }
 
+    [HttpPost]
+    [Route("{id}/signup")]
+    public async Task<IActionResult> SignupForEvent(string id, [FromBody] EventSignup signup)
+    {
+        var fcEvent = await _eventService.GetAsync(id);
+
+        if (fcEvent is null)
+            return NotFound();
+
+        var member = await _currentMemberAccessor.GetCurrentAsync();
+        if (member is null)
+            return BadRequest("Member not found for the current user");
+
+        // Check if the member is already signed up for the event
+        if (fcEvent.Signups.Any(x => x.DiscordUserId == member.DiscordId))
+        {
+            // Update the signup. That means we remove the role if its present or add it if its not
+            var eventSignup = fcEvent.Signups.First(x => x.DiscordUserId == member.DiscordId);
+            if (eventSignup.Roles.Contains(signup.Role))
+            {
+                eventSignup.Roles.Remove(signup.Role);
+            }else
+            {
+                eventSignup.Roles.Add(signup.Role);
+            }
+        }
+        else
+        {
+            fcEvent.Signups.Add(new EventUserSignup()
+            {
+                DiscordUserId = member.DiscordId,
+                Roles = [signup.Role]
+            });
+        }
+        
+        await _eventService.UpdateAsync(fcEvent.Id, fcEvent);
+
+        return Ok();
+    }
+
     [HttpGet]
     [Route("retrieve/{id:int}.ics")]
     public async Task<IActionResult> GetEventIcal(string id)
@@ -56,10 +97,10 @@ public class EventsController : BaseCrudController<Event>
             {
                 calendar.Events.Add(CreateCalendarEvent(userEvent));
             }
-            
+
             var calendarSerializer = new CalendarSerializer(calendar);
             calendarSerializer.SerializeToString();
-            
+
             var file = Encoding.UTF8.GetBytes(calendarSerializer.SerializeToString());
             return File(file, "text/calendar", $"{id}.ics");
         }
@@ -68,7 +109,7 @@ public class EventsController : BaseCrudController<Event>
             return BadRequest("Event is malformed");
         }
     }
-    
+
     private CalendarEvent CreateCalendarEvent(Event fcEvent)
     {
         return new CalendarEvent

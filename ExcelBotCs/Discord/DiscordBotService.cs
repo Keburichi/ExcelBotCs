@@ -66,6 +66,7 @@ public class DiscordBotService : BackgroundService
 
     public override async Task StopAsync(CancellationToken cancellationToken)
     {
+        Console.WriteLine("Discord bot is stopping.");
         await Client.StopAsync();
         _lifeTime.StopApplication();
     }

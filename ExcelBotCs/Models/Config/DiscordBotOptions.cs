@@ -17,4 +17,10 @@ public class DiscordBotOptions
 	
 	[Required]
 	public ulong AnnouncementChannel { get; set; }
+	
+	[Required]
+	public ulong EventsChannel { get; set; }
+	
+	[Required]
+	public ulong UpcomingRosterChannel { get; set; }
 }
