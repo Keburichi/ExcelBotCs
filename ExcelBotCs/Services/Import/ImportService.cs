@@ -1,8 +1,8 @@
 using Discord;
 using Discord.WebSocket;
-using ExcelBotCs.Database.DTO;
 using ExcelBotCs.Discord;
 using ExcelBotCs.Extensions;
+using ExcelBotCs.Models.Database;
 
 namespace ExcelBotCs.Services.Import;
 

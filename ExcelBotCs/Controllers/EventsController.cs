@@ -1,5 +1,5 @@
 ﻿using System.Text;
-using ExcelBotCs.Database.DTO;
+using ExcelBotCs.Models.Database;
 using ExcelBotCs.Modules.TeamFormation;
 using ExcelBotCs.Services;
 using Ical.Net;

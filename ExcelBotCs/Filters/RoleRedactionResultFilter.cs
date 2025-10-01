@@ -2,7 +2,7 @@
 using System.Reflection;
 using System.Runtime.CompilerServices;
 using ExcelBotCs.Attributes;
-using ExcelBotCs.Database.DTO;
+using ExcelBotCs.Models.Database;
 using ExcelBotCs.Services;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Filters;

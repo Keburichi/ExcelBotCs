@@ -1,6 +1,6 @@
 ﻿using ExcelBotCs.Attributes;
 
-namespace ExcelBotCs.Database.DTO;
+namespace ExcelBotCs.Models.Database;
 
 public class Member : BaseEntity
 {

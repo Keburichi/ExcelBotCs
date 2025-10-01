@@ -1,5 +1,5 @@
-﻿using ExcelBotCs.Database.DTO;
-using ExcelBotCs.Extensions;
+﻿using ExcelBotCs.Extensions;
+using ExcelBotCs.Models.Database;
 
 namespace ExcelBotCs.Services;
 

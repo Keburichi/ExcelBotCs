@@ -1,4 +1,4 @@
-﻿using ExcelBotCs.Database.DTO;
+﻿using ExcelBotCs.Models.Database;
 using ExcelBotCs.Services;
 
 namespace ExcelBotCs.Extensions;

@@ -23,4 +23,16 @@ public class DiscordMessageService : IDiscordMessageService
             textChannel)
             await textChannel.SendMessageAsync(message);
     }
+    
+    public async Task<List<IMessage>> GetAnnouncementChannelMessagesAsync()
+    {
+        if (await _discordBotService.Client.GetChannelAsync(_config.Value.AnnouncementChannel) is IMessageChannel
+            textChannel)
+        {
+            var discordMessages = await textChannel.GetMessagesAsync(3, CacheMode.AllowDownload).ToListAsync();
+            return discordMessages.SelectMany(x => x).ToList();
+        }
+
+        return new List<IMessage>();
+    }
 }
