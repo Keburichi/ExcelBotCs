@@ -10,6 +10,7 @@
     StartDate: Date
     Duration: number,
     AvailableForSignup: boolean
+    MaxNumberOfParticipants: number
 }
 
 export interface EventParticipant{
