@@ -3,6 +3,7 @@
 import {FCEvent} from "@/features/events/events.types";
 import BaseCard from "@/components/BaseCard.vue";
 import BaseModal from "@/components/BaseModal.vue";
+import DiscordMessageRenderer from "@/components/DiscordMessageRenderer.vue";
 import {ref, watch} from "vue";
 import EventSignupDialog from "@/features/events/EventSignupDialog.vue";
 import EventOrganizationDialog from "@/features/events/EventOrganizationDialog.vue";
@@ -83,7 +84,7 @@ function getSignUpNumber(fcEvent: FCEvent) {
       <span v-else class="card__image placeholder">?</span>
     </template>
     <template #body>
-      <p>{{ localEvent.Description }}</p>
+      <DiscordMessageRenderer :content="localEvent.Description"/>
     </template>
     <template #footer>
       <p>Organized by: {{ localEvent.Organizer }}</p>
