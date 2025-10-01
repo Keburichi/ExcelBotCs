@@ -1,6 +1,6 @@
 ﻿import {reactive, ref} from 'vue'
 import {EventsApi} from './events.api'
-import type {FCEvent} from './events.types'
+import {FCEvent, Role} from './events.types'
 
 export function useEvents() {
     const loading = ref(false)
@@ -8,12 +8,14 @@ export function useEvents() {
     const events = ref<FCEvent[]>([])
 
     const newEvent = reactive<FCEvent>({
-        Name: '', Description: '', DiscordMessage: '', Id: '', PictureUrl: '', Organizer: ''
+        Name: '', Description: '', DiscordMessage: '', Id: '', PictureUrl: '', Organizer: '',
+        Signups: [], Participants: [], AvailableForSignup: false, StartDate: new Date(), Duration: 0,
     })
 
     const editId = ref<string | null>(null)
     const editBuffer = reactive<FCEvent>({
-        Name: '', Description: '', DiscordMessage: '', PictureUrl: '', Id: '', Organizer: ''
+        Name: '', Description: '', DiscordMessage: '', PictureUrl: '', Id: '', Organizer: '',
+        Signups: [], Participants: [], AvailableForSignup: false, StartDate: new Date(), Duration: 0,
     })
 
     async function load() {
@@ -47,6 +49,15 @@ export function useEvents() {
         editId.value = null
     }
 
+    async function getEvent(id: string) {
+        try {
+            return await EventsApi.get(id)
+        }catch (e: any) {
+            error.value = e.message || 'Failed to get event'
+            return null
+        }
+    }
+    
     async function save() {
         if (!editId.value) return
         try {
@@ -60,13 +71,25 @@ export function useEvents() {
     }
 
     async function deleteEvent(event: FCEvent) {
-        if (!event) return
+        if (!event) 
+            return
 
         try {
             await EventsApi.delete(event.Id)
             events.value = events.value.filter(x => x.Id !== event.Id)
         } catch (e: any) {
             error.value = e.message || 'Failed to delete event'
+        }
+    }
+    
+    async function signup(event: FCEvent, role: Role) {
+        if (!event) 
+            return
+        
+        try {
+            await EventsApi.signUp(event, role)
+        }catch (e: any) {
+            error.value = e.message || 'Failed to signup'
         }
     }
 
@@ -82,6 +105,8 @@ export function useEvents() {
         startEdit,
         cancelEdit,
         save,
-        deleteEvent
+        deleteEvent,
+        signup,
+        getEvent,
     }
 }

@@ -1,4 +1,5 @@
 using System.Text.Json.Serialization;
+using Discord.WebSocket;
 using DotNetEnv;
 using ExcelBotCs;
 using ExcelBotCs.Data;

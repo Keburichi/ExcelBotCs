@@ -9,7 +9,7 @@ public class Event : BaseEntity
     public string DiscordMessage { get; set; }
     public string? PictureUrl { get; set; }
     public List<EventParticipant> Participants { get; set; } = [];
-    public List<EventSignup> Signups { get; set; } = [];
+    public List<EventUserSignup> Signups { get; set; } = [];
     public Member? Author { get; set; }
     public string? Organizer => Author?.PlayerName;
     public DateTime StartDate { get; set; }
