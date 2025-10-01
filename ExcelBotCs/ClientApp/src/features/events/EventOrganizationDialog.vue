@@ -19,7 +19,6 @@ const members = useMembers();
 const participants = ref<EventParticipant[]>([]);
 const saving = ref(false);
 const selectionMode = ref<'simple' | 'role'>('role'); // Toggle between simple and role-based selection
-const MAX_SIMPLE_SELECTION = 8;
 
 // Load members when component mounts
 onMounted(() => {
@@ -61,8 +60,8 @@ function toggleSimpleSelection(discordId: string) {
     participants.value.splice(existingIndex, 1);
   } else {
     // Check if we've reached the limit
-    if (participants.value.length >= MAX_SIMPLE_SELECTION) {
-      alert(`You can only select up to ${MAX_SIMPLE_SELECTION} members in simple mode.`);
+    if (participants.value.length >= props.event.MaxNumberOfParticipants) {
+      alert(`You can only select up to ${props.event.MaxNumberOfParticipants} members.`);
       return;
     }
     // Add new participant without a specific role (use Tank as default/placeholder)
@@ -87,6 +86,11 @@ function toggleRole(discordId: string, role: Role) {
       participants.value[existingIndex].Role = role;
     }
   } else {
+    // Check if we've reached the limit
+    if (participants.value.length >= props.event.MaxNumberOfParticipants) {
+      alert(`You can only select up to ${props.event.MaxNumberOfParticipants} members.`);
+      return;
+    }
     // Add new participant with this role
     participants.value.push({
       DiscordUserId: discordId,
@@ -178,13 +182,13 @@ const roleEnum = Role;
         </button>
       </div>
       
-      <p v-if="selectionMode === 'role'">Select the members who should participate in the Event '<b>{{ event.Name }}</b>' and assign roles. Click '<b>Save</b>' once you are done.</p>
-      <p v-else>Select up to <b>{{ MAX_SIMPLE_SELECTION }}</b> members who should participate in the Event '<b>{{ event.Name }}</b>'. Click '<b>Save</b>' once you are done.</p>
+      <p v-if="selectionMode === 'role'">Select up to <b>{{ event.MaxNumberOfParticipants }}</b> members who should participate in the Event '<b>{{ event.Name }}</b>' and assign roles. Click '<b>Save</b>' once you are done.</p>
+      <p v-else>Select up to <b>{{ event.MaxNumberOfParticipants }}</b> members who should participate in the Event '<b>{{ event.Name }}</b>'. Click '<b>Save</b>' once you are done.</p>
       <p class="muted" style="font-size: 0.9rem; margin-bottom: 1rem;">The bot will automatically post a new message in <b>#upcoming-roster</b>.</p>
       
       <!-- Summary of selected participants -->
       <div v-if="participants.length > 0" class="participants-summary">
-        <h4>Selected Participants ({{ participants.length }}<span v-if="selectionMode === 'simple'"> / {{ MAX_SIMPLE_SELECTION }}</span>)</h4>
+        <h4>Selected Participants ({{ participants.length }} / {{ event.MaxNumberOfParticipants }})</h4>
         <div v-if="selectionMode === 'role'" class="role-counts">
           <span class="role-badge">Tank: {{ roleCount[roleEnum.Tank] }}</span>
           <span class="role-badge">Healer: {{ roleCount[roleEnum.Healer] }}</span>
@@ -208,7 +212,7 @@ const roleEnum = Role;
             <button 
               class="btn-select"
               :class="{ selected: isMemberSelected(member.DiscordId) }"
-              :disabled="!isMemberSelected(member.DiscordId) && participants.length >= MAX_SIMPLE_SELECTION"
+              :disabled="!isMemberSelected(member.DiscordId) && participants.length >= event.MaxNumberOfParticipants"
               @click="toggleSimpleSelection(member.DiscordId)"
             >
               <span v-if="isMemberSelected(member.DiscordId)">✓ Selected</span>
@@ -221,7 +225,7 @@ const roleEnum = Role;
             <button 
               class="btn-role"
               :class="{ active: getMemberRole(member.DiscordId) === roleEnum.Tank }"
-              :disabled="!hasSignedUpForRole(member.DiscordId, roleEnum.Tank)"
+              :disabled="!hasSignedUpForRole(member.DiscordId, roleEnum.Tank) || (!isMemberSelected(member.DiscordId) && participants.length >= event.MaxNumberOfParticipants)"
               @click="toggleRole(member.DiscordId, roleEnum.Tank)"
               title="Tank"
             >
@@ -230,7 +234,7 @@ const roleEnum = Role;
             <button 
               class="btn-role"
               :class="{ active: getMemberRole(member.DiscordId) === roleEnum.Healer }"
-              :disabled="!hasSignedUpForRole(member.DiscordId, roleEnum.Healer)"
+              :disabled="!hasSignedUpForRole(member.DiscordId, roleEnum.Healer) || (!isMemberSelected(member.DiscordId) && participants.length >= event.MaxNumberOfParticipants)"
               @click="toggleRole(member.DiscordId, roleEnum.Healer)"
               title="Healer"
             >
@@ -239,7 +243,7 @@ const roleEnum = Role;
             <button 
               class="btn-role"
               :class="{ active: getMemberRole(member.DiscordId) === roleEnum.Melee }"
-              :disabled="!hasSignedUpForRole(member.DiscordId, roleEnum.Melee)"
+              :disabled="!hasSignedUpForRole(member.DiscordId, roleEnum.Melee) || (!isMemberSelected(member.DiscordId) && participants.length >= event.MaxNumberOfParticipants)"
               @click="toggleRole(member.DiscordId, roleEnum.Melee)"
               title="Melee"
             >
@@ -248,7 +252,7 @@ const roleEnum = Role;
             <button 
               class="btn-role"
               :class="{ active: getMemberRole(member.DiscordId) === roleEnum.Caster }"
-              :disabled="!hasSignedUpForRole(member.DiscordId, roleEnum.Caster)"
+              :disabled="!hasSignedUpForRole(member.DiscordId, roleEnum.Caster) || (!isMemberSelected(member.DiscordId) && participants.length >= event.MaxNumberOfParticipants)"
               @click="toggleRole(member.DiscordId, roleEnum.Caster)"
               title="Caster"
             >
@@ -257,7 +261,7 @@ const roleEnum = Role;
             <button 
               class="btn-role"
               :class="{ active: getMemberRole(member.DiscordId) === roleEnum.Ranged }"
-              :disabled="!hasSignedUpForRole(member.DiscordId, roleEnum.Ranged)"
+              :disabled="!hasSignedUpForRole(member.DiscordId, roleEnum.Ranged) || (!isMemberSelected(member.DiscordId) && participants.length >= event.MaxNumberOfParticipants)"
               @click="toggleRole(member.DiscordId, roleEnum.Ranged)"
               title="Ranged"
             >
