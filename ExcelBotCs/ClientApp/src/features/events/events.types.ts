@@ -13,13 +13,13 @@
 }
 
 export interface EventParticipant{
-    DiscordUserId: number,
+    DiscordUserId: string,
     Role: Role
 }
 
 export interface EventSignup{
-    DiscordUserId: number,
-    Role: Role
+    DiscordUserId: string,
+    Roles: Role[]
 }
 
 export enum Role{

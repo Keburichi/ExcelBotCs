@@ -1,9 +1,11 @@
 ﻿using System.Text.Json;
 using ExcelBotCs.Discord;
+using ExcelBotCs.Models.Config;
 using ExcelBotCs.Models.Database;
 using ExcelBotCs.Services;
 using ExcelBotCs.Services.Import;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Options;
 
 namespace ExcelBotCs.Controllers;
 
@@ -16,15 +18,17 @@ public class ImportController : ControllerBase
     private readonly ILogger<ImportController> _logger;
     private readonly ImportService _importService;
     private readonly LodestoneService _lodestoneService;
+    private readonly IOptions<DiscordBotOptions> _discordBotOptions;
 
     public ImportController(IWebHostEnvironment env, FightService fightService, ILogger<ImportController> logger,
-        ImportService importService, LodestoneService lodestoneService)
+        ImportService importService, LodestoneService lodestoneService, IOptions<DiscordBotOptions> discordBotOptions)
     {
         _env = env;
         _fightService = fightService;
         _logger = logger;
         _importService = importService;
         _lodestoneService = lodestoneService;
+        _discordBotOptions = discordBotOptions;
     }
 
     [HttpGet]
@@ -104,7 +108,7 @@ public class ImportController : ControllerBase
     [Route("members")]
     public async Task<IActionResult> ImportMembers()
     {
-        var members = await _importService.ImportMembers();
+        var members = await _importService.ImportMembers(_discordBotOptions.Value.GuildId);
         return Ok(members);
     }
 
@@ -112,7 +116,7 @@ public class ImportController : ControllerBase
     [Route("roles")]
     public async Task<IActionResult> ImportRoles()
     {
-        var roles = await _importService.ImportRoles();
+        var roles = await _importService.ImportRoles(_discordBotOptions.Value.GuildId);
         return Ok(roles);
     }
 
