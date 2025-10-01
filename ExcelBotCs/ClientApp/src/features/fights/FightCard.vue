@@ -8,10 +8,14 @@ const props = defineProps<{
   isMember?: boolean
 }>()
 
+function cardClick(fight: Fight) {
+  alert(fight.Name)
+}
+
 </script>
 
 <template>
-  <BaseCard :title="props.fight.Name" :variant="'elevated'" :clickable="true">
+  <BaseCard :title="props.fight.Name" :variant="'elevated'" :clickable="true" @click="cardClick(props.fight)">
     <template #body>
       <p>{{ props.fight.Description }}</p>
     </template>

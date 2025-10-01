@@ -17,7 +17,9 @@ const form = reactive<FCEvent>({
   Description: '',
   DiscordMessage: '',
   PictureUrl: '',
-  Organizer: '' // will be filled from current user on submit, server sets Author
+  Organizer: '', // will be filled from current user on submit, server sets Author,
+  StartDate: new Date(),
+  Duration: 0
 })
 
 async function submit() {
@@ -31,7 +33,7 @@ async function submit() {
     }
 
     // Organizer is computed from Author on the backend; we can set it for display
-    form.Organizer = user.value?.name ?? ''
+    form.Organizer = user.value?.PlayerName ?? ''
 
     await EventsApi.create(form)
     await router.push({name: 'events'})
@@ -70,7 +72,7 @@ function cancel() {
       </div>
       <div class="form-row">
         <label>Organizer</label>
-        <input :value="user?.name || ''" type="text" disabled/>
+        <input :value="user?.PlayerName || ''" type="text" disabled/>
       </div>
       <div class="actions">
         <button class="btn" type="submit" :disabled="loading">{{ loading ? 'Creating...' : 'Create' }}</button>
