@@ -5,6 +5,7 @@ import BaseCard from "@/components/BaseCard.vue";
 import BaseModal from "@/components/BaseModal.vue";
 import {ref} from "vue";
 import EventSignupDialog from "@/features/events/EventSignupDialog.vue";
+import EventOrganizationDialog from "@/features/events/EventOrganizationDialog.vue";
 
 const props = defineProps<{
   event: FCEvent
@@ -20,16 +21,30 @@ const emit = defineEmits<{
   'card-click': [event: FCEvent]
 }>()
 
+const isOpen = ref(false)
+const isOrganizationOpen = ref(false)
+const isDeleteOpen = ref(false)
+
 function signUp(fcEvent: FCEvent) {
   isOpen.value = true
 }
-
-const isOpen = ref(false)
 
 </script>
 
 <template>  
   <EventSignupDialog v-model="isOpen" :event="props.event"/>
+  
+  <EventOrganizationDialog v-model="isOrganizationOpen" :event="props.event"/>
+  
+  <BaseModal v-model="isDeleteOpen" :title="'Develeting Event - ' + event.Name">
+    <template #body>
+      <p>Are you sure you want to delete this event?</p>
+    </template>
+    <template #actions>
+      <button class="btn" @click="isDeleteOpen = false">Cancel</button>
+      <button class="btn danger" @click="emit('delete-event', props.event)">Yes, delete this</button>
+    </template>
+  </BaseModal>
 
   <BaseCard :title="props.event.Name" :size="'large'" :variant="'elevated'">
     <template #image>
@@ -42,7 +57,11 @@ const isOpen = ref(false)
     </template>
     <template #footer>
       <p>Organized by: {{ props.event.Organizer }}</p>
-      <button v-if="isMember" class="btn primary" @click="signUp(props.event)">Sign up</button>
+      <div class="actions">
+        <button v-if="isMember" class="btn primary actions" @click="signUp(props.event)">Sign up</button>
+        <button v-if="isAdmin" class="btn secondary actions" @click="isOrganizationOpen=true">Select participants</button>
+        <button v-if="isAdmin" class="btn danger actions" @click="isDeleteOpen=true">Delete</button>
+      </div>
     </template>
     <template #actions>
       <button v-if="isAdmin" class="btn" @click="emit('start-edit', props.event)">Edit</button>

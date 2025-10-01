@@ -19,7 +19,10 @@ const form = reactive<FCEvent>({
   PictureUrl: '',
   Organizer: '', // will be filled from current user on submit, server sets Author,
   StartDate: new Date(),
-  Duration: 0
+  Duration: 0,
+  Signups: [],
+  Participants: [],
+  AvailableForSignup: false,
 })
 
 async function submit() {
@@ -92,12 +95,6 @@ function cancel() {
   flex-direction: column;
   gap: 6px;
   margin: 12px 0;
-}
-
-.actions {
-  display: flex;
-  gap: 8px;
-  margin-top: 16px;
 }
 
 .error {

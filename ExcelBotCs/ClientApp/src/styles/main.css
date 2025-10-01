@@ -392,6 +392,12 @@ tr:hover td {
     --overlay: rgba(0, 0, 0, .35);
 }
 
+.actions {
+    display: flex;
+    gap: 8px;
+    margin-top: 16px;
+}
+
 /* Override buttons to use theme variables */
 .btn {
     background: var(--btn-bg);
