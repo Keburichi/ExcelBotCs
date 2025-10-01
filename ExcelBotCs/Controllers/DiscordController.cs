@@ -1,8 +1,8 @@
 ﻿using AspNet.Security.OAuth.Discord;
 using Discord.WebSocket;
-using ExcelBotCs.Database.DTO;
 using ExcelBotCs.Discord;
 using ExcelBotCs.Models.Config;
+using ExcelBotCs.Models.Database;
 using ExcelBotCs.Services;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;

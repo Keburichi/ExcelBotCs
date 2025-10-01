@@ -1,6 +1,6 @@
 ﻿using System.Text.Json;
-using ExcelBotCs.Database.DTO;
 using ExcelBotCs.Discord;
+using ExcelBotCs.Models.Database;
 using ExcelBotCs.Services;
 using ExcelBotCs.Services.Import;
 using Microsoft.AspNetCore.Mvc;

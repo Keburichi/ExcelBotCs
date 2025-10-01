@@ -1,5 +1,5 @@
-using ExcelBotCs.Database.DTO;
 using ExcelBotCs.Models.Config;
+using ExcelBotCs.Models.Database;
 using Microsoft.Extensions.Options;
 using NetStone;
 using NetStone.Model.Parseables.FreeCompany.Members;

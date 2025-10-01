@@ -11,7 +11,7 @@ public class DiscordBotOptions
 	
 	[Required]
 	public ulong LotteryChannel { get; set; }
-
+	
 	[Required]
-	public LotteryOptions LotteryOptions { get; set; }
+	public ulong AnnouncementChannel { get; set; }
 }

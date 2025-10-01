@@ -1,4 +1,4 @@
-﻿namespace ExcelBotCs.Database.DTO;
+﻿namespace ExcelBotCs.Models.Database;
 
 public class MemberRole : BaseEntity
 {
