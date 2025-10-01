@@ -72,7 +72,7 @@ function getSignUpNumber(fcEvent: FCEvent) {
     </template>
     <template #actions>
       <button class="btn" @click="isDeleteOpen = false">Cancel</button>
-      <button class="btn danger" @click="emit('delete-event', localEvent)">Yes, delete this</button>
+      <button class="btn danger" @click="emit('delete-event', localEvent)">Yes, delete this!</button>
     </template>
   </BaseModal>
 
@@ -88,7 +88,7 @@ function getSignUpNumber(fcEvent: FCEvent) {
     <template #footer>
       <p>Organized by: {{ localEvent.Organizer }}</p>
       <div class="actions">
-        <button v-if="isMember" class="btn primary actions" @click="signUp(localEvent)">Sign up ({{getSignUpNumber(localEvent)}})</button>
+        <button v-if="isMember" class="btn actions" @click="signUp(localEvent)">Sign up ({{getSignUpNumber(localEvent)}})</button>
         <button v-if="isAdmin" class="btn secondary actions" @click="isOrganizationOpen=true">Select participants</button>
         <button v-if="isAdmin" class="btn danger actions" @click="isDeleteOpen=true">Delete</button>
       </div>
