@@ -98,14 +98,16 @@ public class ImportService
         return members;
     }
 
-    public async Task<List<MemberRole>> ImportRoles()
+    public async Task<List<MemberRole>> ImportRoles(ulong guildId = 0)
     {
         var guilds = _discordBotService.Client.Guilds;
 
         List<MemberRole> roles = new List<MemberRole>();
 
-        foreach (var guild in guilds)
+        if (guildId != 0)
         {
+            var guild = guilds.FirstOrDefault(x => x.Id == guildId);
+            
             foreach (var guildRole in guild.Roles)
             {
                 roles.Add(new MemberRole()
@@ -113,6 +115,20 @@ public class ImportService
                     DiscordId = guildRole.Id,
                     Name = guildRole.Name
                 });
+            }
+        }
+        else
+        {
+            foreach (var guild in guilds)
+            {
+                foreach (var guildRole in guild.Roles)
+                {
+                    roles.Add(new MemberRole()
+                    {
+                        DiscordId = guildRole.Id,
+                        Name = guildRole.Name
+                    });
+                }
             }
         }
 

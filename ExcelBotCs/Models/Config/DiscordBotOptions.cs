@@ -10,6 +10,9 @@ public class DiscordBotOptions
 	public string Token { get; set; } = string.Empty;
 	
 	[Required]
+	public ulong GuildId { get; set; }
+	
+	[Required]
 	public ulong LotteryChannel { get; set; }
 	
 	[Required]

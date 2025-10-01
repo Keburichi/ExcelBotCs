@@ -4,6 +4,6 @@ namespace ExcelBotCs.Models.Database;
 
 public class EventParticipant
 {
-    public ulong DiscordUserId { get; set; }
+    public string DiscordUserId { get; set; }
     public Role Role { get; set; }
 }
