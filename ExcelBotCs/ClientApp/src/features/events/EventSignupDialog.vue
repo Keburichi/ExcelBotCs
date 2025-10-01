@@ -5,6 +5,7 @@ import {useAuth} from "@/features/auth/useAuth";
 import {computed, onMounted, ref} from "vue";
 import {useMembers} from "@/features/members/useMembers";
 import {useEvents} from "@/features/events/useEvents";
+import DiscordMessageRenderer from "@/components/DiscordMessageRenderer.vue";
 
 const props = defineProps<{
   modelValue: boolean
@@ -103,6 +104,9 @@ async function signUp(signupEvent: FCEvent, role: Role) {
 <template>
   <BaseModal :modelValue="props.modelValue" @update:modelValue="emit('update:modelValue', $event)"
              :title="event.Name + ' - signup'" :description="event.Description">
+    <template #body>
+      <DiscordMessageRenderer :content="event.Description"/>
+    </template>
     <template #image>
       <img v-if="event.PictureUrl" :src="event.PictureUrl" alt="avatar" class="card__image">
     </template>

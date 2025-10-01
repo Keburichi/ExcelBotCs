@@ -25,6 +25,51 @@ function toggleSpoiler(index: number) {
   }
 }
 
+// Format Discord timestamp based on format type
+function formatTimestamp(timestamp: number, format: string): string {
+  const date = new Date(timestamp * 1000); // Unix timestamp is in seconds
+  
+  switch (format) {
+    case 't': // Short time (e.g., "16:20")
+      return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    case 'T': // Long time (e.g., "16:20:30")
+      return date.toLocaleTimeString();
+    case 'd': // Short date (e.g., "20/04/2021")
+      return date.toLocaleDateString();
+    case 'D': // Long date (e.g., "20 April 2021")
+      return date.toLocaleDateString([], { day: 'numeric', month: 'long', year: 'numeric' });
+    case 'f': // Short date/time (e.g., "20 April 2021 16:20")
+      return date.toLocaleDateString([], { day: 'numeric', month: 'long', year: 'numeric' }) + ' ' + 
+             date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    case 'F': // Long date/time (e.g., "Tuesday, 20 April 2021 16:20")
+      return date.toLocaleDateString([], { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' }) + ' ' + 
+             date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    case 'R': // Relative time (e.g., "2 months ago")
+      return getRelativeTime(date);
+    default:
+      return date.toLocaleString();
+  }
+}
+
+// Get relative time string
+function getRelativeTime(date: Date): string {
+  const now = new Date();
+  const diffMs = now.getTime() - date.getTime();
+  const diffSec = Math.floor(diffMs / 1000);
+  const diffMin = Math.floor(diffSec / 60);
+  const diffHour = Math.floor(diffMin / 60);
+  const diffDay = Math.floor(diffHour / 24);
+  const diffMonth = Math.floor(diffDay / 30);
+  const diffYear = Math.floor(diffDay / 365);
+  
+  if (diffSec < 60) return diffSec <= 1 ? 'just now' : `${diffSec} seconds ago`;
+  if (diffMin < 60) return diffMin === 1 ? '1 minute ago' : `${diffMin} minutes ago`;
+  if (diffHour < 24) return diffHour === 1 ? '1 hour ago' : `${diffHour} hours ago`;
+  if (diffDay < 30) return diffDay === 1 ? '1 day ago' : `${diffDay} days ago`;
+  if (diffMonth < 12) return diffMonth === 1 ? '1 month ago' : `${diffMonth} months ago`;
+  return diffYear === 1 ? '1 year ago' : `${diffYear} years ago`;
+}
+
 // Parse Discord markdown and return an array of elements
 const parsedContent = computed(() => {
   if (!props.content) return [];
@@ -76,6 +121,24 @@ const parsedContent = computed(() => {
     
     if (inCodeBlock) {
       codeBlockContent.push(line);
+      continue;
+    }
+    
+    // Handle headlines (## heading)
+    const headlineMatch = line.match(/^##\s+(.+)$/);
+    if (headlineMatch) {
+      flushList();
+      const parsed = parseInlineFormatting(headlineMatch[1], spoilerIndex);
+      elements.push({ type: 'headline', content: parsed });
+      continue;
+    }
+    
+    // Handle small text (-# text)
+    const smallTextMatch = line.match(/^-#\s+(.+)$/);
+    if (smallTextMatch) {
+      flushList();
+      const parsed = parseInlineFormatting(smallTextMatch[1], spoilerIndex);
+      elements.push({ type: 'small', content: parsed });
       continue;
     }
     
@@ -131,6 +194,22 @@ function parseInlineFormatting(text: string, startSpoilerIndex: number) {
   };
   
   while (i < text.length) {
+    // Timestamp <t:timestamp:format>
+    if (text[i] === '<' && text[i + 1] === 't' && text[i + 2] === ':') {
+      pushText();
+      const endIndex = text.indexOf('>', i);
+      if (endIndex !== -1) {
+        const timestampMatch = text.substring(i, endIndex + 1).match(/<t:(\d+)(?::([tTdDfFR]))?>/);
+        if (timestampMatch) {
+          const timestamp = parseInt(timestampMatch[1]);
+          const format = timestampMatch[2] || 'f';
+          tokens.push({ type: 'timestamp', timestamp, format });
+          i = endIndex + 1;
+          continue;
+        }
+      }
+    }
+    
     // Spoiler ||text||
     if (text.substr(i, 2) === '||') {
       pushText();
@@ -194,13 +273,58 @@ function parseInlineFormatting(text: string, startSpoilerIndex: number) {
     <!-- Render parsed content -->
     <div class="discord-message__content">
       <template v-for="(element, idx) in parsedContent" :key="idx">
-        <!-- Line with inline formatting -->
-        <div v-if="element.type === 'line'" class="discord-line">
+        <!-- Headline -->
+        <h2 v-if="element.type === 'headline'" class="discord-headline">
           <template v-for="(token, tokenIdx) in element.content" :key="tokenIdx">
             <span v-if="token.type === 'text'">{{ token.content }}</span>
             <strong v-else-if="token.type === 'bold'">{{ token.content }}</strong>
             <em v-else-if="token.type === 'italic'">{{ token.content }}</em>
             <code v-else-if="token.type === 'code'" class="discord-inline-code">{{ token.content }}</code>
+            <span v-else-if="token.type === 'timestamp'" class="discord-timestamp">{{ formatTimestamp(token.timestamp, token.format) }}</span>
+            <span 
+              v-else-if="token.type === 'spoiler'" 
+              class="discord-spoiler"
+              :class="{ revealed: revealedSpoilers.has(token.index) }"
+              @click="toggleSpoiler(token.index)"
+              role="button"
+              tabindex="0"
+              @keydown.enter.space.prevent="toggleSpoiler(token.index)"
+            >
+              {{ token.content }}
+            </span>
+          </template>
+        </h2>
+        
+        <!-- Small text -->
+        <div v-else-if="element.type === 'small'" class="discord-small">
+          <template v-for="(token, tokenIdx) in element.content" :key="tokenIdx">
+            <span v-if="token.type === 'text'">{{ token.content }}</span>
+            <strong v-else-if="token.type === 'bold'">{{ token.content }}</strong>
+            <em v-else-if="token.type === 'italic'">{{ token.content }}</em>
+            <code v-else-if="token.type === 'code'" class="discord-inline-code">{{ token.content }}</code>
+            <span v-else-if="token.type === 'timestamp'" class="discord-timestamp">{{ formatTimestamp(token.timestamp, token.format) }}</span>
+            <span 
+              v-else-if="token.type === 'spoiler'" 
+              class="discord-spoiler"
+              :class="{ revealed: revealedSpoilers.has(token.index) }"
+              @click="toggleSpoiler(token.index)"
+              role="button"
+              tabindex="0"
+              @keydown.enter.space.prevent="toggleSpoiler(token.index)"
+            >
+              {{ token.content }}
+            </span>
+          </template>
+        </div>
+        
+        <!-- Line with inline formatting -->
+        <div v-else-if="element.type === 'line'" class="discord-line">
+          <template v-for="(token, tokenIdx) in element.content" :key="tokenIdx">
+            <span v-if="token.type === 'text'">{{ token.content }}</span>
+            <strong v-else-if="token.type === 'bold'">{{ token.content }}</strong>
+            <em v-else-if="token.type === 'italic'">{{ token.content }}</em>
+            <code v-else-if="token.type === 'code'" class="discord-inline-code">{{ token.content }}</code>
+            <span v-else-if="token.type === 'timestamp'" class="discord-timestamp">{{ formatTimestamp(token.timestamp, token.format) }}</span>
             <span 
               v-else-if="token.type === 'spoiler'" 
               class="discord-spoiler"
@@ -226,6 +350,7 @@ function parseInlineFormatting(text: string, startSpoilerIndex: number) {
               <strong v-else-if="token.type === 'bold'">{{ token.content }}</strong>
               <em v-else-if="token.type === 'italic'">{{ token.content }}</em>
               <code v-else-if="token.type === 'code'" class="discord-inline-code">{{ token.content }}</code>
+              <span v-else-if="token.type === 'timestamp'" class="discord-timestamp">{{ formatTimestamp(token.timestamp, token.format) }}</span>
               <span 
                 v-else-if="token.type === 'spoiler'" 
                 class="discord-spoiler"
@@ -249,6 +374,7 @@ function parseInlineFormatting(text: string, startSpoilerIndex: number) {
               <strong v-else-if="token.type === 'bold'">{{ token.content }}</strong>
               <em v-else-if="token.type === 'italic'">{{ token.content }}</em>
               <code v-else-if="token.type === 'code'" class="discord-inline-code">{{ token.content }}</code>
+              <span v-else-if="token.type === 'timestamp'" class="discord-timestamp">{{ formatTimestamp(token.timestamp, token.format) }}</span>
               <span 
                 v-else-if="token.type === 'spoiler'" 
                 class="discord-spoiler"
