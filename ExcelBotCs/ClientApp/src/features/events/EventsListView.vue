@@ -14,6 +14,10 @@ function goCreate() {
   router.push({name: 'event-create'})
 }
 
+function goEdit(event: any) {
+  router.push({name: 'event-edit', params: {id: event.Id}})
+}
+
 onMounted(e.load)
 </script>
 
@@ -31,7 +35,7 @@ onMounted(e.load)
         <EventCard :event="item"
                    :isMember="isMember?.valueOf()"
                    :isAdmin="isAdmin?.valueOf()"
-                   @start-edit="e.startEdit"
+                   @start-edit="goEdit"
                    @cancel-edit="e.cancelEdit"
                    @save-edit="e.save"
                    @delete-event="e.deleteEvent"/>

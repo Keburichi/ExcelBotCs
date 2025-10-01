@@ -29,6 +29,12 @@ const routes: RouteRecordRaw[] = [
         component: CreateEventView,
         meta: {requiresAuth: true, requiresAdmin: true}
     },
+    {
+        path: '/events/:id',
+        name: 'event-edit',
+        component: CreateEventView,
+        meta: {requiresAuth: true, requiresAdmin: true}
+    },
 
     // Fight routes
     {path: '/fights', name: 'fights', component: FightsView, meta: {requiresAuth: true}},
