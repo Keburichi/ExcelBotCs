@@ -18,6 +18,8 @@ const emit = defineEmits<{
 const members = useMembers();
 const participants = ref<EventParticipant[]>([]);
 const saving = ref(false);
+const selectionMode = ref<'simple' | 'role'>('role'); // Toggle between simple and role-based selection
+const MAX_SIMPLE_SELECTION = 8;
 
 // Load members when component mounts
 onMounted(() => {
@@ -39,7 +41,39 @@ function isMemberSelected(discordId: string): boolean {
   return participants.value.some(p => p.DiscordUserId === discordId);
 }
 
-// Toggle role for a member
+// Toggle selection mode
+function toggleSelectionMode() {
+  const newMode = selectionMode.value === 'simple' ? 'role' : 'simple';
+  
+  // Clear participants when switching modes to avoid confusion
+  if (confirm(`Switching to ${newMode} mode will clear current selections. Continue?`)) {
+    participants.value = [];
+    selectionMode.value = newMode;
+  }
+}
+
+// Toggle simple selection (for simple mode)
+function toggleSimpleSelection(discordId: string) {
+  const existingIndex = participants.value.findIndex(p => p.DiscordUserId === discordId);
+  
+  if (existingIndex >= 0) {
+    // Remove the participant
+    participants.value.splice(existingIndex, 1);
+  } else {
+    // Check if we've reached the limit
+    if (participants.value.length >= MAX_SIMPLE_SELECTION) {
+      alert(`You can only select up to ${MAX_SIMPLE_SELECTION} members in simple mode.`);
+      return;
+    }
+    // Add new participant without a specific role (use Tank as default/placeholder)
+    participants.value.push({
+      DiscordUserId: discordId,
+      Role: Role.Tank // Placeholder role for simple mode
+    });
+  }
+}
+
+// Toggle role for a member (for role-based mode)
 function toggleRole(discordId: string, role: Role) {
   const existingIndex = participants.value.findIndex(p => p.DiscordUserId === discordId);
   
@@ -136,13 +170,22 @@ const roleEnum = Role;
       <img v-if="event.PictureUrl" :src="event.PictureUrl" alt="avatar" class="card__image">
     </template>
     <template #body>
-      <p>Select the members who should participate in the Event '<b>{{ event.Name }}</b>' and assign roles. Click '<b>Save</b>' once you are done.</p>
+      <!-- Mode Toggle Button -->
+      <div class="mode-toggle-container">
+        <button class="btn secondary mode-toggle-btn" @click="toggleSelectionMode">
+          <span v-if="selectionMode === 'role'">Switch to Simple Mode</span>
+          <span v-else>Switch to Role-Based Mode</span>
+        </button>
+      </div>
+      
+      <p v-if="selectionMode === 'role'">Select the members who should participate in the Event '<b>{{ event.Name }}</b>' and assign roles. Click '<b>Save</b>' once you are done.</p>
+      <p v-else>Select up to <b>{{ MAX_SIMPLE_SELECTION }}</b> members who should participate in the Event '<b>{{ event.Name }}</b>'. Click '<b>Save</b>' once you are done.</p>
       <p class="muted" style="font-size: 0.9rem; margin-bottom: 1rem;">The bot will automatically post a new message in <b>#upcoming-roster</b>.</p>
       
       <!-- Summary of selected participants -->
       <div v-if="participants.length > 0" class="participants-summary">
-        <h4>Selected Participants ({{ participants.length }})</h4>
-        <div class="role-counts">
+        <h4>Selected Participants ({{ participants.length }}<span v-if="selectionMode === 'simple'"> / {{ MAX_SIMPLE_SELECTION }}</span>)</h4>
+        <div v-if="selectionMode === 'role'" class="role-counts">
           <span class="role-badge">Tank: {{ roleCount[roleEnum.Tank] }}</span>
           <span class="role-badge">Healer: {{ roleCount[roleEnum.Healer] }}</span>
           <span class="role-badge">Melee: {{ roleCount[roleEnum.Melee] }}</span>
@@ -160,7 +203,21 @@ const roleEnum = Role;
             <span class="member-name">{{ member.PlayerName || member.DiscordName }}</span>
           </div>
           
-          <div class="role-buttons">
+          <!-- Simple Mode: Single Select Button -->
+          <div v-if="selectionMode === 'simple'" class="simple-selection">
+            <button 
+              class="btn-select"
+              :class="{ selected: isMemberSelected(member.DiscordId) }"
+              :disabled="!isMemberSelected(member.DiscordId) && participants.length >= MAX_SIMPLE_SELECTION"
+              @click="toggleSimpleSelection(member.DiscordId)"
+            >
+              <span v-if="isMemberSelected(member.DiscordId)">✓ Selected</span>
+              <span v-else>Select</span>
+            </button>
+          </div>
+          
+          <!-- Role Mode: Role Buttons -->
+          <div v-else class="role-buttons">
             <button 
               class="btn-role"
               :class="{ active: getMemberRole(member.DiscordId) === roleEnum.Tank }"
@@ -353,5 +410,61 @@ const roleEnum = Role;
 
 .member-list::-webkit-scrollbar-thumb:hover {
   background: var(--muted);
+}
+
+/* Mode Toggle Styles */
+.mode-toggle-container {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 1rem;
+}
+
+.mode-toggle-btn {
+  font-size: 0.9rem;
+  padding: 0.5rem 1rem;
+}
+
+/* Simple Selection Styles */
+.simple-selection {
+  display: flex;
+  align-items: center;
+}
+
+.btn-select {
+  padding: 0.5rem 1rem;
+  border-radius: 6px;
+  border: 1px solid var(--border);
+  background: var(--card);
+  color: var(--fg);
+  cursor: pointer;
+  font-weight: 600;
+  font-size: 0.85rem;
+  transition: all 0.2s;
+  min-width: 100px;
+}
+
+.btn-select:hover:not(:disabled) {
+  background: var(--muted-bg);
+  border-color: var(--link);
+  color: var(--link);
+}
+
+.btn-select.selected {
+  background: var(--btn-success-bg);
+  color: var(--btn-success-fg);
+  border-color: var(--btn-success-bg);
+}
+
+.btn-select:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+  background: var(--muted-bg);
+  color: var(--muted);
+  border-color: var(--border);
+}
+
+.btn-select:focus {
+  outline: none;
+  box-shadow: 0 0 0 3px var(--ring);
 }
 </style>

@@ -14,6 +14,7 @@ public class Event : BaseEntity
     public string? Organizer => Author?.PlayerName;
     public DateTime StartDate { get; set; }
     public int Duration { get; set; }
+    public int MaxNumberOfParticipants { get; set; }
 
     public bool AvailableForSignup
     {
