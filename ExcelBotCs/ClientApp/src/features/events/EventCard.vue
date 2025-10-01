@@ -3,9 +3,10 @@
 import {FCEvent} from "@/features/events/events.types";
 import BaseCard from "@/components/BaseCard.vue";
 import BaseModal from "@/components/BaseModal.vue";
-import {ref} from "vue";
+import {ref, watch} from "vue";
 import EventSignupDialog from "@/features/events/EventSignupDialog.vue";
 import EventOrganizationDialog from "@/features/events/EventOrganizationDialog.vue";
+import {useEvents} from "@/features/events/useEvents";
 
 const props = defineProps<{
   event: FCEvent
@@ -25,8 +26,29 @@ const isOpen = ref(false)
 const isOrganizationOpen = ref(false)
 const isDeleteOpen = ref(false)
 
+// Create a local reactive copy of the event to allow updates
+const localEvent = ref<FCEvent>(props.event)
+
+// Watch for prop changes to update local event
+watch(() => props.event, (newEvent) => {
+  localEvent.value = newEvent
+}, { deep: true })
+
 function signUp(fcEvent: FCEvent) {
   isOpen.value = true
+}
+
+// Handle EventSignupDialog close - fetch updated event data
+async function handleSignupDialogClose(value: boolean) {
+  isOpen.value = value
+  
+  // When dialog closes (value becomes false), fetch updated event data
+  if (!value) {
+    const updatedEvent = await useEvents().getEvent(props.event.Id)
+    if (updatedEvent) {
+      localEvent.value = updatedEvent
+    }
+  }
 }
 
 function getSignUpNumber(fcEvent: FCEvent) {
@@ -40,39 +62,39 @@ function getSignUpNumber(fcEvent: FCEvent) {
 </script>
 
 <template>  
-  <EventSignupDialog v-model="isOpen" :event="props.event" @update:modelValue=""/>
+  <EventSignupDialog v-model="isOpen" :event="localEvent" @update:modelValue="handleSignupDialogClose"/>
   
-  <EventOrganizationDialog v-model="isOrganizationOpen" :event="props.event" />
+  <EventOrganizationDialog v-model="isOrganizationOpen" :event="localEvent" />
   
-  <BaseModal v-model="isDeleteOpen" :title="'Deleting Event - ' + event.Name">
+  <BaseModal v-model="isDeleteOpen" :title="'Deleting Event - ' + localEvent.Name">
     <template #body>
       <p>Are you sure you want to delete this event?</p>
     </template>
     <template #actions>
       <button class="btn" @click="isDeleteOpen = false">Cancel</button>
-      <button class="btn danger" @click="emit('delete-event', props.event)">Yes, delete this</button>
+      <button class="btn danger" @click="emit('delete-event', localEvent)">Yes, delete this</button>
     </template>
   </BaseModal>
 
-  <BaseCard :title="props.event.Name" :size="'large'" :variant="'elevated'">
+  <BaseCard :title="localEvent.Name" :size="'large'" :variant="'elevated'">
     <template #image>
-      <img v-if="props.event.PictureUrl" :src="props.event.PictureUrl" alt="avatar" class="card__image"
+      <img v-if="localEvent.PictureUrl" :src="localEvent.PictureUrl" alt="avatar" class="card__image"
            referrerpolicy="no-referrer"/>
       <span v-else class="card__image placeholder">?</span>
     </template>
     <template #body>
-      <p>{{ props.event.Description }}</p>
+      <p>{{ localEvent.Description }}</p>
     </template>
     <template #footer>
-      <p>Organized by: {{ props.event.Organizer }}</p>
+      <p>Organized by: {{ localEvent.Organizer }}</p>
       <div class="actions">
-        <button v-if="isMember" class="btn primary actions" @click="signUp(props.event)">Sign up ({{getSignUpNumber(event)}})</button>
+        <button v-if="isMember" class="btn primary actions" @click="signUp(localEvent)">Sign up ({{getSignUpNumber(localEvent)}})</button>
         <button v-if="isAdmin" class="btn secondary actions" @click="isOrganizationOpen=true">Select participants</button>
         <button v-if="isAdmin" class="btn danger actions" @click="isDeleteOpen=true">Delete</button>
       </div>
     </template>
     <template #actions>
-      <button v-if="isAdmin" class="btn" @click="emit('start-edit', props.event)">Edit</button>
+      <button v-if="isAdmin" class="btn" @click="emit('start-edit', localEvent)">Edit</button>
     </template>
   </BaseCard>
 
