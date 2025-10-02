@@ -1,29 +1,30 @@
 <script setup lang="ts">
 
-import {FCEvent, EventParticipant, Role} from "@/features/events/events.types";
+import {FCEvent, EventParticipant, Role, ROLE} from "@/features/events/events.types";
 import BaseModal from "@/components/BaseModal.vue";
-import {useMembers} from "@/features/members/useMembers";
-import {computed, onMounted, ref} from "vue";
+import {useMembers} from "@/composables/useMembers";
+import {computed, onMounted, ref, useModel} from "vue";
 import {EventsApi} from "@/features/events/events.api";
 
 const props = defineProps<{
-  modelValue: boolean
   event: FCEvent
 }>();
+
+const modelValue = defineModel<boolean>({required: true});
 
 const emit = defineEmits<{
   (e: 'update:modelValue', value: boolean): void
 }>();
 
-const members = useMembers();
+const {members, load:memberLoad} = useMembers();
 const participants = ref<EventParticipant[]>([]);
 const saving = ref(false);
 const selectionMode = ref<'simple' | 'role'>('role'); // Toggle between simple and role-based selection
 
 // Load members when component mounts
 onMounted(() => {
-  if (members.members.value.length === 0) {
-    members.load();
+  if (members.value.length === 0) {
+    memberLoad();
   }
   // Initialize participants from event
   participants.value = [...(props.event.Participants || [])];
@@ -67,7 +68,7 @@ function toggleSimpleSelection(discordId: string) {
     // Add new participant without a specific role (use Tank as default/placeholder)
     participants.value.push({
       DiscordUserId: discordId,
-      Role: Role.Tank // Placeholder role for simple mode
+      Role: ROLE.Tank // Placeholder role for simple mode
     });
   }
 }
@@ -106,7 +107,7 @@ function removeMember(discordId: string) {
 
 // Get display name for a member
 function getDisplayName(discordId: string): string {
-  const member = members.members.value.find(m => m.DiscordId === discordId);
+  const member = members.value.find(m => m.DiscordId === discordId);
   if (!member) return discordId;
   return member.PlayerName || member.DiscordName;
 }
@@ -129,7 +130,7 @@ const signedUpMembers = computed(() => {
     return [];
   }
   
-  return members.members.value.filter(member => 
+  return members.value.filter(member => 
     props.event.Signups.some(signup => signup.DiscordUserId === member.DiscordId)
   );
 });
@@ -137,11 +138,11 @@ const signedUpMembers = computed(() => {
 // Count participants by role
 const roleCount = computed(() => {
   return {
-    [Role.Tank]: participants.value.filter(p => p.Role === Role.Tank).length,
-    [Role.Healer]: participants.value.filter(p => p.Role === Role.Healer).length,
-    [Role.Melee]: participants.value.filter(p => p.Role === Role.Melee).length,
-    [Role.Caster]: participants.value.filter(p => p.Role === Role.Caster).length,
-    [Role.Ranged]: participants.value.filter(p => p.Role === Role.Ranged).length,
+    [ROLE.Tank]: participants.value.filter(p => p.Role === ROLE.Tank).length,
+    [ROLE.Healer]: participants.value.filter(p => p.Role === ROLE.Healer).length,
+    [ROLE.Melee]: participants.value.filter(p => p.Role === ROLE.Melee).length,
+    [ROLE.Caster]: participants.value.filter(p => p.Role === ROLE.Caster).length,
+    [ROLE.Ranged]: participants.value.filter(p => p.Role === ROLE.Ranged).length,
   };
 });
 
@@ -163,13 +164,10 @@ async function save() {
   }
 }
 
-// Role enum for template
-const roleEnum = Role;
-
 </script>
 
 <template>
-  <BaseModal :modelValue="props.modelValue" @update:modelValue="emit('update:modelValue', $event)" :title="'Organize Event'" :closeOnOutsideClick="false">
+  <BaseModal :modelValue="modelValue" @update:modelValue="emit('update:modelValue', $event)" :title="'Organize Event'" :closeOnOutsideClick="false">
     <template #image>
       <img v-if="event.PictureUrl" :src="event.PictureUrl" alt="avatar" class="card__image">
     </template>
@@ -190,11 +188,11 @@ const roleEnum = Role;
       <div v-if="participants.length > 0" class="participants-summary">
         <h4>Selected Participants ({{ participants.length }} / {{ event.MaxNumberOfParticipants }})</h4>
         <div v-if="selectionMode === 'role'" class="role-counts">
-          <span class="role-badge">Tank: {{ roleCount[roleEnum.Tank] }}</span>
-          <span class="role-badge">Healer: {{ roleCount[roleEnum.Healer] }}</span>
-          <span class="role-badge">Melee: {{ roleCount[roleEnum.Melee] }}</span>
-          <span class="role-badge">Caster: {{ roleCount[roleEnum.Caster] }}</span>
-          <span class="role-badge">Ranged: {{ roleCount[roleEnum.Ranged] }}</span>
+          <span class="role-badge">Tank: {{ roleCount[ROLE.Tank] }}</span>
+          <span class="role-badge">Healer: {{ roleCount[ROLE.Healer] }}</span>
+          <span class="role-badge">Melee: {{ roleCount[ROLE.Melee] }}</span>
+          <span class="role-badge">Caster: {{ roleCount[ROLE.Caster] }}</span>
+          <span class="role-badge">Ranged: {{ roleCount[ROLE.Ranged] }}</span>
         </div>
       </div>
 
@@ -224,45 +222,45 @@ const roleEnum = Role;
           <div v-else class="role-buttons">
             <button 
               class="btn-role"
-              :class="{ active: getMemberRole(member.DiscordId) === roleEnum.Tank }"
-              :disabled="!hasSignedUpForRole(member.DiscordId, roleEnum.Tank) || (!isMemberSelected(member.DiscordId) && participants.length >= event.MaxNumberOfParticipants)"
-              @click="toggleRole(member.DiscordId, roleEnum.Tank)"
+              :class="{ active: getMemberRole(member.DiscordId) === ROLE.Tank }"
+              :disabled="!hasSignedUpForRole(member.DiscordId, ROLE.Tank) || (!isMemberSelected(member.DiscordId) && participants.length >= event.MaxNumberOfParticipants)"
+              @click="toggleRole(member.DiscordId, ROLE.Tank)"
               title="Tank"
             >
               T
             </button>
             <button 
               class="btn-role"
-              :class="{ active: getMemberRole(member.DiscordId) === roleEnum.Healer }"
-              :disabled="!hasSignedUpForRole(member.DiscordId, roleEnum.Healer) || (!isMemberSelected(member.DiscordId) && participants.length >= event.MaxNumberOfParticipants)"
-              @click="toggleRole(member.DiscordId, roleEnum.Healer)"
+              :class="{ active: getMemberRole(member.DiscordId) === ROLE.Healer }"
+              :disabled="!hasSignedUpForRole(member.DiscordId, ROLE.Healer) || (!isMemberSelected(member.DiscordId) && participants.length >= event.MaxNumberOfParticipants)"
+              @click="toggleRole(member.DiscordId, ROLE.Healer)"
               title="Healer"
             >
               H
             </button>
             <button 
               class="btn-role"
-              :class="{ active: getMemberRole(member.DiscordId) === roleEnum.Melee }"
-              :disabled="!hasSignedUpForRole(member.DiscordId, roleEnum.Melee) || (!isMemberSelected(member.DiscordId) && participants.length >= event.MaxNumberOfParticipants)"
-              @click="toggleRole(member.DiscordId, roleEnum.Melee)"
+              :class="{ active: getMemberRole(member.DiscordId) === ROLE.Melee }"
+              :disabled="!hasSignedUpForRole(member.DiscordId, ROLE.Melee) || (!isMemberSelected(member.DiscordId) && participants.length >= event.MaxNumberOfParticipants)"
+              @click="toggleRole(member.DiscordId, ROLE.Melee)"
               title="Melee"
             >
               M
             </button>
             <button 
               class="btn-role"
-              :class="{ active: getMemberRole(member.DiscordId) === roleEnum.Caster }"
-              :disabled="!hasSignedUpForRole(member.DiscordId, roleEnum.Caster) || (!isMemberSelected(member.DiscordId) && participants.length >= event.MaxNumberOfParticipants)"
-              @click="toggleRole(member.DiscordId, roleEnum.Caster)"
+              :class="{ active: getMemberRole(member.DiscordId) === ROLE.Caster }"
+              :disabled="!hasSignedUpForRole(member.DiscordId, ROLE.Caster) || (!isMemberSelected(member.DiscordId) && participants.length >= event.MaxNumberOfParticipants)"
+              @click="toggleRole(member.DiscordId, ROLE.Caster)"
               title="Caster"
             >
               C
             </button>
             <button 
               class="btn-role"
-              :class="{ active: getMemberRole(member.DiscordId) === roleEnum.Ranged }"
-              :disabled="!hasSignedUpForRole(member.DiscordId, roleEnum.Ranged) || (!isMemberSelected(member.DiscordId) && participants.length >= event.MaxNumberOfParticipants)"
-              @click="toggleRole(member.DiscordId, roleEnum.Ranged)"
+              :class="{ active: getMemberRole(member.DiscordId) === ROLE.Ranged }"
+              :disabled="!hasSignedUpForRole(member.DiscordId, ROLE.Ranged) || (!isMemberSelected(member.DiscordId) && participants.length >= event.MaxNumberOfParticipants)"
+              @click="toggleRole(member.DiscordId, ROLE.Ranged)"
               title="Ranged"
             >
               R

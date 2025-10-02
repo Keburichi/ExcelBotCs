@@ -7,7 +7,7 @@ import DiscordMessageRenderer from "@/components/DiscordMessageRenderer.vue";
 import {ref, watch} from "vue";
 import EventSignupDialog from "@/features/events/EventSignupDialog.vue";
 import EventOrganizationDialog from "@/features/events/EventOrganizationDialog.vue";
-import {useEvents} from "@/features/events/useEvents";
+import {useEvents} from "@/composables/useEvents";
 
 const props = defineProps<{
   event: FCEvent

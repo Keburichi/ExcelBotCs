@@ -1,7 +1,7 @@
 <script setup lang="ts">
 
-import {useLottery} from "@/features/lottery/useLottery";
 import {onMounted} from "vue";
+import {useLottery} from "@/composables/useLottery";
 
 const lottery = useLottery();
 

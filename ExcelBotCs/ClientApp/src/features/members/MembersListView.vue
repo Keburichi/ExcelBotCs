@@ -1,10 +1,10 @@
 ﻿<script setup lang="ts">
 import {onMounted} from 'vue'
-import {useMembers} from './useMembers'
 import MembersTable from './MembersTable.vue'
 import MemberCard from './MemberCard.vue'
-import {useAuth} from "@/features/auth/useAuth";
 import CardList from "@/components/CardList.vue";
+import {useMembers} from "@/composables/useMembers";
+import {useAuth} from "@/composables/useAuth";
 
 const m = useMembers()
 const {isAdmin, ensureAuth, isMember} = useAuth()

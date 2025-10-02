@@ -1,7 +1,7 @@
 ﻿<script setup lang="ts">
 import {onMounted, ref} from 'vue'
 import {useRouter} from 'vue-router'
-import {useAuth} from '@/features/auth/useAuth'
+import {useAuth} from "@/composables/useAuth";
 
 const {authorized, user, ensureAuth, logout, loadMe} = useAuth()
 const open = ref(false)

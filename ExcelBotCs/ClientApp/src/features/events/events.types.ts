@@ -23,10 +23,12 @@ export interface EventSignup{
     Roles: Role[]
 }
 
-export enum Role{
-    Tank,
-    Healer,
-    Melee,
-    Caster,
-    Ranged
-}
+export const ROLE = {
+    Tank: 0,
+    Healer: 1,
+    Melee: 2,
+    Caster: 3,
+    Ranged: 4
+} as const
+
+export type Role = (typeof ROLE)[keyof typeof ROLE]

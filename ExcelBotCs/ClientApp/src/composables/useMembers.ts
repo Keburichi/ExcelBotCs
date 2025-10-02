@@ -1,6 +1,6 @@
 ﻿import {reactive, ref} from 'vue'
-import {MembersApi} from './members.api'
-import type {Member} from './members.types'
+import {Member} from "@/features/members/members.types";
+import {MembersApi} from "@/features/members/members.api";
 
 export function useMembers() {
     const loading = ref(false)

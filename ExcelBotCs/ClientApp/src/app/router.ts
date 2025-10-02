@@ -1,8 +1,6 @@
 ﻿import {createRouter, createWebHistory, type RouteRecordRaw} from 'vue-router'
 import LoginView from '@/features/auth/LoginView.vue'
-import MembersListView from '@/features/members/MembersListView.vue'
 import MemberEditView from '@/features/members/MemberEditView.vue'
-import {useAuth} from '@/features/auth/useAuth'
 import EventsListView from "@/features/events/EventsListView.vue";
 import CreateEventView from "@/features/events/CreateEventView.vue";
 import ProfileView from "@/features/profile/ProfileView.vue";
@@ -11,6 +9,7 @@ import AdminView from "@/features/adminPanel/AdminView.vue";
 import FightsView from "@/features/fights/FightsView.vue";
 import FcMembersListView from "@/features/fcMembers/FcMembersListView.vue";
 import LotteryView from "@/features/lottery/LotteryView.vue";
+import {useAuth} from "@/composables/useAuth";
 
 const routes: RouteRecordRaw[] = [
     {path: '/login', name: 'login', component: LoginView},

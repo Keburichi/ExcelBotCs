@@ -1,10 +1,10 @@
 ﻿<script setup lang="ts">
 import {onMounted, ref} from 'vue'
-import {useEvents} from './useEvents'
-import {useAuth} from "@/features/auth/useAuth";
 import {useRouter} from 'vue-router'
 import EventCard from "@/features/events/EventCard.vue";
 import CardList from "@/components/CardList.vue";
+import {useEvents} from "@/composables/useEvents";
+import {useAuth} from "@/composables/useAuth";
 
 const e = useEvents()
 const {isAdmin, isMember} = useAuth()

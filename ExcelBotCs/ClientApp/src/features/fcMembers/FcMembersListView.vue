@@ -1,9 +1,9 @@
 ﻿<script setup lang="ts">
 import {onMounted} from 'vue'
-import {useFcMembers} from './useFcMembers'
 import FcMemberCard from './FcMemberCard.vue'
-import {useAuth} from "@/features/auth/useAuth";
 import CardList from "@/components/CardList.vue";
+import {useFcMembers} from "@/composables/useFcMembers";
+import {useAuth} from "@/composables/useAuth";
 
 const m = useFcMembers()
 const {isAdmin, ensureAuth, isMember} = useAuth()

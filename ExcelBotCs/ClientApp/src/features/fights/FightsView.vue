@@ -1,14 +1,14 @@
 ﻿<script setup lang="ts">
 
 import {onMounted} from "vue";
-import {useFights} from "@/features/fights/useFights";
 import CardList from "@/components/CardList.vue";
 import FightCard from "@/features/fights/FightCard.vue";
-import {useAuth} from "@/features/auth/useAuth";
 import {Fight, FightType} from "@/features/fights/fights.types";
 import {FilterDef} from "@/utils/filters.types";
 import {useFilters} from "@/utils/useFilters";
 import FilterBar from "@/components/FilterBar.vue";
+import {useFights} from "@/composables/useFights";
+import {useAuth} from "@/composables/useAuth";
 
 const f = useFights();
 const {isAdmin, ensureAuth, isMember} = useAuth();

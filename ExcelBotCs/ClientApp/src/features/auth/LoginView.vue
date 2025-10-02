@@ -1,7 +1,7 @@
 ﻿<script setup lang="ts">
 import {onMounted, ref} from 'vue'
 import {useRoute, useRouter} from 'vue-router'
-import {useAuth} from '@/features/auth/useAuth'
+import {useAuth} from "@/composables/useAuth";
 
 const route = useRoute()
 const router = useRouter()

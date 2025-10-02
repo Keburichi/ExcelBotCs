@@ -22,7 +22,7 @@ export function useLottery() {
     
     async function guess(guess: Ref<UnwrapRef<number>, UnwrapRef<number> | number>) {
         try {
-            response.value = await LotteryApi.guess(guess)
+            response.value = await LotteryApi.guess(guess.value)
             await load()
         }catch (e: any){
             error.value = e.message || 'Failed to load lottery'

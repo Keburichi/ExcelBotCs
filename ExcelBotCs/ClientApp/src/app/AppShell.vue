@@ -2,7 +2,7 @@
 // Global app shell
 import UserMenu from '@/features/auth/UserMenu.vue'
 import ThemeToggle from '@/components/ThemeToggle.vue'
-import {useAuth} from '@/features/auth/useAuth'
+import {useAuth} from "@/composables/useAuth";
 
 const {isMember, isAdmin} = useAuth()
 

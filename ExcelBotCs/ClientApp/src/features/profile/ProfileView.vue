@@ -1,8 +1,8 @@
 <script setup lang="ts">
 import {computed, onMounted, reactive, ref, watch} from 'vue'
-import {useAuth} from '@/features/auth/useAuth'
 import type {Member} from '@/features/members/members.types'
 import {MembersApi} from '@/features/members/members.api'
+import {useAuth} from "@/composables/useAuth";
 
 const auth = useAuth()
 
