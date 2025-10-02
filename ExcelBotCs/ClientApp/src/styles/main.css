@@ -1,4 +1,6 @@
-﻿:root {
+﻿@import "tailwindcss";
+
+:root {
     /* Prefer system, can be overridden by [data-theme] on html */
     color-scheme: light dark;
 

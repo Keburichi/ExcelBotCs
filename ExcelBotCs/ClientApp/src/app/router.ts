@@ -1,6 +1,7 @@
 import type { RouteRecordRaw } from 'vue-router'
 import { createRouter, createWebHistory } from 'vue-router'
 import HomeView from '@/app/HomeView.vue'
+import ButtonShowcaseView from '@/app/ButtonShowcaseView.vue'
 import AdminView from '@/components/adminPanel/AdminView.vue'
 import LoginView from '@/components/auth/LoginView.vue'
 import CreateEventView from '@/components/events/CreateEventView.vue'
@@ -16,6 +17,7 @@ const routes: RouteRecordRaw[] = [
   { path: '/login', name: 'login', component: LoginView },
   { path: '/', redirect: '/home' },
   { path: '/home', name: 'home', component: HomeView, meta: { requiresAuth: true } },
+  { path: '/button-showcase', name: 'button-showcase', component: ButtonShowcaseView },
 
   // Member routes
   { path: '/members', name: 'members', component: FcMembersListView, meta: { requiresAuth: true } },

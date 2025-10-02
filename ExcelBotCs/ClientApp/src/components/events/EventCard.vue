@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import type { FCEvent } from '@/features/events/events.types'
 import { ref } from 'vue'
+import BaseButton from '@/components/BaseButton.vue'
 import BaseCard from '@/components/BaseCard.vue'
 import BaseModal from '@/components/BaseModal.vue'
 import DiscordMessageRenderer from '@/components/DiscordMessageRenderer.vue'
@@ -52,19 +53,15 @@ function getSignUpNumber(fcEvent: FCEvent) {
 <template>
   <EventSignupDialog v-model="isOpen" :event="fcEventValue" @update:model-value="handleSignupDialogClose" />
 
-  <EventOrganizationDialog v-model:is-open="isOrganizationOpen" v-model:event="fcEventValue" />
+  <EventOrganizationDialog v-model:is-open="isOrganizationOpen" v-model:fc-event="fcEventValue" />
 
   <BaseModal v-model="isDeleteOpen" :title="`Deleting Event - ${fcEventValue.Name}`">
     <template #body>
       <p>Are you sure you want to delete this event?</p>
     </template>
     <template #actions>
-      <button class="btn" @click="isDeleteOpen = false">
-        Cancel
-      </button>
-      <button class="btn danger" @click="emit('deleteEvent', fcEventValue)">
-        Yes, delete this!
-      </button>
+      <BaseButton title="Cancel" @clicked="isDeleteOpen = false" />
+      <BaseButton title="Yes, delete this!" state="danger" @clicked="emit('deleteEvent', fcEventValue)" />
     </template>
   </BaseModal>
 
@@ -82,21 +79,18 @@ function getSignUpNumber(fcEvent: FCEvent) {
     <template #footer>
       <p>Organized by: {{ fcEventValue.Organizer }}</p>
       <div class="actions">
-        <button v-if="props.isMember" class="btn actions" @click="isOpen = true">
-          Sign up ({{ getSignUpNumber(fcEventValue) }})
-        </button>
-        <button v-if="props.isAdmin" class="btn secondary actions" @click="isOrganizationOpen = true">
-          Select participants
-        </button>
-        <button v-if="props.isAdmin" class="btn danger actions" @click="isDeleteOpen = true">
-          Delete
-        </button>
+        <BaseButton
+          :title="`Sign up (${getSignUpNumber(fcEventValue)})`"
+          tooltip="Sign up for this event"
+          size="small"
+          @clicked="isOpen = true"
+        />
+        <BaseButton v-if="props.isAdmin" title="Select Participants" size="small" state="secondary" @clicked="isOrganizationOpen = true" />
+        <BaseButton v-if="props.isAdmin" title="Delete" size="small" state="danger" @clicked="isDeleteOpen = true" />
       </div>
     </template>
     <template #actions>
-      <button v-if="props.isAdmin" class="btn" @click="emit('startEdit', fcEventValue)">
-        Edit
-      </button>
+      <BaseButton v-if="props.isAdmin" title="Edit" size="medium" tooltip="Edit event" @clicked="emit('startEdit', fcEventValue)" />
     </template>
   </BaseCard>
 </template>
