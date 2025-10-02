@@ -1,12 +1,15 @@
 ﻿using System.Text;
+using ExcelBotCs.Extensions;
 using ExcelBotCs.Models.Database;
 using ExcelBotCs.Models.DTO;
 using ExcelBotCs.Modules.TeamFormation;
 using ExcelBotCs.Services;
+using ExcelBotCs.Services.Discord.Interfaces;
 using Ical.Net;
 using Ical.Net.CalendarComponents;
 using Ical.Net.DataTypes;
 using Ical.Net.Serialization;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace ExcelBotCs.Controllers;
@@ -17,13 +20,16 @@ public class EventsController : BaseCrudController<Event>
 {
     private readonly EventService _eventService;
     private readonly ICurrentMemberAccessor _currentMemberAccessor;
+    private readonly IDiscordMessageService _discordMessageService;
     private readonly string _rootUrl;
 
     public EventsController(ILogger<EventsController> logger, EventService eventService,
-        ICurrentMemberAccessor currentMemberAccessor) : base(logger, eventService)
+        ICurrentMemberAccessor currentMemberAccessor, IDiscordMessageService discordMessageService) : base(logger,
+        eventService)
     {
         _eventService = eventService;
         _currentMemberAccessor = currentMemberAccessor;
+        _discordMessageService = discordMessageService;
         _rootUrl = Utils.GetEnvVar("EVENT_ENDPOINT_URL", nameof(TeamFormationInteraction));
     }
 
@@ -58,7 +64,8 @@ public class EventsController : BaseCrudController<Event>
             if (eventSignup.Roles.Contains(signup.Role))
             {
                 eventSignup.Roles.Remove(signup.Role);
-            }else
+            }
+            else
             {
                 eventSignup.Roles.Add(signup.Role);
             }
@@ -71,8 +78,31 @@ public class EventsController : BaseCrudController<Event>
                 Roles = [signup.Role]
             });
         }
-        
+
         await _eventService.UpdateAsync(fcEvent.Id, fcEvent);
+
+        return Ok();
+    }
+
+    [HttpPost]
+    [Route("{id:length(24)}/plan")]
+    [Authorize(Roles = "Admin")]
+    public async Task<IActionResult> PlanEvent(string id, Event eventDto)
+    {
+        var user = await _currentMemberAccessor.GetCurrentAsync();
+        if (user is null)
+            return BadRequest("User not found for the current user");
+
+        var fcEvent = await _eventService.GetAsync(id);
+        if (fcEvent is null)
+            return NotFound();
+
+        if (!user.IsAdmin.GetValueOrDefault())
+            return Forbid();
+
+        // Save the list of participants and post the message to the upcoming roster channel
+        await _eventService.UpdateAsync(fcEvent.Id, eventDto);
+        await _discordMessageService.PostInUpcomingRosterChannelAsync(eventDto.CreateUpcomingRosterMessage());
 
         return Ok();
     }
