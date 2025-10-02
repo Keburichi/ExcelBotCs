@@ -10,7 +10,7 @@ const emit = defineEmits<{ submit: [] }>()
     <div class="row">
       <label>
         Name
-        <input v-model="model.Name" required/>
+        <input v-model="model.PlayerName" required/>
       </label>
       <label>
         Player Name

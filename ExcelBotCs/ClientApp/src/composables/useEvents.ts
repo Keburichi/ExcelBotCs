@@ -1,6 +1,6 @@
 ﻿import {reactive, ref} from 'vue'
-import {EventsApi} from './events.api'
-import {FCEvent, Role} from './events.types'
+import {FCEvent, Role} from "@/features/events/events.types";
+import {EventsApi} from "@/features/events/events.api";
 
 export function useEvents() {
     const loading = ref(false)
@@ -9,13 +9,13 @@ export function useEvents() {
 
     const newEvent = reactive<FCEvent>({
         Name: '', Description: '', DiscordMessage: '', Id: '', PictureUrl: '', Organizer: '',
-        Signups: [], Participants: [], AvailableForSignup: false, StartDate: new Date(), Duration: 0,
+        Signups: [], Participants: [], AvailableForSignup: false, StartDate: new Date(), Duration: 0, MaxNumberOfParticipants: 0
     })
 
     const editId = ref<string | null>(null)
     const editBuffer = reactive<FCEvent>({
         Name: '', Description: '', DiscordMessage: '', PictureUrl: '', Id: '', Organizer: '',
-        Signups: [], Participants: [], AvailableForSignup: false, StartDate: new Date(), Duration: 0,
+        Signups: [], Participants: [], AvailableForSignup: false, StartDate: new Date(), Duration: 0, MaxNumberOfParticipants: 0
     })
 
     async function load() {

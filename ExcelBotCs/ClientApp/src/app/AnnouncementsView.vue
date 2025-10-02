@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import {useAnnouncements} from "@/app/use.announcements";
+import {useAnnouncements} from "@/composables/useAnnouncements";
 import {onMounted} from "vue";
 import DiscordMessageRenderer from "@/components/DiscordMessageRenderer.vue";
 

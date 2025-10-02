@@ -3,7 +3,7 @@ import {computed, onMounted, reactive, ref} from 'vue'
 import {useRouter, useRoute} from 'vue-router'
 import {EventsApi} from './events.api'
 import type {FCEvent} from './events.types'
-import {useAuth} from '@/features/auth/useAuth'
+import {useAuth} from "@/composables/useAuth";
 
 const router = useRouter()
 const route = useRoute()

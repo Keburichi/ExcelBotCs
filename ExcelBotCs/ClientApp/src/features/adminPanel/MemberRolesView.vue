@@ -1,8 +1,8 @@
 <script setup lang="ts">
-import {useAdmin} from "@/features/adminPanel/useAdmin";
-import {useAuth} from "@/features/auth/useAuth";
 import {onMounted} from "vue";
 import MemberRolesTable from "@/features/adminPanel/MemberRolesTable.vue";
+import {useAdmin} from "@/composables/useAdmin";
+import {useAuth} from "@/composables/useAuth";
 
 const admin = useAdmin()
 const {isAdmin, ensureAuth} = useAuth()

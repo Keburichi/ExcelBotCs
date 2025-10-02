@@ -1,11 +1,11 @@
 <script setup lang="ts">
 import BaseModal from "@/components/BaseModal.vue";
-import {EventSignup, FCEvent, Role} from "@/features/events/events.types";
-import {useAuth} from "@/features/auth/useAuth";
+import {EventSignup, FCEvent, ROLE, type Role} from "@/features/events/events.types";
 import {computed, onMounted, ref} from "vue";
-import {useMembers} from "@/features/members/useMembers";
-import {useEvents} from "@/features/events/useEvents";
 import DiscordMessageRenderer from "@/components/DiscordMessageRenderer.vue";
+import {useAuth} from "@/composables/useAuth";
+import {useMembers} from "@/composables/useMembers";
+import {useEvents} from "@/composables/useEvents";
 
 const props = defineProps<{
   modelValue: boolean
@@ -65,25 +65,25 @@ function getSignedUpUsersForRole(role: Role): string[] {
 }
 
 // Computed properties for each role
-const isSignedUpTank = computed(() => isSignedUpForRole(Role.Tank));
-const isSignedUpHealer = computed(() => isSignedUpForRole(Role.Healer));
-const isSignedUpMelee = computed(() => isSignedUpForRole(Role.Melee));
-const isSignedUpCaster = computed(() => isSignedUpForRole(Role.Caster));
-const isSignedUpRanged = computed(() => isSignedUpForRole(Role.Ranged));
+const isSignedUpTank = computed(() => isSignedUpForRole(ROLE.Tank));
+const isSignedUpHealer = computed(() => isSignedUpForRole(ROLE.Healer));
+const isSignedUpMelee = computed(() => isSignedUpForRole(ROLE.Melee));
+const isSignedUpCaster = computed(() => isSignedUpForRole(ROLE.Caster));
+const isSignedUpRanged = computed(() => isSignedUpForRole(ROLE.Ranged));
 
 // Signup counts for each role
-const tankCount = computed(() => getSignupCountForRole(Role.Tank));
-const healerCount = computed(() => getSignupCountForRole(Role.Healer));
-const meleeCount = computed(() => getSignupCountForRole(Role.Melee));
-const casterCount = computed(() => getSignupCountForRole(Role.Caster));
-const rangedCount = computed(() => getSignupCountForRole(Role.Ranged));
+const tankCount = computed(() => getSignupCountForRole(ROLE.Tank));
+const healerCount = computed(() => getSignupCountForRole(ROLE.Healer));
+const meleeCount = computed(() => getSignupCountForRole(ROLE.Melee));
+const casterCount = computed(() => getSignupCountForRole(ROLE.Caster));
+const rangedCount = computed(() => getSignupCountForRole(ROLE.Ranged));
 
 // Signed up users for tooltips
-const tankUsers = computed(() => getSignedUpUsersForRole(Role.Tank));
-const healerUsers = computed(() => getSignedUpUsersForRole(Role.Healer));
-const meleeUsers = computed(() => getSignedUpUsersForRole(Role.Melee));
-const casterUsers = computed(() => getSignedUpUsersForRole(Role.Caster));
-const rangedUsers = computed(() => getSignedUpUsersForRole(Role.Ranged));
+const tankUsers = computed(() => getSignedUpUsersForRole(ROLE.Tank));
+const healerUsers = computed(() => getSignedUpUsersForRole(ROLE.Healer));
+const meleeUsers = computed(() => getSignedUpUsersForRole(ROLE.Melee));
+const casterUsers = computed(() => getSignedUpUsersForRole(ROLE.Caster));
+const rangedUsers = computed(() => getSignedUpUsersForRole(ROLE.Ranged));
 
 async function signUp(signupEvent: FCEvent, role: Role) {
   await useEvents().signup(signupEvent, role)
@@ -114,35 +114,35 @@ async function signUp(signupEvent: FCEvent, role: Role) {
     <template #actions>
       <button 
         :class="['btn', { 'success': isSignedUpTank }]" 
-        @click="signUp(event, Role.Tank)"
+        @click="signUp(event, ROLE.Tank)"
         :data-tooltip="tankUsers.length > 0 ? tankUsers.join(', ') : 'No signups yet'"
       >
         Tank ({{ tankCount }})
       </button>
       <button 
         :class="['btn', { 'success': isSignedUpHealer }]" 
-        @click="signUp(event, Role.Healer)"
+        @click="signUp(event, ROLE.Healer)"
         :data-tooltip="healerUsers.length > 0 ? healerUsers.join(', ') : 'No signups yet'"
       >
         Healer ({{ healerCount }})
       </button>
       <button 
         :class="['btn', { 'success': isSignedUpMelee }]" 
-        @click="signUp(event, Role.Melee)"
+        @click="signUp(event, ROLE.Melee)"
         :data-tooltip="meleeUsers.length > 0 ? meleeUsers.join(', ') : 'No signups yet'"
       >
         Melee ({{ meleeCount }})
       </button>
       <button 
         :class="['btn', { 'success': isSignedUpCaster }]" 
-        @click="signUp(event, Role.Caster)"
+        @click="signUp(event, ROLE.Caster)"
         :data-tooltip="casterUsers.length > 0 ? casterUsers.join(', ') : 'No signups yet'"
       >
         Caster ({{ casterCount }})
       </button>
       <button 
         :class="['btn', { 'success': isSignedUpRanged }]" 
-        @click="signUp(event, Role.Ranged)"
+        @click="signUp(event, ROLE.Ranged)"
         :data-tooltip="rangedUsers.length > 0 ? rangedUsers.join(', ') : 'No signups yet'"
       >
         Ranged ({{ rangedCount }})
