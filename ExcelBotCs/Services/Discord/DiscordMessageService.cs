@@ -55,7 +55,7 @@ public class DiscordMessageService : IDiscordMessageService
 
     public async Task<List<IMessage>> GetAnnouncementChannelMessagesAsync()
     {
-        var channel = await GetTextChannelFromChannelId(_config.Value.EventsChannel);
+        var channel = await GetTextChannelFromChannelId(_config.Value.AnnouncementChannel);
         if (channel == null)
             return new List<IMessage>();
         

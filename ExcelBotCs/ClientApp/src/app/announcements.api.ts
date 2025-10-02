@@ -1,6 +1,6 @@
-import {Announcement} from "@/app/announcements.types";
-import {http} from "@/services/http";
+import type { Announcement } from '@/app/announcements.types'
+import { http } from '@/services/http'
 
 export const AnnouncementsApi = {
-    list: () => http<Announcement[]>('/api/home/announcements')
+  list: () => http<Announcement[]>('/api/home/announcements'),
 }

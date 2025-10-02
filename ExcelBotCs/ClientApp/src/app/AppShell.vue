@@ -1,41 +1,58 @@
-﻿<script setup lang="ts">
+<script setup lang="ts">
 // Global app shell
-import UserMenu from '@/features/auth/UserMenu.vue'
+import UserMenu from '@/components/auth/UserMenu.vue'
 import ThemeToggle from '@/components/ThemeToggle.vue'
-import {useAuth} from "@/composables/useAuth";
+import { useAuth } from '@/composables/useAuth'
 
-const {isMember, isAdmin} = useAuth()
-
+const { isMember, isAdmin } = useAuth()
 </script>
 
 <template>
   <div class="container">
     <header class="app-header">
-      <h1 class="brand">Excelsior FC</h1>
+      <h1 class="brand">
+        Excelsior FC
+      </h1>
       <template v-if="isMember">
         <nav class="nav">
-          <RouterLink to="/home">Home</RouterLink>
-          <RouterLink to="/events">Events</RouterLink>
-          <RouterLink to="/members">Members</RouterLink>
-          <RouterLink to="/fights">Fights</RouterLink>
-          <RouterLink to="/lottery">Lottery</RouterLink>
-          <RouterLink v-if="isAdmin" to="/admin">Admin Stuff</RouterLink>
+          <RouterLink to="/home">
+            Home
+          </RouterLink>
+          <RouterLink to="/events">
+            Events
+          </RouterLink>
+          <RouterLink to="/members">
+            Members
+          </RouterLink>
+          <RouterLink to="/fights">
+            Fights
+          </RouterLink>
+          <RouterLink to="/lottery">
+            Lottery
+          </RouterLink>
+          <RouterLink v-if="isAdmin" to="/admin">
+            Admin Stuff
+          </RouterLink>
         </nav>
       </template>
       <template v-else>
         <nav class="nav">
-          <RouterLink to="/home">Home</RouterLink>
-          <RouterLink to="/members">Members</RouterLink>
+          <RouterLink to="/home">
+            Home
+          </RouterLink>
+          <RouterLink to="/members">
+            Members
+          </RouterLink>
         </nav>
       </template>
       <div class="header-actions">
-        <ThemeToggle/>
-        <UserMenu/>
+        <ThemeToggle />
+        <UserMenu />
       </div>
     </header>
 
     <main class="app-content">
-      <RouterView/>
+      <RouterView />
     </main>
 
     <footer class="app-footer">
