@@ -1,8 +1,8 @@
 <script setup lang="ts">
-import {computed, onMounted, reactive, ref, watch} from 'vue'
-import type {Member} from '@/features/members/members.types'
-import {MembersApi} from '@/features/members/members.api'
-import {useAuth} from "@/composables/useAuth";
+import type { Member } from '@/features/members/members.types'
+import { computed, onMounted, reactive, ref, watch } from 'vue'
+import { useAuth } from '@/composables/useAuth'
+import { MembersApi } from '@/features/members/members.api'
 
 const auth = useAuth()
 
@@ -25,7 +25,8 @@ watch(() => auth.user.value, () => hydrateForm())
 
 function hydrateForm() {
   const u = auth.user.value
-  if (!u) return
+  if (!u)
+    return
   form.Id = u.Id
   form.PlayerName = u.PlayerName
   form.LodestoneId = u.LodestoneId
@@ -68,15 +69,18 @@ async function save() {
     success.value = 'Profile updated successfully.'
     editMode.value = false
     await auth.loadMe() // refresh local user
-  } catch (e: any) {
+  }
+  catch (e: any) {
     error.value = e?.message ?? 'Failed to update profile.'
-  } finally {
+  }
+  finally {
     saving.value = false
   }
 }
 
 async function generateVerificationToken() {
-  if (!form.Id) return
+  if (!form.Id)
+    return
   tokenLoading.value = true
   error.value = null
   success.value = null
@@ -84,9 +88,11 @@ async function generateVerificationToken() {
     await MembersApi.generateLodestoneToken(form.Id)
     await auth.loadMe()
     success.value = 'Generated verification message. Copy it and place it in your Lodestone Bio.'
-  } catch (e: any) {
+  }
+  catch (e: any) {
     error.value = e?.message ?? 'Failed to generate verification message.'
-  } finally {
+  }
+  finally {
     tokenLoading.value = false
   }
 }
@@ -105,12 +111,15 @@ async function verifyClaim() {
       success.value = res.message
       editMode.value = false
       await auth.loadMe()
-    } else {
+    }
+    else {
       error.value = res.message
     }
-  } catch (e: any) {
+  }
+  catch (e: any) {
     error.value = e?.message ?? 'Verification failed.'
-  } finally {
+  }
+  finally {
     verifying.value = false
   }
 }
@@ -119,23 +128,33 @@ async function verifyClaim() {
 <template>
   <section class="profile container">
     <div class="profile__header">
-      <img v-if="avatarUrl" :src="avatarUrl" alt="avatar" class="profile__avatar" />
+      <img v-if="avatarUrl" :src="avatarUrl" alt="avatar" class="profile__avatar">
       <div class="profile__title">
         <h1>{{ displayName }}</h1>
-        <p class="profile__subtitle">@{{ auth.user.value?.DiscordName }}</p>
+        <p class="profile__subtitle">
+          @{{ auth.user.value?.DiscordName }}
+        </p>
         <div class="badges">
           <span v-if="auth.user.value?.IsAdmin" class="badge admin">Admin</span>
           <span v-if="auth.user.value?.IsMember" class="badge member">Member</span>
         </div>
       </div>
       <div class="profile__actions">
-        <button v-if="!editMode" class="btn" @click="startEdit">Edit Profile</button>
-        <button v-else class="btn ghost" @click="cancelEdit">Cancel</button>
+        <button v-if="!editMode" class="btn" @click="startEdit">
+          Edit Profile
+        </button>
+        <button v-else class="btn ghost" @click="cancelEdit">
+          Cancel
+        </button>
       </div>
     </div>
 
-    <div v-if="error" class="alert error">{{ error }}</div>
-    <div v-if="success" class="alert success">{{ success }}</div>
+    <div v-if="error" class="alert error">
+      {{ error }}
+    </div>
+    <div v-if="success" class="alert success">
+      {{ success }}
+    </div>
 
     <div class="cards_container--large">
       <div class="card">
@@ -143,32 +162,42 @@ async function verifyClaim() {
 
         <div class="kv-row">
           <label>Discord</label>
-          <div class="kv-value muted">{{ auth.user.value?.DiscordName }}</div>
+          <div class="kv-value muted">
+            {{ auth.user.value?.DiscordName }}
+          </div>
         </div>
 
         <div class="kv-row" :class="{ editable: editMode }">
           <label for="playerName">Player Name</label>
           <template v-if="editMode">
-            <input id="playerName" v-model="form.PlayerName" placeholder="Your in-game name" />
+            <input id="playerName" v-model="form.PlayerName" placeholder="Your in-game name">
           </template>
-          <div v-else class="kv-value">{{ auth.user.value?.PlayerName }}</div>
+          <div v-else class="kv-value">
+            {{ auth.user.value?.PlayerName }}
+          </div>
         </div>
 
         <div class="kv-row" :class="{ editable: editMode }">
           <label for="lodestoneId">Lodestone ID</label>
           <template v-if="editMode">
-            <input id="lodestoneId" v-model="form.LodestoneId" placeholder="Character ID or Lodestone URL" />
+            <input id="lodestoneId" v-model="form.LodestoneId" placeholder="Character ID or Lodestone URL">
           </template>
-          <div v-else class="kv-value">{{ auth.user.value?.LodestoneId || '—' }}</div>
+          <div v-else class="kv-value">
+            {{ auth.user.value?.LodestoneId || '—' }}
+          </div>
         </div>
 
-        <div class="kv-row" v-if="editMode && !auth.user.value?.LodestoneId">
+        <div v-if="editMode && !auth.user.value?.LodestoneId" class="kv-row">
           <label>Verification</label>
           <div>
-            <p class="muted">To prove ownership: 1) Click "Generate message" 2) Paste it into your Lodestone Bio 3) Click "Verify now".</p>
+            <p class="muted">
+              To prove ownership: 1) Click "Generate message" 2) Paste it into your Lodestone Bio 3) Click "Verify now".
+            </p>
             <div class="alert">
               <div><strong>Message to place in your Lodestone Bio:</strong></div>
-              <div class="kv-value"><code>{{ verificationToken || 'ExcelsiorFc-XXXXXXXX...' }}</code></div>
+              <div class="kv-value">
+                <code>{{ verificationToken || 'ExcelsiorFc-XXXXXXXX...' }}</code>
+              </div>
             </div>
             <div class="form-actions">
               <button class="btn secondary" :disabled="tokenLoading" @click="generateVerificationToken">
@@ -187,12 +216,12 @@ async function verifyClaim() {
           <label>Subbed</label>
           <template v-if="editMode">
             <label class="switch">
-              <input type="checkbox" v-model="form.Subbed">
+              <input v-model="form.Subbed" type="checkbox">
               <span class="slider" />
             </label>
           </template>
           <div v-else class="kv-value">
-            <span :class="['pill', auth.user.value?.Subbed ? 'on' : 'off']">{{ auth.user.value?.Subbed ? 'Yes' : 'No' }}</span>
+            <span class="pill" :class="[auth.user.value?.Subbed ? 'on' : 'off']">{{ auth.user.value?.Subbed ? 'Yes' : 'No' }}</span>
           </div>
         </div>
 

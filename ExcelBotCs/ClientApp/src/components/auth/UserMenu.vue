@@ -1,9 +1,9 @@
-﻿<script setup lang="ts">
-import {onMounted, ref} from 'vue'
-import {useRouter} from 'vue-router'
-import {useAuth} from "@/composables/useAuth";
+<script setup lang="ts">
+import { onMounted, ref } from 'vue'
+import { useRouter } from 'vue-router'
+import { useAuth } from '@/composables/useAuth'
 
-const {authorized, user, ensureAuth, logout, loadMe} = useAuth()
+const { authorized, user, ensureAuth, logout, loadMe } = useAuth()
 const open = ref(false)
 const router = useRouter()
 
@@ -16,13 +16,14 @@ function toggle() {
 }
 
 function goProfile() {
-  open.value = false;
+  open.value = false
   router.push('/profile')
 }
 
 function onClickOutside(e: MouseEvent) {
   const target = e.target as HTMLElement | null
-  if (!target) return
+  if (!target)
+    return
   // close if click is outside the menu root
   if (!(target.closest && target.closest('.user-menu'))) {
     open.value = false
@@ -32,34 +33,40 @@ function onClickOutside(e: MouseEvent) {
 if (typeof window !== 'undefined') {
   window.addEventListener('click', onClickOutside)
 }
-
 </script>
 
 <template>
-  <div class="user-menu" v-if="authorized">
-    <button class="avatar-btn" @click.stop="toggle" aria-haspopup="menu" :aria-expanded="open">
+  <div v-if="authorized" class="user-menu">
+    <button class="avatar-btn" aria-haspopup="menu" :aria-expanded="open" @click.stop="toggle">
       <img
-          v-if="user?.DiscordAvatar"
-          :src="user!.DiscordAvatar"
-          alt="Profile"
-          class="avatar"
-          referrerpolicy="no-referrer"/>
+        v-if="user?.DiscordAvatar"
+        :src="user!.DiscordAvatar"
+        alt="Profile"
+        class="avatar"
+        referrerpolicy="no-referrer"
+      >
       <span v-else class="avatar placeholder">{{
-          user?.PlayerName !== null ? user?.PlayerName : user?.DiscordName
-        }}</span>
+        user?.PlayerName !== null ? user?.PlayerName : user?.DiscordName
+      }}</span>
     </button>
 
     <div v-if="open" class="menu" role="menu">
       <div class="menu-header">
         <strong>{{ user?.PlayerName !== null ? user?.PlayerName : user?.DiscordName }}</strong>
       </div>
-      <button role="menuitem" class="menu-entry" @click="goProfile">Profile</button>
-      <button role="menuitem" class="menu-entry" @click="logout">Logout</button>
+      <button role="menuitem" class="menu-entry" @click="goProfile">
+        Profile
+      </button>
+      <button role="menuitem" class="menu-entry" @click="logout">
+        Logout
+      </button>
     </div>
   </div>
 
   <div v-else>
-    <RouterLink to="/login">Login</RouterLink>
+    <RouterLink to="/login">
+      Login
+    </RouterLink>
   </div>
 </template>
 
@@ -138,5 +145,4 @@ if (typeof window !== 'undefined') {
   color: var(--fg);
   text-decoration: none;
 }
-
 </style>

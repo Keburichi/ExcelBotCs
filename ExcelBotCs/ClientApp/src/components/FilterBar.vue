@@ -1,6 +1,6 @@
-﻿<script setup lang="ts" generic="T extends Record<string, any>">
-import {FilterDef, FilterSelection} from "@/utils/filters.types";
-import SelectMenu from "@/components/SelectMenu.vue";
+<script setup lang="ts" generic="T extends Record<string, any>">
+import type { FilterDef, FilterSelection } from '@/utils/filters.types'
+import SelectMenu from '@/components/SelectMenu.vue'
 
 const props = defineProps<{
   filters: FilterDef<T>[]
@@ -12,7 +12,7 @@ const emit = defineEmits<{
 }>()
 
 function update(id: string, value: unknown | unknown[]) {
-  emit('update:modelValue', {...props.modelValue, [id]: value})
+  emit('update:modelValue', { ...props.modelValue, [id]: value })
 }
 
 function asArray(v: unknown | unknown[]) {
@@ -26,12 +26,12 @@ function asArray(v: unknown | unknown[]) {
       <label class="filter-label">{{ f.label }}</label>
 
       <SelectMenu
-          :options="f.options ?? []"
-          :multiple="!!f.multiple"
-          :model-value="modelValue[f.id] as any"
-          :coerce="(v: unknown) => v as any"
-          :placeholder="'All'"
-          @update:modelValue="(v) => update(f.id, v as any)"
+        :options="f.options ?? []"
+        :multiple="!!f.multiple"
+        :model-value="modelValue[f.id] as any"
+        :coerce="(v: unknown) => v as any"
+        placeholder="All"
+        @update:model-value="(v) => update(f.id, v as any)"
       />
     </div>
   </div>
@@ -50,5 +50,4 @@ function asArray(v: unknown | unknown[]) {
   gap: .5rem;
   align-items: center;
 }
-
 </style>

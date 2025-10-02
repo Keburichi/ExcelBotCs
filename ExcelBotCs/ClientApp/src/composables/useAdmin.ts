@@ -1,103 +1,113 @@
-﻿import {AdminApi} from "@/features/adminPanel/admin.api";
-import {reactive, ref} from "vue";
-import {MemberRole} from "@/features/members/members.types";
+import type { MemberRole } from '@/features/members/members.types'
+import { reactive, ref } from 'vue'
+import { AdminApi } from '@/features/adminPanel/admin.api'
 
 export function useAdmin() {
-    const loading = ref(false)
-    const error = ref('')
+  const loading = ref(false)
+  const error = ref('')
 
-    // member constants
-    const memberRoles = ref<MemberRole[]>([])
-    const memberRoleEditId = ref<string | null>(null)
-    const memberRoleEditBuffer = reactive<MemberRole>({
-        Name: '', IsAdmin: false, IsMember: false, DiscordId: 0
-    })
+  // member constants
+  const memberRoles = ref<MemberRole[]>([])
+  const memberRoleEditId = ref<string | null>(null)
+  const memberRoleEditBuffer = reactive<MemberRole>({
+    Name: '',
+    IsAdmin: false,
+    IsMember: false,
+    DiscordId: 0,
+  })
 
-    async function importFights() {
-        try {
-            await AdminApi.importFights()
-            alert('Fights imported')
-        } catch (e) {
-            alert('Error importing fights' + e)
-        }
+  async function importFights() {
+    try {
+      await AdminApi.importFights()
+      alert('Fights imported')
     }
-
-    async function importDiscordMembers() {
-        try {
-            await AdminApi.importDiscordMembers()
-            alert('Members imported')
-        } catch (e) {
-            alert('Error importing members' + e)
-        }
+    catch (e) {
+      alert(`Error importing fights${e}`)
     }
+  }
 
-    async function importFcMembers() {
-        try {
-            await AdminApi.importFcMembers()
-            alert('Members imported')
-        } catch (e) {
-            alert('Error importing members' + e)
-        }
+  async function importDiscordMembers() {
+    try {
+      await AdminApi.importDiscordMembers()
+      alert('Members imported')
     }
+    catch (e) {
+      alert(`Error importing members${e}`)
+    }
+  }
 
-    async function importRoles() {
-        try {
-            await AdminApi.importRoles()
-            alert('Roles imported')
-        } catch (e) {
-            alert('Error importing roles' + e)
-        }
+  async function importFcMembers() {
+    try {
+      await AdminApi.importFcMembers()
+      alert('Members imported')
     }
+    catch (e) {
+      alert(`Error importing members${e}`)
+    }
+  }
 
-    function startRoleEdit(memberRole: MemberRole) {
-        memberRoleEditId.value = memberRole.Id ?? null;
-        Object.assign(memberRoleEditBuffer, memberRole)
+  async function importRoles() {
+    try {
+      await AdminApi.importRoles()
+      alert('Roles imported')
     }
-    
-    function cancelRoleEdit() {
-        memberRoleEditId.value = null
+    catch (e) {
+      alert(`Error importing roles${e}`)
     }
-    
-    async function getMemberRoles() {
-        loading.value = true
-        error.value = ''
-        try {
-            memberRoles.value = await AdminApi.getRoles()
-        } catch (e: any) {
-            error.value = e.message || 'Failed to get roles'
-        } finally {
-            loading.value = false
-        }
-    }
+  }
 
-    async function saveMemberRole() {
-        if (!memberRoleEditId.value)
-            return
+  function startRoleEdit(memberRole: MemberRole) {
+    memberRoleEditId.value = memberRole.Id ?? null
+    Object.assign(memberRoleEditBuffer, memberRole)
+  }
 
-        try {
-            await AdminApi.updateRole(memberRoleEditId.value, memberRoleEditBuffer)
-            const index = memberRoles.value.findIndex(x => x.Id === memberRoleEditId.value)
-            if (index >= 0)
-                memberRoles.value[index] = {...memberRoleEditBuffer, Id: memberRoleEditId.value}
+  function cancelRoleEdit() {
+    memberRoleEditId.value = null
+  }
 
-            memberRoleEditId.value = null
-        } catch (e: any) {
-            error.value = e.message || 'Failed to update role'
-        }
+  async function getMemberRoles() {
+    loading.value = true
+    error.value = ''
+    try {
+      memberRoles.value = await AdminApi.getRoles()
     }
-
-    return {
-        importFights,
-        importMembers: importDiscordMembers,
-        importRoles,
-        getMemberRoles,
-        memberRoles,
-        error,
-        memberRoleEditId,
-        memberRoleEditBuffer,
-        saveMemberRole,
-        startRoleEdit,
-        cancelRoleEdit,
-        importFcMembers
+    catch (e: any) {
+      error.value = e.message || 'Failed to get roles'
     }
+    finally {
+      loading.value = false
+    }
+  }
+
+  async function saveMemberRole() {
+    if (!memberRoleEditId.value)
+      return
+
+    try {
+      await AdminApi.updateRole(memberRoleEditId.value, memberRoleEditBuffer)
+      const index = memberRoles.value.findIndex(x => x.Id === memberRoleEditId.value)
+      if (index >= 0)
+        memberRoles.value[index] = { ...memberRoleEditBuffer, Id: memberRoleEditId.value }
+
+      memberRoleEditId.value = null
+    }
+    catch (e: any) {
+      error.value = e.message || 'Failed to update role'
+    }
+  }
+
+  return {
+    importFights,
+    importMembers: importDiscordMembers,
+    importRoles,
+    getMemberRoles,
+    memberRoles,
+    error,
+    memberRoleEditId,
+    memberRoleEditBuffer,
+    saveMemberRole,
+    startRoleEdit,
+    cancelRoleEdit,
+    importFcMembers,
+  }
 }

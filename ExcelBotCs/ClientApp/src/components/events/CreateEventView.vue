@@ -1,13 +1,13 @@
-﻿<script setup lang="ts">
-import {computed, onMounted, reactive, ref} from 'vue'
-import {useRouter, useRoute} from 'vue-router'
-import {EventsApi} from './events.api'
-import type {FCEvent} from './events.types'
-import {useAuth} from "@/composables/useAuth";
+<script setup lang="ts">
+import type { FCEvent } from '@/features/events/events.types'
+import { computed, onMounted, reactive, ref } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
+import { useAuth } from '@/composables/useAuth'
+import { EventsApi } from '@/features/events/events.api'
 
 const router = useRouter()
 const route = useRoute()
-const {user, isAdmin, ensureAuth, loadMe} = useAuth()
+const { user, isAdmin, loadMe } = useAuth()
 
 const loading = ref(false)
 const error = ref('')
@@ -35,7 +35,7 @@ const form = reactive<FCEvent>({
 // Function to set party preset and update max participants
 function setPartyPreset(preset: PartyPreset) {
   partyPreset.value = preset
-  
+
   switch (preset) {
     case 'light-party':
       form.MaxNumberOfParticipants = 4
@@ -51,8 +51,8 @@ function setPartyPreset(preset: PartyPreset) {
       break
     case 'custom':
       // Keep current value or set to 0 if invalid
-      if (form.MaxNumberOfParticipants === 4 || form.MaxNumberOfParticipants === 8 || 
-          form.MaxNumberOfParticipants === 24 || form.MaxNumberOfParticipants === 99) {
+      if (form.MaxNumberOfParticipants === 4 || form.MaxNumberOfParticipants === 8
+        || form.MaxNumberOfParticipants === 24 || form.MaxNumberOfParticipants === 99) {
         form.MaxNumberOfParticipants = 0
       }
       break
@@ -89,9 +89,11 @@ onMounted(async () => {
         // Detect and set the appropriate preset
         partyPreset.value = detectPreset(eventData.MaxNumberOfParticipants)
       }
-    } catch (e: any) {
+    }
+    catch (e: any) {
       error.value = e?.message || 'Failed to load event'
-    } finally {
+    }
+    finally {
       loading.value = false
     }
   }
@@ -113,7 +115,7 @@ const localStartDate = computed({
     // Parse local datetime and convert to UTC Date
     const localDate = new Date(value)
     form.StartDate = localDate
-  }
+  },
 })
 
 async function submit() {
@@ -131,121 +133,128 @@ async function submit() {
 
     if (isEditMode.value) {
       await EventsApi.update(form.Id, form)
-    } else {
+    }
+    else {
       await EventsApi.create(form)
     }
-    
-    await router.push({name: 'events'})
-  } catch (e: any) {
+
+    await router.push({ name: 'events' })
+  }
+  catch (e: any) {
     error.value = e?.message || `Failed to ${isEditMode.value ? 'update' : 'create'} event`
-  } finally {
+  }
+  finally {
     loading.value = false
   }
 }
 
 function cancel() {
-  router.push({name: 'events'})
+  router.push({ name: 'events' })
 }
 </script>
 
 <template>
   <section class="page create-event">
     <h2>{{ isEditMode ? 'Edit FC Event' : 'Create FC Event' }}</h2>
-    <p v-if="error" class="error">{{ error }}</p>
-    <form @submit.prevent="submit" class="form">
+    <p v-if="error" class="error">
+      {{ error }}
+    </p>
+    <form class="form" @submit.prevent="submit">
       <div class="form-row">
         <label>Name</label>
-        <input v-model="form.Name" type="text" required placeholder="Event name"/>
+        <input v-model="form.Name" type="text" required placeholder="Event name">
       </div>
       <div class="form-row">
         <label>Description</label>
-        <textarea v-model="form.Description" rows="5" placeholder="Describe the event"></textarea>
+        <textarea v-model="form.Description" rows="5" placeholder="Describe the event" />
       </div>
       <div class="form-row">
         <label>Discord Message</label>
-        <textarea v-model="form.DiscordMessage" rows="4" placeholder="Message to post on Discord"></textarea>
+        <textarea v-model="form.DiscordMessage" rows="4" placeholder="Message to post on Discord" />
       </div>
       <div class="form-row">
         <label>Picture URL (optional)</label>
-        <input v-model="form.PictureUrl" type="url" placeholder="https://..."/>
+        <input v-model="form.PictureUrl" type="url" placeholder="https://...">
       </div>
       <div v-if="form.PictureUrl" class="form-row">
         <label>Preview</label>
         <div class="image-preview">
-          <img :src="form.PictureUrl" alt="Event preview" @error="(e) => (e.target as HTMLImageElement).style.display = 'none'"/>
+          <img :src="form.PictureUrl" alt="Event preview" @error="(e) => (e.target as HTMLImageElement).style.display = 'none'">
         </div>
       </div>
       <div class="form-row">
         <label>Start Date & Time (your local timezone)</label>
-        <input v-model="localStartDate" type="datetime-local" required/>
+        <input v-model="localStartDate" type="datetime-local" required>
       </div>
       <div class="form-row">
         <label>Duration (minutes)</label>
-        <input v-model.number="form.Duration" type="number" min="0" required placeholder="e.g. 120 for 2 hours"/>
+        <input v-model.number="form.Duration" type="number" min="0" required placeholder="e.g. 120 for 2 hours">
       </div>
       <div class="form-row">
         <label>Max Number of Participants</label>
         <div class="party-preset-buttons">
-          <button 
+          <button
             type="button"
-            class="btn-preset" 
+            class="btn-preset"
             :class="{ active: partyPreset === 'light-party' }"
             @click="setPartyPreset('light-party')"
           >
             Light Party (4)
           </button>
-          <button 
+          <button
             type="button"
-            class="btn-preset" 
+            class="btn-preset"
             :class="{ active: partyPreset === 'full-party' }"
             @click="setPartyPreset('full-party')"
           >
             Full Party (8)
           </button>
-          <button 
+          <button
             type="button"
-            class="btn-preset" 
+            class="btn-preset"
             :class="{ active: partyPreset === 'alliance-raid' }"
             @click="setPartyPreset('alliance-raid')"
           >
             Alliance Raid (24)
           </button>
-          <button 
+          <button
             type="button"
-            class="btn-preset" 
+            class="btn-preset"
             :class="{ active: partyPreset === 'any' }"
             @click="setPartyPreset('any')"
           >
             Any (99)
           </button>
-          <button 
+          <button
             type="button"
-            class="btn-preset" 
+            class="btn-preset"
             :class="{ active: partyPreset === 'custom' }"
             @click="setPartyPreset('custom')"
           >
             Custom
           </button>
         </div>
-        <input 
-          v-model.number="form.MaxNumberOfParticipants" 
-          type="number" 
-          min="1" 
-          max="99" 
-          required 
+        <input
+          v-model.number="form.MaxNumberOfParticipants"
+          type="number"
+          min="1"
+          max="99"
+          required
           placeholder="Enter custom value"
           :disabled="isInputDisabled"
-        />
+        >
       </div>
       <div class="form-row">
         <label>Organizer</label>
-        <input :value="user?.PlayerName || ''" type="text" disabled/>
+        <input :value="user?.PlayerName || ''" type="text" disabled>
       </div>
       <div class="actions">
         <button class="btn" type="submit" :disabled="loading">
           {{ loading ? (isEditMode ? 'Updating...' : 'Creating...') : (isEditMode ? 'Update' : 'Create') }}
         </button>
-        <button class="btn secondary" type="button" @click="cancel" :disabled="loading">Cancel</button>
+        <button class="btn secondary" type="button" :disabled="loading" @click="cancel">
+          Cancel
+        </button>
       </div>
     </form>
   </section>
@@ -327,7 +336,7 @@ function cancel() {
   .party-preset-buttons {
     flex-direction: column;
   }
-  
+
   .btn-preset {
     width: 100%;
   }

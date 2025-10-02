@@ -1,7 +1,7 @@
 <script setup lang="ts">
-import {useAnnouncements} from "@/composables/useAnnouncements";
-import {onMounted} from "vue";
-import DiscordMessageRenderer from "@/components/DiscordMessageRenderer.vue";
+import { onMounted } from 'vue'
+import DiscordMessageRenderer from '@/components/DiscordMessageRenderer.vue'
+import { useAnnouncements } from '@/composables/useAnnouncements'
 
 const announcements = useAnnouncements()
 
@@ -11,17 +11,21 @@ onMounted(announcements.load)
 <template>
   <section class="home">
     <h2>Announcements</h2>
-    <p v-if="announcements.error" class="error">{{ announcements.error }}</p>
-    <p v-if="announcements.loading.value">Loading...</p>
-    
+    <p v-if="announcements.error" class="error">
+      {{ announcements.error }}
+    </p>
+    <p v-if="announcements.loading.value">
+      Loading...
+    </p>
+
     <div v-for="announcement in announcements.announcements.value" :key="announcement.Timestamp" class="announcement-card">
       <div class="announcement-header">
         <span class="announcement-author">{{ announcement.Author }}</span>
         <span class="announcement-timestamp">{{ new Date(announcement.Timestamp).toLocaleString() }}</span>
       </div>
-      
-      <DiscordMessageRenderer 
-        :content="announcement.Content" 
+
+      <DiscordMessageRenderer
+        :content="announcement.Content"
         :attachments="announcement.Attachments"
       />
     </div>
