@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { onMounted } from 'vue'
 import { useRouter } from 'vue-router'
+import BaseButton from '@/components/BaseButton.vue'
 import CardList from '@/components/CardList.vue'
 import EventCard from '@/components/events/EventCard.vue'
 import { useAuth } from '@/composables/useAuth'
@@ -29,6 +30,7 @@ onMounted(e.load)
     </p>
 
     <div v-if="isAdmin" class="container">
+      <BaseButton v-if="isAdmin" title="Create Event" state="primary" size="medium" @clicked="goCreate" />
       <button v-if="isAdmin?.valueOf()" class="btn" @click="goCreate">
         + Create Event
       </button>

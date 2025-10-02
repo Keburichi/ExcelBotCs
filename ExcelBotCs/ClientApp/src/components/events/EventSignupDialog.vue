@@ -2,6 +2,7 @@
 import type { FCEvent, Role } from '@/features/events/events.types'
 
 import { computed, onMounted, ref } from 'vue'
+import BaseButton from '@/components/BaseButton.vue'
 import BaseModal from '@/components/BaseModal.vue'
 import DiscordMessageRenderer from '@/components/DiscordMessageRenderer.vue'
 import { useAuth } from '@/composables/useAuth'
@@ -114,41 +115,36 @@ async function signUp(signupEvent: FCEvent, role: Role) {
     </template>
 
     <template #actions>
-      <button
-        class="btn" :class="[{ success: isSignedUpTank }]"
-        :data-tooltip="tankUsers.length > 0 ? tankUsers.join(', ') : 'No signups yet'"
-        @click="signUp(event, ROLE.Tank)"
-      >
-        Tank ({{ tankCount }})
-      </button>
-      <button
-        class="btn" :class="[{ success: isSignedUpHealer }]"
-        :data-tooltip="healerUsers.length > 0 ? healerUsers.join(', ') : 'No signups yet'"
-        @click="signUp(event, ROLE.Healer)"
-      >
-        Healer ({{ healerCount }})
-      </button>
-      <button
-        class="btn" :class="[{ success: isSignedUpMelee }]"
-        :data-tooltip="meleeUsers.length > 0 ? meleeUsers.join(', ') : 'No signups yet'"
-        @click="signUp(event, ROLE.Melee)"
-      >
-        Melee ({{ meleeCount }})
-      </button>
-      <button
-        class="btn" :class="[{ success: isSignedUpCaster }]"
-        :data-tooltip="casterUsers.length > 0 ? casterUsers.join(', ') : 'No signups yet'"
-        @click="signUp(event, ROLE.Caster)"
-      >
-        Caster ({{ casterCount }})
-      </button>
-      <button
-        class="btn" :class="[{ success: isSignedUpRanged }]"
-        :data-tooltip="rangedUsers.length > 0 ? rangedUsers.join(', ') : 'No signups yet'"
-        @click="signUp(event, ROLE.Ranged)"
-      >
-        Ranged ({{ rangedCount }})
-      </button>
+      <BaseButton
+        :title="`Tank (${tankCount})`"
+        :tooltip="tankUsers.length > 0 ? tankUsers.join(', ') : 'No signups yet'"
+        :state="isSignedUpTank ? 'pressed' : 'primary'"
+        @clicked="signUp(event, ROLE.Tank)"
+      />
+      <BaseButton
+        :title="`Healer (${healerCount})`"
+        :tooltip="healerUsers.length > 0 ? healerUsers.join(', ') : 'No signups yet'"
+        :state="isSignedUpHealer ? 'pressed' : 'primary'"
+        @clicked="signUp(event, ROLE.Healer)"
+      />
+      <BaseButton
+        :title="`Melee (${meleeCount})`"
+        :tooltip="meleeUsers.length > 0 ? meleeUsers.join(', ') : 'No signups yet'"
+        :state="isSignedUpMelee ? 'pressed' : 'primary'"
+        @clicked="signUp(event, ROLE.Melee)"
+      />
+      <BaseButton
+        :title="`Caster (${casterCount})`"
+        :tooltip="casterUsers.length > 0 ? casterUsers.join(', ') : 'No signups yet'"
+        :state="isSignedUpCaster ? 'pressed' : 'primary'"
+        @clicked="signUp(event, ROLE.Caster)"
+      />
+      <BaseButton
+        :title="`Ranged (${rangedCount})`"
+        :tooltip="rangedUsers.length > 0 ? rangedUsers.join(', ') : 'No signups yet'"
+        :state="isSignedUpRanged ? 'pressed' : 'primary'"
+        @clicked="signUp(event, ROLE.Ranged)"
+      />
     </template>
   </BaseModal>
 </template>

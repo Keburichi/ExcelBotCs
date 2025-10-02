@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import type { EventParticipant, FCEvent, Role } from '@/features/events/events.types'
 import { computed, onMounted, ref } from 'vue'
+import BaseButton from '@/components/BaseButton.vue'
 import BaseModal from '@/components/BaseModal.vue'
 import { useMembers } from '@/composables/useMembers'
 import { EventsApi } from '@/features/events/events.api'
@@ -158,10 +159,12 @@ async function save() {
     <template #body>
       <!-- Mode Toggle Button -->
       <div class="mode-toggle-container">
-        <button class="btn secondary mode-toggle-btn" @click="toggleSelectionMode">
-          <span v-if="selectionMode === 'role'">Switch to Simple Mode</span>
-          <span v-else>Switch to Role-Based Mode</span>
-        </button>
+        <BaseButton
+          :title="selectionMode === 'role' ? 'Switch to Simple Mode' : 'Switch to Role-Based Mode'"
+          :tooltip="selectionMode === 'role' ? 'Switch to Role-Unrestricted Mode' : 'Switch to Role-Based Mode'"
+          size="small"
+          @click="toggleSelectionMode"
+        />
       </div>
 
       <p v-if="selectionMode === 'role'">
@@ -262,12 +265,8 @@ async function save() {
       </div>
     </template>
     <template #actions>
-      <button class="btn secondary" :disabled="saving" @click="emit('update:modelValue', false)">
-        Cancel
-      </button>
-      <button class="btn primary" :disabled="saving" @click="save">
-        {{ saving ? 'Saving...' : 'Save' }}
-      </button>
+      <BaseButton title="Cancel" state="secondary" :disabled="saving" @clicked="modelValue = false" />
+      <BaseButton :title="saving ? 'Saving...' : 'Save'" state="primary" :disabled="saving" @click="save" />
     </template>
   </BaseModal>
 </template>

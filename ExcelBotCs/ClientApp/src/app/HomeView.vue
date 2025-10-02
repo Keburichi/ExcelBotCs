@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import ButtonShowcaseView from '@/app/ButtonShowcaseView.vue'
 import RulesView from '@/app/RulesView.vue'
 import AnnouncementsView from '@/components/announcements/AnnouncementsView.vue'
 </script>
@@ -10,6 +11,7 @@ import AnnouncementsView from '@/components/announcements/AnnouncementsView.vue'
 
     <RulesView />
     <AnnouncementsView />
+    <ButtonShowcaseView />
   </section>
 </template>
 
