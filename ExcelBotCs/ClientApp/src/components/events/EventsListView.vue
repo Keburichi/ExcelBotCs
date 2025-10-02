@@ -31,9 +31,6 @@ onMounted(e.load)
 
     <div v-if="isAdmin" class="container">
       <BaseButton v-if="isAdmin" title="Create Event" state="primary" size="medium" @clicked="goCreate" />
-      <button v-if="isAdmin?.valueOf()" class="btn" @click="goCreate">
-        + Create Event
-      </button>
     </div>
 
     <CardList :items="e.events.value" :columns="2" item-key="Id">

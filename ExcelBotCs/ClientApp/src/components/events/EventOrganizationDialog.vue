@@ -7,6 +7,10 @@ import { useMembers } from '@/composables/useMembers'
 import { EventsApi } from '@/features/events/events.api'
 import { ROLE } from '@/features/events/events.types'
 
+const emit = defineEmits<{
+  eventPlanned: []
+}>()
+
 const modelValue = defineModel<boolean>('isOpen', { required: true })
 const eventValue = defineModel<FCEvent>('fcEvent', { required: true })
 
@@ -135,15 +139,12 @@ const roleCount = computed(() => {
 async function save() {
   saving.value = true
   try {
-    const updatedEvent: FCEvent = {
-      ...eventValue.value,
-      Participants: participants.value,
-    }
-    await EventsApi.update(eventValue.value.Id, updatedEvent)
+    await EventsApi.plan(eventValue.value)
+    modelValue.value = false
+    emit('eventPlanned')
   }
   catch (error) {
     console.error('Error saving participants:', error)
-    alert('Error saving participants. Please try again.')
   }
   finally {
     saving.value = false

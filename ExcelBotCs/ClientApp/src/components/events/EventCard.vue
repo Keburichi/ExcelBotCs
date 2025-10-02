@@ -53,7 +53,11 @@ function getSignUpNumber(fcEvent: FCEvent) {
 <template>
   <EventSignupDialog v-model="isOpen" :event="fcEventValue" @update:model-value="handleSignupDialogClose" />
 
-  <EventOrganizationDialog v-model:is-open="isOrganizationOpen" v-model:fc-event="fcEventValue" />
+  <EventOrganizationDialog
+    v-model:is-open="isOrganizationOpen"
+    v-model:fc-event="fcEventValue"
+    @event-planned="handleSignupDialogClose(false)"
+  />
 
   <BaseModal v-model="isDeleteOpen" :title="`Deleting Event - ${fcEventValue.Name}`">
     <template #body>
@@ -81,11 +85,13 @@ function getSignUpNumber(fcEvent: FCEvent) {
       <div class="actions">
         <BaseButton
           :title="`Sign up (${getSignUpNumber(fcEventValue)})`"
+          :disabled="!props.isMember || !fcEventValue.AvailableForSignup"
           tooltip="Sign up for this event"
           size="small"
           @clicked="isOpen = true"
         />
-        <BaseButton v-if="props.isAdmin" title="Select Participants" size="small" state="secondary" @clicked="isOrganizationOpen = true" />
+        <BaseButton v-if="props.isAdmin && fcEventValue.AvailableForSignup" title="Select Participants" size="small" state="secondary" @clicked="isOrganizationOpen = true" />
+        <BaseButton v-if="props.isAdmin && !fcEventValue.AvailableForSignup" title="Conclude Event" size="small" tooltip="Conclude Event" />
         <BaseButton v-if="props.isAdmin" title="Delete" size="small" state="danger" @clicked="isDeleteOpen = true" />
       </div>
     </template>

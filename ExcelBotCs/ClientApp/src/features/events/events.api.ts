@@ -8,4 +8,5 @@ export const EventsApi = {
   update: (id: string, e: FCEvent) => http<void>(`/api/events/${id}`, { method: 'PUT', body: JSON.stringify(e) }),
   delete: (id: string) => http<void>(`/api/events/${id}`, { method: 'DELETE' }),
   signUp: (event: FCEvent, role: Role) => http<void>(`/api/events/${event.Id}/signup`, { method: 'POST', body: JSON.stringify({ role }) }),
+  plan: (event: FCEvent) => http<void>(`/api/events/${event.Id}/plan`, { method: 'POST', body: JSON.stringify(event) }),
 }
