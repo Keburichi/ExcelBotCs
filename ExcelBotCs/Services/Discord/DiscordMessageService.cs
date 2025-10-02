@@ -17,22 +17,54 @@ public class DiscordMessageService : IDiscordMessageService
         _config = config;
     }
 
-    public async Task PostInLotteryChannelAsync(string message)
+    public async Task PostInAnnouncementChannelAsync(string message)
     {
-        if (await _discordBotService.Client.GetChannelAsync(_config.Value.LotteryChannel) is IMessageChannel
-            textChannel)
-            await textChannel.SendMessageAsync(message);
+        var channel = await GetTextChannelFromChannelId(_config.Value.AnnouncementChannel);
+        if (channel == null)
+            return;
+
+        await channel.SendMessageAsync(message);
+    }
+
+    public async Task PostInEventChannelAsync(string message)
+    {
+        var channel = await GetTextChannelFromChannelId(_config.Value.EventsChannel);
+        if (channel == null)
+            return;
+
+        await channel.SendMessageAsync(message);
+    }
+
+    public async Task PostInUpcomingRosterChannelAsync(string message)
+    {
+        var channel = await GetTextChannelFromChannelId(_config.Value.UpcomingRosterChannel);
+        if (channel == null)
+            return;
+
+        await channel.SendMessageAsync(message);
     }
     
+    public async Task PostInLotteryChannelAsync(string message)
+    {
+        var channel = await GetTextChannelFromChannelId(_config.Value.LotteryChannel);
+        if (channel == null)
+            return;
+
+        await channel.SendMessageAsync(message);
+    }
+
     public async Task<List<IMessage>> GetAnnouncementChannelMessagesAsync()
     {
-        if (await _discordBotService.Client.GetChannelAsync(_config.Value.AnnouncementChannel) is IMessageChannel
-            textChannel)
-        {
-            var discordMessages = await textChannel.GetMessagesAsync(3, CacheMode.AllowDownload).ToListAsync();
-            return discordMessages.SelectMany(x => x).ToList();
-        }
+        var channel = await GetTextChannelFromChannelId(_config.Value.EventsChannel);
+        if (channel == null)
+            return new List<IMessage>();
+        
+        var discordMessages = await channel.GetMessagesAsync(3, CacheMode.AllowDownload).ToListAsync();
+        return discordMessages.SelectMany(x => x).ToList();
+    }
 
-        return new List<IMessage>();
+    private async Task<IMessageChannel?> GetTextChannelFromChannelId(ulong channelId)
+    {
+        return await _discordBotService.Client.GetChannelAsync(channelId) as ITextChannel;
     }
 }
