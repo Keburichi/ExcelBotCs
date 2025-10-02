@@ -23,4 +23,10 @@ public class DiscordBotOptions
 	
 	[Required]
 	public ulong UpcomingRosterChannel { get; set; }
+
+	[Required]
+	public ulong HallOfClearsChannel { get; set; }
+
+	public List<ulong> AdminRoleIds { get; set; } = [];
+	public List<ulong> MemberRoleIds { get; set; } = [];
 }
