@@ -35,23 +35,18 @@ public class TeamFormationInteraction : InteractionModuleBase<SocketInteractionC
 		_rootUrl = Utils.GetEnvVar("EVENT_ENDPOINT_URL", nameof(TeamFormationInteraction));
 	}
 
-	private async Task<Dictionary<Role, HashSet<ulong>>> GetSignupsFromMessage(IMessage message)
+	private async Task<Dictionary<IEmote, HashSet<ulong>>> GetSignupsFromMessage(IEnumerable<IEmote> emotes, IMessage message)
 	{
-		var signups = new Dictionary<Role, HashSet<ulong>>()
-		{
-			{ Role.Tank, [] },
-			{ Role.Healer, [] },
-			{ Role.Melee, [] },
-			{ Role.Caster, [] },
-			{ Role.Ranged, [] }
-		};
+		var signups = new Dictionary<IEmote, HashSet<ulong>>();
 
-		foreach (var (role, (emote, _, _)) in _groups)
+		foreach (var emote in emotes)
 		{
+			signups.Add(emote, []);
+
 			var users = await message.GetReactionUsersAsync(emote, 100).FlattenAsync();
 			foreach (var user in users)
 			{
-				signups[role].Add(user.Id);
+				signups[emote].Add(user.Id);
 			}
 		}
 
@@ -83,20 +78,32 @@ public class TeamFormationInteraction : InteractionModuleBase<SocketInteractionC
 				break;
 
 			case Extensions.SuccessMessageResponse msg:
-				var group = await GetSignupsFromMessage(msg.Message);
+				var emotes = msg.Message.Reactions.Keys;
+				var group = await GetSignupsFromMessage(emotes, msg.Message);
 				var allSignups = group.Values.SelectMany(list => list.Select(id => id)).ToList();
 
-				string GenerateInlineText(Dictionary<Role, HashSet<ulong>> group, Role role) =>
-					$"{_groups[role].Emote} ({group[role].Count}): {group[role].Select(id => allSignups.Count(signupId => signupId == id) == 1 ? $"⭐<@{id}>" : $"<@{id}>").ToList().PrettyJoin()}\n";
+				string GenerateInlineText(IEmote emote, HashSet<ulong> ids) =>
+					$"{ToDisplay(emote)} ({ids.Count}): {ids.Select(id => allSignups.Count(signupId => signupId == id) == 1 ? $"⭐<@{id}>" : $"<@{id}>").ToList().PrettyJoin()}\n";
 
-				await FollowupAsync($"### Signups from {postUrl}\nTotal unique signups: {allSignups.Distinct().Count()}\n" +
-									$"{GenerateInlineText(group, Role.Tank)}" +
-									$"{GenerateInlineText(group, Role.Healer)}" +
-									$"{GenerateInlineText(group, Role.Melee)}" +
-									$"{GenerateInlineText(group, Role.Caster)}" +
-									$"{GenerateInlineText(group, Role.Ranged)}");
+				await FollowupAsync(
+					$"### Signups from {postUrl}\nTotal unique signups: {allSignups.Distinct().Count()}\n" +
+					$"{string.Join("", group.Select(kvp => GenerateInlineText(kvp.Key, kvp.Value)))}", allowedMentions: AllowedMentions.None);
 				break;
 		}
+	}
+
+	private static string ToDisplay(IEmote emote)
+	{
+		if (emote is Emoji emoji)
+		{
+			return emoji.Name;
+		}
+		else if (emote is Emote em)
+		{
+			return $"<:{em.Name}:{em.Id}>";
+		}
+
+		return emote.Name;
 	}
 
 	public enum Month
