@@ -56,15 +56,12 @@ public class DiscordBotService : BackgroundService
 
 	protected override async Task ExecuteAsync(CancellationToken stoppingToken) => await LoginAsync();
 
-	private async Task LoginAsync()
-	{
-		await Client.LoginAsync(TokenType.Bot, _config.Token);
-		await Client.StartAsync();
-	}
+	private async Task LoginAsync() => await Client.LoginAsync(TokenType.Bot, _config.Token);
 
 	private async Task ReconnectAsync()
 	{
 		await Client.StopAsync();
+		await Client.StartAsync();
 		await LoginAsync();
 	}
 
