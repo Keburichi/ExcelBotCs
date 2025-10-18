@@ -2,7 +2,6 @@ using MongoDB.Bson;
 using MongoDB.Bson.Serialization;
 using MongoDB.Bson.Serialization.Serializers;
 using MongoDB.Driver;
-using MongoDB.Driver.Linq;
 
 namespace ExcelBotCs.Data;
 public class Database
@@ -13,7 +12,6 @@ public class Database
 	{
 		var settings = MongoClientSettings.FromConnectionString(options.ConnectionString);
 		settings.ServerApi = new ServerApi(ServerApiVersion.V1);
-		settings.LinqProvider = LinqProvider.V3;
 
 		var objectSerializer = new ObjectSerializer(ObjectSerializer.AllAllowedTypes);
 		BsonSerializer.RegisterSerializer(objectSerializer);
@@ -33,8 +31,5 @@ public class Database
 		}
 	}
 
-	public Repository<T> GetCollection<T>(string collection) where T : DatabaseObject
-	{
-		return new Repository<T>(_database.GetCollection<T>(collection));
-	}
+	public Repository<T> GetCollection<T>(string collection) where T : DatabaseObject => new(_database.GetCollection<T>(collection));
 }

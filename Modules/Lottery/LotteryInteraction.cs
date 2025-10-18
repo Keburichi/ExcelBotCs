@@ -3,6 +3,7 @@ using Discord.Interactions;
 using Discord.WebSocket;
 using ExcelBotCs.Data;
 using MongoDB.Driver;
+using MongoDB.Driver.Linq;
 using System.Text.RegularExpressions;
 
 namespace ExcelBotCs.Modules.Lottery;
@@ -25,10 +26,7 @@ public class LotteryInteraction : InteractionModuleBase<SocketInteractionContext
 		_lotteryResults = database.GetCollection<LotteryResult>("lottery_results");
 	}
 
-	private bool CanParticipate(SocketGuildUser user)
-	{
-		return user.Roles.IsMember();
-	}
+	private bool CanParticipate(SocketGuildUser user) => user.Roles.IsMember();
 
 	interface IGuessResponse
 	{
@@ -117,10 +115,7 @@ public class LotteryInteraction : InteractionModuleBase<SocketInteractionContext
 		await _lotteryGuesses.Insert(new LotteryGuess() { DiscordId = Context.GuildUser().Id, Number = newNumber });
 	}
 
-	private async Task InsertGuess(int number)
-	{
-		await _lotteryGuesses.Insert(new LotteryGuess() { DiscordId = Context.GuildUser().Id, Number = number });
-	}
+	private async Task InsertGuess(int number) => await _lotteryGuesses.Insert(new LotteryGuess() { DiscordId = Context.GuildUser().Id, Number = number });
 
 	interface IAwardResponse
 	{
@@ -195,20 +190,14 @@ public class LotteryInteraction : InteractionModuleBase<SocketInteractionContext
 	}
 
 
-	private async Task<List<int>> GetNotGuessedNumbers()
-	{
-		return Enumerable.Range(1, 99).Except(await GetGuessedNumbers()).ToList();
-	}
+	private async Task<List<int>> GetNotGuessedNumbers() => Enumerable.Range(1, 99).Except(await GetGuessedNumbers()).ToList();
 
-	private async Task<List<int>> GetGuessedNumbers()
-	{
-		return (await _lotteryGuesses
+	private async Task<List<int>> GetGuessedNumbers() => (await _lotteryGuesses
 			.Where(_ => true)
 			.ToListAsync())
 			.Select(guess => guess.Number)
 			.Distinct()
 			.ToList();
-	}
 
 	public enum RandomGuessType
 	{
@@ -455,7 +444,7 @@ public class LotteryInteraction : InteractionModuleBase<SocketInteractionContext
 		{
 			if (awardedGuesses.TryGetValue(id, out var remaining))
 			{
-				var count = (remaining + 1) - current;
+				var count = remaining + 1 - current;
 				if (count > 0)
 					remainingGuesses.Add((id, count));
 			}
