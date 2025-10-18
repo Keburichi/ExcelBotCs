@@ -61,8 +61,8 @@ public class DiscordBotService : BackgroundService
 	private async Task ReconnectAsync()
 	{
 		await Client.StopAsync();
-		await Client.StartAsync();
 		await LoginAsync();
+		await Client.StartAsync();
 	}
 
 	private void KeepAlive() => _ = Task.Run(async () =>
