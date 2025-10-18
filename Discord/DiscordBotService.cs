@@ -35,10 +35,8 @@ public class DiscordBotService : BackgroundService
 		_serviceProvider = serviceProvider;
 
 		Client.Ready += ClientOnReady;
-		Client.Disconnected += async (ex) => await ReconnectAsync();
+		Client.Disconnected += async (ex) => await StopAsync(CancellationToken.None);
 		Client.InteractionCreated += ClientOnInteractionCreated;
-
-		KeepAlive();
 	}
 
 	private async Task ClientOnReady()
@@ -53,28 +51,16 @@ public class DiscordBotService : BackgroundService
 		var context = new SocketInteractionContext(Client, interaction);
 		await Interaction.ExecuteCommandAsync(context, scope.ServiceProvider);
 	}
-
-	protected override async Task ExecuteAsync(CancellationToken stoppingToken) => await LoginAsync();
-
-	private async Task LoginAsync() => await Client.LoginAsync(TokenType.Bot, _config.Token);
-
-	private async Task ReconnectAsync()
+	protected override async Task ExecuteAsync(CancellationToken stoppingToken)
 	{
-		await Client.StopAsync();
-		await LoginAsync();
+		await Client.LoginAsync(TokenType.Bot, _config.Token);
 		await Client.StartAsync();
 	}
 
-	private void KeepAlive() => _ = Task.Run(async () =>
+	public override async Task StopAsync(CancellationToken cancellationToken)
 	{
-		while (true)
-		{
-			if (Client.ConnectionState is ConnectionState.Disconnected or ConnectionState.Disconnecting)
-			{
-				await ReconnectAsync();
-			}
-
-			await Task.Delay(20000);
-		}
-	});
+		await Client.StopAsync();
+		_lifeTime.StopApplication();
+		Environment.Exit(0);
+	}
 }
