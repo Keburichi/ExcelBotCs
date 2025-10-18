@@ -1,6 +1,7 @@
 ﻿using ExcelBotCs.Data;
 using Microsoft.AspNetCore.Mvc;
 using MongoDB.Driver;
+using MongoDB.Driver.Linq;
 using System.Text;
 
 namespace ExcelBotCs.Modules.TeamFormation;
@@ -62,10 +63,7 @@ public class EventController : ControllerBase
 			return BadRequest("Event is malformed");
 		}
 
-		string GenerateEvent(EventDetails e)
-		{
-			return
-				"BEGIN:VEVENT\n" +
+		static string GenerateEvent(EventDetails e) => "BEGIN:VEVENT\n" +
 				$"UID:{e.StartTime.Ticks}-{e.Name}\n" +
 				$"DTSTAMP:{e.DateCreated:yyyyMMddTHHmm00}Z\n" +
 				$"DTSTART:{e.StartTime:yyyyMMddTHHmm00}Z\n" +
@@ -74,6 +72,5 @@ public class EventController : ControllerBase
 				"LOCATION:Final Fantasy XIV Online\n" +
 				"STATUS:CONFIRMED\n" +
 				"END:VEVENT\n";
-		}
 	}
 }
