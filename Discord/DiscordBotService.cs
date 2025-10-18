@@ -13,11 +13,13 @@ public class DiscordBotService : BackgroundService
 	private readonly IHostApplicationLifetime _lifeTime;
 	private readonly IServiceProvider _serviceProvider;
 
-	public DiscordBotService(IServiceScopeFactory scopeFactory, DiscordBotOptions config, IHostApplicationLifetime lifeTime, IServiceProvider serviceProvider) : base(scopeFactory)
+	public DiscordBotService(IServiceScopeFactory scopeFactory, DiscordBotOptions config,
+		IHostApplicationLifetime lifeTime, IServiceProvider serviceProvider) : base(scopeFactory)
 	{
 		Client = new DiscordSocketClient(new DiscordSocketConfig()
 		{
-			GatewayIntents = GatewayIntents.AllUnprivileged | GatewayIntents.MessageContent | GatewayIntents.GuildMembers | GatewayIntents.GuildPresences,
+			GatewayIntents = GatewayIntents.AllUnprivileged | GatewayIntents.MessageContent |
+							 GatewayIntents.GuildMembers | GatewayIntents.GuildPresences,
 			AlwaysDownloadUsers = true,
 			MessageCacheSize = 200
 		});
@@ -33,8 +35,10 @@ public class DiscordBotService : BackgroundService
 		_serviceProvider = serviceProvider;
 
 		Client.Ready += ClientOnReady;
-		Client.Disconnected += async (ex) => await StopAsync(CancellationToken.None);
+		Client.Disconnected += async (ex) => await ReconnectAsync();
 		Client.InteractionCreated += ClientOnInteractionCreated;
+
+		KeepAlive();
 	}
 
 	private async Task ClientOnReady()
@@ -50,15 +54,30 @@ public class DiscordBotService : BackgroundService
 		await Interaction.ExecuteCommandAsync(context, scope.ServiceProvider);
 	}
 
-	protected override async Task ExecuteAsync(CancellationToken stoppingToken)
+	protected override async Task ExecuteAsync(CancellationToken stoppingToken) => await LoginAsync();
+
+	private async Task LoginAsync()
 	{
 		await Client.LoginAsync(TokenType.Bot, _config.Token);
 		await Client.StartAsync();
 	}
 
-	public override async Task StopAsync(CancellationToken cancellationToken)
+	private async Task ReconnectAsync()
 	{
 		await Client.StopAsync();
-		_lifeTime.StopApplication();
+		await LoginAsync();
 	}
+
+	private void KeepAlive() => _ = Task.Run(async () =>
+	{
+		while (true)
+		{
+			if (Client.ConnectionState is ConnectionState.Disconnected or ConnectionState.Disconnecting)
+			{
+				await ReconnectAsync();
+			}
+
+			await Task.Delay(20000);
+		}
+	});
 }
