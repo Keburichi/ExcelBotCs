@@ -1,6 +1,9 @@
 ﻿using Discord;
 using Discord.Interactions;
 using ExcelBotCs.Data;
+using Sprache;
+using System.Globalization;
+using System.Text.RegularExpressions;
 
 namespace ExcelBotCs.Modules.TeamFormation;
 
@@ -52,10 +55,27 @@ public class TeamFormationInteraction : InteractionModuleBase<SocketInteractionC
 
 		return signups;
 	}
+	private static IEnumerable<IEmote> ExtractEmotes(string input)
+	{
+		var matches = Regex.Matches(input, @"<a?:\w+:\d+>");
+		foreach (Match match in matches)
+		{
+			if (Emote.TryParse(match.Value, out var emote))
+				yield return emote;
+		}
 
+		var stripped = Regex.Replace(input, @"<a?:\w+:\d+>", "");
+		var enumerator = StringInfo.GetTextElementEnumerator(stripped);
+		while (enumerator.MoveNext())
+		{
+			var element = enumerator.GetTextElement();
+			if (Emoji.TryParse(element, out var emoji))
+				yield return emoji;
+		}
+	}
 
 	[SlashCommand("list", "Get a list of signups from the post provided")]
-	public async Task GetSignups(string postUrl)
+	public async Task GetSignups(string postUrl, string? checkEmoji = null)
 	{
 		if (!Context.GuildUser().Roles.IsOfficer())
 		{
@@ -78,7 +98,8 @@ public class TeamFormationInteraction : InteractionModuleBase<SocketInteractionC
 				break;
 
 			case Extensions.SuccessMessageResponse msg:
-				var emotes = msg.Message.Reactions.Keys;
+				var useEmoji = ExtractEmotes(checkEmoji ?? string.Empty).ToList();
+				var emotes = useEmoji.Any() ? msg.Message.Reactions.Keys.Where(useEmoji.Contains) : msg.Message.Reactions.Keys;
 				var group = await GetSignupsFromMessage(emotes, msg.Message);
 				var allSignups = group.Values.SelectMany(list => list.Select(id => id)).ToList();
 
@@ -86,7 +107,8 @@ public class TeamFormationInteraction : InteractionModuleBase<SocketInteractionC
 					$"{ToDisplay(emote)} ({ids.Count}): {ids.Select(id => allSignups.Count(signupId => signupId == id) == 1 ? $"⭐<@{id}>" : $"<@{id}>").ToList().PrettyJoin()}\n";
 
 				await FollowupAsync(
-					$"### Signups from {postUrl}\nTotal unique signups: {allSignups.Distinct().Count()}\n" +
+					$"### Reactions from {postUrl}\nTotal unique reactions: {allSignups.Distinct().Count()}\n" +
+					$"{(useEmoji.Any() ? $"Checking specified emotes: {string.Join(string.Empty, emotes.Select(ToDisplay) ?? [])}\n" : string.Empty)}" +
 					$"{string.Join("", group.Select(kvp => GenerateInlineText(kvp.Key, kvp.Value)))}", allowedMentions: AllowedMentions.None);
 				break;
 		}
