@@ -1,29 +1,30 @@
 ﻿using ExcelBotCs.Models.Database;
+using ExcelBotCs.Models.DTO;
 using ExcelBotCs.Services;
 using Microsoft.AspNetCore.Mvc;
 
 namespace ExcelBotCs.Controllers;
 
-public abstract class BaseCrudController<T> : AuthorizedController where T : BaseEntity
+public abstract class BaseCrudController<Dto, Entity> : AuthorizedController where Dto : BaseDto where Entity : BaseEntity
 {
     protected readonly ILogger _logger;
-    private readonly BaseDatabaseService<T> _databaseService;
+    private readonly BaseDatabaseService<Entity> _databaseService;
 
-    protected BaseCrudController(ILogger logger, BaseDatabaseService<T> databaseService)
+    protected BaseCrudController(ILogger logger, BaseDatabaseService<Entity> databaseService)
     {
         _logger = logger;
         _databaseService = databaseService;
     }
 
-    protected virtual Task<ActionResult<List<T>>> OnBeforeGetAllAsync() => Task.FromResult<ActionResult<List<T>>>(null);
-    protected virtual Task<ActionResult<T>> OnBeforeGetAsync(T entity) => Task.FromResult<ActionResult<T>>(null);
-    protected virtual Task<ActionResult<T>> OnBeforePutAsync(T entity) => Task.FromResult<ActionResult<T>>(null);
-    protected virtual Task<ActionResult<T>> OnBeforePostAsync(T entity) => Task.FromResult<ActionResult<T>>(null);
-    protected virtual Task<ActionResult<T>> OnAfterPostAsync(T entity) => Task.FromResult<ActionResult<T>>(null);
-    protected virtual Task<ActionResult<T>> OnBeforeDeleteAsync(T entity) => Task.FromResult<ActionResult<T>>(null);
+    protected virtual Task<ActionResult<List<Dto>>> OnBeforeGetAllAsync() => Task.FromResult<ActionResult<List<Dto>>>(null);
+    protected virtual Task<ActionResult<Dto>> OnBeforeGetAsync(Dto entity) => Task.FromResult<ActionResult<Dto>>(null);
+    protected virtual Task<ActionResult<Dto>> OnBeforePutAsync(Dto entity) => Task.FromResult<ActionResult<Dto>>(null);
+    protected virtual Task<ActionResult<Dto>> OnBeforePostAsync(Dto entity) => Task.FromResult<ActionResult<Dto>>(null);
+    protected virtual Task<ActionResult<Dto>> OnAfterPostAsync(Dto entity) => Task.FromResult<ActionResult<Dto>>(null);
+    protected virtual Task<ActionResult<Dto>> OnBeforeDeleteAsync(Dto entity) => Task.FromResult<ActionResult<Dto>>(null);
 
     [HttpGet]
-    public async Task<ActionResult<List<T>>> GetEntities()
+    public async Task<ActionResult<List<Dto>>> GetEntities()
     {
         var pre = await OnBeforeGetAllAsync();
         if (pre is not null)
@@ -34,7 +35,7 @@ public abstract class BaseCrudController<T> : AuthorizedController where T : Bas
 
 
     [HttpGet("{id:length(24)}")]
-    public async Task<ActionResult<T>> GetEntity(string id)
+    public async Task<ActionResult<Dto>> GetEntity(string id)
     {
         var entity = await _databaseService.GetAsync(id);
 
@@ -49,7 +50,7 @@ public abstract class BaseCrudController<T> : AuthorizedController where T : Bas
     }
 
     [HttpPost]
-    public async Task<ActionResult<T>> PostEntity(T entity)
+    public async Task<ActionResult<Dto>> PostEntity(Dto entity)
     {
         var pre = await OnBeforePostAsync(entity);
         if (pre is not null)
@@ -60,7 +61,7 @@ public abstract class BaseCrudController<T> : AuthorizedController where T : Bas
     }
 
     [HttpPut("{id:length(24)}")]
-    public async Task<ActionResult<T>> UpdateEntity(string id, T updatedEntity)
+    public async Task<ActionResult<Dto>> UpdateEntity(string id, Dto updatedEntity)
     {
         _logger.LogInformation("Updating entity with id: {id}", id);
 
@@ -76,7 +77,7 @@ public abstract class BaseCrudController<T> : AuthorizedController where T : Bas
             return pre;
 
         // Update only properties that were passed in
-        var properties = typeof(T).GetProperties();
+        var properties = typeof(Dto).GetProperties();
         foreach (var property in properties)
         {
             var value = property.GetValue(updatedEntity);
@@ -98,7 +99,7 @@ public abstract class BaseCrudController<T> : AuthorizedController where T : Bas
     }
 
     [HttpDelete("{id:length(24)}")]
-    public async Task<ActionResult<T>> DeleteEntity(string id)
+    public async Task<ActionResult<Dto>> DeleteEntity(string id)
     {
         var entity = await _databaseService.GetAsync(id);
 

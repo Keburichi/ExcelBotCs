@@ -68,6 +68,13 @@ public class DiscordBotService : BackgroundService
     {
         Console.WriteLine("Discord bot is stopping.");
         await Client.StopAsync();
-        _lifeTime.StopApplication();
+        
+        // Lets attempt to restart this
+        Console.WriteLine("Restarting bot");
+        await Client.LoginAsync(TokenType.Bot, _config.Token);
+        await Client.StartAsync();
+
+        Console.WriteLine("Discord bot is re-started.");
+        // _lifeTime.StopApplication();
     }
 }
