@@ -1,4 +1,5 @@
 ﻿using ExcelBotCs.Models.Database;
+using ExcelBotCs.Models.DTO;
 using ExcelBotCs.Services;
 using Microsoft.AspNetCore.Mvc;
 
@@ -6,7 +7,7 @@ namespace ExcelBotCs.Controllers;
 
 [ApiController]
 [Route("api/[controller]")]
-public class MembersController : BaseCrudController<Member>
+public class MembersController : BaseCrudController<MemberDto>
 {
     private readonly MemberService _memberService;
     private readonly ICurrentMemberAccessor _currentMemberAccessor;

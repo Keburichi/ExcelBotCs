@@ -1,5 +1,9 @@
 ﻿# To-Dos
 
+- [ ] Introduce DTOs
+- [ ] Cleanup UI
+- [ ] Finish Member Notes
+- [ ] Finish Initialization Routine
 - [ ] Hall of Clears
     - [ ] Showing Recent FC clears
     - [ ] Showing which fights have been cleared
@@ -27,3 +31,5 @@
     - [ ] Add ability to add resources to fights
 - [x] Fetch announcements from the discord server
 - [ ] Implement Anniversary messages for users (discord join date if they are a member)
+- [ ] Save date of last signed up event for each user
+- [ ] Add statistics on which users attend events how often
