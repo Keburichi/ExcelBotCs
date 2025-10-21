@@ -18,16 +18,6 @@ public class TeamFormationInteraction : InteractionModuleBase<SocketInteractionC
 	private const string CasterRoleEmote = "<:RoleCaster:873621778566635540>";
 	private const string RangedRoleEmote = "<:RoleRanged:873621778453368895>";
 
-	private readonly Dictionary<Role, (Emote Emote, int Minimum, int Maximum)> _groups =
-		new()
-		{
-			{ Role.Tank, (TankRoleEmote, 2, 2) },
-			{ Role.Healer, (HealerRoleEmote, 2, 2) },
-			{ Role.Melee, (MeleeRoleEmote, 1, 2) },
-			{ Role.Caster, (CasterRoleEmote, 1, 2) },
-			{ Role.Ranged, (RangedRoleEmote, 1, 1) }
-		};
-
 	private readonly Repository<EventDetails> _eventDetails;
 	private readonly string _rootUrl;
 
@@ -146,8 +136,7 @@ public class TeamFormationInteraction : InteractionModuleBase<SocketInteractionC
 
 	[SlashCommand("schedule", "Creates the group to run")]
 	public async Task ScheduleGroup(string eventName, Month month, [MinValue(1)][MaxValue(31)] int day, [MinValue(0)][MaxValue(23)] int startHourSt,
-		[MinValue(0)][MaxValue(23)] int endHourSt, IUser tank1, IUser tank2, IUser healer1, IUser healer2, IUser melee1, IUser caster1, IUser ranged1,
-		IUser? melee2 = null, IUser? caster2 = null, IUser? ranged2 = null, [MinValue(0)][MaxValue(59)] int startMinuteSt = 0,
+		[MinValue(0)][MaxValue(23)] int endHourSt, string? tanks = null, string? healers = null, string? meleeDps = null, string? casterDps = null, string? rangedDps = null, [MinValue(0)][MaxValue(59)] int startMinuteSt = 0,
 		[MinValue(0)][MaxValue(59)] int endMinuteSt = 0)
 	{
 		if (!Context.GuildUser().Roles.IsOfficer())
@@ -156,11 +145,28 @@ public class TeamFormationInteraction : InteractionModuleBase<SocketInteractionC
 			return;
 		}
 
-		var sanityCheck = new List<IUser?>() { melee2, caster2, ranged2 }.Count(user => user != null);
-		if (sanityCheck != 1)
+		IEnumerable<IUser> GetUsersFromString(string input)
 		{
-			// we have too few or too many members, reject it
-			await RespondAsync("An incorrect number of members was specified, fix your input", ephemeral: true);
+			var ids = Regex.Matches(input, @"\d+").Select(m => ulong.Parse(m.Value));
+			return ids.Select(id => Context.Client.GetUser(id));
+		}
+
+		var tankIds = (string.IsNullOrWhiteSpace(tanks) ? [] : GetUsersFromString(tanks)).ToList();
+		var healerIds = (string.IsNullOrWhiteSpace(healers) ? [] : GetUsersFromString(healers)).ToList();
+		var meleeDpsIds = (string.IsNullOrWhiteSpace(meleeDps) ? [] : GetUsersFromString(meleeDps)).ToList();
+		var casterDpsIds = (string.IsNullOrWhiteSpace(casterDps) ? [] : GetUsersFromString(casterDps)).ToList();
+		var rangedDpsIds = (string.IsNullOrWhiteSpace(rangedDps) ? [] : GetUsersFromString(rangedDps)).ToList();
+
+		var participants = new List<EventMemberDetails>();
+		participants.AddRange(tankIds.Select(user => new EventMemberDetails() { DiscordId = user.Id, Role = Role.Tank }));
+		participants.AddRange(healerIds.Select(user => new EventMemberDetails() { DiscordId = user.Id, Role = Role.Healer }));
+		participants.AddRange(meleeDpsIds.Select(user => new EventMemberDetails() { DiscordId = user.Id, Role = Role.Melee }));
+		participants.AddRange(casterDpsIds.Select(user => new EventMemberDetails() { DiscordId = user.Id, Role = Role.Caster }));
+		participants.AddRange(rangedDpsIds.Select(user => new EventMemberDetails() { DiscordId = user.Id, Role = Role.Ranged }));
+
+		if (participants.Count == 0)
+		{
+			await RespondAsync("No users were specified!", ephemeral: true);
 			return;
 		}
 
@@ -176,34 +182,15 @@ public class TeamFormationInteraction : InteractionModuleBase<SocketInteractionC
 			$"## {eventName}\r\n" +
 			$"<t:{startEpoch}:R>\r\n" +
 			$"<t:{startEpoch}:F> - <t:{endEpoch}:F>\r\n\r\n" +
-			$"<:RoleTank:1380979172423499846> <@{tank1.Id}> <@{tank2.Id}>\r\n" +
-			$"<:RoleHealer:1380979170787721368> <@{healer1.Id}> <@{healer2.Id}>\r\n" +
-			$"<:RoleMelee:873621778214318091> <@{melee1.Id}> {(melee2 != null ? $"<@{melee2.Id}>" : string.Empty)}\r\n" +
-			$"<:RoleCaster:873621778566635540> <@{caster1.Id}> {(caster2 != null ? $"<@{caster2.Id}>" : string.Empty)}\r\n" +
-			$"<:RoleRanged:873621778453368895> <@{ranged1.Id}> {(ranged2 != null ? $"<@{ranged2.Id}>" : string.Empty)}";
+			$"{(tankIds.Count > 0 ? $"<:RoleTank:1380979172423499846> {string.Join(" ", tankIds.Select(user => $"<@{user.Id}>"))}\r\n" : string.Empty)}" +
+			$"{(healerIds.Count > 0 ? $"<:RoleHealer:1380979170787721368> {string.Join(" ", healerIds.Select(user => $"<@{user.Id}>"))}\r\n" : string.Empty)}" +
+			$"{(meleeDpsIds.Count > 0 ? $"<:RoleMelee:873621778214318091> {string.Join(" ", meleeDpsIds.Select(user => $"<@{user.Id}>"))}\r\n" : string.Empty)}" +
+			$"{(casterDpsIds.Count > 0 ? $"<:RoleCaster:873621778566635540> {string.Join(" ", casterDpsIds.Select(user => $"<@{user.Id}>"))}\r\n" : string.Empty)}" +
+			$"{(rangedDpsIds.Count > 0 ? $"<:RoleRanged:873621778453368895> {string.Join(" ", rangedDpsIds.Select(user => $"<@{user.Id}>"))}\r\n" : string.Empty)}";
+		output = output.Trim();
 
 		var rosterChannel = Context.Guild.GetTextChannel(1411293182133665792);
 		await rosterChannel.SendMessageAsync(output);
-
-		var participants = new List<EventMemberDetails>
-		{
-			new() { DiscordId = tank1.Id, Role = Role.Tank },
-			new() { DiscordId = tank2.Id, Role = Role.Tank },
-			new() { DiscordId = healer1.Id, Role = Role.Healer },
-			new() { DiscordId = healer2.Id, Role = Role.Healer },
-			new() { DiscordId = melee1.Id, Role = Role.Melee },
-			new() { DiscordId = caster1.Id, Role = Role.Caster },
-			new() { DiscordId = ranged1.Id, Role = Role.Ranged }
-		};
-
-		if (melee2 != null)
-			participants.Add(new EventMemberDetails() { DiscordId = melee2.Id, Role = Role.Melee });
-
-		if (caster2 != null)
-			participants.Add(new EventMemberDetails() { DiscordId = caster2.Id, Role = Role.Caster });
-
-		if (ranged2 != null)
-			participants.Add(new EventMemberDetails() { DiscordId = ranged2.Id, Role = Role.Ranged });
 
 		await _eventDetails.Insert(new EventDetails()
 		{
