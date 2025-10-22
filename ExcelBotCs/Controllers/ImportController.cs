@@ -1,8 +1,9 @@
 ﻿using System.Text.Json;
-using ExcelBotCs.Discord;
 using ExcelBotCs.Models.Config;
 using ExcelBotCs.Models.Database;
 using ExcelBotCs.Services;
+using ExcelBotCs.Services.API;
+using ExcelBotCs.Services.API.Interfaces;
 using ExcelBotCs.Services.Import;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Options;
@@ -14,13 +15,13 @@ namespace ExcelBotCs.Controllers;
 public class ImportController : ControllerBase
 {
     private readonly IWebHostEnvironment _env;
-    private readonly FightService _fightService;
+    private readonly IFightService _fightService;
     private readonly ILogger<ImportController> _logger;
     private readonly ImportService _importService;
     private readonly LodestoneService _lodestoneService;
     private readonly IOptions<DiscordBotOptions> _discordBotOptions;
 
-    public ImportController(IWebHostEnvironment env, FightService fightService, ILogger<ImportController> logger,
+    public ImportController(IWebHostEnvironment env, IFightService fightService, ILogger<ImportController> logger,
         ImportService importService, LodestoneService lodestoneService, IOptions<DiscordBotOptions> discordBotOptions)
     {
         _env = env;

@@ -1,9 +1,9 @@
 ﻿using AspNet.Security.OAuth.Discord;
-using Discord.WebSocket;
-using ExcelBotCs.Discord;
 using ExcelBotCs.Models.Config;
 using ExcelBotCs.Models.Database;
 using ExcelBotCs.Services;
+using ExcelBotCs.Services.API;
+using ExcelBotCs.Services.API.Interfaces;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Mvc;
@@ -15,11 +15,11 @@ namespace ExcelBotCs.Controllers;
 [Route("api/[controller]")]
 public class DiscordController : ControllerBase
 {
-    private readonly MemberService _memberService;
+    private readonly IMemberService _memberService;
     private readonly JwtOptions _jwtOptions;
     private readonly RsaKeyService _rsaKeyService;
 
-    public DiscordController(MemberService memberService, IOptions<JwtOptions> jwtOptions, RsaKeyService rsaKeyService)
+    public DiscordController(IMemberService memberService, IOptions<JwtOptions> jwtOptions, RsaKeyService rsaKeyService)
     {
         _memberService = memberService;
         _jwtOptions = jwtOptions.Value;

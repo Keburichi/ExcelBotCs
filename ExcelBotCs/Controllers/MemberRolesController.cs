@@ -1,38 +1,78 @@
-using ExcelBotCs.Models.Database;
-using ExcelBotCs.Services;
+using ExcelBotCs.Controllers.Interfaces;
+using ExcelBotCs.Mappers;
+using ExcelBotCs.Models.DTO;
+using ExcelBotCs.Services.API;
+using ExcelBotCs.Services.API.Interfaces;
 using Microsoft.AspNetCore.Mvc;
 
 namespace ExcelBotCs.Controllers;
 
 [ApiController]
 [Route("api/[controller]")]
-public class MemberRolesController : BaseCrudController<MemberRole>
+public class MemberRolesController : AuthorizedController, IBaseCrudController<MemberRoleDto>
 {
-    private readonly MemberService _memberService;
+    private readonly IMemberRoleService _memberRoleService;
+    private readonly IMemberService _memberService;
+    private readonly MemberRoleMapper _mapper;
 
-    public MemberRolesController(ILogger<MemberRolesController> logger, MemberRoleService memberRoleService,
-        MemberService memberService) : base(logger,
-        memberRoleService)
+    public MemberRolesController(ILogger<MemberRolesController> logger, IMemberRoleService memberRoleService,
+        IMemberService memberService, MemberRoleMapper mapper) : base(logger)
     {
+        _memberRoleService = memberRoleService;
         _memberService = memberService;
+        _mapper = mapper;
+    }
+    
+    [HttpGet]
+    public async Task<ActionResult<List<MemberRoleDto>>> GetEntities()
+    {
+        var entities = await _memberRoleService.GetAsync();
+
+        if (entities is null)
+            return new List<MemberRoleDto>();
+
+        var dtos = entities.Select(x => _mapper.ToDto(x)).ToList();
+
+        return dtos;
     }
 
-    protected override async Task<ActionResult<MemberRole>> OnAfterPostAsync(MemberRole entity)
+    [HttpGet("{id:length(24)}")]
+    public async Task<ActionResult<MemberRoleDto>> GetEntity(string id)
     {
-        // Update the role of each individual user
-        var members = await _memberService.GetAsync();
+        var entity = await _memberRoleService.GetAsync(id);
 
-        foreach (var member in members.Where(x => x.Roles.Any(x => x.Id == entity.Id)))
-        {
-            var memberRole = member.Roles.First(x => x.Id == entity.Id);
-            memberRole.IsAdmin = entity.IsAdmin;
-            memberRole.IsMember = entity.IsMember;
-            memberRole.DiscordId = entity.DiscordId;
-            memberRole.EditDate = entity.EditDate;
-            
-            await _memberService.UpdateAsync(member.Id, member);
-        }
+        if (entity is null)
+            return NotFound();
 
-        return null;
+        return _mapper.ToDto(entity);
+    }
+
+    [HttpPost]
+    public async Task<ActionResult<MemberRoleDto>> CreateEntity(MemberRoleDto entity)
+    {
+        await _memberRoleService.CreateAsync(_mapper.ToEntity(entity));
+        return CreatedAtAction(nameof(CreateEntity), new { id = entity.Id }, entity);
+    }
+
+    [HttpPut("{id:length(24)}")]
+    public async Task<ActionResult<MemberRoleDto>> UpdateEntity(string id, MemberRoleDto updatedEntity)
+    {
+        Logger.LogInformation("Updating entity with id: {id}", id);
+
+        await _memberRoleService.UpdateAsync(id, _mapper.ToEntity(updatedEntity));
+
+        return NoContent();
+    }
+
+    [HttpDelete("{id:length(24)}")]
+    public async Task<ActionResult<MemberRoleDto>> DeleteEntity(string id)
+    {
+        var entity = await _memberRoleService.GetAsync(id);
+
+        if (entity is null)
+            return NotFound();
+
+        await _memberService.DeleteAsync(id);
+        return NoContent();
     }
 }

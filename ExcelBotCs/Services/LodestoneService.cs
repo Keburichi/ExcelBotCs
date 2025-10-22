@@ -1,5 +1,7 @@
 using ExcelBotCs.Models.Config;
 using ExcelBotCs.Models.Database;
+using ExcelBotCs.Services.API;
+using ExcelBotCs.Services.API.Interfaces;
 using Microsoft.Extensions.Options;
 using NetStone;
 using NetStone.Model.Parseables.FreeCompany.Members;
@@ -10,9 +12,9 @@ public class LodestoneService
 {
     private LodestoneClient _lodestoneClient;
     private readonly IOptions<LodestoneOptions> _options;
-    private readonly FcMemberService _fcMemberService;
+    private readonly IFcMemberService _fcMemberService;
 
-    public LodestoneService(IOptions<LodestoneOptions> options, FcMemberService fcMemberService)
+    public LodestoneService(IOptions<LodestoneOptions> options, IFcMemberService fcMemberService)
     {
         _options = options;
         _fcMemberService = fcMemberService;

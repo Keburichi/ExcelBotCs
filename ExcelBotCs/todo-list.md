@@ -1,6 +1,6 @@
 ﻿# To-Dos
 
-- [ ] Introduce DTOs
+- [x] Introduce DTOs
 - [ ] Cleanup UI
 - [ ] Finish Member Notes
 - [ ] Finish Initialization Routine

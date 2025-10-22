@@ -1,9 +1,13 @@
 ﻿using System.Text;
+using ExcelBotCs.Controllers.Interfaces;
 using ExcelBotCs.Extensions;
+using ExcelBotCs.Mappers;
 using ExcelBotCs.Models.Database;
 using ExcelBotCs.Models.DTO;
 using ExcelBotCs.Modules.TeamFormation;
 using ExcelBotCs.Services;
+using ExcelBotCs.Services.API;
+using ExcelBotCs.Services.API.Interfaces;
 using ExcelBotCs.Services.Discord.Interfaces;
 using Ical.Net;
 using Ical.Net.CalendarComponents;
@@ -16,31 +20,81 @@ namespace ExcelBotCs.Controllers;
 
 [ApiController]
 [Route("api/[controller]")]
-public class EventsController : BaseCrudController<Event>
+public class EventsController : AuthorizedController, IBaseCrudController<EventDto>
 {
-    private readonly EventService _eventService;
+    private readonly IEventService _eventService;
     private readonly ICurrentMemberAccessor _currentMemberAccessor;
     private readonly IDiscordMessageService _discordMessageService;
+    private readonly EventMapper _mapper;
     private readonly string _rootUrl;
 
-    public EventsController(ILogger<EventsController> logger, EventService eventService,
-        ICurrentMemberAccessor currentMemberAccessor, IDiscordMessageService discordMessageService) : base(logger,
-        eventService)
+    public EventsController(ILogger<EventsController> logger, IEventService eventService,
+        ICurrentMemberAccessor currentMemberAccessor, IDiscordMessageService discordMessageService, EventMapper mapper) : base(logger)
     {
         _eventService = eventService;
         _currentMemberAccessor = currentMemberAccessor;
         _discordMessageService = discordMessageService;
+        _mapper = mapper;
         _rootUrl = Utils.GetEnvVar("EVENT_ENDPOINT_URL", nameof(TeamFormationInteraction));
     }
+    
+    [HttpGet]
+    public async Task<ActionResult<List<EventDto>>> GetEntities()
+    {
+        var entities = await _eventService.GetAsync();
+        
+        if(entities is null)
+            return new List<EventDto>();
+        
+        var dtos = entities.Select(x => _mapper.ToDto(x)).ToList();
 
-    protected override async Task<ActionResult<Event>?> OnBeforePostAsync(Event entity)
+        return dtos;
+    }
+
+    [HttpGet("{id:length(24)}")]
+    public async Task<ActionResult<EventDto>> GetEntity(string id)
+    {
+        var entity = await _eventService.GetAsync(id);
+
+        if (entity is null)
+            return NotFound();
+
+        return _mapper.ToDto(entity);
+    }
+
+    [HttpPost]
+    public async Task<ActionResult<EventDto>> CreateEntity(EventDto entity)
     {
         var member = await _currentMemberAccessor.GetCurrentAsync();
         if (member is null)
             return BadRequest("Member not found for the current user");
 
         entity.Author = member;
-        return null;
+        
+        await _eventService.CreateAsync(_mapper.ToEntity(entity));
+        return CreatedAtAction(nameof(CreateEntity), new  { id = entity.Id }, entity);
+    }
+
+    [HttpPut("{id:length(24)}")]
+    public async Task<ActionResult<EventDto>> UpdateEntity(string id, EventDto updatedEntity)
+    {
+        Logger.LogInformation("Updating entity with id: {id}", id);
+
+        await _eventService.UpdateAsync(id, _mapper.ToEntity(updatedEntity));
+
+        return NoContent();
+    }
+
+    [HttpDelete("{id:length(24)}")]
+    public async Task<ActionResult<EventDto>> DeleteEntity(string id)
+    {
+        var entity = await _eventService.GetAsync(id);
+
+        if (entity is null)
+            return NotFound();
+
+        await _eventService.DeleteAsync(id);
+        return NoContent();
     }
 
     [HttpPost]

@@ -1,5 +1,7 @@
 using ExcelBotCs.Data;
 using ExcelBotCs.Modules.Lottery;
+using ExcelBotCs.Services.API;
+using ExcelBotCs.Services.API.Interfaces;
 using ExcelBotCs.Services.Discord.Interfaces;
 using ExcelBotCs.Services.Lottery.Enums;
 using ExcelBotCs.Services.Lottery.Interfaces;
@@ -11,14 +13,14 @@ namespace ExcelBotCs.Services.Lottery;
 public class LotteryService : ILotteryService
 {
     private readonly Prng _rng;
-    private readonly MemberService _memberService;
+    private readonly IMemberService _memberService;
     private readonly IDiscordMessageService _discordMessageService;
     private readonly Repository<ExtraLotteryGuess> _extraLotteryGuesses;
     private readonly Repository<LotteryGuess> _lotteryGuesses;
     private readonly Repository<LotteryResult> _lotteryResults;
 
     public LotteryService(Prng rng, Data.Database database,
-        MemberService memberService, IDiscordMessageService discordMessageService)
+        IMemberService memberService, IDiscordMessageService discordMessageService)
     {
         _rng = rng;
         _memberService = memberService;

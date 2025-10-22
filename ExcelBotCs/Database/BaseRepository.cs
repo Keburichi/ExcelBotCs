@@ -1,20 +1,20 @@
-﻿using ExcelBotCs.Data;
+﻿using ExcelBotCs.Database.Interfaces;
 using ExcelBotCs.Models.Config;
 using ExcelBotCs.Models.Database;
 using Microsoft.Extensions.Options;
 using MongoDB.Driver;
 
-namespace ExcelBotCs.Services;
+namespace ExcelBotCs.Database;
 
-public abstract class BaseDatabaseService<T> : IBaseDatabaseService<T> where T : BaseEntity
+public abstract class BaseRepository<T> : IBaseRepository<T> where T : BaseEntity
 {
     protected readonly IMongoClient Client;
     protected readonly IMongoDatabase Database;
     protected readonly IMongoCollection<T> Collection;
 
-    protected BaseDatabaseService(IOptions<DatabaseOptions> databaseOptions)
+    protected BaseRepository(IMongoClient mongoClient, IOptions<DatabaseOptions> databaseOptions)
     {
-        Client = new MongoClient(databaseOptions.Value.ConnectionString);
+        Client = mongoClient;
 
         EnsureDatabaseExists(Client, databaseOptions.Value.DatabaseName, GetCollectionName());
 

@@ -1,46 +1,87 @@
-﻿using ExcelBotCs.Models.Database;
+﻿using ExcelBotCs.Controllers.Interfaces;
+using ExcelBotCs.Mappers;
 using ExcelBotCs.Models.DTO;
 using ExcelBotCs.Services;
+using ExcelBotCs.Services.API;
 using Microsoft.AspNetCore.Mvc;
 
 namespace ExcelBotCs.Controllers;
 
 [ApiController]
 [Route("api/[controller]")]
-public class MembersController : BaseCrudController<MemberDto>
+public class MembersController : AuthorizedController, IBaseCrudController<MemberDto>
 {
     private readonly MemberService _memberService;
     private readonly ICurrentMemberAccessor _currentMemberAccessor;
     private readonly LodestoneService _lodestoneService;
+    private readonly MemberMapper _mapper;
 
-    public MembersController(ILogger<MembersController> logger, MemberService memberService, ICurrentMemberAccessor currentMemberAccessor, LodestoneService lodestoneService) : base(logger,
-        memberService)
+    public MembersController(ILogger<MembersController> logger, MemberService memberService,
+        ICurrentMemberAccessor currentMemberAccessor, LodestoneService lodestoneService,
+        MemberMapper mapper) : base(logger)
     {
         _memberService = memberService;
         _currentMemberAccessor = currentMemberAccessor;
         _lodestoneService = lodestoneService;
+        _mapper = mapper;
     }
 
-    protected override async Task<ActionResult<Member>> OnBeforePutAsync(Member entity)
+    [HttpGet]
+    public async Task<ActionResult<List<MemberDto>>> GetEntities()
+    {
+        var entities = await _memberService.GetAsync();
+
+        if (entities is null)
+            return new List<MemberDto>();
+
+        var dtos = entities.Select(x => _mapper.ToDto(x)).ToList();
+
+        return dtos;
+    }
+
+    [HttpGet("{id:length(24)}")]
+    public async Task<ActionResult<MemberDto>> GetEntity(string id)
+    {
+        var entity = await _memberService.GetAsync(id);
+
+        if (entity is null)
+            return NotFound();
+
+        return _mapper.ToDto(entity);
+    }
+
+    [HttpPost]
+    public async Task<ActionResult<MemberDto>> CreateEntity(MemberDto entity)
+    {
+        await _memberService.CreateAsync(_mapper.ToEntity(entity));
+        return CreatedAtAction(nameof(CreateEntity), new { id = entity.Id }, entity);
+    }
+
+    [HttpPut("{id:length(24)}")]
+    public async Task<ActionResult<MemberDto>> UpdateEntity(string id, MemberDto updatedEntity)
     {
         // Only allow users to update their own profile
         var me = await _currentMemberAccessor.GetCurrentAsync();
-        if (me is null || me.Id != entity.Id)
-            return new ForbidResult();
+        if (me is null || me.Id != updatedEntity.Id)
+            return Forbid();
+        
+        Logger.LogInformation("Updating entity with id: {id}", id);
 
-        // Load the current DB state
-        var db = await _memberService.GetAsync(entity.Id);
-        if (db is null)
-            return new NotFoundResult();
+        await _memberService.UpdateAsync(id, _mapper.ToEntity(updatedEntity));
 
-        // Enforce: LodestoneId can only be set/changed via the verification flow
-        // Prevent any modifications to LodestoneId through generic PUT updates
-        entity.LodestoneId = db.LodestoneId;
+        return NoContent();
+    }
 
-        // Also prevent clients from tampering with the verification token via generic PUT
-        entity.LodestoneVerificationToken = db.LodestoneVerificationToken;
+    [HttpDelete("{id:length(24)}")]
+    public async Task<ActionResult<MemberDto>> DeleteEntity(string id)
+    {
+        var entity = await _memberService.GetAsync(id);
 
-        return null; // continue with update for other fields
+        if (entity is null)
+            return NotFound();
+
+        await _memberService.DeleteAsync(id);
+        return NoContent();
     }
 
     public record LodestoneVerifyRequest(string LodestoneInput);
@@ -82,7 +123,8 @@ public class MembersController : BaseCrudController<MemberDto>
         try
         {
             var bio = await _lodestoneService.GetCharacterBioById(lodestoneId);
-            if (!string.IsNullOrWhiteSpace(bio) && bio.Contains(me.LodestoneVerificationToken, StringComparison.OrdinalIgnoreCase))
+            if (!string.IsNullOrWhiteSpace(bio) &&
+                bio.Contains(me.LodestoneVerificationToken, StringComparison.OrdinalIgnoreCase))
             {
                 me.LodestoneId = lodestoneId;
                 me.LodestoneVerificationToken = null; // clear token after success
@@ -90,11 +132,15 @@ public class MembersController : BaseCrudController<MemberDto>
                 return Ok(new { success = true, message = "Character verified and linked." });
             }
 
-            return Ok(new { success = false, message = "Verification text not found in bio. Please try again after updating your Lodestone bio." });
+            return Ok(new
+            {
+                success = false,
+                message = "Verification text not found in bio. Please try again after updating your Lodestone bio."
+            });
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Lodestone verification failed for member {MemberId}", me.Id);
+            Logger.LogError(ex, "Lodestone verification failed for member {MemberId}", me.Id);
             return StatusCode(500, "Failed to verify character. Please try again later.");
         }
     }
@@ -122,7 +168,8 @@ public class MembersController : BaseCrudController<MemberDto>
         }
 
         // Fallback: take last non-empty segment from path and remove non-digits
-        var lastSegment = noQueryOrHash.Split('/', StringSplitOptions.RemoveEmptyEntries).LastOrDefault() ?? string.Empty;
+        var lastSegment = noQueryOrHash.Split('/', StringSplitOptions.RemoveEmptyEntries).LastOrDefault() ??
+                          string.Empty;
         var digits = new string(lastSegment.Where(char.IsDigit).ToArray());
         if (!string.IsNullOrWhiteSpace(digits)) return digits;
 

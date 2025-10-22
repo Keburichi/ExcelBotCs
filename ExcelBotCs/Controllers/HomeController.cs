@@ -10,7 +10,7 @@ public class HomeController : AuthorizedController
 {
     private readonly IDiscordMessageService _discordMessageService;
 
-    public HomeController(IDiscordMessageService discordMessageService)
+    public HomeController(ILogger<HomeController> logger, IDiscordMessageService discordMessageService) : base(logger)
     {
         _discordMessageService = discordMessageService;
     }
