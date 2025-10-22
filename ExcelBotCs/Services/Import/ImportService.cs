@@ -1,28 +1,42 @@
-using Discord;
 using Discord.WebSocket;
 using ExcelBotCs.Discord;
 using ExcelBotCs.Extensions;
+using ExcelBotCs.Models.Config;
 using ExcelBotCs.Models.Database;
+using ExcelBotCs.Services.API;
+using ExcelBotCs.Services.API.Interfaces;
+using Microsoft.Extensions.Options;
 
 namespace ExcelBotCs.Services.Import;
 
 public class ImportService
 {
-    private readonly DiscordBotService _discordBotService;
-    private readonly MemberRoleService _memberRoleService;
-    private readonly MemberService _memberService;
+    private readonly ILogger<ImportService> _logger;
+    private readonly DiscordSocketClient _discordSocketClient;
+    private readonly IMemberRoleService _memberRoleService;
+    private readonly IMemberService _memberService;
+    private readonly IOptions<DiscordBotOptions> _options;
 
-    public ImportService(DiscordBotService discordBotService, MemberRoleService memberRoleService,
-        MemberService memberService)
+    public ImportService(ILogger<ImportService> logger, DiscordSocketClient discordSocketClient, IMemberRoleService memberRoleService,
+        IMemberService memberService, IOptions<DiscordBotOptions> options)
     {
-        _discordBotService = discordBotService;
+        _logger = logger;
+        _discordSocketClient = discordSocketClient;
         _memberRoleService = memberRoleService;
         _memberService = memberService;
+        _options = options;
     }
 
+    public async Task<List<Member>> ImportMembers()
+    {
+        return await ImportMembers(_options.Value.GuildId);
+    }
+    
     public async Task<List<Member>> ImportMembers(ulong guildId = 0)
     {
-        var guilds = _discordBotService.Client.Guilds;
+        _logger.LogInformation("Importing discord members");
+        
+        var guilds = _discordSocketClient.Guilds;
 
         if (guilds.IsNullOrEmpty())
             return new List<Member>();
@@ -100,7 +114,9 @@ public class ImportService
 
     public async Task<List<MemberRole>> ImportRoles(ulong guildId = 0)
     {
-        var guilds = _discordBotService.Client.Guilds;
+        _logger.LogInformation("Importing discord roles");
+        
+        var guilds = _discordSocketClient.Guilds;
 
         List<MemberRole> roles = new List<MemberRole>();
 

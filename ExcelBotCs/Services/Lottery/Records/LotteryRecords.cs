@@ -1,4 +1,3 @@
-using ExcelBotCs.Modules.Lottery;
 using ExcelBotCs.Services.Lottery.Interfaces;
 
 namespace ExcelBotCs.Services.Lottery.Records;

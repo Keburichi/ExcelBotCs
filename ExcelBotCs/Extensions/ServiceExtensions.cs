@@ -1,20 +1,54 @@
 ﻿using System.Reflection;
-using ExcelBotCs.Services;
+using Discord;
+using Discord.WebSocket;
+using ExcelBotCs.Database;
+using ExcelBotCs.Database.Interfaces;
+using ExcelBotCs.Mappers;
+using ExcelBotCs.Services.API;
+using ExcelBotCs.Services.API.Interfaces;
 
 namespace ExcelBotCs.Extensions;
 
 public static class ServiceExtensions
 {
-    public static void AddDatabaseServices(this IServiceCollection services)
+    public static void AddDatabaseRepositories(this IServiceCollection services)
     {
-        // register all database services automatically through reflection
-        var serviceTypes = Assembly
-            .GetExecutingAssembly()
-            .GetTypesFromInterface(typeof(IBaseDatabaseService<>));
+        services.AddSingleton<IEventRepository, EventRepository>();
+        services.AddSingleton<IFcMemberRepository, FcMemberRepository>();
+        services.AddSingleton<IFightRepository, FightRepository>();
+        services.AddSingleton<IMemberRepository, MemberRepository>();
+        services.AddSingleton<IMemberRoleRepository, MemberRoleRepository>();
+    }
 
-        foreach (var serviceType in serviceTypes)
+    public static void AddMappers(this IServiceCollection services)
+    {
+        services.AddSingleton<EventMapper>();
+        services.AddSingleton<FightMapper>();
+        services.AddSingleton<MemberMapper>();
+        services.AddSingleton<MemberRoleMapper>();
+        services.AddSingleton<FcMemberMapper>();
+    }
+
+    public static void AddApiServices(this IServiceCollection services)
+    {
+        services.AddSingleton<IEventService, EventService>();
+        services.AddSingleton<IFcMemberService, FcMemberService>();
+        services.AddSingleton<IFightService, FightService>();
+        services.AddSingleton<IMemberService, MemberService>();
+        services.AddSingleton<IMemberRoleService, MemberRoleService>();
+    }
+
+    public static void AddDiscordClient(this IServiceCollection services)
+    {
+        var config = new DiscordSocketConfig()
         {
-            services.AddSingleton(serviceType);
-        }
+            GatewayIntents = GatewayIntents.AllUnprivileged | GatewayIntents.MessageContent |
+                             GatewayIntents.GuildMembers | GatewayIntents.GuildPresences,
+            AlwaysDownloadUsers = true,
+            MessageCacheSize = 200
+        };
+
+        services.AddSingleton(config)
+            .AddSingleton<DiscordSocketClient>();
     }
 }

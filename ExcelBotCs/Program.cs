@@ -1,5 +1,4 @@
 using System.Text.Json.Serialization;
-using Discord.WebSocket;
 using DotNetEnv;
 using ExcelBotCs;
 using ExcelBotCs.Data;
@@ -59,6 +58,13 @@ builder.Services.AddScoped<ILotteryService, LotteryService>();
 builder.Services.AddScoped<IDiscordMessageService, DiscordMessageService>();
 AddService<LodestoneService>();
 
+// Register MongoDB client as singleton (shared across all repositories)
+builder.Services.AddSingleton<MongoDB.Driver.IMongoClient>(sp =>
+{
+    var dbOptions = sp.GetRequiredService<IOptions<DatabaseOptions>>();
+    return new MongoDB.Driver.MongoClient(dbOptions.Value.ConnectionString);
+});
+
 builder.Services.AddDataProtection().SetApplicationName("ExcelBotCs");
 
 builder.Services
@@ -81,15 +87,23 @@ builder.Services.ConfigureHttpJsonOptions(options =>
 
 // register services
 builder.Services.AddScoped<RsaKeyService>();
-builder.Services.AddLogging();
-// builder.Services.AddHttpLogging(options => { });
+builder.Services.AddLogging(options =>
+{
+    options.AddConsole();
+    options.SetMinimumLevel(LogLevel.Information);
+});
+builder.Services.AddHttpLogging();
 
 // per-request user context helpers
 builder.Services.AddHttpContextAccessor();
 builder.Services.AddScoped<ICurrentMemberAccessor, CurrentMemberAccessor>();
 
-// register the database services
-builder.Services.AddDatabaseServices();
+// register all custom services, repositories and mappers
+builder.Services.AddDatabaseRepositories();
+builder.Services.AddMappers();
+builder.Services.AddApiServices();
+builder.Services.AddDiscordClient();
+AddHostedService<WorkerService>();
 
 // configure the serialization settings to remove sensitive data
 builder.Services.AddControllers(options => { options.Filters.Add<RoleRedactionResultFilter>(); })

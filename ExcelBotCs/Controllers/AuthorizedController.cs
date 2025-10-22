@@ -9,5 +9,10 @@ namespace ExcelBotCs.Controllers;
     CookieAuthenticationDefaults.AuthenticationScheme + "," + JwtBearerDefaults.AuthenticationScheme)]
 public abstract class AuthorizedController : ControllerBase
 {
-    
+    protected readonly ILogger Logger;
+
+    protected AuthorizedController(ILogger logger)
+    {
+        Logger = logger;
+    }
 }

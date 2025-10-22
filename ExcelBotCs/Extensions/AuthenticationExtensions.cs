@@ -1,7 +1,6 @@
 using System.Globalization;
 using System.Security.Claims;
 using AspNet.Security.OAuth.Discord;
-using ExcelBotCs.Data;
 using ExcelBotCs.Models.Config;
 using ExcelBotCs.Models.Discord;
 using ExcelBotCs.Services;

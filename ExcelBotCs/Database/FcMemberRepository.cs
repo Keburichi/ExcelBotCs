@@ -1,13 +1,15 @@
+using ExcelBotCs.Database.Interfaces;
 using ExcelBotCs.Models.Config;
 using ExcelBotCs.Models.Database;
 using Microsoft.Extensions.Options;
 using MongoDB.Driver;
 
-namespace ExcelBotCs.Services;
+namespace ExcelBotCs.Database;
 
-public class FcMemberService : BaseDatabaseService<FcMember>
+public class FcMemberRepository : BaseRepository<FcMember>, IFcMemberRepository
 {
-    public FcMemberService(IOptions<DatabaseOptions> databaseOptions) : base(databaseOptions)
+    public FcMemberRepository(IMongoClient mongoClient, IOptions<DatabaseOptions> databaseOptions)
+        : base(mongoClient, databaseOptions)
     {
     }
 

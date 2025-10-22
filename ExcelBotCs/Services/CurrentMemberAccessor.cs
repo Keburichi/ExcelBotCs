@@ -1,15 +1,17 @@
 ﻿using ExcelBotCs.Extensions;
 using ExcelBotCs.Models.Database;
+using ExcelBotCs.Services.API;
+using ExcelBotCs.Services.API.Interfaces;
 
 namespace ExcelBotCs.Services;
 
-public sealed class CurrentMemberAccessor(IHttpContextAccessor httpContextAccessor, MemberService memberService)
+public sealed class CurrentMemberAccessor(IHttpContextAccessor httpContextAccessor, IMemberService memberService)
     : ICurrentMemberAccessor
 {
     public const string HttpContextItemKey = "CurrentMember";
 
     private readonly IHttpContextAccessor _httpContextAccessor = httpContextAccessor;
-    private readonly MemberService _memberService = memberService;
+    private readonly IMemberService _memberService = memberService;
 
     public Member? Current => _httpContextAccessor.HttpContext?.Items[HttpContextItemKey] as Member;
 

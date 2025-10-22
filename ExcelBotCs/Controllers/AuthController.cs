@@ -1,8 +1,7 @@
 ﻿using ExcelBotCs.Models.Database;
 using ExcelBotCs.Services;
-using Microsoft.AspNetCore.Authentication.Cookies;
-using Microsoft.AspNetCore.Authentication.JwtBearer;
-using Microsoft.AspNetCore.Authorization;
+using ExcelBotCs.Services.API;
+using ExcelBotCs.Services.API.Interfaces;
 using Microsoft.AspNetCore.Mvc;
 
 namespace ExcelBotCs.Controllers;
@@ -11,9 +10,10 @@ namespace ExcelBotCs.Controllers;
 public class AuthController : AuthorizedController
 {
     private readonly ICurrentMemberAccessor _currentMemberAccessor;
-    private readonly MemberService _memberService;
+    private readonly IMemberService _memberService;
 
-    public AuthController(ICurrentMemberAccessor currentMemberAccessor, MemberService memberService)
+    public AuthController(ILogger<AuthController> logger, ICurrentMemberAccessor currentMemberAccessor,
+        IMemberService memberService) : base(logger)
     {
         _currentMemberAccessor = currentMemberAccessor;
         _memberService = memberService;

@@ -1,8 +1,8 @@
 ﻿using ExcelBotCs.Models.Database;
 
-namespace ExcelBotCs.Services;
+namespace ExcelBotCs.Database.Interfaces;
 
-public interface IBaseDatabaseService<T> where T : BaseEntity
+public interface IBaseRepository<T> where T : BaseEntity
 {
     Task<List<T>> GetAsync();
     Task<T> GetAsync(string id);

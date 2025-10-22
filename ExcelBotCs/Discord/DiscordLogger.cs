@@ -2,19 +2,20 @@ using Discord;
 using System.Collections.Concurrent;
 using System.Diagnostics;
 using System.Text;
+using Discord.WebSocket;
 
 namespace ExcelBotCs.Discord;
 
 public class DiscordLogger : TextWriter
 {
-	private readonly DiscordBotService _discord;
+	private readonly DiscordSocketClient _discord;
 	private readonly TextWriter _stdOut;
 	private readonly ConcurrentQueue<string> _logQueue;
 	private ITextChannel? _channel;
 
 	private const ulong LogChannel = 1275042232797237279;
 
-	public DiscordLogger(DiscordBotService discord)
+	public DiscordLogger(DiscordSocketClient discord)
 	{
 		_logQueue = new ConcurrentQueue<string>();
 		_discord = discord;
@@ -34,7 +35,7 @@ public class DiscordLogger : TextWriter
 				{
 					try
 					{
-						var channel = await _discord.Client.GetChannelAsync(LogChannel);
+						var channel = await _discord.GetChannelAsync(LogChannel);
 						if (channel is not ITextChannel textChannel)
 							return;
 
