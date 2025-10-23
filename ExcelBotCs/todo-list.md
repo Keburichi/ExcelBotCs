@@ -33,3 +33,4 @@
 - [ ] Implement Anniversary messages for users (discord join date if they are a member)
 - [ ] Save date of last signed up event for each user
 - [ ] Add statistics on which users attend events how often
+- [ ] Add a ranking system for group creation (scale 1-10 with consistency, preparedness, learning speed, previously cleared fights?)

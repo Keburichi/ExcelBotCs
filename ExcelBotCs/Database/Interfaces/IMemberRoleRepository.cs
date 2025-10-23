@@ -4,5 +4,5 @@ namespace ExcelBotCs.Database.Interfaces;
 
 public interface IMemberRoleRepository : IBaseRepository<MemberRole>
 {
-    Task<MemberRole> GetByDiscordId(ulong discordId);
+    Task<MemberRole> GetByDiscordId(string discordId);
 }

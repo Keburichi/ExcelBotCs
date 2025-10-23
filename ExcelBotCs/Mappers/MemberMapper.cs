@@ -3,25 +3,41 @@ using ExcelBotCs.Models.DTO;
 
 namespace ExcelBotCs.Mappers;
 
-public class MemberMapper : BaseMappingService<MemberDto, Member>
+public static class MemberMapper
 {
-    
-    
-    // public static MemberDto ToDto(this Member member, List<MemberRole> roles, List<MemberNote> notes)
-    // {
-    //     if (member is null)
-    //         return null;
-    //
-    //     var rolesDtos = roles?.Select(MemberRoleMapper.ToDto).ToList();
-    //
-    //     return new MemberDto()
-    //     {
-    //         Id = member.Id,
-    //         Roles = rolesDtos,
-    //         DiscordAvatar = member.DiscordAvatar,
-    //         DiscordName = member.DiscordName,
-    //         DiscordId = member.DiscordId,
-    //         
-    //     };
-    // }
+    public static MemberDto ToDto(Member member)
+    {
+        return new MemberDto()
+        {
+            Id = member.Id,
+            DiscordId = member.DiscordId,
+            DiscordAvatar = member.DiscordAvatar,
+            DiscordName = member.DiscordName,
+            LodestoneId = member.LodestoneId,
+            LodestoneVerificationToken = member.LodestoneVerificationToken,
+            Experience = member.Experience,
+            Notes = member.Notes,
+            PlayerName =  member.PlayerName,
+            Subbed = member.Subbed,
+            Roles = member.Roles.Select(MemberRoleMapper.ToDto).ToList()
+        };
+    }
+
+    public static Member ToEntity(MemberDto member)
+    {
+        return new Member()
+        {
+            Id = member.Id,
+            DiscordId = member.DiscordId,
+            DiscordAvatar = member.DiscordAvatar,
+            DiscordName = member.DiscordName,
+            LodestoneId = member.LodestoneId,
+            LodestoneVerificationToken = member.LodestoneVerificationToken,
+            Experience = member.Experience,
+            Notes = member.Notes,
+            PlayerName =  member.PlayerName,
+            Subbed = member.Subbed,
+            Roles = member.Roles.Select(MemberRoleMapper.ToEntity).ToList()
+        };
+    }
 }

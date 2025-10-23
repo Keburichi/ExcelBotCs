@@ -198,17 +198,23 @@ onUnmounted(() => document.removeEventListener('mousedown', onClickOutside))
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: .5rem;
-  padding: .5rem .625rem;
-  border: 1px solid #d1d5db;
-  border-radius: .5rem;
-  background: white;
-  color: #111827;
-  box-shadow: 0 1px 2px rgba(0, 0, 0, .04);
+  gap: 0.5rem;
+  padding: 0.5rem 0.625rem;
+  border: 1px solid rgb(var(--color-input-border));
+  border-radius: 0.5rem;
+  background: rgb(var(--color-input-bg));
+  color: rgb(var(--color-input-fg));
+  box-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.05);
 }
 
 .sm-trigger:hover {
-  border-color: #9ca3af;
+  border-color: rgb(var(--color-border));
+  filter: brightness(0.95);
+}
+
+.sm-trigger:focus {
+  outline: none;
+  box-shadow: var(--ring);
 }
 
 .sm-value {
@@ -220,34 +226,35 @@ onUnmounted(() => document.removeEventListener('mousedown', onClickOutside))
 .sm-caret {
   width: 1rem;
   height: 1rem;
-  opacity: .7;
+  opacity: 0.7;
 }
 
 .sm-list {
   position: absolute;
   z-index: 20;
-  margin-top: .25rem;
+  margin-top: 0.25rem;
   max-height: 16rem;
   overflow: auto;
-  background: white;
-  border: 1px solid #e5e7eb;
-  border-radius: .5rem;
-  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, .1), 0 4px 6px -4px rgba(0, 0, 0, .1);
-  padding: .25rem;
+  background: rgb(var(--color-card));
+  border: 1px solid rgb(var(--color-card-border));
+  border-radius: 0.5rem;
+  box-shadow: var(--elev);
+  padding: 0.25rem;
   inset-inline: 0;
 }
 
 .sm-option {
   display: flex;
   align-items: center;
-  gap: .5rem;
-  padding: .375rem .5rem;
-  border-radius: .375rem;
+  gap: 0.5rem;
+  padding: 0.375rem 0.5rem;
+  border-radius: 0.375rem;
   cursor: default;
 }
 
-.sm-option:hover, .sm-option:focus {
-  background: #f3f4f6;
+.sm-option:hover,
+.sm-option:focus {
+  background: rgb(var(--color-muted-bg));
   outline: none;
 }
 
@@ -257,7 +264,7 @@ onUnmounted(() => document.removeEventListener('mousedown', onClickOutside))
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  color: #111827;
+  color: rgb(var(--color-foreground));
 }
 
 .sm-check > svg {

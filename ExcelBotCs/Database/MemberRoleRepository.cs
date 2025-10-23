@@ -13,7 +13,7 @@ public class MemberRoleRepository : BaseRepository<MemberRole>, IMemberRoleRepos
     {
     }
 
-    public async Task<MemberRole> GetByDiscordId(ulong discordId)
+    public async Task<MemberRole> GetByDiscordId(string discordId)
     {
         return await Collection.Find(x => x.DiscordId == discordId).FirstOrDefaultAsync();
     }

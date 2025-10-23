@@ -2,7 +2,7 @@ export interface FCEvent {
   Id: string
   Name: string
   Description: string
-  DiscordMessage: string
+  DiscordMessageId: string
   PictureUrl?: string
   Participants: EventParticipant[]
   Signups: EventSignup[]

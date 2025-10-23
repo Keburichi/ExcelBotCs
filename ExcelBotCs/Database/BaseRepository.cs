@@ -25,8 +25,11 @@ public abstract class BaseRepository<T> : IBaseRepository<T> where T : BaseEntit
     public async Task<List<T>> GetAsync() =>
         await Collection.Find(entity => true).ToListAsync();
 
-    public async Task<T?> GetAsync(string id) =>
-        await Collection.Find(entity => entity.Id == id).FirstOrDefaultAsync();
+    public async Task<T?> GetAsync(string id)
+    {
+        
+        return await Collection.Find(entity => entity.Id == id).FirstOrDefaultAsync();
+    }
 
     public async Task CreateAsync(T entity)
     {

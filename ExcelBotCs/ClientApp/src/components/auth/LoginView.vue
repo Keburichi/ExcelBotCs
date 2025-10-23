@@ -74,16 +74,22 @@ async function proceed() {
 </template>
 
 <style scoped>
-.login-view {
-  max-width: 480px;
-  margin: 2rem auto;
+@utility login-view {
+  max-width: 30rem; /* max-w-md */
+  margin-left: auto;
+  margin-right: auto;
+  margin-top: 2rem;
+  margin-bottom: 2rem;
 }
 
 .error {
-  color: #b00020;
+  color: rgb(var(--color-danger));
 }
 
 .btn {
-  padding: 0.5rem 1rem;
+  padding-left: 1rem;
+  padding-right: 1rem;
+  padding-top: 0.5rem;
+  padding-bottom: 0.5rem;
 }
 </style>

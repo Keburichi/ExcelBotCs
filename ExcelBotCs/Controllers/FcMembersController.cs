@@ -12,12 +12,10 @@ namespace ExcelBotCs.Controllers;
 public class FcMembersController : AuthorizedController, IBaseCrudController<FcMemberDto>
 {
     private readonly IFcMemberService _fcMemberService;
-    private readonly FcMemberMapper _mapper;
 
-    public FcMembersController(ILogger<FcMembersController> logger, IFcMemberService fcMemberService, FcMemberMapper mapper) : base(logger)
+    public FcMembersController(ILogger<FcMembersController> logger, IFcMemberService fcMemberService) : base(logger)
     {
         _fcMemberService = fcMemberService;
-        _mapper = mapper;
     }
 
     [HttpGet]
@@ -28,7 +26,7 @@ public class FcMembersController : AuthorizedController, IBaseCrudController<FcM
         if(entities is null)
             return new List<FcMemberDto>();
         
-        var dtos = entities.Select(x => _mapper.ToDto(x)).ToList();
+        var dtos = entities.Select(FcMemberMapper.ToDto).ToList();
 
         return dtos;
     }
@@ -41,13 +39,13 @@ public class FcMembersController : AuthorizedController, IBaseCrudController<FcM
         if (entity is null)
             return NotFound();
 
-        return _mapper.ToDto(entity);
+        return FcMemberMapper.ToDto(entity);
     }
 
     [HttpPost]
     public async Task<ActionResult<FcMemberDto>> CreateEntity(FcMemberDto entity)
     {
-        await _fcMemberService.CreateAsync(_mapper.ToEntity(entity));
+        await _fcMemberService.CreateAsync(FcMemberMapper.ToEntity(entity));
         return CreatedAtAction(nameof(CreateEntity), new { id = entity.Id }, entity);
     }
 
@@ -56,7 +54,7 @@ public class FcMembersController : AuthorizedController, IBaseCrudController<FcM
     {
         Logger.LogInformation("Updating entity with id: {id}", id);
 
-        await _fcMemberService.UpdateAsync(id, _mapper.ToEntity(updatedEntity));
+        await _fcMemberService.UpdateAsync(id, FcMemberMapper.ToEntity(updatedEntity));
 
         return NoContent();
     }

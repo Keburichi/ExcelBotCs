@@ -3,6 +3,31 @@ using ExcelBotCs.Models.DTO;
 
 namespace ExcelBotCs.Mappers;
 
-public class FightMapper : BaseMappingService<FightDto, Fight>
+public static class FightMapper
 {
+    public static FightDto ToDto(Fight fight)
+    {
+        return new FightDto()
+        {
+            Id = fight.Id,
+            Name = fight.Name,
+            Description = fight.Description,
+            ImageUrl = fight.ImageUrl,
+            Type = fight.Type,
+            Raidplans = fight.Raidplans,
+        };
+    }
+
+    public static Fight ToEntity(FightDto fight)
+    {
+        return new Fight()
+        {
+            Id = fight.Id,
+            Name = fight.Name,
+            Description = fight.Description,
+            ImageUrl = fight.ImageUrl,
+            Type = fight.Type,
+            Raidplans = fight.Raidplans,
+        };
+    }
 }

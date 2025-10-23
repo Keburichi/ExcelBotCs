@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import BaseButton from '@/components/BaseButton.vue'
 import { useAdmin } from '@/composables/useAdmin'
 import { useAuth } from '@/composables/useAuth'
 
@@ -7,24 +8,18 @@ const { isAdmin } = useAuth()
 </script>
 
 <template>
-  <h2>Import things into the database</h2>
+  <h2 class="text-3xl font-bold mt-4 mb-4">
+    Import things into the database
+  </h2>
 
-  <h3>Import Fights</h3>
-  <button v-if="isAdmin" class="btn" @click="admin.importFights()">
+  <h3 class="text-2xl font-bold mt-4 mb-4">
     Import Fights
-  </button>
-  <h3>Import Discord Members</h3>
-  <button v-if="isAdmin" class="btn" @click="admin.importMembers()">
-    Import Discord Members
-  </button>
-  <h3>Import Fc (Lodestone) Members</h3>
-  <button v-if="isAdmin" class="btn" @click="admin.importFcMembers()">
-    Import FC Members
-  </button>
-  <h3>Import Roles </h3>
-  <button v-if="isAdmin" class="btn" @click="admin.importRoles()">
-    Import Roles
-  </button>
+  </h3>
+  <BaseButton
+    v-if="isAdmin"
+    title="Import Fights"
+    @clicked="admin.importFights()"
+  />
 </template>
 
 <style scoped>

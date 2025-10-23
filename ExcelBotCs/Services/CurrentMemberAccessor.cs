@@ -1,6 +1,5 @@
 ﻿using ExcelBotCs.Extensions;
 using ExcelBotCs.Models.Database;
-using ExcelBotCs.Services.API;
 using ExcelBotCs.Services.API.Interfaces;
 
 namespace ExcelBotCs.Services;

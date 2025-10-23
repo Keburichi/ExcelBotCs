@@ -13,14 +13,12 @@ public class MemberRolesController : AuthorizedController, IBaseCrudController<M
 {
     private readonly IMemberRoleService _memberRoleService;
     private readonly IMemberService _memberService;
-    private readonly MemberRoleMapper _mapper;
 
     public MemberRolesController(ILogger<MemberRolesController> logger, IMemberRoleService memberRoleService,
-        IMemberService memberService, MemberRoleMapper mapper) : base(logger)
+        IMemberService memberService) : base(logger)
     {
         _memberRoleService = memberRoleService;
         _memberService = memberService;
-        _mapper = mapper;
     }
     
     [HttpGet]
@@ -31,7 +29,7 @@ public class MemberRolesController : AuthorizedController, IBaseCrudController<M
         if (entities is null)
             return new List<MemberRoleDto>();
 
-        var dtos = entities.Select(x => _mapper.ToDto(x)).ToList();
+        var dtos = entities.Select(MemberRoleMapper.ToDto).ToList();
 
         return dtos;
     }
@@ -44,13 +42,13 @@ public class MemberRolesController : AuthorizedController, IBaseCrudController<M
         if (entity is null)
             return NotFound();
 
-        return _mapper.ToDto(entity);
+        return MemberRoleMapper.ToDto(entity);
     }
 
     [HttpPost]
     public async Task<ActionResult<MemberRoleDto>> CreateEntity(MemberRoleDto entity)
     {
-        await _memberRoleService.CreateAsync(_mapper.ToEntity(entity));
+        await _memberRoleService.CreateAsync(MemberRoleMapper.ToEntity(entity));
         return CreatedAtAction(nameof(CreateEntity), new { id = entity.Id }, entity);
     }
 
@@ -59,7 +57,7 @@ public class MemberRolesController : AuthorizedController, IBaseCrudController<M
     {
         Logger.LogInformation("Updating entity with id: {id}", id);
 
-        await _memberRoleService.UpdateAsync(id, _mapper.ToEntity(updatedEntity));
+        await _memberRoleService.UpdateAsync(id, MemberRoleMapper.ToEntity(updatedEntity));
 
         return NoContent();
     }

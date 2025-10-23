@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import type { MemberRole } from '@/features/members/members.types'
+import BaseButton from '@/components/BaseButton.vue'
 
 const props = defineProps<{
   items: MemberRole[]
@@ -31,21 +32,28 @@ const emit = defineEmits<{
           <td><input v-model="props.memberRoleEditBuffer.IsAdmin" type="checkbox"></td>
           <td><input v-model="props.memberRoleEditBuffer.IsMember" type="checkbox"></td>
           <td><input v-model="props.memberRoleEditBuffer.DiscordId" type="text"></td>
-          <button class="btn" @click="emit('save-role-edit')">
-            Save
-          </button>
-          <button class="btn" @click="emit('cancel-role-edit')">
-            Cancel
-          </button>
+          <BaseButton
+            title="Save"
+            size="small"
+            @clicked="emit('save-role-edit', role)"
+          />
+          <BaseButton
+            title="Cancel"
+            size="small"
+            state="secondary"
+            @clicked="emit('cancel-role-edit', role)"
+          />
         </template>
         <template v-else>
           <td>{{ role.Name }}</td>
           <td><input v-model="role.IsAdmin" type="checkbox"></td>
           <td><input v-model="role.IsMember" type="checkbox"></td>
           <td>{{ role.DiscordId }}</td>
-          <button class="btn" @click="emit('start-role-edit', role)">
-            Edit
-          </button>
+          <BaseButton
+            title="Edit"
+            size="small"
+            @clicked="emit('start-role-edit', role)"
+          />
         </template>
       </tr>
     </tbody>

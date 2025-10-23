@@ -4,7 +4,7 @@
     /* Prefer system, can be overridden by [data-theme] on html */
     color-scheme: light dark;
 
-    /* Semantic palette */
+    /* Semantic palette - RGB format for TailwindCSS opacity support */
     --bg: #ffffff;
     --fg: #0f172a; /* slate-900 */
     --muted: #64748b; /* slate-500 */
@@ -20,6 +20,35 @@
     --input-fg: var(--fg);
     --input-border: #d1d5db;
     --muted-bg: #f8fafc;
+
+    /* TailwindCSS-compatible RGB values (for opacity support like bg-primary/50) */
+    --color-background: 255 255 255; /* #ffffff */
+    --color-foreground: 15 23 42; /* #0f172a */
+    --color-muted: 100 116 139; /* #64748b */
+    --color-border: 229 231 235; /* #e5e7eb */
+    --color-card: 255 255 255; /* #ffffff */
+    --color-card-border: 229 231 235; /* #e5e7eb */
+
+    --color-primary: 17 24 39; /* #111827 - matches btn.primary */
+    --color-primary-hover: 31 41 55; /* #1f2937 */
+    --color-secondary: 229 231 235; /* #e5e7eb */
+    --color-link: 59 130 246; /* #3b82f6 */
+    --color-link-hover: 37 99 235; /* #2563eb */
+
+    --color-success: 16 185 129; /* #10b981 */
+    --color-danger: 220 38 38; /* #dc2626 */
+    --color-warning: 234 179 8; /* #eab308 */
+    --color-info: 59 130 246; /* #3b82f6 */
+
+    --color-input-bg: 255 255 255; /* #ffffff */
+    --color-input-fg: 15 23 42; /* #0f172a */
+    --color-input-border: 209 213 219; /* #d1d5db */
+    --color-muted-bg: 248 250 252; /* #f8fafc */
+
+    /* FFXIV Job role colors */
+    --color-tank: 59 130 246; /* blue */
+    --color-healer: 34 197 94; /* green */
+    --color-dps: 239 68 68; /* red */
 }
 
 :root[data-theme='dark'] {
@@ -39,6 +68,35 @@
     --input-fg: #e5e7eb;
     --input-border: #334155;
     --muted-bg: #0f172a;
+
+    /* TailwindCSS-compatible RGB values for dark theme */
+    --color-background: 11 16 32; /* #0b1020 */
+    --color-foreground: 229 231 235; /* #e5e7eb */
+    --color-muted: 148 163 184; /* #94a3b8 */
+    --color-border: 39 48 67; /* #273043 */
+    --color-card: 18 26 45; /* #121a2d */
+    --color-card-border: 31 41 55; /* #1f2937 */
+
+    --color-primary: 59 130 246; /* #3b82f6 - brighter for dark mode */
+    --color-primary-hover: 96 165 250; /* #60a5fa */
+    --color-secondary: 51 65 85; /* #334155 */
+    --color-link: 96 165 250; /* #60a5fa */
+    --color-link-hover: 147 197 253; /* #93c5fd */
+
+    --color-success: 16 185 129; /* #10b981 */
+    --color-danger: 248 113 113; /* #f87171 */
+    --color-warning: 250 204 21; /* #facc15 */
+    --color-info: 96 165 250; /* #60a5fa */
+
+    --color-input-bg: 15 23 42; /* #0f172a */
+    --color-input-fg: 229 231 235; /* #e5e7eb */
+    --color-input-border: 51 65 85; /* #334155 */
+    --color-muted-bg: 15 23 42; /* #0f172a */
+
+    /* FFXIV Job role colors - brighter for dark mode */
+    --color-tank: 96 165 250; /* brighter blue */
+    --color-healer: 74 222 128; /* brighter green */
+    --color-dps: 248 113 113; /* brighter red */
 }
 
 @media (prefers-color-scheme: dark) {
@@ -59,6 +117,30 @@
         --input-fg: #e5e7eb;
         --input-border: #334155;
         --muted-bg: #0f172a;
+
+        /* TailwindCSS-compatible RGB values for dark theme */
+        --color-background: 11 16 32;
+        --color-foreground: 229 231 235;
+        --color-muted: 148 163 184;
+        --color-border: 39 48 67;
+        --color-card: 18 26 45;
+        --color-card-border: 31 41 55;
+        --color-primary: 59 130 246;
+        --color-primary-hover: 96 165 250;
+        --color-secondary: 51 65 85;
+        --color-link: 96 165 250;
+        --color-link-hover: 147 197 253;
+        --color-success: 16 185 129;
+        --color-danger: 248 113 113;
+        --color-warning: 250 204 21;
+        --color-info: 96 165 250;
+        --color-input-bg: 15 23 42;
+        --color-input-fg: 229 231 235;
+        --color-input-border: 51 65 85;
+        --color-muted-bg: 15 23 42;
+        --color-tank: 96 165 250;
+        --color-healer: 74 222 128;
+        --color-dps: 248 113 113;
     }
 }
 
@@ -487,7 +569,7 @@ tr:hover td {
     border: 1px solid var(--card-border);
     border-radius: 16px;
     box-shadow: var(--elev), 0 20px 40px rgba(0, 0, 0, 0.15);
-    max-width: 500px;
+    /*max-width: 500px;*/
     width: 100%;
     max-height: 90vh;
     overflow-y: auto;

@@ -19,12 +19,33 @@ public class MemberService : IMemberService
 
     public async Task<List<Member>> GetAsync()
     {
-        return await _memberRepository.GetAsync();
+        var members = await _memberRepository.GetAsync();
+
+        await FetchMemberRoles(members);
+
+        return members;
     }
 
     public async Task<Member> GetAsync(string id)
     {
-        return await _memberRepository.GetAsync(id);
+        var member = await _memberRepository.GetAsync(id);
+        
+        if (member == null)
+            return null;
+        
+        await FetchMemberRoles([member]);
+
+        return member;
+    }
+
+    private async Task FetchMemberRoles(List<Member> members)
+    {
+        var memberRoles = await _memberRoleRepository.GetAsync();
+
+        foreach (var member in members)
+        {
+            member.Roles = memberRoles.Where(x => member.RoleIds.Contains(x.DiscordId)).ToList();
+        }
     }
 
     public async Task CreateAsync(Member entity)
@@ -61,7 +82,14 @@ public class MemberService : IMemberService
 
     public async Task<Member> GetByDiscordId(string discordId)
     {
-        return await _memberRepository.GetByDiscordId(discordId);
+        var member = await _memberRepository.GetByDiscordId(discordId);
+        
+        if(member is null)
+            return null;
+
+        await FetchMemberRoles([member]);
+        
+        return member;
     }
 
     public async Task<Member> GetByDiscordId(ulong discordId)

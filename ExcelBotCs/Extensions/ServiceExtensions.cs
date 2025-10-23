@@ -20,15 +20,6 @@ public static class ServiceExtensions
         services.AddSingleton<IMemberRoleRepository, MemberRoleRepository>();
     }
 
-    public static void AddMappers(this IServiceCollection services)
-    {
-        services.AddSingleton<EventMapper>();
-        services.AddSingleton<FightMapper>();
-        services.AddSingleton<MemberMapper>();
-        services.AddSingleton<MemberRoleMapper>();
-        services.AddSingleton<FcMemberMapper>();
-    }
-
     public static void AddApiServices(this IServiceCollection services)
     {
         services.AddSingleton<IEventService, EventService>();

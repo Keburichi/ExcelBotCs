@@ -100,7 +100,6 @@ builder.Services.AddScoped<ICurrentMemberAccessor, CurrentMemberAccessor>();
 
 // register all custom services, repositories and mappers
 builder.Services.AddDatabaseRepositories();
-builder.Services.AddMappers();
 builder.Services.AddApiServices();
 builder.Services.AddDiscordClient();
 AddHostedService<WorkerService>();
