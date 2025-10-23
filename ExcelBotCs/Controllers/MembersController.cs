@@ -2,7 +2,7 @@
 using ExcelBotCs.Mappers;
 using ExcelBotCs.Models.DTO;
 using ExcelBotCs.Services;
-using ExcelBotCs.Services.API;
+using ExcelBotCs.Services.API.Interfaces;
 using Microsoft.AspNetCore.Mvc;
 
 namespace ExcelBotCs.Controllers;
@@ -11,19 +11,16 @@ namespace ExcelBotCs.Controllers;
 [Route("api/[controller]")]
 public class MembersController : AuthorizedController, IBaseCrudController<MemberDto>
 {
-    private readonly MemberService _memberService;
+    private readonly IMemberService _memberService;
     private readonly ICurrentMemberAccessor _currentMemberAccessor;
     private readonly LodestoneService _lodestoneService;
-    private readonly MemberMapper _mapper;
 
-    public MembersController(ILogger<MembersController> logger, MemberService memberService,
-        ICurrentMemberAccessor currentMemberAccessor, LodestoneService lodestoneService,
-        MemberMapper mapper) : base(logger)
+    public MembersController(ILogger<MembersController> logger, IMemberService memberService,
+        ICurrentMemberAccessor currentMemberAccessor, LodestoneService lodestoneService) : base(logger)
     {
         _memberService = memberService;
         _currentMemberAccessor = currentMemberAccessor;
         _lodestoneService = lodestoneService;
-        _mapper = mapper;
     }
 
     [HttpGet]
@@ -34,7 +31,7 @@ public class MembersController : AuthorizedController, IBaseCrudController<Membe
         if (entities is null)
             return new List<MemberDto>();
 
-        var dtos = entities.Select(x => _mapper.ToDto(x)).ToList();
+        var dtos = entities.Select(MemberMapper.ToDto).ToList();
 
         return dtos;
     }
@@ -47,13 +44,13 @@ public class MembersController : AuthorizedController, IBaseCrudController<Membe
         if (entity is null)
             return NotFound();
 
-        return _mapper.ToDto(entity);
+        return MemberMapper.ToDto(entity);
     }
 
     [HttpPost]
     public async Task<ActionResult<MemberDto>> CreateEntity(MemberDto entity)
     {
-        await _memberService.CreateAsync(_mapper.ToEntity(entity));
+        await _memberService.CreateAsync(MemberMapper.ToEntity(entity));
         return CreatedAtAction(nameof(CreateEntity), new { id = entity.Id }, entity);
     }
 
@@ -67,7 +64,7 @@ public class MembersController : AuthorizedController, IBaseCrudController<Membe
         
         Logger.LogInformation("Updating entity with id: {id}", id);
 
-        await _memberService.UpdateAsync(id, _mapper.ToEntity(updatedEntity));
+        await _memberService.UpdateAsync(id, MemberMapper.ToEntity(updatedEntity));
 
         return NoContent();
     }

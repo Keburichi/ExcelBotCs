@@ -69,7 +69,10 @@ public class LodestoneService
             }
             else
             {
-                await _fcMemberService.UpdateAsync(dbFcMember.Id, await CreateFcMember(freeCompanyMembersEntry));
+                var fcMember = await CreateFcMember(freeCompanyMembersEntry);
+                fcMember.Id =  dbFcMember.Id;
+                
+                await _fcMemberService.UpdateAsync(dbFcMember.Id, fcMember);
             }
         }
         

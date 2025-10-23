@@ -18,12 +18,6 @@ public class WorkerService : BackgroundService
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
-        _logger.LogInformation("Worker service started, waiting for Discord to be ready...");
-
-        // Wait for Discord to be ready before starting imports
-        // This prevents race condition with DiscordBotService startup
-        _logger.LogInformation("Discord is ready, starting member import service");
-
         // Run first import
         await RunImportAsync(stoppingToken);
 

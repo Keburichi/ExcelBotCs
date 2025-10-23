@@ -5,7 +5,9 @@ import MemberRolesView from '@/components/adminPanel/MemberRolesView.vue'
 
 <template>
   <h2>Admin Panel</h2>
-  <h3>Import</h3>
+  <h3>
+    Import
+  </h3>
   <ImportView />
 
   <MemberRolesView />

@@ -1,7 +1,7 @@
 import type { RouteRecordRaw } from 'vue-router'
 import { createRouter, createWebHistory } from 'vue-router'
-import HomeView from '@/app/HomeView.vue'
 import ButtonShowcaseView from '@/app/ButtonShowcaseView.vue'
+import HomeView from '@/app/HomeView.vue'
 import AdminView from '@/components/adminPanel/AdminView.vue'
 import LoginView from '@/components/auth/LoginView.vue'
 import CreateEventView from '@/components/events/CreateEventView.vue'
@@ -10,6 +10,7 @@ import FcMembersListView from '@/components/fcMembers/FcMembersListView.vue'
 import FightsView from '@/components/fights/FightsView.vue'
 import LotteryView from '@/components/lottery/LotteryView.vue'
 import MemberEditView from '@/components/members/MemberEditView.vue'
+import MembersListView from '@/components/members/MembersListView.vue'
 import ProfileView from '@/components/profile/ProfileView.vue'
 import { useAuth } from '@/composables/useAuth'
 
@@ -51,6 +52,7 @@ const routes: RouteRecordRaw[] = [
   // Admin routes
   { path: '/admin', name: 'admin', component: AdminView, meta: { requiresAuth: true, requiresAdmin: true } },
   { path: '/admin/roles', name: 'admin-roles', component: AdminView, meta: { requiresAuth: true, requiresAdmin: true } },
+  { path: '/admin/members', name: 'admin-members', component: MembersListView, meta: { requiresAuth: true, requiresAdmin: true } },
 
   // Redirect everything unknown to NotFound
   { path: '/:pathMatch(.*)*', name: 'not-found', component: () => import('@/app/NotFound.vue') },

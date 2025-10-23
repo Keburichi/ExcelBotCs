@@ -1,19 +1,31 @@
 <script setup lang="ts">
-import { onMounted, onUnmounted, watch } from 'vue'
+import { computed, onMounted, onUnmounted, watch } from 'vue'
 
 const props = withDefaults(defineProps<{
   title?: string
   description?: string
   closeOnOutsideClick?: boolean
   showCloseButton?: boolean
+  size?: 'small' | 'medium' | 'large'
 }>(), {
   closeOnOutsideClick: true,
   showCloseButton: true,
+  size: 'medium',
 })
 
 const emit = defineEmits<{
   (e: 'close'): void
 }>()
+
+const sizeClasses = computed(() => {
+  const sizes = {
+    small: 'modal-container-sm',
+    medium: 'modal-container-md',
+    large: 'modal-container-lg',
+  }
+
+  return sizes[props.size] || 'medium'
+})
 
 const isOpen = defineModel<boolean>({ required: true })
 
@@ -67,7 +79,7 @@ onUnmounted(() => {
         :aria-describedby="description ? 'modal-description' : undefined"
         @click="handleOverlayClick"
       >
-        <div class="modal-container">
+        <div class="modal-container" :class="sizeClasses">
           <!-- Close button -->
           <button
             v-if="showCloseButton"
@@ -117,5 +129,15 @@ onUnmounted(() => {
 </template>
 
 <style scoped>
-/* Styles are intentionally empty - all styles are in main.css for theme consistency */
+.modal-container-sm{
+  max-width: 500px;
+}
+
+.modal-container-md{
+  max-width: 900px;
+}
+
+.modal-container-lg{
+  max-width: 1300px;
+}
 </style>

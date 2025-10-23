@@ -3,19 +3,29 @@ using ExcelBotCs.Models.DTO;
 
 namespace ExcelBotCs.Mappers;
 
-public class MemberRoleMapper : BaseMappingService<MemberRoleDto, MemberRole>
+public static class MemberRoleMapper
 {
-    // public static MemberRoleDto ToDto(this MemberRole role)
-    // {
-    //     if (role is null)
-    //         return null;
-    //
-    //     return new MemberRoleDto()
-    //     {
-    //         Name = role.Name,
-    //         DiscordId = role.DiscordId,
-    //         IsAdmin = role.IsAdmin,
-    //         IsMember = role.IsMember,
-    //     };
-    // }
+    public static MemberRoleDto ToDto(MemberRole memberRole)
+    {
+        return new MemberRoleDto()
+        {
+            Id = memberRole.Id,
+            DiscordId = memberRole.DiscordId,
+            Name = memberRole.Name,
+            IsAdmin = memberRole.IsAdmin,
+            IsMember = memberRole.IsMember,
+        };
+    }
+
+    public static MemberRole ToEntity(MemberRoleDto memberRole)
+    {
+        return new MemberRole()
+        {
+            Id = memberRole.Id,
+            DiscordId = memberRole.DiscordId,
+            Name = memberRole.Name,
+            IsAdmin = memberRole.IsAdmin,
+            IsMember = memberRole.IsMember,
+        };
+    }
 }

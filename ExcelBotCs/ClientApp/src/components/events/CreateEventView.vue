@@ -2,6 +2,7 @@
 import type { FCEvent } from '@/features/events/events.types'
 import { computed, onMounted, reactive, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
+import BaseButton from '@/components/BaseButton.vue'
 import { useAuth } from '@/composables/useAuth'
 import { EventsApi } from '@/features/events/events.api'
 
@@ -21,7 +22,7 @@ const form = reactive<FCEvent>({
   Id: '',
   Name: '',
   Description: '',
-  DiscordMessage: '',
+  DiscordMessageId: '',
   PictureUrl: '',
   Organizer: '', // will be filled from current user on submit, server sets Author,
   StartDate: new Date(),
@@ -168,9 +169,9 @@ function cancel() {
         <label>Description</label>
         <textarea v-model="form.Description" rows="5" placeholder="Describe the event" />
       </div>
-      <div class="form-row">
-        <label>Discord Message</label>
-        <textarea v-model="form.DiscordMessage" rows="4" placeholder="Message to post on Discord" />
+      <div v-if="form.DiscordMessageId" class="form-row">
+        <label>Discord Message Id</label>
+        <input v-model="form.DiscordMessageId" type="text" placeholder="The message id of the discord post.">
       </div>
       <div class="form-row">
         <label>Picture URL (optional)</label>
@@ -193,46 +194,42 @@ function cancel() {
       <div class="form-row">
         <label>Max Number of Participants</label>
         <div class="party-preset-buttons">
-          <button
+          <BaseButton
+            title="Light Party (4)"
             type="button"
-            class="btn-preset"
-            :class="{ active: partyPreset === 'light-party' }"
-            @click="setPartyPreset('light-party')"
-          >
-            Light Party (4)
-          </button>
-          <button
+            :state="partyPreset === 'light-party' ? 'primary' : 'secondary'"
+            :variant="partyPreset === 'light-party' ? 'elevated' : 'outlined'"
+            @clicked="setPartyPreset('light-party')"
+          />
+
+          <BaseButton
+            title="Full Party (8)"
             type="button"
-            class="btn-preset"
-            :class="{ active: partyPreset === 'full-party' }"
-            @click="setPartyPreset('full-party')"
-          >
-            Full Party (8)
-          </button>
-          <button
+            :state="partyPreset === 'full-party' ? 'primary' : 'secondary'"
+            :variant="partyPreset === 'full-party' ? 'elevated' : 'outlined'"
+            @clicked="setPartyPreset('full-party')"
+          />
+          <BaseButton
+            title="Alliance Raid (24)"
             type="button"
-            class="btn-preset"
-            :class="{ active: partyPreset === 'alliance-raid' }"
-            @click="setPartyPreset('alliance-raid')"
-          >
-            Alliance Raid (24)
-          </button>
-          <button
+            :state="partyPreset === 'alliance-raid' ? 'primary' : 'secondary'"
+            :variant="partyPreset === 'alliance-raid' ? 'elevated' : 'outlined'"
+            @clicked="setPartyPreset('alliance-raid')"
+          />
+          <BaseButton
+            title="Any (99)"
             type="button"
-            class="btn-preset"
-            :class="{ active: partyPreset === 'any' }"
-            @click="setPartyPreset('any')"
-          >
-            Any (99)
-          </button>
-          <button
+            :state="partyPreset === 'any' ? 'primary' : 'secondary'"
+            :variant="partyPreset === 'any' ? 'elevated' : 'outlined'"
+            @clicked="setPartyPreset('any')"
+          />
+          <BaseButton
+            title="Custom"
             type="button"
-            class="btn-preset"
-            :class="{ active: partyPreset === 'custom' }"
-            @click="setPartyPreset('custom')"
-          >
-            Custom
-          </button>
+            :state="partyPreset === 'custom' ? 'primary' : 'secondary'"
+            :variant="partyPreset === 'custom' ? 'elevated' : 'outlined'"
+            @clicked="setPartyPreset('custom')"
+          />
         </div>
         <input
           v-model.number="form.MaxNumberOfParticipants"
@@ -244,17 +241,18 @@ function cancel() {
           :disabled="isInputDisabled"
         >
       </div>
-      <div class="form-row">
+      <div v-if="isEditMode" class="form-row">
         <label>Organizer</label>
         <input :value="user?.PlayerName || ''" type="text" disabled>
       </div>
       <div class="actions">
-        <button class="btn" type="submit" :disabled="loading">
-          {{ loading ? (isEditMode ? 'Updating...' : 'Creating...') : (isEditMode ? 'Update' : 'Create') }}
-        </button>
-        <button class="btn secondary" type="button" :disabled="loading" @click="cancel">
-          Cancel
-        </button>
+        <BaseButton
+          :title="loading ? (isEditMode ? 'Updating...' : 'Creating...') : (isEditMode ? 'Update' : 'Create')"
+          :disabled="loading"
+          type="submit"
+        />
+
+        <BaseButton title="Cancel" :disabled="loading" state="secondary" variant="outlined" @clicked="cancel" />
       </div>
     </form>
   </section>
@@ -299,46 +297,10 @@ function cancel() {
   margin-bottom: 0.5rem;
 }
 
-.btn-preset {
-  padding: 0.5rem 0.75rem;
-  border-radius: 8px;
-  border: 1px solid var(--border);
-  background: var(--card);
-  color: var(--fg);
-  cursor: pointer;
-  font-weight: 500;
-  font-size: 0.9rem;
-  transition: all 0.2s;
-  flex: 1;
-  min-width: fit-content;
-}
-
-.btn-preset:hover:not(.active) {
-  background: var(--muted-bg);
-  border-color: var(--link);
-  color: var(--link);
-}
-
-.btn-preset.active {
-  background: var(--btn-primary-bg);
-  color: var(--btn-primary-fg);
-  border-color: var(--btn-primary-border);
-  font-weight: 600;
-}
-
-.btn-preset:focus {
-  outline: none;
-  box-shadow: 0 0 0 3px var(--ring);
-}
-
 /* Responsive layout for preset buttons */
 @media (max-width: 640px) {
   .party-preset-buttons {
     flex-direction: column;
-  }
-
-  .btn-preset {
-    width: 100%;
   }
 }
 </style>

@@ -25,16 +25,14 @@ public class EventsController : AuthorizedController, IBaseCrudController<EventD
     private readonly IEventService _eventService;
     private readonly ICurrentMemberAccessor _currentMemberAccessor;
     private readonly IDiscordMessageService _discordMessageService;
-    private readonly EventMapper _mapper;
     private readonly string _rootUrl;
 
     public EventsController(ILogger<EventsController> logger, IEventService eventService,
-        ICurrentMemberAccessor currentMemberAccessor, IDiscordMessageService discordMessageService, EventMapper mapper) : base(logger)
+        ICurrentMemberAccessor currentMemberAccessor, IDiscordMessageService discordMessageService) : base(logger)
     {
         _eventService = eventService;
         _currentMemberAccessor = currentMemberAccessor;
         _discordMessageService = discordMessageService;
-        _mapper = mapper;
         _rootUrl = Utils.GetEnvVar("EVENT_ENDPOINT_URL", nameof(TeamFormationInteraction));
     }
     
@@ -46,7 +44,7 @@ public class EventsController : AuthorizedController, IBaseCrudController<EventD
         if(entities is null)
             return new List<EventDto>();
         
-        var dtos = entities.Select(x => _mapper.ToDto(x)).ToList();
+        var dtos = entities.Select(EventMapper.ToDto).ToList();
 
         return dtos;
     }
@@ -59,7 +57,7 @@ public class EventsController : AuthorizedController, IBaseCrudController<EventD
         if (entity is null)
             return NotFound();
 
-        return _mapper.ToDto(entity);
+        return EventMapper.ToDto(entity);
     }
 
     [HttpPost]
@@ -71,7 +69,7 @@ public class EventsController : AuthorizedController, IBaseCrudController<EventD
 
         entity.Author = member;
         
-        await _eventService.CreateAsync(_mapper.ToEntity(entity));
+        await _eventService.CreateAsync(EventMapper.ToEntity(entity));
         return CreatedAtAction(nameof(CreateEntity), new  { id = entity.Id }, entity);
     }
 
@@ -80,7 +78,7 @@ public class EventsController : AuthorizedController, IBaseCrudController<EventD
     {
         Logger.LogInformation("Updating entity with id: {id}", id);
 
-        await _eventService.UpdateAsync(id, _mapper.ToEntity(updatedEntity));
+        await _eventService.UpdateAsync(id, EventMapper.ToEntity(updatedEntity));
 
         return NoContent();
     }

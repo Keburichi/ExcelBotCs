@@ -38,7 +38,7 @@ public class MemberRoleService : IMemberRoleService
         await  _memberRoleRepository.DeleteAsync(id);
     }
 
-    public async Task<MemberRole> GetByDiscordId(ulong discordId)
+    public async Task<MemberRole> GetByDiscordId(string discordId)
     {
         return await _memberRoleRepository.GetByDiscordId(discordId);
     }

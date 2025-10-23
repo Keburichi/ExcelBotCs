@@ -55,13 +55,14 @@ const gridStyle = computed(() => {
 <style scoped>
 .card-list {
   display: grid;
-  align-items: start;
+  align-items: stretch; /* Changed from 'start' to 'stretch' for uniform height */
 }
 
 .card {
-  border: 1px solid #e2e8f0;
-  border-radius: 8px;
-  padding: .75rem;
-  background: white;
+  border: 1px solid rgb(var(--color-card-border));
+  border-radius: 0.5rem;
+  padding: 0.75rem;
+  background: rgb(var(--color-card));
+  height: 100%; /* Ensure card fills grid cell */
 }
 </style>

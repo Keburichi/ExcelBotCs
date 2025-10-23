@@ -6,7 +6,7 @@ public class Event : BaseEntity
 {
     public string Name { get; set; }
     public string Description { get; set; }
-    public string DiscordMessage { get; set; }
+    public string DiscordMessageId { get; set; }
     public string? PictureUrl { get; set; }
     public List<EventParticipant> Participants { get; set; } = [];
     public List<EventUserSignup> Signups { get; set; } = [];

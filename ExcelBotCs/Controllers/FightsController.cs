@@ -12,12 +12,10 @@ namespace ExcelBotCs.Controllers;
 public class FightsController : AuthorizedController, IBaseCrudController<FightDto>
 {
     private readonly IFightService _fightService;
-    private readonly FightMapper _mapper;
 
-    public FightsController(ILogger<FightsController> logger, IFightService fightService, FightMapper mapper) : base(logger)
+    public FightsController(ILogger<FightsController> logger, IFightService fightService) : base(logger)
     {
         _fightService = fightService;
-        _mapper = mapper;
     }
 
     [HttpGet]
@@ -28,7 +26,7 @@ public class FightsController : AuthorizedController, IBaseCrudController<FightD
         if(entities is null)
             return new List<FightDto>();
         
-        var dtos = entities.Select(x => _mapper.ToDto(x)).ToList();
+        var dtos = entities.Select(FightMapper.ToDto).ToList();
 
         return dtos;
     }
@@ -41,13 +39,13 @@ public class FightsController : AuthorizedController, IBaseCrudController<FightD
         if (entity is null)
             return NotFound();
 
-        return _mapper.ToDto(entity);
+        return FightMapper.ToDto(entity);
     }
 
     [HttpPost]
     public async Task<ActionResult<FightDto>> CreateEntity(FightDto entity)
     {
-        await _fightService.CreateAsync(_mapper.ToEntity(entity));
+        await _fightService.CreateAsync(FightMapper.ToEntity(entity));
         return CreatedAtAction(nameof(CreateEntity), new { id = entity.Id }, entity);
     }
 
@@ -56,7 +54,7 @@ public class FightsController : AuthorizedController, IBaseCrudController<FightD
     {
         Logger.LogInformation("Updating entity with id: {id}", id);
 
-        await _fightService.UpdateAsync(id, _mapper.ToEntity(updatedEntity));
+        await _fightService.UpdateAsync(id, FightMapper.ToEntity(updatedEntity));
 
         return NoContent();
     }
