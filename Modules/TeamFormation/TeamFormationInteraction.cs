@@ -89,34 +89,34 @@ public class TeamFormationInteraction : InteractionModuleBase<SocketInteractionC
 
 			case Extensions.SuccessMessageResponse msg:
 				var useEmoji = ExtractEmotes(checkEmoji ?? string.Empty).ToList();
-				var emotes = useEmoji.Any() ? msg.Message.Reactions.Keys.Where(useEmoji.Contains) : msg.Message.Reactions.Keys;
+				var emotes = useEmoji.Any()
+					? msg.Message.Reactions.Keys.Where(useEmoji.Contains)
+					: msg.Message.Reactions.Keys;
 				var group = await GetSignupsFromMessage(emotes, msg.Message);
 				var allSignups = group.Values.SelectMany(list => list.Select(id => id)).ToList();
 
 				string GenerateInlineText(IEmote emote, HashSet<ulong> ids) =>
 					$"{ToDisplay(emote)} ({ids.Count}): {ids.Select(id => allSignups.Count(signupId => signupId == id) == 1 ? $"⭐<@{id}>" : $"<@{id}>").ToList().PrettyJoin()}\n";
 
-				await FollowupAsync(
-					$"### Reactions from {postUrl}\nTotal unique reactions: {allSignups.Distinct().Count()}\n" +
-					$"{(useEmoji.Any() ? $"Checking specified emotes: {string.Join(string.Empty, emotes.Select(ToDisplay) ?? [])}\n" : string.Empty)}" +
-					$"{string.Join("", group.Select(kvp => GenerateInlineText(kvp.Key, kvp.Value)))}", allowedMentions: AllowedMentions.None);
+				await FollowupAsync($"### Reactions from {postUrl}");
+				await Context.Channel.SendMessageAsync($"Total unique reactions: {allSignups.Distinct().Count()}");
+				if (useEmoji.Any())
+					await Context.Channel.SendMessageAsync($"Checking specified emotes: {string.Join(string.Empty, emotes.Select(ToDisplay) ?? [])}");
+
+				foreach (var reaction in group.Select(kvp => GenerateInlineText(kvp.Key, kvp.Value)))
+				{
+					await Context.Channel.SendMessageAsync(reaction, allowedMentions: AllowedMentions.None);
+				}
 				break;
 		}
 	}
 
-	private static string ToDisplay(IEmote emote)
+	private static string ToDisplay(IEmote emote) => emote switch
 	{
-		if (emote is Emoji emoji)
-		{
-			return emoji.Name;
-		}
-		else if (emote is Emote em)
-		{
-			return $"<:{em.Name}:{em.Id}>";
-		}
-
-		return emote.Name;
-	}
+		Emoji emoji => emoji.Name,
+		Emote em => $"<:{em.Name}:{em.Id}>",
+		_ => emote.Name
+	};
 
 	public enum Month
 	{
