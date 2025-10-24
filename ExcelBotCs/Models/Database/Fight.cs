@@ -16,4 +16,9 @@ public class Fight : BaseEntity
     public int? FFLogsExpansionId { get; set; }      // Expansion identifier
     public string? FFLogsExpansionName { get; set; } // Expansion name
     public bool IsFrozen { get; set; }               // If zone is archived
+
+    public override string ToString()
+    {
+        return $"{Name}";
+    }
 }

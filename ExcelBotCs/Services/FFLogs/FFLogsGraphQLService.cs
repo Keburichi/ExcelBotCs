@@ -196,20 +196,8 @@ query GetCharacterClears($lodestoneID: Int!");
                 queryBuilder.Append(", difficulty: $difficulty");
             }
 
-            queryBuilder.AppendLine(@", metric: rdps) {
-        encounterRanks {
-          encounter {
-            id
-            name
-          }
-          ranks {
-            totalKills
-            startTime
-            reportCode
-            fightID
-          }
-        }
-      }");
+            // zoneRankings returns JSON type - must not have sub-selection
+            queryBuilder.AppendLine(@", metric: rdps)");
         }
 
         queryBuilder.AppendLine(@"
@@ -232,10 +220,13 @@ query GetCharacterClears($lodestoneID: Int!");
             variables["difficulty"] = difficulty.Value;
         }
 
+        var queryString = queryBuilder.ToString();
+
         _logger.LogDebug("Fetching character activity for Lodestone ID {LodestoneId}, Zone {ZoneId}, Difficulty {Difficulty}",
             lodestoneId, zoneId, difficulty);
+        _logger.LogDebug("GraphQL Query: {Query}", queryString);
 
-        return await ExecuteQueryAsync<CharacterData>(queryBuilder.ToString(), variables);
+        return await ExecuteQueryAsync<CharacterData>(queryString, variables);
     }
 
     /// <summary>
@@ -371,31 +362,89 @@ public class Character
 {
     public int id { get; set; }
     public string name { get; set; } = string.Empty;
-    public ZoneRankings? zoneRankings { get; set; }
-    
+    // zoneRankings now returns raw JSON that needs to be parsed
+    public JsonElement? zoneRankings { get; set; }
+
     public override string ToString()
     {
         return $"{name} - {id}";
+    }
+
+    /// <summary>
+    /// Parses the JSON zoneRankings into structured data
+    /// </summary>
+    public ZoneRankings? GetZoneRankings()
+    {
+        if (!zoneRankings.HasValue)
+            return null;
+
+        try
+        {
+            return JsonSerializer.Deserialize<ZoneRankings>(zoneRankings.Value.GetRawText());
+        }
+        catch
+        {
+            return null;
+        }
     }
 }
 
 public class ZoneRankings
 {
-    public List<EncounterRank> encounterRanks { get; set; } = new();
+    public double? bestPerformanceAverage { get; set; }
+    public double? medianPerformanceAverage { get; set; }
+    public int difficulty { get; set; }
+    public string metric { get; set; } = string.Empty;
+    public int partition { get; set; }
+    public int zone { get; set; }
+    public int size { get; set; }
+    public List<AllStarsEntry> allStars { get; set; } = new();
+    public List<EncounterRanking> rankings { get; set; } = new();
 }
 
-public class EncounterRank
+public class AllStarsEntry
+{
+    public int partition { get; set; }
+    public string spec { get; set; } = string.Empty;
+    public double points { get; set; }
+    public int possiblePoints { get; set; }
+    public int rank { get; set; }
+    public int regionRank { get; set; }
+    public int serverRank { get; set; }
+    public double rankPercent { get; set; }
+    public int total { get; set; }
+    public string? rankTooltip { get; set; }
+}
+
+public class EncounterRanking
 {
     public Encounter encounter { get; set; } = new();
-    public List<Rank> ranks { get; set; } = new();
+    public double? rankPercent { get; set; }
+    public double? medianPercent { get; set; }
+    public bool lockedIn { get; set; }
+    public int totalKills { get; set; }
+    public long fastestKill { get; set; }
+    public AllStarsEntry? allStars { get; set; }
+    public string spec { get; set; } = string.Empty;
+    public string bestSpec { get; set; } = string.Empty;
+    public double bestAmount { get; set; }
+    public string? rankTooltip { get; set; }
+    public BestRank? bestRank { get; set; }
 }
 
-public class Rank
+public class BestRank
 {
-    public int totalKills { get; set; }
-    public long startTime { get; set; }
-    public string reportCode { get; set; } = string.Empty;
-    public int fightID { get; set; }
+    public long rank_id { get; set; }
+    public int @class { get; set; }
+    public int spec { get; set; }
+    public double per_second_amount { get; set; }
+    public double ilvl { get; set; }
+    public int fight_metadata { get; set; }
+    public long damage { get; set; }
+    public long pdps_damage { get; set; }
+    public double adps { get; set; }
+    public double rdps { get; set; }
+    public double ndps { get; set; }
 }
 
 public class RateLimitData

@@ -26,7 +26,7 @@ public class MemberDto : BaseDto
     public string? LodestoneVerificationToken { get; set; }
 
     [RequiresMemberRole] 
-    public List<Fight>? Experience { get; set; }
+    public List<FightDto>? Experience { get; set; }
 
     [RequiresAdminRole] 
     public List<MemberNote>? Notes { get; set; }
