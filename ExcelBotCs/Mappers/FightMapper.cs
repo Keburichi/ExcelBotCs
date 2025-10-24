@@ -15,6 +15,7 @@ public static class FightMapper
             ImageUrl = fight.ImageUrl,
             Type = fight.Type,
             Raidplans = fight.Raidplans,
+            FFLogsExpansionName = fight.FFLogsExpansionName,
         };
     }
 
@@ -28,6 +29,7 @@ public static class FightMapper
             ImageUrl = fight.ImageUrl,
             Type = fight.Type,
             Raidplans = fight.Raidplans,
+            FFLogsExpansionName = fight.FFLogsExpansionName,
         };
     }
 }

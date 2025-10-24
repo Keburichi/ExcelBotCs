@@ -102,6 +102,7 @@ builder.Services.AddScoped<ICurrentMemberAccessor, CurrentMemberAccessor>();
 builder.Services.AddDatabaseRepositories();
 builder.Services.AddApiServices();
 builder.Services.AddDiscordClient();
+builder.Services.AddFFLogsServices();
 AddHostedService<WorkerService>();
 
 // configure the serialization settings to remove sensitive data

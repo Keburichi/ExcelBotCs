@@ -10,12 +10,14 @@ public class Member : BaseEntity
     public string DiscordAvatar { get; set; }
     public string? PlayerName { get; set; }
     public bool? Subbed { get; set; }
-    
     public string? LodestoneId { get; set; }
 
     // Token the user must place in their Lodestone Bio to verify ownership
     public string? LodestoneVerificationToken { get; set; }
     public List<Fight>? Experience { get; set; }
+
+    // FFLogs sync tracking
+    public DateTime? LastFFLogsSyncTime { get; set; }
     public List<MemberNote>? Notes { get; set; }
     
     [BsonIgnore]
