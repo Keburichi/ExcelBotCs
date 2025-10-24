@@ -4,8 +4,10 @@ using Discord.WebSocket;
 using ExcelBotCs.Database;
 using ExcelBotCs.Database.Interfaces;
 using ExcelBotCs.Mappers;
+using ExcelBotCs.Models.Database;
 using ExcelBotCs.Services.API;
 using ExcelBotCs.Services.API.Interfaces;
+using ExcelBotCs.Services.FFLogs;
 
 namespace ExcelBotCs.Extensions;
 
@@ -18,6 +20,7 @@ public static class ServiceExtensions
         services.AddSingleton<IFightRepository, FightRepository>();
         services.AddSingleton<IMemberRepository, MemberRepository>();
         services.AddSingleton<IMemberRoleRepository, MemberRoleRepository>();
+        services.AddSingleton<IFFLogsImportLogRepository, FFLogsImportLogRepository>();
     }
 
     public static void AddApiServices(this IServiceCollection services)
@@ -41,5 +44,16 @@ public static class ServiceExtensions
 
         services.AddSingleton(config)
             .AddSingleton<DiscordSocketClient>();
+    }
+
+    public static void AddFFLogsServices(this IServiceCollection services)
+    {
+        // Add HttpClient for FFLogs API calls
+        services.AddHttpClient();
+
+        // FFLogs Services
+        services.AddSingleton<FFLogsAuthService>();
+        services.AddSingleton<FFLogsGraphQLService>();
+        services.AddSingleton<FFLogsSyncService>();
     }
 }

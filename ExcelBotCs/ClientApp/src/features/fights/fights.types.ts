@@ -5,6 +5,7 @@ export interface Fight {
   Name: string
   Description: string
   ImageUrl?: string
+  Expansion: string
   Type: FightType
   Raidplans: Raidplan[]
 }
@@ -18,10 +19,12 @@ export interface Raidplan {
 }
 
 export enum FightType {
+  Normal,
   Extreme,
   Savage,
   LegacySavage,
   Ultimate,
+  Chaotic,
 }
 
 export function fightTypeToString(ft: FightType) {
