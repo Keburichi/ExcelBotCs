@@ -3,6 +3,7 @@ using MongoDB.Bson.Serialization.Attributes;
 
 namespace ExcelBotCs.Models.Database;
 
+[BsonIgnoreExtraElements]
 public class Member : BaseEntity
 {
     public string DiscordId { get; set; }
@@ -14,7 +15,10 @@ public class Member : BaseEntity
 
     // Token the user must place in their Lodestone Bio to verify ownership
     public string? LodestoneVerificationToken { get; set; }
+    
+    [BsonIgnore]
     public List<Fight>? Experience { get; set; }
+    public List<string> ExperienceIds { get; set; }
 
     // FFLogs sync tracking
     public DateTime? LastFFLogsSyncTime { get; set; }

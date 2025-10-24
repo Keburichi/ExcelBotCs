@@ -218,7 +218,7 @@ public class FFLogsSyncService
                     // gather which fights haven't been cleared yet that still accepts logs
                     var unclearedFights = new List<Fight>();
                     if(member.Experience != null && !member.Experience.IsNullOrEmpty())
-                        unclearedFights = allFights.Where(x => !x.IsFrozen && member.Experience.All(e => e.Id != x.Id)).ToList();
+                        unclearedFights = allFights.Where(x => !x.IsFrozen && member.ExperienceIds.All(e => e != x.Id)).ToList();
                     else
                         unclearedFights = allFights;
                     
@@ -226,7 +226,7 @@ public class FFLogsSyncService
                     // to gather all information required
                     var unclearedFightZones = unclearedFights.Select(x => x.FFLogsZoneId).Distinct().ToList();
                     
-                    var updatedExperience = new List<Fight>();
+                    var updatedExperience = new List<string>();
                     var newClears = 0;
 
                     foreach (var unclearedFightZone in unclearedFightZones)
@@ -235,25 +235,34 @@ public class FFLogsSyncService
                         var characterData = await _graphQLService.GetCharacterActivityAsync(lodestoneId,
                             unclearedFightZone,
                             unclearedFights.First(x => x.FFLogsZoneId == unclearedFightZone).FFLogsDifficultyId);
-                        
-                        if (characterData.characterData.character?.zoneRankings?.encounterRanks == null)
+
+                        // Parse the JSON zoneRankings data
+                        var zoneRankings = characterData.characterData.character?.GetZoneRankings();
+
+                        if (zoneRankings?.rankings == null || !zoneRankings.rankings.Any())
                         {
                             continue;
                         }
-                        
+
                         // Process each cleared encounter
-                        foreach (var encounterRank in characterData.characterData.character.zoneRankings
-                                     .encounterRanks)
+                        foreach (var encounterRanking in zoneRankings.rankings)
                         {
-                            if (fightsByFFLogsId.TryGetValue(encounterRank.encounter.id, out var fight))
+                            if(encounterRanking.totalKills == 0)
+                                continue;
+                            
+                            if (fightsByFFLogsId.TryGetValue(encounterRanking.encounter.id, out var fight))
                             {
                                 // Check if member already has this fight in their experience
-                                var hasExperience = member.Experience?.Any(f => f.Id == fight.Id) ?? false;
+                                var hasExperience = member.ExperienceIds?.Any(f => f == fight.Id) ?? false;
 
                                 if (!hasExperience)
                                 {
-                                    updatedExperience.Add(fight);
+                                    updatedExperience.Add(fight.Id);
                                     newClears++;
+
+                                    _logger.LogInformation(
+                                        "Member {MemberName} cleared {FightName} - Best: {BestAmount:F2}, Rank: {RankPercent:F2}%",
+                                        member.DiscordName, fight.Name, encounterRanking.bestAmount, encounterRanking.rankPercent);
                                 }
                             }
                         }
@@ -262,8 +271,8 @@ public class FFLogsSyncService
                     // Update member experience if there are new clears
                     if (newClears > 0)
                     {
-                        member.Experience ??= new List<Fight>();
-                        member.Experience.AddRange(updatedExperience);
+                        member.ExperienceIds ??= new List<string>();
+                        member.ExperienceIds.AddRange(updatedExperience);
                         member.LastFFLogsSyncTime = DateTime.UtcNow;
                         await _memberRepository.UpdateAsync(member.Id, member);
 
@@ -289,118 +298,6 @@ public class FFLogsSyncService
                     _logger.LogError(ex, "Error syncing member {MemberId}", member.Id);
                 }
             }
-
-            // // Determine which zones to check
-            // var zonesToCheck = _options.ZonesToSync.Any()
-            //     ? _options.ZonesToSync
-            //     : null; // null = check all zones
-            //
-            // foreach (var member in membersToSync)
-            // {
-            //     log.ItemsProcessed++;
-            //
-            //     try
-            //     {
-            //         if (!long.TryParse(member.LodestoneId, out var lodestoneId))
-            //         {
-            //             _logger.LogWarning("Invalid Lodestone ID for member {MemberId}: {LodestoneId}",
-            //                 member.Id, member.LodestoneId);
-            //             log.ItemsSkipped++;
-            //             continue;
-            //         }
-            //
-            //         var updatedExperience = new List<Fight>();
-            //         var newClears = 0;
-            //
-            //         if (zonesToCheck == null)
-            //         {
-            //             // Check all zones - this will be expensive, consider limiting in production
-            //             _logger.LogWarning(
-            //                 "Checking all zones for member {MemberId} - this may consume significant API credits",
-            //                 member.Id);
-            //
-            //             // For now, we'll just query without zone filtering
-            //             // Note: This will require multiple queries or a different approach
-            //             // For production, recommend configuring specific zones
-            //             var characterData = await _graphQLService.GetCharacterActivityAsync(lodestoneId);
-            //             log.ApiRequestCount++;
-            //
-            //             // Without zone rankings, we can't determine clears
-            //             // Skip this member
-            //             log.ItemsSkipped++;
-            //             continue;
-            //         }
-            //         else
-            //         {
-            //             // Check configured zones
-            //             foreach (var zoneId in zonesToCheck)
-            //             {
-            //                 // Query for Savage difficulty (101)
-            //                 var characterData = await _graphQLService.GetCharacterActivityAsync(
-            //                     lodestoneId,
-            //                     zoneId,
-            //                     101); // Savage difficulty
-            //
-            //                 log.ApiRequestCount++;
-            //
-            //                 if (characterData.characterData.character?.zoneRankings?.encounterRanks == null)
-            //                 {
-            //                     continue;
-            //                 }
-            //
-            //                 // Process each cleared encounter
-            //                 foreach (var encounterRank in characterData.characterData.character.zoneRankings
-            //                              .encounterRanks)
-            //                 {
-            //                     if (fightsByFFLogsId.TryGetValue(encounterRank.encounter.id, out var fight))
-            //                     {
-            //                         // Check if member already has this fight in their experience
-            //                         var hasExperience = member.Experience?.Any(f => f.Id == fight.Id) ?? false;
-            //
-            //                         if (!hasExperience)
-            //                         {
-            //                             updatedExperience.Add(fight);
-            //                             newClears++;
-            //                         }
-            //                     }
-            //                 }
-            //
-            //                 // Add delay between requests
-            //                 await Task.Delay(_options.DelayBetweenRequestsMs);
-            //             }
-            //         }
-            //
-            //         // Update member experience if there are new clears
-            //         if (newClears > 0)
-            //         {
-            //             member.Experience ??= new List<Fight>();
-            //             member.Experience.AddRange(updatedExperience);
-            //             member.LastFFLogsSyncTime = DateTime.UtcNow;
-            //             await _memberRepository.UpdateAsync(member.Id, member);
-            //
-            //             log.ItemsUpdated++;
-            //             _logger.LogInformation("Updated member {MemberId} with {NewClears} new clears",
-            //                 member.Id, newClears);
-            //         }
-            //         else
-            //         {
-            //             // Still update sync time even if no new clears
-            //             member.LastFFLogsSyncTime = DateTime.UtcNow;
-            //             await _memberRepository.UpdateAsync(member.Id, member);
-            //
-            //             log.ItemsSkipped++;
-            //             _logger.LogDebug("No new clears for member {MemberId}", member.Id);
-            //         }
-            //
-            //         // Add delay between members
-            //         await Task.Delay(_options.DelayBetweenRequestsMs);
-            //     }
-            //     catch (Exception ex)
-            //     {
-            //         _logger.LogError(ex, "Error syncing member {MemberId}", member.Id);
-            //         // Continue with next member
-            //     }
-            // }
 
             log.Success = true;
 

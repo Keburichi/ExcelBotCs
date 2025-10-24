@@ -10,11 +10,13 @@ public class MemberService : IMemberService
 {
     private readonly IMemberRepository _memberRepository;
     private readonly IMemberRoleRepository _memberRoleRepository;
+    private readonly IFightRepository _fightRepository;
 
-    public MemberService(IMemberRepository memberRepository, IMemberRoleRepository memberRoleRepository)
+    public MemberService(IMemberRepository memberRepository, IMemberRoleRepository memberRoleRepository, IFightRepository fightRepository)
     {
         _memberRepository = memberRepository;
         _memberRoleRepository = memberRoleRepository;
+        _fightRepository = fightRepository;
     }
 
     public async Task<List<Member>> GetAsync()
@@ -22,6 +24,7 @@ public class MemberService : IMemberService
         var members = await _memberRepository.GetAsync();
 
         await FetchMemberRoles(members);
+        await FetchMemberExperience(members);
 
         return members;
     }
@@ -34,6 +37,7 @@ public class MemberService : IMemberService
             return null;
         
         await FetchMemberRoles([member]);
+        await FetchMemberExperience([member]);
 
         return member;
     }
@@ -45,6 +49,16 @@ public class MemberService : IMemberService
         foreach (var member in members)
         {
             member.Roles = memberRoles.Where(x => member.RoleIds.Contains(x.DiscordId)).ToList();
+        }
+    }
+    
+    private async Task FetchMemberExperience(List<Member> members)
+    {
+        var fights = await _fightRepository.GetAsync();
+
+        foreach (var member in members)
+        {
+            member.Experience = fights.Where(x => member.ExperienceIds.Contains(x.Id)).ToList();
         }
     }
 
@@ -88,6 +102,7 @@ public class MemberService : IMemberService
             return null;
 
         await FetchMemberRoles([member]);
+        await FetchMemberExperience([member]);
         
         return member;
     }
