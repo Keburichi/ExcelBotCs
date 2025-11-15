@@ -3,7 +3,7 @@
 - [x] Introduce DTOs
 - [ ] Cleanup UI
 - [ ] Finish Member Notes
-- [ ] Finish Initialization Routine
+- [x] Finish Initialization Routine
 - [ ] Hall of Clears
     - [ ] Showing Recent FC clears
     - [ ] Showing which fights have been cleared

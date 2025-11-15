@@ -23,9 +23,8 @@ public class Member : BaseEntity
     // FFLogs sync tracking
     public DateTime? LastFFLogsSyncTime { get; set; }
     public List<MemberNote>? Notes { get; set; }
-    
-    [BsonIgnore]
-    public List<MemberRole> Roles { get; set; }
+
+    [BsonIgnore] public List<MemberRole> Roles { get; set; } = new();
     public List<string> RoleIds { get; set; }
     
     public bool? IsAdmin

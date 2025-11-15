@@ -46,7 +46,7 @@ public class MemberService : IMemberService
     {
         var memberRoles = await _memberRoleRepository.GetAsync();
 
-        foreach (var member in members)
+        foreach (var member in members.Where(x => x.RoleIds != null))
         {
             member.Roles = memberRoles.Where(x => member.RoleIds.Contains(x.DiscordId)).ToList();
         }
@@ -56,7 +56,7 @@ public class MemberService : IMemberService
     {
         var fights = await _fightRepository.GetAsync();
 
-        foreach (var member in members)
+        foreach (var member in members.Where(x => x.ExperienceIds != null))
         {
             member.Experience = fights.Where(x => member.ExperienceIds.Contains(x.Id)).ToList();
         }
