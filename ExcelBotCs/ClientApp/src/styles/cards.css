@@ -133,17 +133,30 @@
     color: var(--muted, #6b7280);
 }
 
+/* Image container - remove any spacing that would show card background */
+.card > div:has(.card__image) {
+    margin: 0;
+    padding: 0;
+    overflow: hidden;
+    border-radius: 12px 12px 0 0;
+}
+
 .card__image {
     width: 100%;
     object-fit: cover;
     border-radius: 12px 12px 0 0;
-    aspect-ratio: 16/9;
     background-image: var(--event-image, url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='800' height='450' viewBox='0 0 800 450'><rect width='800' height='450' fill='%23f3f4f6'/><g fill='%2399a1a8' font-family='Segoe UI, Roboto, Arial, sans-serif' text-anchor='middle'><text x='400' y='230' font-size='28'>No image</text></g></svg>"));
     background-size: cover;
     background-position: center;
     background-color: #f3f4f6;
-    min-height: 294px;
+    /*min-height: 294px;*/
+    min-height: 166px;
     min-width: 100%;
+    display: block;
+    margin: 0;
+    padding: 0;
+    border: none;
+    box-shadow: none;
 }
 
 .card__avatar {

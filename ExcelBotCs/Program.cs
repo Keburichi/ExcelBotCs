@@ -8,6 +8,7 @@ using ExcelBotCs.Filters;
 using ExcelBotCs.Middleware;
 using ExcelBotCs.Models.Config;
 using ExcelBotCs.Services;
+using ExcelBotCs.Services.API.Interfaces;
 using ExcelBotCs.Services.Discord;
 using ExcelBotCs.Services.Discord.Interfaces;
 using ExcelBotCs.Services.Import;
@@ -56,7 +57,17 @@ builder.Services.LoadSettings(builder);
 
 builder.Services.AddScoped<ILotteryService, LotteryService>();
 builder.Services.AddScoped<IDiscordMessageService, DiscordMessageService>();
-AddService<LodestoneService>();
+builder.Services.AddSingleton<LodestoneService>(sp =>
+{
+    var options = sp.GetRequiredService<IOptions<LodestoneOptions>>();
+    var fcMemberService = sp.GetRequiredService<IFcMemberService>();
+    var fightService = sp.GetRequiredService<IFightService>();
+    var logger = sp.GetRequiredService<ILogger<LodestoneService>>();
+    var httpClientFactory = sp.GetRequiredService<IHttpClientFactory>();
+    var httpClient = httpClientFactory.CreateClient();
+
+    return new LodestoneService(options, fcMemberService, fightService, logger, httpClient);
+});
 
 // Register MongoDB client as singleton (shared across all repositories)
 builder.Services.AddSingleton<MongoDB.Driver.IMongoClient>(sp =>

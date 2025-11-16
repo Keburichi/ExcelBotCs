@@ -53,7 +53,7 @@ const { selected, filtered } = useFilters(f.fights, filters)
 
     <CardList
       :items="filtered"
-      :columns="3"
+      :columns="2"
       item-key="Id"
     >
       <template #item="{ item }">
