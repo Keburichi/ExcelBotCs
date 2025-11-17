@@ -110,6 +110,19 @@ public class MemberService : IMemberService
     public async Task<Member> GetByDiscordId(ulong discordId)
         => await GetByDiscordId(discordId.ToString());
 
+    public async Task<Member> GetByLodestoneId(string lodestoneId)
+    {
+        var member = await _memberRepository.GetByLodestoneId(lodestoneId);
+        
+        if(member is null)
+            return null;
+
+        await FetchMemberRoles([member]);
+        await FetchMemberExperience([member]);
+        
+        return member;
+    }
+
     /// <summary>
     /// Get all members that are members of the fc.
     /// </summary>

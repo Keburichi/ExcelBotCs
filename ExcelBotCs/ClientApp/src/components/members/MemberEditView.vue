@@ -3,6 +3,7 @@ import type { Member, MemberNote } from '@/features/members/members.types'
 import { onMounted, reactive, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import BaseButton from '@/components/BaseButton.vue'
+import ExperienceTags from '@/components/members/ExperienceTags.vue'
 import { useAuth } from '@/composables/useAuth'
 import { MembersApi } from '@/features/members/members.api'
 
@@ -74,13 +75,19 @@ onMounted(async () => {
         <input v-model="form.LodestoneVerificationToken" type="text" placeholder="Lodestone verification token" disabled>
       </div>
 
-      <div class="form-row">
+      <div class="form-row-checkbox">
         <input :id="form.DiscordId" v-model="form.Subbed" :name="form.DiscordId" type="checkbox" placeholder="Is player subbed?">
         <label :for="form.DiscordId">Subbed?</label>
       </div>
 
       <div class="form-row">
-        <p>Experience:</p>
+        <label>Experience:</label>
+        <div v-if="form.Experience?.length" class="experience-container">
+          <ExperienceTags :experience="form.Experience" />
+        </div>
+        <p v-else class="no-experience">
+          No cleared content yet
+        </p>
       </div>
 
       <div class="form-row">
@@ -122,5 +129,38 @@ input{
   flex-direction: column;
   gap: 6px;
   margin: 12px 0;
+}
+
+.form-row-checkbox {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 0.5rem;
+  margin: 12px 0;
+}
+
+.form-row-checkbox input[type="checkbox"] {
+  width: 1.25rem;
+  height: 1.25rem;
+  cursor: pointer;
+}
+
+.form-row-checkbox label {
+  cursor: pointer;
+  margin: 0;
+  font-weight: 500;
+}
+
+.experience-container {
+  padding: 0.75rem;
+  background: var(--card, #fff);
+  border: 1px solid var(--border, #e5e7eb);
+  border-radius: 0.5rem;
+}
+
+.no-experience {
+  color: var(--muted, #6b7280);
+  font-style: italic;
+  margin: 0;
 }
 </style>

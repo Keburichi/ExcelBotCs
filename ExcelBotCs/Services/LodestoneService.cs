@@ -4,7 +4,6 @@ using AngleSharp.Dom;
 using ExcelBotCs.Models.Config;
 using ExcelBotCs.Models.Database;
 using ExcelBotCs.Models.Domain;
-using ExcelBotCs.Services.API;
 using ExcelBotCs.Services.API.Interfaces;
 using Microsoft.Extensions.Options;
 using NetStone;
@@ -20,6 +19,7 @@ public class LodestoneService
     private readonly IFightService _fightService;
     private readonly ILogger<LodestoneService> _logger;
     private readonly HttpClient _httpClient;
+    private readonly IMemberService _memberService;
 
     // Cache for Lodestone duties to minimize HTTP requests
     private static Dictionary<string, List<LodestoneDuty>>? _dutyCache;
@@ -27,13 +27,14 @@ public class LodestoneService
     private static readonly TimeSpan CacheLifetime = TimeSpan.FromDays(1);
 
     public LodestoneService(IOptions<LodestoneOptions> options, IFcMemberService fcMemberService,
-        IFightService fightService, ILogger<LodestoneService> logger, HttpClient httpClient)
+        IFightService fightService, ILogger<LodestoneService> logger, HttpClient httpClient, IMemberService memberService)
     {
         _options = options;
         _fcMemberService = fcMemberService;
         _fightService = fightService;
         _logger = logger;
         _httpClient = httpClient;
+        _memberService = memberService;
         _httpClient.DefaultRequestHeaders.Add("User-Agent", "ExcelBotCs/1.0");
         Task.Run(InitializeClientAsync);
     }
@@ -90,6 +91,12 @@ public class LodestoneService
                 fcMember.Id =  dbFcMember.Id;
                 
                 await _fcMemberService.UpdateAsync(dbFcMember.Id, fcMember);
+                
+                // Also update the PlayerName property in the member entity
+                var member = await _memberService.GetByLodestoneId(freeCompanyMembersEntry.Id);
+                member.PlayerName = fcMember.Name;
+                
+                await _memberService.UpdateAsync(member.Id, member);
             }
         }
         

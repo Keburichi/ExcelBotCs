@@ -18,6 +18,11 @@ public class MemberRepository : BaseRepository<Member>, IMemberRepository
         return await Collection.Find(x => x.DiscordId == discordId).FirstOrDefaultAsync();
     }
 
+    public async Task<Member> GetByLodestoneId(string lodestoneId)
+    {
+        return await Collection.Find(x => x.LodestoneId == lodestoneId).FirstOrDefaultAsync();
+    }
+
     public async Task<Member> GetByDiscordId(ulong discordId) 
         => await GetByDiscordId(discordId.ToString());
 }

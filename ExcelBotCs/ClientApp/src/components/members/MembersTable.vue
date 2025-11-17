@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import type { Member } from './members.types'
+import ExperienceTags from './ExperienceTags.vue'
 
 const props = defineProps<{
   items: Member[]
@@ -26,6 +27,9 @@ const editBufferModel = defineModel<Member>({ required: true })
           Name
         </th>
         <th>Player Name</th>
+        <th v-if="props.isMember">
+          Experience
+        </th>
         <th v-if="props.canEdit">
           Subbed
         </th>
@@ -41,12 +45,19 @@ const editBufferModel = defineModel<Member>({ required: true })
       <tr v-for="m in props.items" :key="m.Id">
         <template v-if="props.editId === m.Id">
           <td><input v-model="editBufferModel.DiscordAvatar"></td>
-          <td><input v-model="editBufferModel.DiscordName"></td>
+          <td v-if="props.isMember">
+            <input v-model="editBufferModel.DiscordName">
+          </td>
           <td><input v-model="editBufferModel.PlayerName"></td>
-          <td class="center">
+          <td v-if="props.isMember">
+            <ExperienceTags :experience="editBufferModel.Experience || []" />
+          </td>
+          <td v-if="props.canEdit" class="center">
             <input v-model="editBufferModel.Subbed" type="checkbox">
           </td>
-          <td><input v-model="editBufferModel.LodestoneId"></td>
+          <td v-if="props.isMember">
+            <input v-model="editBufferModel.LodestoneId">
+          </td>
           <td v-if="props.canEdit">
             <button class="btn" @click="emit('saveEdit')">
               Save
@@ -59,12 +70,15 @@ const editBufferModel = defineModel<Member>({ required: true })
         <template v-else>
           <td>
             <img v-if="m.DiscordAvatar" :src="m.DiscordAvatar" alt="avatar" class="avatar" referrerpolicy="no-referrer">
-            <span v-else class="avatar placeholder">?</span>
+            <div v-else class="avatar avatar--placeholder" :title="`No avatar for ${m.PlayerName}`" />
           </td>
           <td v-if="props.isMember">
             {{ m.DiscordName }}
           </td>
           <td>{{ m.PlayerName }}</td>
+          <td v-if="props.isMember">
+            <ExperienceTags :experience="m.Experience || []" />
+          </td>
           <td v-if="props.canEdit" class="center">
             {{ m.Subbed ? 'Yes' : 'No' }}
           </td>
