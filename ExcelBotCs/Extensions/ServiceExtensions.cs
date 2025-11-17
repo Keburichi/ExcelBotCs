@@ -21,6 +21,7 @@ public static class ServiceExtensions
         services.AddSingleton<IMemberRepository, MemberRepository>();
         services.AddSingleton<IMemberRoleRepository, MemberRoleRepository>();
         services.AddSingleton<IFFLogsImportLogRepository, FFLogsImportLogRepository>();
+        services.AddSingleton<ILodestoneDutyRepository, LodestoneDutyRepository>();
     }
 
     public static void AddApiServices(this IServiceCollection services)
@@ -30,6 +31,7 @@ public static class ServiceExtensions
         services.AddSingleton<IFightService, FightService>();
         services.AddSingleton<IMemberService, MemberService>();
         services.AddSingleton<IMemberRoleService, MemberRoleService>();
+        services.AddSingleton<ILodestoneDutyService, LodestoneDutyService>();
     }
 
     public static void AddDiscordClient(this IServiceCollection services)

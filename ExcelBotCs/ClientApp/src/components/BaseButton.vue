@@ -95,6 +95,7 @@ const buttonClasses = computed(() => [
 
 <template>
   <button
+    type="button"
     :class="buttonClasses"
     :disabled="disabled"
     :data-tooltip="props.tooltip"

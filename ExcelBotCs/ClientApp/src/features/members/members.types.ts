@@ -17,9 +17,11 @@ export interface Member {
 }
 
 export interface MemberNote {
-  Id: string
+  Id?: string
   Note: string
-  Author: Member
+  Author: string
+  CreateDate?: string
+  EditDate?: string
 }
 
 export interface MemberRole {

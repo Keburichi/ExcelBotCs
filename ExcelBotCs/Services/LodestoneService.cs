@@ -3,11 +3,11 @@ using AngleSharp;
 using AngleSharp.Dom;
 using ExcelBotCs.Models.Config;
 using ExcelBotCs.Models.Database;
-using ExcelBotCs.Models.Domain;
 using ExcelBotCs.Services.API.Interfaces;
 using Microsoft.Extensions.Options;
 using NetStone;
 using NetStone.Model.Parseables.FreeCompany.Members;
+using DbLodestoneDuty = ExcelBotCs.Models.Database.LodestoneDuty;
 
 namespace ExcelBotCs.Services;
 
@@ -20,14 +20,11 @@ public class LodestoneService
     private readonly ILogger<LodestoneService> _logger;
     private readonly HttpClient _httpClient;
     private readonly IMemberService _memberService;
-
-    // Cache for Lodestone duties to minimize HTTP requests
-    private static Dictionary<string, List<LodestoneDuty>>? _dutyCache;
-    private static DateTime? _cacheRefreshTime;
-    private static readonly TimeSpan CacheLifetime = TimeSpan.FromDays(1);
+    private readonly ILodestoneDutyService _lodestoneDutyService;
 
     public LodestoneService(IOptions<LodestoneOptions> options, IFcMemberService fcMemberService,
-        IFightService fightService, ILogger<LodestoneService> logger, HttpClient httpClient, IMemberService memberService)
+        IFightService fightService, ILogger<LodestoneService> logger, HttpClient httpClient,
+        IMemberService memberService, ILodestoneDutyService lodestoneDutyService)
     {
         _options = options;
         _fcMemberService = fcMemberService;
@@ -35,6 +32,7 @@ public class LodestoneService
         _logger = logger;
         _httpClient = httpClient;
         _memberService = memberService;
+        _lodestoneDutyService = lodestoneDutyService;
         _httpClient.DefaultRequestHeaders.Add("User-Agent", "ExcelBotCs/1.0");
         Task.Run(InitializeClientAsync);
     }
@@ -94,8 +92,10 @@ public class LodestoneService
                 
                 // Also update the PlayerName property in the member entity
                 var member = await _memberService.GetByLodestoneId(freeCompanyMembersEntry.Id);
-                member.PlayerName = fcMember.Name;
+                if(member == null)
+                    continue;
                 
+                member.PlayerName = fcMember.Name;
                 await _memberService.UpdateAsync(member.Id, member);
             }
         }
@@ -203,19 +203,8 @@ public class LodestoneService
         }
     }
 
-    private async Task<List<LodestoneDuty>> BuildDutyLookupAsync()
+    private async Task<List<DbLodestoneDuty>> BuildDutyLookupAsync()
     {
-        // Check if cache is valid
-        if (_dutyCache != null && _cacheRefreshTime.HasValue &&
-            DateTime.UtcNow - _cacheRefreshTime.Value < CacheLifetime)
-        {
-            _logger.LogDebug("Using cached Lodestone duty data");
-            return _dutyCache.Values.SelectMany(x => x).ToList();
-        }
-
-        _logger.LogInformation("Building Lodestone duty lookup cache");
-        _dutyCache = new Dictionary<string, List<LodestoneDuty>>();
-
         // Category mappings
         var categories = new Dictionary<FightType, int>
         {
@@ -227,13 +216,39 @@ public class LodestoneService
         // Expansion IDs (0 = ARR, 1 = HW, 2 = SB, 3 = ShB, 4 = EW, 5 = DT)
         var expansionIds = Enumerable.Range(0, 6).ToList();
 
+        var newDuties = new List<DbLodestoneDuty>();
+        var hasExistingData = await _lodestoneDutyService.HasDataAsync();
+
+        if (hasExistingData)
+        {
+            _logger.LogDebug("Checking for missing Lodestone duty data");
+        }
+        else
+        {
+            _logger.LogInformation("No cached Lodestone duty data found, performing initial scrape");
+        }
+
+        // Check each expansion/category combination
         foreach (var category in categories)
         {
             foreach (var expansionId in expansionIds)
             {
+                // Check if we already have data for this combination
+                var hasData = await _lodestoneDutyService.HasDataForExpansionAndCategoryAsync(expansionId, category.Value);
+
+                if (hasData)
+                {
+                    _logger.LogDebug("Skipping {Type} expansion {ExpansionId} - data already exists",
+                        category.Key, expansionId);
+                    continue;
+                }
+
+                _logger.LogInformation("Scraping missing data for {Type} expansion {ExpansionId}",
+                    category.Key, expansionId);
+
                 try
                 {
-                    var duties = await ScrapeListingPageAsync(expansionId, category.Value);
+                    var duties = await ScrapeListingPageAsync(expansionId, category.Value, category.Key);
 
                     _logger.LogDebug("Scraped {Count} duties for {Type} expansion {ExpansionId}",
                         duties.Count, category.Key, expansionId);
@@ -252,8 +267,7 @@ public class LodestoneService
                         }
                     }
 
-                    var cacheKey = $"{category.Key}_{expansionId}";
-                    _dutyCache[cacheKey] = duties;
+                    newDuties.AddRange(duties);
 
                     _logger.LogDebug("Populated boss names for {Count} duties in {Type} expansion {ExpansionId}",
                         duties.Count, category.Key, expansionId);
@@ -266,17 +280,21 @@ public class LodestoneService
             }
         }
 
-        _cacheRefreshTime = DateTime.UtcNow;
-        _logger.LogInformation("Lodestone duty cache built with {Count} total duties",
-            _dutyCache.Values.SelectMany(x => x).Count());
+        // Persist new duties to database
+        if (newDuties.Any())
+        {
+            _logger.LogInformation("Persisting {Count} new duties to database", newDuties.Count);
+            await _lodestoneDutyService.BulkCreateAsync(newDuties);
+        }
 
-        return _dutyCache.Values.SelectMany(x => x).ToList();
+        // Return all duties from database
+        return await _lodestoneDutyService.GetAsync();
     }
 
-    private async Task<List<LodestoneDuty>> ScrapeListingPageAsync(int expansionId, int categoryId)
+    private async Task<List<DbLodestoneDuty>> ScrapeListingPageAsync(int expansionId, int categoryId, FightType fightType)
     {
         var url = $"{_options.Value.BaseUrl}/lodestone/playguide/db/duty/?category2={categoryId}&ex_version={expansionId}";
-        var duties = new List<LodestoneDuty>();
+        var duties = new List<DbLodestoneDuty>();
 
         try
         {
@@ -284,7 +302,7 @@ public class LodestoneService
             response.EnsureSuccessStatusCode();
 
             var html = await response.Content.ReadAsStringAsync();
-            duties = ParseDutyListingHtml(html);
+            duties = ParseDutyListingHtml(html, expansionId, categoryId, fightType);
         }
         catch (Exception ex)
         {
@@ -294,9 +312,9 @@ public class LodestoneService
         return duties;
     }
 
-    private List<LodestoneDuty> ParseDutyListingHtml(string html)
+    private List<DbLodestoneDuty> ParseDutyListingHtml(string html, int expansionId, int categoryId, FightType fightType)
     {
-        var duties = new List<LodestoneDuty>();
+        var duties = new List<DbLodestoneDuty>();
 
         try
         {
@@ -321,10 +339,14 @@ public class LodestoneService
 
                 if (!string.IsNullOrEmpty(name) && !string.IsNullOrEmpty(dutyId))
                 {
-                    duties.Add(new LodestoneDuty
+                    duties.Add(new DbLodestoneDuty
                     {
                         Name = name,
-                        LodestoneId = dutyId
+                        LodestoneId = dutyId,
+                        ExpansionId = expansionId,
+                        CategoryId = categoryId,
+                        FightType = fightType,
+                        LastSyncTime = DateTime.UtcNow
                     });
                 }
             }
@@ -337,7 +359,7 @@ public class LodestoneService
         return duties;
     }
 
-    private async Task<string?> ExtractImageFromDutyPageAsync(string lodestoneUrl, LodestoneDuty? duty = null)
+    private async Task<string?> ExtractImageFromDutyPageAsync(string lodestoneUrl, DbLodestoneDuty? duty = null)
     {
         try
         {
@@ -425,7 +447,7 @@ public class LodestoneService
         return bossNames;
     }
 
-    private async Task PopulateBossNamesAsync(LodestoneDuty duty)
+    private async Task PopulateBossNamesAsync(DbLodestoneDuty duty)
     {
         // Skip if already populated
         if (duty.BossNames.Any())
@@ -457,7 +479,7 @@ public class LodestoneService
         }
     }
 
-    private LodestoneDuty? FindBestMatch(Fight fight, List<LodestoneDuty> duties)
+    private DbLodestoneDuty? FindBestMatch(Fight fight, List<DbLodestoneDuty> duties)
     {
         var normalizedFightName = NormalizeName(fight.Name);
 

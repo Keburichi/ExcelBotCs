@@ -66,8 +66,9 @@ builder.Services.AddSingleton<LodestoneService>(sp =>
     var httpClientFactory = sp.GetRequiredService<IHttpClientFactory>();
     var httpClient = httpClientFactory.CreateClient();
     var memberService = sp.GetRequiredService<IMemberService>();
+    var lodestoneDutyService = sp.GetRequiredService<ILodestoneDutyService>();
 
-    return new LodestoneService(options, fcMemberService, fightService, logger, httpClient, memberService);
+    return new LodestoneService(options, fcMemberService, fightService, logger, httpClient, memberService, lodestoneDutyService);
 });
 
 // Register MongoDB client as singleton (shared across all repositories)

@@ -3,6 +3,7 @@ using ExcelBotCs.Mappers;
 using ExcelBotCs.Models.DTO;
 using ExcelBotCs.Services;
 using ExcelBotCs.Services.API.Interfaces;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace ExcelBotCs.Controllers;
@@ -171,5 +172,88 @@ public class MembersController : AuthorizedController, IBaseCrudController<Membe
         if (!string.IsNullOrWhiteSpace(digits)) return digits;
 
         return string.Empty;
+    }
+
+    // Note management endpoints
+    [HttpPost("{memberId:length(24)}/notes")]
+    [Authorize(Roles = "Admin")]
+    public async Task<ActionResult<MemberNoteDto>> AddNote(string memberId, [FromBody] AddNoteRequest request)
+    {
+        var currentUser = await _currentMemberAccessor.GetCurrentAsync();
+        if (currentUser is null)
+            return Unauthorized();
+
+        var member = await _memberService.GetAsync(memberId);
+        if (member is null)
+            return NotFound();
+
+        var note = new Models.Database.MemberNote
+        {
+            Id = MongoDB.Bson.ObjectId.GenerateNewId().ToString(),
+            Note = request.Note,
+            Author = currentUser.DiscordName,
+            CreateDate = DateTime.UtcNow,
+            EditDate = DateTime.UtcNow
+        };
+
+        member.Notes ??= new List<Models.Database.MemberNote>();
+        member.Notes.Add(note);
+
+        await _memberService.UpdateAsync(memberId, member);
+
+        return CreatedAtAction(nameof(AddNote), new { memberId, noteId = note.Id }, MemberNoteMapper.ToDto(note));
+    }
+
+    [HttpPut("{memberId:length(24)}/notes/{noteId:length(24)}")]
+    [Authorize(Roles = "Admin")]
+    public async Task<ActionResult> UpdateNote(string memberId, string noteId, [FromBody] UpdateNoteRequest request)
+    {
+        var currentUser = await _currentMemberAccessor.GetCurrentAsync();
+        if (currentUser is null)
+            return Unauthorized();
+
+        var member = await _memberService.GetAsync(memberId);
+        if (member is null)
+            return NotFound("Member not found");
+
+        if (member.Notes is null || member.Notes.Count == 0)
+            return NotFound("No notes found");
+
+        var note = member.Notes.FirstOrDefault(n => n.Id == noteId);
+        if (note is null)
+            return NotFound("Note not found");
+
+        note.Note = request.Note;
+        note.EditDate = DateTime.UtcNow;
+
+        await _memberService.UpdateAsync(memberId, member);
+
+        return NoContent();
+    }
+
+    [HttpDelete("{memberId:length(24)}/notes/{noteId:length(24)}")]
+    [Authorize(Roles = "Admin")]
+    public async Task<ActionResult> DeleteNote(string memberId, string noteId)
+    {
+        var currentUser = await _currentMemberAccessor.GetCurrentAsync();
+        if (currentUser is null)
+            return Unauthorized();
+
+        var member = await _memberService.GetAsync(memberId);
+        if (member is null)
+            return NotFound("Member not found");
+
+        if (member.Notes is null || member.Notes.Count == 0)
+            return NotFound("No notes found");
+
+        var noteIndex = member.Notes.FindIndex(n => n.Id == noteId);
+        if (noteIndex == -1)
+            return NotFound("Note not found");
+
+        member.Notes.RemoveAt(noteIndex);
+
+        await _memberService.UpdateAsync(memberId, member);
+
+        return NoContent();
     }
 }

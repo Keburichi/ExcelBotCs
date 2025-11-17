@@ -29,7 +29,7 @@ public class MemberDto : BaseDto
     public List<FightDto>? Experience { get; set; }
 
     [RequiresAdminRole] 
-    public List<MemberNote>? Notes { get; set; }
+    public List<MemberNoteDto>? Notes { get; set; }
 
     [RequiresMemberRole] 
     public List<MemberRoleDto> Roles { get; set; }

@@ -9,57 +9,22 @@ namespace ExcelBotCs.Services.API;
 public class MemberService : IMemberService
 {
     private readonly IMemberRepository _memberRepository;
-    private readonly IMemberRoleRepository _memberRoleRepository;
-    private readonly IFightRepository _fightRepository;
 
-    public MemberService(IMemberRepository memberRepository, IMemberRoleRepository memberRoleRepository, IFightRepository fightRepository)
+    public MemberService(IMemberRepository memberRepository)
     {
         _memberRepository = memberRepository;
-        _memberRoleRepository = memberRoleRepository;
-        _fightRepository = fightRepository;
     }
 
     public async Task<List<Member>> GetAsync()
     {
         var members = await _memberRepository.GetAsync();
-
-        await FetchMemberRoles(members);
-        await FetchMemberExperience(members);
-
         return members;
     }
 
     public async Task<Member> GetAsync(string id)
     {
         var member = await _memberRepository.GetAsync(id);
-        
-        if (member == null)
-            return null;
-        
-        await FetchMemberRoles([member]);
-        await FetchMemberExperience([member]);
-
         return member;
-    }
-
-    private async Task FetchMemberRoles(List<Member> members)
-    {
-        var memberRoles = await _memberRoleRepository.GetAsync();
-
-        foreach (var member in members.Where(x => x.RoleIds != null))
-        {
-            member.Roles = memberRoles.Where(x => member.RoleIds.Contains(x.DiscordId)).ToList();
-        }
-    }
-    
-    private async Task FetchMemberExperience(List<Member> members)
-    {
-        var fights = await _fightRepository.GetAsync();
-
-        foreach (var member in members.Where(x => x.ExperienceIds != null))
-        {
-            member.Experience = fights.Where(x => member.ExperienceIds.Contains(x.Id)).ToList();
-        }
     }
 
     public async Task CreateAsync(Member entity)
@@ -97,13 +62,6 @@ public class MemberService : IMemberService
     public async Task<Member> GetByDiscordId(string discordId)
     {
         var member = await _memberRepository.GetByDiscordId(discordId);
-        
-        if(member is null)
-            return null;
-
-        await FetchMemberRoles([member]);
-        await FetchMemberExperience([member]);
-        
         return member;
     }
 
@@ -113,13 +71,6 @@ public class MemberService : IMemberService
     public async Task<Member> GetByLodestoneId(string lodestoneId)
     {
         var member = await _memberRepository.GetByLodestoneId(lodestoneId);
-        
-        if(member is null)
-            return null;
-
-        await FetchMemberRoles([member]);
-        await FetchMemberExperience([member]);
-        
         return member;
     }
 

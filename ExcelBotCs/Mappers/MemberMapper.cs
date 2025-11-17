@@ -16,10 +16,10 @@ public static class MemberMapper
             LodestoneId = member.LodestoneId,
             LodestoneVerificationToken = member.LodestoneVerificationToken,
             Experience = member.Experience?.Select(FightMapper.ToDto).ToList(),
-            Notes = member.Notes,
+            Notes = member.Notes?.Select(MemberNoteMapper.ToDto).ToList(),
             PlayerName =  member.PlayerName,
             Subbed = member.Subbed,
-            Roles = member.Roles.Select(MemberRoleMapper.ToDto).ToList()
+            Roles = member.Roles.Select(MemberRoleMapper.ToDto).ToList(),
         };
     }
 
@@ -34,7 +34,7 @@ public static class MemberMapper
             LodestoneId = member.LodestoneId,
             LodestoneVerificationToken = member.LodestoneVerificationToken,
             Experience = member.Experience?.Select(FightMapper.ToEntity).ToList(),
-            Notes = member.Notes,
+            Notes = member.Notes?.Select(MemberNoteMapper.ToEntity).ToList(),
             PlayerName =  member.PlayerName,
             Subbed = member.Subbed,
             Roles = member.Roles.Select(MemberRoleMapper.ToEntity).ToList()

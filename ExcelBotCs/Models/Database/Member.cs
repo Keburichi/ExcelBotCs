@@ -10,7 +10,7 @@ public class Member : BaseEntity
     public string DiscordName { get; set; }
     public string DiscordAvatar { get; set; }
     public string? PlayerName { get; set; }
-    public bool? Subbed { get; set; }
+    public bool? Subbed { get; set; } = false;
     public string? LodestoneId { get; set; }
 
     // Token the user must place in their Lodestone Bio to verify ownership
