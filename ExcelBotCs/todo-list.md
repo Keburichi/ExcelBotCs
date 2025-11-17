@@ -2,13 +2,14 @@
 
 - [x] Introduce DTOs
 - [ ] Cleanup UI
-- [ ] Finish Member Notes
+- [x] Finish Member Notes
 - [x] Finish Initialization Routine
 - [ ] Hall of Clears
     - [ ] Showing Recent FC clears
     - [ ] Showing which fights have been cleared
     - [ ] List of people who cleared what
     - [ ] Create entry from Event with signed up people
+    - [ ] Create a Leaderboard of people who appear in hall of clears
 - [x] Welcome Page
     - [x] Display rules
     - [x] Announcements

@@ -1,0 +1,274 @@
+<script setup lang="ts">
+import type { Member } from '@/features/members/members.types'
+import { FightType } from '@/features/fights/fights.types'
+import { Chart, type ChartConfiguration, registerables } from 'chart.js'
+import { computed, nextTick, onMounted, onUnmounted, ref, watch } from 'vue'
+
+// Register Chart.js components
+Chart.register(...registerables)
+
+const props = defineProps<{
+  members: Member[]
+}>()
+
+const subscriptionChartCanvas = ref<HTMLCanvasElement>()
+const contentChartCanvas = ref<HTMLCanvasElement>()
+let subscriptionChart: Chart | null = null
+let contentChart: Chart | null = null
+
+// Calculate subscription statistics
+const subscriptionStats = computed(() => {
+  if (!props.members || props.members.length === 0) {
+    return { subscribed: 0, notSubscribed: 0 }
+  }
+  const subscribed = props.members.filter(m => m?.Subbed === true).length
+  const notSubscribed = props.members.length - subscribed
+  return { subscribed, notSubscribed }
+})
+
+// Calculate content cleared statistics
+const contentStats = computed(() => {
+  const stats = {
+    Extreme: new Set<string>(),
+    Savage: new Set<string>(),
+    LegacySavage: new Set<string>(),
+    Ultimate: new Set<string>(),
+    Chaotic: new Set<string>(),
+  }
+
+  if (!props.members || props.members.length === 0) {
+    return {
+      Extreme: 0,
+      Savage: 0,
+      LegacySavage: 0,
+      Ultimate: 0,
+      Chaotic: 0,
+    }
+  }
+
+  props.members.forEach(member => {
+    if (member?.Experience && Array.isArray(member.Experience) && member.Experience.length > 0) {
+      member.Experience.forEach(fight => {
+        if (fight && typeof fight.Type !== 'undefined') {
+          const typeKey = FightType[fight.Type] as keyof typeof stats
+          if (stats[typeKey] && member.Id) {
+            stats[typeKey].add(member.Id)
+          }
+        }
+      })
+    }
+  })
+
+  return {
+    Extreme: stats.Extreme.size,
+    Savage: stats.Savage.size,
+    LegacySavage: stats.LegacySavage.size,
+    Ultimate: stats.Ultimate.size,
+    Chaotic: stats.Chaotic.size,
+  }
+})
+
+function initCharts() {
+  // Subscription Chart
+  if (subscriptionChartCanvas.value) {
+    const subCtx = subscriptionChartCanvas.value.getContext('2d')
+    if (subCtx) {
+      const subConfig: ChartConfiguration = {
+        type: 'pie',
+        data: {
+          labels: ['Subscribed', 'Not Subscribed'],
+          datasets: [{
+            data: [subscriptionStats.value.subscribed, subscriptionStats.value.notSubscribed],
+            backgroundColor: ['#10b981', '#ef4444'],
+            borderColor: ['#059669', '#dc2626'],
+            borderWidth: 2,
+          }],
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: {
+              position: 'bottom',
+              labels: {
+                color: getComputedStyle(document.documentElement).getPropertyValue('--fg').trim() || '#111827',
+                padding: 15,
+                font: {
+                  size: 12,
+                },
+              },
+            },
+            title: {
+              display: true,
+              text: 'Subscription Status',
+              color: getComputedStyle(document.documentElement).getPropertyValue('--fg').trim() || '#111827',
+              font: {
+                size: 16,
+                weight: 'bold',
+              },
+              padding: {
+                top: 10,
+                bottom: 20,
+              },
+            },
+            tooltip: {
+              callbacks: {
+                label: (context) => {
+                  const label = context.label || ''
+                  const value = context.parsed || 0
+                  const total = subscriptionStats.value.subscribed + subscriptionStats.value.notSubscribed
+                  const percentage = total > 0 ? ((value / total) * 100).toFixed(1) : '0.0'
+                  return `${label}: ${value} (${percentage}%)`
+                },
+              },
+            },
+          },
+        },
+      }
+      subscriptionChart = new Chart(subCtx, subConfig)
+    }
+  }
+
+  // Content Cleared Chart
+  if (contentChartCanvas.value) {
+    const contentCtx = contentChartCanvas.value.getContext('2d')
+    if (contentCtx) {
+      const contentConfig: ChartConfiguration = {
+        type: 'pie',
+        data: {
+          labels: ['Extreme', 'Savage', 'Legacy Savage', 'Ultimate', 'Chaotic'],
+          datasets: [{
+            data: [
+              contentStats.value.Extreme,
+              contentStats.value.Savage,
+              contentStats.value.LegacySavage,
+              contentStats.value.Ultimate,
+              contentStats.value.Chaotic,
+            ],
+            backgroundColor: ['#10b981', '#ef4444', '#8b5cf6', '#f59e0b', '#f97316'],
+            borderColor: ['#059669', '#dc2626', '#7c3aed', '#d97706', '#ea580c'],
+            borderWidth: 2,
+          }],
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: {
+              position: 'bottom',
+              labels: {
+                color: getComputedStyle(document.documentElement).getPropertyValue('--fg').trim() || '#111827',
+                padding: 15,
+                font: {
+                  size: 12,
+                },
+              },
+            },
+            title: {
+              display: true,
+              text: 'Members with Cleared Content by Type',
+              color: getComputedStyle(document.documentElement).getPropertyValue('--fg').trim() || '#111827',
+              font: {
+                size: 16,
+                weight: 'bold',
+              },
+              padding: {
+                top: 10,
+                bottom: 20,
+              },
+            },
+            tooltip: {
+              callbacks: {
+                label: (context) => {
+                  const label = context.label || ''
+                  const value = context.parsed || 0
+                  const total = props.members.length
+                  const percentage = total > 0 ? ((value / total) * 100).toFixed(1) : '0.0'
+                  return `${label}: ${value} members (${percentage}%)`
+                },
+              },
+            },
+          },
+        },
+      }
+      contentChart = new Chart(contentCtx, contentConfig)
+    }
+  }
+}
+
+function updateCharts() {
+  // Update subscription chart
+  if (subscriptionChart && subscriptionChart.data.datasets[0]) {
+    subscriptionChart.data.datasets[0].data = [
+      subscriptionStats.value.subscribed,
+      subscriptionStats.value.notSubscribed,
+    ]
+    subscriptionChart.update()
+  }
+
+  // Update content chart
+  if (contentChart && contentChart.data.datasets[0]) {
+    contentChart.data.datasets[0].data = [
+      contentStats.value.Extreme,
+      contentStats.value.Savage,
+      contentStats.value.LegacySavage,
+      contentStats.value.Ultimate,
+      contentStats.value.Chaotic,
+    ]
+    contentChart.update()
+  }
+}
+
+onMounted(async () => {
+  await nextTick()
+  initCharts()
+})
+
+onUnmounted(() => {
+  if (subscriptionChart) {
+    subscriptionChart.destroy()
+  }
+  if (contentChart) {
+    contentChart.destroy()
+  }
+})
+
+// Watch for data changes and update charts
+watch(() => props.members, () => {
+  updateCharts()
+}, { deep: true })
+</script>
+
+<template>
+  <div class="statistics-container">
+    <div class="chart-card">
+      <canvas ref="subscriptionChartCanvas" />
+    </div>
+    <div class="chart-card">
+      <canvas ref="contentChartCanvas" />
+    </div>
+  </div>
+</template>
+
+<style scoped>
+.statistics-container {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 1.5rem;
+  margin-bottom: 2rem;
+}
+
+.chart-card {
+  background: var(--card, #fff);
+  border: 1px solid var(--border, #e5e7eb);
+  border-radius: 0.75rem;
+  padding: 1.5rem;
+  height: 400px;
+  display: flex;
+  flex-direction: column;
+}
+
+.chart-card canvas {
+  flex: 1;
+}
+</style>

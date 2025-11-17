@@ -5,6 +5,7 @@ import { useAuth } from '@/composables/useAuth'
 import { useMembers } from '@/composables/useMembers'
 import MemberCard from './MemberCard.vue'
 import MembersTable from './MembersTable.vue'
+import MemberStatistics from './MemberStatistics.vue'
 
 const m = useMembers()
 const { isAdmin, isMember } = useAuth()
@@ -15,6 +16,8 @@ onMounted(m.load)
 <template>
   <section class="home">
     <h2>Members</h2>
+
+    <MemberStatistics :members="m.members.value" />
 
     <CardList
       :items="m.members.value"
