@@ -14,6 +14,7 @@ using Ical.Net.CalendarComponents;
 using Ical.Net.DataTypes;
 using Ical.Net.Serialization;
 using Microsoft.AspNetCore.Authorization;
+using ExcelBotCs.Attributes;
 using Microsoft.AspNetCore.Mvc;
 
 namespace ExcelBotCs.Controllers;
@@ -138,7 +139,7 @@ public class EventsController : AuthorizedController, IBaseCrudController<EventD
 
     [HttpPost]
     [Route("{id:length(24)}/plan")]
-    [Authorize(Roles = "Admin")]
+    [AdminAuth]
     public async Task<IActionResult> PlanEvent(string id, Event eventDto)
     {
         var user = await _currentMemberAccessor.GetCurrentAsync();

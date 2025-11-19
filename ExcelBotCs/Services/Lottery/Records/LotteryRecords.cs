@@ -18,6 +18,10 @@ record NotCurrentGuessedNumberGuessResponse(int Number) : IGuessResponse;
 record NoMoreGuessesGuessResponse(IEnumerable<int> CurrentGuesses, string PrettyCurrentGuesses)
     : IGuessResponse;
 
+record RandomGuessTimeoutResponse : IGuessResponse;
+
+record RandomGuessErrorResponse : IGuessResponse;
+
 #endregion
 
 #region Award Responses
@@ -26,5 +30,30 @@ public record NoUsersAwardResponse() : IAwardResponse;
 
 public record SuccessAwardResponse(IEnumerable<ulong> DiscordUserIds, string PrettyUsersAwarded, string Reason)
     : IAwardResponse;
+
+#endregion
+
+#region View Responses
+
+public interface IViewResponse { }
+
+public record NotFcMemberViewResponse() : IViewResponse;
+
+public record ViewResponse(List<int> CurrentGuesses, int UsedGuesses, int TotalGuesses, string RemainingMessage)
+    : IViewResponse;
+
+#endregion
+
+#region Who Guessed Responses
+
+public record LotteryUser(ulong DiscordId, string DiscordName);
+
+public record WhoGuessedResponse(int Number, List<LotteryUser> Users);
+
+#endregion
+
+#region Unused Numbers Response
+
+public record UnusedNumbersResponse(List<int> UsedNumbers, List<int> UnusedNumbers);
 
 #endregion

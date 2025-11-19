@@ -90,7 +90,18 @@ builder.Services
     });
 
 // Add services to the container.
-builder.Services.AddAuthorization();
+builder.Services.AddAuthorization(options =>
+{
+    options.AddPolicy(ExcelBotCs.Authorization.Policies.Admin,
+        policy => policy.AddRequirements(new ExcelBotCs.Authorization.Requirements.AdminRequirement()));
+    options.AddPolicy(ExcelBotCs.Authorization.Policies.Member,
+        policy => policy.AddRequirements(new ExcelBotCs.Authorization.Requirements.MemberRequirement()));
+});
+
+// Custom authorization handlers
+// Handlers depend on ICurrentMemberAccessor (scoped), so they must not be singletons
+builder.Services.AddScoped<Microsoft.AspNetCore.Authorization.IAuthorizationHandler, ExcelBotCs.Authorization.Handlers.AdminAuthorizationHandler>();
+builder.Services.AddScoped<Microsoft.AspNetCore.Authorization.IAuthorizationHandler, ExcelBotCs.Authorization.Handlers.MemberAuthorizationHandler>();
 
 // configure serialization to omit null values
 builder.Services.ConfigureHttpJsonOptions(options =>

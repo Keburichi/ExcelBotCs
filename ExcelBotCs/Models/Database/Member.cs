@@ -1,5 +1,4 @@
-﻿using ExcelBotCs.Attributes;
-using MongoDB.Bson.Serialization.Attributes;
+﻿using MongoDB.Bson.Serialization.Attributes;
 
 namespace ExcelBotCs.Models.Database;
 

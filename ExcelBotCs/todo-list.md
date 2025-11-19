@@ -25,6 +25,7 @@
     - [ ] Start new lottery
 - [ ] Events
     - [ ] Calendar view of upcoming events
+    - [ ] Add option to select which type of event this is and which fight is being done (statistics/tracking of min-ilvl/downsynced/academy/BLU/etc)
 - [ ] Fights
     - [x] Allow filtering of fights
     - [ ] Allow searching of fights
@@ -35,3 +36,4 @@
 - [ ] Save date of last signed up event for each user
 - [ ] Add statistics on which users attend events how often
 - [ ] Add a ranking system for group creation (scale 1-10 with consistency, preparedness, learning speed, previously cleared fights?)
+- [ ] Create LFG/LFM section for people to post to/get notified if people are looking for a group for something

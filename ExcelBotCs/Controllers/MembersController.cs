@@ -4,6 +4,7 @@ using ExcelBotCs.Models.DTO;
 using ExcelBotCs.Services;
 using ExcelBotCs.Services.API.Interfaces;
 using Microsoft.AspNetCore.Authorization;
+using ExcelBotCs.Attributes;
 using Microsoft.AspNetCore.Mvc;
 
 namespace ExcelBotCs.Controllers;
@@ -176,7 +177,7 @@ public class MembersController : AuthorizedController, IBaseCrudController<Membe
 
     // Note management endpoints
     [HttpPost("{memberId:length(24)}/notes")]
-    [Authorize(Roles = "Admin")]
+    [AdminAuth]
     public async Task<ActionResult<MemberNoteDto>> AddNote(string memberId, [FromBody] AddNoteRequest request)
     {
         var currentUser = await _currentMemberAccessor.GetCurrentAsync();
@@ -205,7 +206,7 @@ public class MembersController : AuthorizedController, IBaseCrudController<Membe
     }
 
     [HttpPut("{memberId:length(24)}/notes/{noteId:length(24)}")]
-    [Authorize(Roles = "Admin")]
+    [AdminAuth]
     public async Task<ActionResult> UpdateNote(string memberId, string noteId, [FromBody] UpdateNoteRequest request)
     {
         var currentUser = await _currentMemberAccessor.GetCurrentAsync();
@@ -232,7 +233,7 @@ public class MembersController : AuthorizedController, IBaseCrudController<Membe
     }
 
     [HttpDelete("{memberId:length(24)}/notes/{noteId:length(24)}")]
-    [Authorize(Roles = "Admin")]
+    [AdminAuth]
     public async Task<ActionResult> DeleteNote(string memberId, string noteId)
     {
         var currentUser = await _currentMemberAccessor.GetCurrentAsync();

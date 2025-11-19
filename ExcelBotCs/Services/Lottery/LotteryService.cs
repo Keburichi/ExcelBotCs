@@ -30,7 +30,7 @@ public class LotteryService : ILotteryService
         _lotteryResults = database.GetCollection<LotteryResult>("lottery_results");
     }
 
-    public async Task<string> GuessAsync(ulong discordUserId, int number)
+    public async Task<IGuessResponse> GuessAsync(ulong discordUserId, int number)
     {
         var result = await TryGuess(discordUserId, number);
 
@@ -41,28 +41,17 @@ public class LotteryService : ILotteryService
                 $"<@{discordUserId}> guessed {number}. Current guesses: {success.PrettyCurrentGuesses}");
         }
 
-        return result switch
-        {
-            NotFcMemberGuessResponse _ => "Only FC members can participate in the lottery",
-            OutOfRangeGuessResponse _ => "You can only pick a number between 1 and 99.",
-            AlreadyGuessedNumberGuessResponse _ => $"You have already guessed {number}!",
-            NoMoreGuessesGuessResponse r =>
-                $"You don't have any guesses left! Current guesses: {r.PrettyCurrentGuesses}. You can use `/lottery change` to change an existing guess.",
-            SuccessGuessResponse r =>
-                $"Your guess for {r.Number} was recorded! Current guesses: {r.PrettyCurrentGuesses}. You can use `/lottery change` to change an existing guess. {(await GetRemainingGuessesAsync(discordUserId)).Output}",
-            _ => throw new NotImplementedException()
-        };
+        return result;
     }
 
-    public async Task<string> GetUnusedNumbersAsync()
+    public async Task<UnusedNumbersResponse> GetUnusedNumbersAsync()
     {
         var guessedNumbers = await GetGuessedNumbersAsync();
-        var formattedNumbers = (List<string>)
-            ["  ", .. Enumerable.Range(1, 99).Select(num => guessedNumbers.Contains(num) ? "__" : num.ToString("D2"))];
-        return string.Join('\n', formattedNumbers.Chunk(10).Select(subList => string.Join(' ', subList)));
+        var unusedNumbers = Enumerable.Range(1, 99).Where(num => !guessedNumbers.Contains(num)).ToList();
+        return new UnusedNumbersResponse(guessedNumbers, unusedNumbers);
     }
 
-    public async Task<string> RandomGuessAsync(ulong discordUserId, CancellationTokenSource cts,
+    public async Task<IGuessResponse> RandomGuessAsync(ulong discordUserId, CancellationTokenSource cts,
         RandomGuessType numberPool = RandomGuessType.UnusedOnly)
     {
         var task = TryRandomGuessAsync(discordUserId, cts.Token, numberPool);
@@ -79,26 +68,16 @@ public class LotteryService : ILotteryService
                     $"<@{discordUserId}> used a random draw and got {success.Number}. Current guesses: {success.PrettyCurrentGuesses}");
             }
 
-            return result switch
-            {
-                SuccessGuessResponse guessResponse =>
-                    $"Your guess for {guessResponse.Number} was recorded! Current guesses: {guessResponse.PrettyCurrentGuesses}. You can use `/lottery change` to change an existing guess.",
-                NotFcMemberGuessResponse => "Only FC members can participate in the lottery",
-                NoMoreGuessesGuessResponse r =>
-                    $"You don't have any guesses left! Current guesses: {r.PrettyCurrentGuesses}. You can use `/lottery change` to change an existing guess. {(await GetRemainingGuessesAsync(discordUserId)).Output}",
-                OutOfRangeGuessResponse => "This number pool has no valid numbers to use, try another number pool.",
-                _ => "Something went wrong, try again later. If this keeps happening, let Zahrymm know."
-            };
+            return result ?? new RandomGuessErrorResponse();
         }
         else
         {
             await cts.CancelAsync();
-            return
-                "Picking a number took too long, try again later. If this keeps happening, contact one of the officers";
+            return new RandomGuessTimeoutResponse();
         }
     }
 
-    public async Task<string> ChangeGuessAsync(ulong discordUserId, int old, int @new)
+    public async Task<IGuessResponse> ChangeGuessAsync(ulong discordUserId, int old, int @new)
     {
         var result = await TryChangeGuessAsync(discordUserId, old, @new);
 
@@ -109,50 +88,42 @@ public class LotteryService : ILotteryService
                 $"<@{discordUserId}> changed a guess from {old} to {@new}. Current guesses: {success.PrettyCurrentGuesses}");
         }
 
-        return result switch
-        {
-            NotFcMemberGuessResponse _ => "Only FC members can participate in the lottery",
-            OutOfRangeGuessResponse _ => "You can only pick a number between 1 and 99.",
-            AlreadyGuessedNumberGuessResponse _ => $"You have already guessed {@new}.",
-            NotCurrentGuessedNumberGuessResponse _ =>
-                $"You have not guessed {old}. You need to use a number you have already guessed in order to change it.",
-            SuccessGuessResponse r =>
-                $"Your guess for {old} was changed to {@new}! Current guesses: {r.PrettyCurrentGuesses}. You can use `/lottery change` to change an existing guess.",
-            _ => throw new NotImplementedException()
-        };
+        return result;
     }
 
-    public async Task<string> WhoGuessedAsync(int number)
+    public async Task<WhoGuessedResponse> WhoGuessedAsync(int number)
     {
         var currentGuesses = await _lotteryGuesses
             .Where(guess => guess.Number == number)
             .ToListAsync();
 
-        return currentGuesses.Count switch
+        var discordUserIds = currentGuesses.Select(guess => guess.DiscordId).ToList();
+        var members = await _memberService.GetByDiscordIds(discordUserIds);
+
+        var users = discordUserIds.Select(id =>
         {
-            0 => $"Nobody has guessed {number}.",
-            1 =>
-                $"{currentGuesses.Select(user => $"<@{user.DiscordId}>").ToList().PrettyJoin()} has guessed {number}.",
-            _ =>
-                $"{currentGuesses.Select(user => $"<@{user.DiscordId}>").ToList().PrettyJoin()} have all guessed {number}."
-        };
+            var member = members.FirstOrDefault(m => m.DiscordId == id.ToString());
+            return new LotteryUser(id, member?.DiscordName ?? $"Unknown User ({id})");
+        }).ToList();
+
+        return new WhoGuessedResponse(number, users);
     }
 
-    public async Task<string> ViewAsync(ulong discordUserId)
+    public async Task<IViewResponse> ViewAsync(ulong discordUserId)
     {
         if(! await CanParticipateAsync(discordUserId))
-            return "Only FC members can participate in the lottery";
-        
+            return new NotFcMemberViewResponse();
+
         var (currentGuesses, displayAmount) = await GetRemainingGuessesAsync(discordUserId);
 
-        if (currentGuesses.Count == 0)
-            return displayAmount;
-        
+        var extraAwardedGuesses = await _extraLotteryGuesses
+            .Where(guess => guess.DiscordId == discordUserId)
+            .ToListAsync();
+
         var guesses = currentGuesses.Select(guess => guess.Number).ToList();
         guesses.Sort();
-        var displayedGuesses = guesses.Select(guess => guess.ToString()).ToList().PrettyJoin();
 
-        return $"Current guesses: {displayedGuesses}. {displayAmount}";
+        return new ViewResponse(guesses, currentGuesses.Count, 1 + extraAwardedGuesses.Count, displayAmount);
     }
 
     public async Task RunLotteryAsync(ulong discordUserId)

@@ -1,6 +1,7 @@
 using Discord;
 using Discord.Interactions;
 using Discord.WebSocket;
+using ExcelBotCs.Services.Lottery;
 using ExcelBotCs.Services.Lottery.Enums;
 using ExcelBotCs.Services.Lottery.Interfaces;
 using ExcelBotCs.Services.Lottery.Records;
@@ -21,14 +22,14 @@ public class LotteryInteraction : InteractionModuleBase<SocketInteractionContext
 	public async Task Guess(int number)
 	{
 		var guessResult = await _lotteryService.GuessAsync(Context.GuildUser().Id, number);
-		await RespondAsync(guessResult, ephemeral: true);
+		await RespondAsync(LotteryResponseFormatter.FormatGuessResponse(guessResult), ephemeral: true);
 	}
 
 	[SlashCommand("unused", "Check what numbers have not yet been used.")]
 	public async Task UnusedNumbers()
 	{
 		var unusedNumbers = await _lotteryService.GetUnusedNumbersAsync();
-		await RespondAsync($"```{unusedNumbers}```", ephemeral: true);
+		await RespondAsync($"```{LotteryResponseFormatter.FormatUnusedNumbersResponse(unusedNumbers)}```", ephemeral: true);
 	}
 
 
@@ -36,16 +37,16 @@ public class LotteryInteraction : InteractionModuleBase<SocketInteractionContext
 	public async Task RandomGuess([Summary("number-pool", "Choose a set of numbers to use")] RandomGuessType numberPool = RandomGuessType.UnusedOnly)
 	{
 		var cts = new CancellationTokenSource();
-		
+
 		var task = _lotteryService.RandomGuessAsync(Context.User.Id, cts,  numberPool);
-		
+
 		await DeferAsync(true);
 
 		if (await Task.WhenAny(task, Task.Delay(TimeSpan.FromSeconds(5), cts.Token)) == task)
 		{
 			await cts.CancelAsync();
 			var result = await task;
-			await FollowupAsync(result, ephemeral: true);
+			await FollowupAsync(LotteryResponseFormatter.FormatGuessResponse(result), ephemeral: true);
 		}
 		else
 		{
@@ -59,19 +60,22 @@ public class LotteryInteraction : InteractionModuleBase<SocketInteractionContext
 	[SlashCommand("change", "Change one of your current guesses")]
 	public async Task Change(int old, int @new)
 	{
-		await RespondAsync(await _lotteryService.ChangeGuessAsync(Context.GuildUser().Id, old, @new), ephemeral: true);
+		var result = await _lotteryService.ChangeGuessAsync(Context.GuildUser().Id, old, @new);
+		await RespondAsync(LotteryResponseFormatter.FormatChangeGuessResponse(result, old, @new), ephemeral: true);
 	}
 
 	[SlashCommand("whoguessed", "Check who has guessed a certain number.")]
 	public async Task WhoGuessed(int number)
 	{
-		await RespondAsync(await _lotteryService.WhoGuessedAsync(number), ephemeral: true);
+		var result = await _lotteryService.WhoGuessedAsync(number);
+		await RespondAsync(LotteryResponseFormatter.FormatWhoGuessedResponse(result), ephemeral: true);
 	}
 
 	[SlashCommand("view", "Check your current guesses and see how many guesses you have left.")]
 	public async Task View()
 	{
-		await RespondAsync(await _lotteryService.ViewAsync(Context.GuildUser().Id), ephemeral: true);
+		var result = await _lotteryService.ViewAsync(Context.GuildUser().Id);
+		await RespondAsync(LotteryResponseFormatter.FormatViewResponse(result), ephemeral: true);
 	}
 
 	[SlashCommand("run", "Runs the lottery.")]

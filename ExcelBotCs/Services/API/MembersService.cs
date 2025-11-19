@@ -68,6 +68,13 @@ public class MemberService : IMemberService
     public async Task<Member> GetByDiscordId(ulong discordId)
         => await GetByDiscordId(discordId.ToString());
 
+    public async Task<List<Member>> GetByDiscordIds(IEnumerable<ulong> discordIds)
+    {
+        var discordIdStrings = discordIds.Select(id => id.ToString()).ToHashSet();
+        var allMembers = await GetAsync();
+        return allMembers.Where(m => discordIdStrings.Contains(m.DiscordId)).ToList();
+    }
+
     public async Task<Member> GetByLodestoneId(string lodestoneId)
     {
         var member = await _memberRepository.GetByLodestoneId(lodestoneId);
