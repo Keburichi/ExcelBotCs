@@ -8,10 +8,12 @@ public class Event : BaseEntity
     public string Description { get; set; }
     public string DiscordMessageId { get; set; }
     public string? PictureUrl { get; set; }
+    public EventType Type { get; set; } = EventType.Other;
+    public string? FightId { get; set; }
     public List<EventParticipant> Participants { get; set; } = [];
     public List<EventUserSignup> Signups { get; set; } = [];
-    public Member? Author { get; set; }
-    public string? Organizer => Author?.PlayerName;
+    public string? AuthorId { get; set; }
+    public string? Organizer { get; set; }
     public DateTime StartDate { get; set; }
     public int Duration { get; set; }
     public int MaxNumberOfParticipants { get; set; }

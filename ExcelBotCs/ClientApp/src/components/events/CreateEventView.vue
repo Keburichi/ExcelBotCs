@@ -1,18 +1,44 @@
 <script setup lang="ts">
 import type { FCEvent } from '@/features/events/events.types'
-import { computed, onMounted, reactive, ref } from 'vue'
+import type { Fight } from '@/features/fights/fights.types'
+import { computed, onMounted, reactive, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import BaseButton from '@/components/BaseButton.vue'
+import DateTimePicker from '@/components/DateTimePicker.vue'
+import SearchableDropdown from '@/components/SearchableDropdown.vue'
 import { useAuth } from '@/composables/useAuth'
 import { EventsApi } from '@/features/events/events.api'
+import { EventType } from '@/features/events/events.types'
+import { FightsApi } from '@/features/fights/fights.api'
+import { fightTypeToString } from '@/features/fights/fights.types'
+import mapsPlaceholder from '@/static/img/maps-placeholder.png'
 
 const router = useRouter()
 const route = useRoute()
 const { user, isAdmin, loadMe } = useAuth()
 
+// Ensures that provided URL is absolute (includes protocol and host)
+function toAbsoluteUrl(url: string): string {
+  if (!url)
+    return url
+  // Already absolute (supports protocol-relative //host/... too)
+  if (/^(?:[a-z]+:)?\/\//i.test(url))
+    return url
+  // Ensure leading slash for relative asset paths
+  const withSlash = url.startsWith('/') ? url : `/${url}`
+  return `${window.location.origin}${withSlash}`
+}
+
+// Absolute URL to the maps placeholder image
+const mapsPlaceholderAbsolute = toAbsoluteUrl(mapsPlaceholder)
+
 const loading = ref(false)
 const error = ref('')
 const isEditMode = computed(() => !!route.params.id)
+
+// Fights for dropdown
+const fights = ref<Fight[]>([])
+const selectedFight = ref<Fight | null>(null)
 
 // Party size presets
 type PartyPreset = 'light-party' | 'full-party' | 'alliance-raid' | 'any' | 'custom'
@@ -24,6 +50,8 @@ const form = reactive<FCEvent>({
   Description: '',
   DiscordMessageId: '',
   PictureUrl: '',
+  Type: EventType.Other,
+  FightId: undefined,
   Organizer: '', // will be filled from current user on submit, server sets Author,
   StartDate: new Date(),
   Duration: 0,
@@ -79,16 +107,61 @@ function detectPreset(maxParticipants: number): PartyPreset {
 // Check if input should be disabled (all presets except custom)
 const isInputDisabled = computed(() => partyPreset.value !== 'custom')
 
-// Load event data if in edit mode
+// Event type options for dropdown
+const eventTypeOptions = computed(() => {
+  return Object.keys(EventType)
+    .filter(key => isNaN(Number(key)))
+    .map(key => ({
+      value: EventType[key as keyof typeof EventType],
+      label: key,
+    }))
+})
+
+// Determine if fight selection should be shown based on event type
+const showFightSelection = computed(() => {
+  const fightCompatibleTypes = [
+    EventType.Academy,
+    EventType.Downsynced,
+    EventType.BLU,
+    EventType.Farming,
+    EventType.Raid,
+    EventType.MinIlvl,
+    EventType.Other,
+  ]
+  return fightCompatibleTypes.includes(form.Type)
+})
+
+// Format fight for display in dropdown
+function formatFight(fight: Fight): string {
+  return `${fight.Name} (${fightTypeToString(fight.Type)})`
+}
+
+// Load fights and event data if in edit mode
 onMounted(async () => {
+  // Load fights for dropdown
+  try {
+    fights.value = await FightsApi.list()
+  }
+  catch (e: any) {
+    console.error('Failed to load fights:', e)
+  }
+
   if (isEditMode.value) {
     loading.value = true
     try {
       const eventData = await EventsApi.get(route.params.id as string)
       if (eventData) {
         Object.assign(form, eventData)
+        // Normalize picture URL to absolute if present
+        if (form.PictureUrl) {
+          form.PictureUrl = toAbsoluteUrl(form.PictureUrl)
+        }
         // Detect and set the appropriate preset
         partyPreset.value = detectPreset(eventData.MaxNumberOfParticipants)
+        // Set selected fight if FightId exists
+        if (eventData.FightId) {
+          selectedFight.value = fights.value.find(f => f.Id === eventData.FightId) || null
+        }
       }
     }
     catch (e: any) {
@@ -100,24 +173,44 @@ onMounted(async () => {
   }
 })
 
-// Convert Date to datetime-local format (YYYY-MM-DDTHH:mm)
-const localStartDate = computed({
-  get: () => {
-    const date = new Date(form.StartDate)
-    // Format: YYYY-MM-DDTHH:mm (local timezone for display)
-    const year = date.getFullYear()
-    const month = String(date.getMonth() + 1).padStart(2, '0')
-    const day = String(date.getDate()).padStart(2, '0')
-    const hours = String(date.getHours()).padStart(2, '0')
-    const minutes = String(date.getMinutes()).padStart(2, '0')
-    return `${year}-${month}-${day}T${hours}:${minutes}`
-  },
-  set: (value: string) => {
-    // Parse local datetime and convert to UTC Date
-    const localDate = new Date(value)
-    form.StartDate = localDate
-  },
+// Watch fight selection and auto-populate image
+watch(selectedFight, (newFight) => {
+  if (newFight) {
+    if (newFight.ImageUrl) {
+      form.PictureUrl = toAbsoluteUrl(newFight.ImageUrl)
+    }
+    form.FightId = newFight.Id
+  }
+  else {
+    form.FightId = undefined
+  }
 })
+
+// When Maps is selected as event type, auto-set the picture to the maps placeholder
+watch(
+  () => form.Type,
+  (newType) => {
+    if (newType === EventType.Maps) {
+      // Only auto-fill if not already set to a custom value
+      if (!form.PictureUrl || form.PictureUrl === mapsPlaceholder || form.PictureUrl === mapsPlaceholderAbsolute) {
+        form.PictureUrl = mapsPlaceholderAbsolute
+      }
+    }
+    else {
+      // If leaving Maps and the picture is the placeholder (and no fight image overrides it), clear it
+      if ((form.PictureUrl === mapsPlaceholder || form.PictureUrl === mapsPlaceholderAbsolute) && !selectedFight.value) {
+        form.PictureUrl = ''
+      }
+    }
+
+    // Clear fight selection if switching to a type that doesn't support fights
+    if (!showFightSelection.value) {
+      selectedFight.value = null
+      form.FightId = undefined
+    }
+  },
+  { immediate: true },
+)
 
 async function submit() {
   error.value = ''
@@ -131,6 +224,11 @@ async function submit() {
 
     // Organizer is computed from Author on the backend; we can set it for display
     form.Organizer = user.value?.PlayerName ?? ''
+
+    // Ensure picture URL is absolute before sending to backend
+    if (form.PictureUrl) {
+      form.PictureUrl = toAbsoluteUrl(form.PictureUrl)
+    }
 
     if (isEditMode.value) {
       await EventsApi.update(form.Id, form)
@@ -169,13 +267,31 @@ function cancel() {
         <label>Description</label>
         <textarea v-model="form.Description" rows="5" placeholder="Describe the event" />
       </div>
+      <div class="form-row">
+        <label>Event Type</label>
+        <select v-model.number="form.Type" required>
+          <option v-for="option in eventTypeOptions" :key="option.value" :value="option.value">
+            {{ option.label }}
+          </option>
+        </select>
+      </div>
       <div v-if="form.DiscordMessageId" class="form-row">
         <label>Discord Message Id</label>
         <input v-model="form.DiscordMessageId" type="text" placeholder="The message id of the discord post.">
       </div>
+      <div v-if="showFightSelection" class="form-row">
+        <label>Select Fight (Optional)</label>
+        <SearchableDropdown
+          v-model="selectedFight"
+          :format-option="formatFight"
+          :options="fights"
+          placeholder="Search fights..."
+        />
+        <small class="hint">Selecting a fight will auto-fill the picture URL</small>
+      </div>
       <div class="form-row">
         <label>Picture URL (optional)</label>
-        <input v-model="form.PictureUrl" type="url" placeholder="https://...">
+        <input v-model="form.PictureUrl" placeholder="https://... (auto-filled from fight if selected)" type="url">
       </div>
       <div v-if="form.PictureUrl" class="form-row">
         <label>Preview</label>
@@ -184,8 +300,11 @@ function cancel() {
         </div>
       </div>
       <div class="form-row">
-        <label>Start Date & Time (your local timezone)</label>
-        <input v-model="localStartDate" type="datetime-local" required>
+        <DateTimePicker
+          v-model="form.StartDate"
+          :required="true"
+          label="Start Date & Time"
+        />
       </div>
       <div class="form-row">
         <label>Duration (minutes)</label>
@@ -287,6 +406,13 @@ function cancel() {
 
 .error {
   color: #c62828;
+}
+
+.hint {
+  font-size: 0.875rem;
+  color: var(--muted);
+  font-style: italic;
+  margin-top: 4px;
 }
 
 /* Party preset buttons */

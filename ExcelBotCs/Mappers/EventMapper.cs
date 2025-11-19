@@ -7,7 +7,7 @@ public static class EventMapper
 {
     public static EventDto ToDto(Event fcEvent)
     {
-        return new EventDto()
+        return new EventDto
         {
             Id = fcEvent.Id,
             Name = fcEvent.Name,
@@ -16,16 +16,19 @@ public static class EventMapper
             StartDate = fcEvent.StartDate,
             DiscordMessageId = fcEvent.DiscordMessageId,
             PictureUrl = fcEvent.PictureUrl,
+            Type = fcEvent.Type,
+            FightId = fcEvent.FightId,
             MaxNumberOfParticipants = fcEvent.MaxNumberOfParticipants,
-            Author = fcEvent.Author,
+            AuthorId = fcEvent.AuthorId,
+            Organizer = fcEvent.Organizer,
             Participants = fcEvent.Participants,
-            Signups = fcEvent.Signups,
+            Signups = fcEvent.Signups
         };
     }
 
     public static Event ToEntity(EventDto fcEvent)
     {
-        return new Event()
+        return new Event
         {
             Id = fcEvent.Id,
             Name = fcEvent.Name,
@@ -34,10 +37,13 @@ public static class EventMapper
             StartDate = fcEvent.StartDate,
             DiscordMessageId = fcEvent.DiscordMessageId,
             PictureUrl = fcEvent.PictureUrl,
+            Type = fcEvent.Type,
+            FightId = fcEvent.FightId,
             MaxNumberOfParticipants = fcEvent.MaxNumberOfParticipants,
-            Author = fcEvent.Author,
+            AuthorId = fcEvent.AuthorId,
+            Organizer = fcEvent.Organizer,
             Participants = fcEvent.Participants,
-            Signups = fcEvent.Signups,
+            Signups = fcEvent.Signups
         };
     }
 }

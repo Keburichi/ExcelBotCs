@@ -1,4 +1,5 @@
 ﻿using System.Text;
+using ExcelBotCs.Attributes;
 using ExcelBotCs.Controllers.Interfaces;
 using ExcelBotCs.Extensions;
 using ExcelBotCs.Mappers;
@@ -6,15 +7,12 @@ using ExcelBotCs.Models.Database;
 using ExcelBotCs.Models.DTO;
 using ExcelBotCs.Modules.TeamFormation;
 using ExcelBotCs.Services;
-using ExcelBotCs.Services.API;
 using ExcelBotCs.Services.API.Interfaces;
 using ExcelBotCs.Services.Discord.Interfaces;
 using Ical.Net;
 using Ical.Net.CalendarComponents;
 using Ical.Net.DataTypes;
 using Ical.Net.Serialization;
-using Microsoft.AspNetCore.Authorization;
-using ExcelBotCs.Attributes;
 using Microsoft.AspNetCore.Mvc;
 
 namespace ExcelBotCs.Controllers;
@@ -68,8 +66,9 @@ public class EventsController : AuthorizedController, IBaseCrudController<EventD
         if (member is null)
             return BadRequest("Member not found for the current user");
 
-        entity.Author = member;
-        
+        entity.AuthorId = member.Id;
+        entity.Organizer = member.PlayerName;
+
         await _eventService.CreateAsync(EventMapper.ToEntity(entity));
         return CreatedAtAction(nameof(CreateEntity), new  { id = entity.Id }, entity);
     }

@@ -4,8 +4,11 @@ export interface FCEvent {
   Description: string
   DiscordMessageId: string
   PictureUrl?: string
+  Type: EventType
+  FightId?: string
   Participants: EventParticipant[]
   Signups: EventSignup[]
+  AuthorId?: string
   Organizer: string
   StartDate: Date
   Duration: number
@@ -32,3 +35,19 @@ export const ROLE = {
 } as const
 
 export type Role = (typeof ROLE)[keyof typeof ROLE]
+
+export enum EventType {
+  Raid,
+  Social,
+  Farming,
+  Maps,
+  BLU,
+  Academy,
+  MinIlvl,
+  Downsynced,
+  Other,
+}
+
+export function eventTypeToString(type: EventType): string {
+  return EventType[type]
+}
