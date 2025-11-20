@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import type { Member } from './members.types'
+import BaseButton from '@/components/BaseButton.vue'
 
 const emit = defineEmits<{ submit: [] }>()
 const model = defineModel<Member>({ required: true })
@@ -20,8 +21,6 @@ const model = defineModel<Member>({ required: true })
         <input v-model="model.Subbed" type="checkbox"> Subbed
       </label>
     </div>
-    <button class="btn" type="submit">
-      Save
-    </button>
+    <BaseButton title="Save" type="submit" />
   </form>
 </template>

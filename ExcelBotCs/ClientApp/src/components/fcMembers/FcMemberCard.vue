@@ -1,4 +1,4 @@
-<script setup lang="ts">
+<script lang="ts" setup>
 import type { FcMember } from '@/features/fcMembers/fcMembers.types'
 import { computed } from 'vue'
 import BaseCard from '@/components/BaseCard.vue'
@@ -40,7 +40,7 @@ const rankBadgeClass = computed(() => {
   >
     <template #avatar>
       <img
-        v-if="props.member.Avatar" :src="props.member.Avatar" :alt="props.member.Name"
+        v-if="props.member.Avatar" :alt="props.member.Name" :src="props.member.Avatar"
         class="card__avatar"
         referrerpolicy="no-referrer"
       >
@@ -54,9 +54,6 @@ const rankBadgeClass = computed(() => {
         <span>Rank:</span>
         <span :class="rankBadgeClass" class="member-rank-badge">{{ props.member.FcRank }}</span>
       </div>
-      <a href="">lodestone</a>
-      <a href="">fflogs</a>
-      <a href="">tomestone</a>
     </template>
     <slot :member="member" />
   </BaseCard>

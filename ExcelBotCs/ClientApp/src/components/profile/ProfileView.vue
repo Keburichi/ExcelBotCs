@@ -279,3 +279,145 @@ async function verifyClaim() {
     </div>
   </section>
 </template>
+
+<style scoped>
+/* Profile layout helpers */
+.profile {
+  max-width: 900px;
+  margin: 0 auto;
+  padding: 28px 24px;
+}
+
+.profile__header {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  margin-bottom: 24px;
+}
+
+.profile__avatar {
+  width: 96px;
+  height: 96px;
+  border-radius: 50%;
+  object-fit: cover;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+}
+
+.profile__title {
+  flex: 1;
+}
+
+.profile__title h1 {
+  margin: 0 0 2px;
+  font-size: 28px;
+}
+
+.profile__subtitle {
+  margin: 2px 0 10px;
+  color: var(--muted);
+}
+
+.profile__actions {
+  display: flex;
+  gap: 8px;
+}
+
+/* Improve spacing inside profile cards that don't use card__body wrappers */
+.profile .card {
+  padding: 16px;
+}
+
+.profile .card h2 {
+  margin: 0 0 12px;
+}
+
+/* Make each key/value row more breathable */
+.profile .kv-row {
+  padding: 12px 0;
+  border-bottom: 1px dashed var(--border);
+}
+
+.profile .kv-row + .kv-row {
+  margin-top: 6px;
+}
+
+.profile .kv-row:last-child {
+  border-bottom: none;
+}
+
+/* Experience list on profile */
+.experience-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: grid;
+  gap: 8px;
+}
+
+.experience-item {
+  padding: 10px 12px;
+  border: 1px dashed var(--border);
+  border-radius: 10px;
+  background: color-mix(in oklab, var(--card) 96%, transparent 4%);
+}
+
+.experience-item__main {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+}
+
+.experience-item__name {
+  font-weight: 600;
+}
+
+.experience-item__type {
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.experience-item__meta {
+  margin-top: 6px;
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+/* Key-value row specific to detail views */
+.kv-row {
+  display: grid;
+  grid-template-columns: 160px 1fr;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 0;
+  border-bottom: 1px dashed var(--border);
+}
+
+.kv-row:last-child {
+  border-bottom: none;
+}
+
+.kv-row label {
+  color: var(--muted);
+  font-size: 14px;
+}
+
+.kv-value {
+  font-weight: 500;
+}
+
+.kv-value.muted, .muted {
+  color: #9ca3af;
+  font-weight: 400;
+}
+
+.kv-row input {
+  width: 100%;
+  padding: 8px 10px;
+  border: 1px solid var(--input-border);
+  border-radius: 8px;
+  font-size: 14px;
+  background: var(--input-bg);
+  color: var(--input-fg);
+}
+</style>

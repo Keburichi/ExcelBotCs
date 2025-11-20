@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
+import BaseButton from '@/components/BaseButton.vue'
 import { useAuth } from '@/composables/useAuth'
 
 const { authorized, user, ensureAuth, logout, loadMe } = useAuth()
@@ -54,12 +55,8 @@ if (typeof window !== 'undefined') {
       <div class="menu-header">
         <strong>{{ user?.PlayerName !== null ? user?.PlayerName : user?.DiscordName }}</strong>
       </div>
-      <button role="menuitem" class="menu-entry" @click="goProfile">
-        Profile
-      </button>
-      <button role="menuitem" class="menu-entry" @click="logout">
-        Logout
-      </button>
+      <BaseButton title="Profile" variant="text" @clicked="goProfile" />
+      <BaseButton title="Logout" variant="text" @clicked="logout" />
     </div>
   </div>
 
@@ -115,34 +112,10 @@ if (typeof window !== 'undefined') {
   z-index: 10;
 }
 
-.menu > button {
-  width: 100%;
-  text-align: left;
-  background: transparent;
-  color: var(--fg);
-  border: 0;
-  padding: .6rem .75rem;
-  cursor: pointer;
-  border-radius: 8px;
-}
-
-.menu > button:hover {
-  background: color-mix(in oklab, var(--card) 85%, var(--link) 15%);
-}
-
 .menu-header {
   padding: .6rem .75rem;
   color: var(--muted);
   border-bottom: 1px solid var(--border);
   margin-bottom: .25rem;
-}
-
-.menu-entry {
-  display: block;
-  width: 100%;
-  text-align: left;
-  padding: .6rem .75rem;
-  color: var(--fg);
-  text-decoration: none;
 }
 </style>

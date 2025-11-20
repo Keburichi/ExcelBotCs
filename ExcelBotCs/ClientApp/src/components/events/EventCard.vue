@@ -1,4 +1,4 @@
-<script setup lang="ts">
+<script lang="ts" setup>
 import type { FCEvent } from '@/features/events/events.types'
 import type { Fight } from '@/features/fights/fights.types'
 import { computed, onMounted, ref } from 'vue'
@@ -115,8 +115,8 @@ onMounted(async () => {
   <EventSignupDialog v-model="isOpen" :event="fcEventValue" @update:model-value="handleSignupDialogClose" />
 
   <EventOrganizationDialog
-    v-model:is-open="isOrganizationOpen"
     v-model:fc-event="fcEventValue"
+    v-model:is-open="isOrganizationOpen"
     @event-planned="handleSignupDialogClose(false)"
   />
 
@@ -126,7 +126,7 @@ onMounted(async () => {
     </template>
     <template #actions>
       <BaseButton title="Cancel" @clicked="isDeleteOpen = false" />
-      <BaseButton title="Yes, delete this!" state="danger" @clicked="emit('deleteEvent', fcEventValue)" />
+      <BaseButton state="danger" title="Yes, delete this!" @clicked="emit('deleteEvent', fcEventValue)" />
     </template>
   </BaseModal>
 
@@ -148,13 +148,12 @@ onMounted(async () => {
         </span>
         <span v-if="associatedFight" class="fight-info">
           <strong>Fight:</strong>
-          <button
-            :title="`View ${associatedFight.Name} resources`"
-            class="fight-link"
-            @click="openFightResources"
-          >
-            {{ associatedFight.Name }}
-          </button>
+          <BaseButton
+            :title="associatedFight.Name"
+            :tooltip="`View ${associatedFight.Name} resources`"
+            variant="text"
+            @clicked="openFightResources"
+          />
         </span>
       </div>
       <div class="event-datetime">
@@ -170,19 +169,28 @@ onMounted(async () => {
       <p>Organized by: {{ fcEventValue.Organizer }}</p>
       <div class="actions">
         <BaseButton
-          :title="`Sign up (${getSignUpNumber(fcEventValue)})`"
           :disabled="!props.isMember || !fcEventValue.AvailableForSignup"
-          tooltip="Sign up for this event"
+          :title="`Sign up (${getSignUpNumber(fcEventValue)})`"
           size="small"
+          tooltip="Sign up for this event"
           @clicked="isOpen = true"
         />
-        <BaseButton v-if="props.isAdmin && fcEventValue.AvailableForSignup" title="Select Participants" size="small" state="secondary" @clicked="isOrganizationOpen = true" />
-        <BaseButton v-if="props.isAdmin && !fcEventValue.AvailableForSignup" title="Conclude Event" size="small" tooltip="Conclude Event" />
-        <BaseButton v-if="props.isAdmin" title="Delete" size="small" state="danger" @clicked="isDeleteOpen = true" />
+        <BaseButton
+          v-if="props.isAdmin && fcEventValue.AvailableForSignup" size="small" state="secondary"
+          title="Select Participants" @clicked="isOrganizationOpen = true"
+        />
+        <BaseButton
+          v-if="props.isAdmin && !fcEventValue.AvailableForSignup" size="small" title="Conclude Event"
+          tooltip="Conclude Event"
+        />
+        <BaseButton v-if="props.isAdmin" size="small" state="danger" title="Delete" @clicked="isDeleteOpen = true" />
       </div>
     </template>
     <template #actions>
-      <BaseButton v-if="props.isAdmin" title="Edit" size="medium" tooltip="Edit event" @clicked="emit('startEdit', fcEventValue)" />
+      <BaseButton
+        v-if="props.isAdmin" size="medium" title="Edit" tooltip="Edit event"
+        @clicked="emit('startEdit', fcEventValue)"
+      />
     </template>
   </BaseCard>
 
@@ -275,29 +283,6 @@ onMounted(async () => {
 .fight-info strong {
   color: var(--muted, #666);
   font-weight: 500;
-}
-
-.fight-link {
-  background: none;
-  border: none;
-  padding: 0;
-  font: inherit;
-  color: var(--link, #2563eb);
-  cursor: pointer;
-  text-decoration: none;
-  transition: all 0.2s;
-  font-weight: 500;
-}
-
-.fight-link:hover {
-  text-decoration: underline;
-  color: var(--link-hover, #1d4ed8);
-}
-
-.fight-link:focus {
-  outline: 2px solid var(--link, #2563eb);
-  outline-offset: 2px;
-  border-radius: 2px;
 }
 
 .event-datetime {

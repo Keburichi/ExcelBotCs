@@ -11,6 +11,8 @@ const props = withDefaults(defineProps<{
   variant?: 'elevated' | 'outlined' | 'text'
   clickable?: boolean
   tooltip?: string
+  iconOnly?: boolean
+  rounded?: boolean
 }>(), {
   state: 'primary',
   disabled: false,
@@ -18,12 +20,14 @@ const props = withDefaults(defineProps<{
   variant: 'elevated',
   clickable: true,
   size: 'medium',
+  iconOnly: false,
+  rounded: false,
 })
 
 const emit = defineEmits<{ (e: 'clicked'): void }>()
 
 // Base button classes
-const baseClasses = 'inline-flex items-center justify-center font-semibold rounded-lg transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2'
+const baseClasses = 'inline-flex items-center justify-center font-semibold transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2'
 
 // Size variants
 const sizeClasses = computed(() => {
@@ -77,6 +81,16 @@ const clickableClasses = computed(() =>
   props.clickable === false ? 'cursor-default' : '',
 )
 
+// Icon only class
+const iconOnlyClasses = computed(() =>
+  props.iconOnly ? '!p-0 w-8 h-8' : '',
+)
+
+// Rounded class
+const roundedClasses = computed(() =>
+  props.rounded ? 'rounded-full' : 'rounded-lg',
+)
+
 // Icon positioning
 const iconOrderClass = computed(() =>
   props.iconPosition === 'right' ? 'flex-row-reverse' : '',
@@ -89,6 +103,8 @@ const buttonClasses = computed(() => [
   stateVariantClasses.value,
   disabledClasses.value,
   clickableClasses.value,
+  iconOnlyClasses.value,
+  roundedClasses.value,
   iconOrderClass.value,
 ])
 </script>
@@ -101,10 +117,12 @@ const buttonClasses = computed(() => [
     :data-tooltip="props.tooltip"
     @click="emit('clicked')"
   >
-    <span v-if="props.icon" class="flex items-center">
-      {{ props.icon }}
-    </span>
-    <span>{{ props.title }}</span>
+    <slot name="icon">
+      <span v-if="props.icon" class="flex items-center">
+        {{ props.icon }}
+      </span>
+    </slot>
+    <span v-if="!props.iconOnly">{{ props.title }}</span>
   </button>
 </template>
 

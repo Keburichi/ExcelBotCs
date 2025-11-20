@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { onMounted, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
+import BaseButton from '@/components/BaseButton.vue'
 import { useAuth } from '@/composables/useAuth'
 
 const route = useRoute()
@@ -58,16 +59,12 @@ async function proceed() {
 
       <div v-if="authorized">
         <p>You are already signed in.</p>
-        <button class="btn" @click="proceed">
-          Continue
-        </button>
+        <BaseButton title="Continue" @clicked="proceed" />
       </div>
 
       <div v-else>
         <p>Please sign in to continue.</p>
-        <button class="btn" @click="doLogin">
-          Login with Discord
-        </button>
+        <BaseButton title="Login with Discord" @clicked="doLogin" />
       </div>
     </template>
   </section>
@@ -84,12 +81,5 @@ async function proceed() {
 
 .error {
   color: rgb(var(--color-danger));
-}
-
-.btn {
-  padding-left: 1rem;
-  padding-right: 1rem;
-  padding-top: 0.5rem;
-  padding-bottom: 0.5rem;
 }
 </style>
