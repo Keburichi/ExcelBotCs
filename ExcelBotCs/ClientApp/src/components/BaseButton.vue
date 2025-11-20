@@ -1,9 +1,9 @@
-<script setup lang="ts">
+<script lang="ts" setup>
 import { computed } from 'vue'
 
 const props = withDefaults(defineProps<{
   state?: 'primary' | 'secondary' | 'tertiary' | 'danger' | 'pressed'
-  title: string
+  title?: string
   disabled?: boolean
   icon?: string
   iconPosition?: 'left' | 'right'
@@ -15,6 +15,7 @@ const props = withDefaults(defineProps<{
   rounded?: boolean
 }>(), {
   state: 'primary',
+  title: '',
   disabled: false,
   iconPosition: 'left',
   variant: 'elevated',
@@ -111,10 +112,11 @@ const buttonClasses = computed(() => [
 
 <template>
   <button
-    type="button"
+    :aria-label="props.iconOnly ? (props.tooltip || props.title) : undefined"
     :class="buttonClasses"
-    :disabled="disabled"
     :data-tooltip="props.tooltip"
+    :disabled="disabled"
+    type="button"
     @click="emit('clicked')"
   >
     <slot name="icon">

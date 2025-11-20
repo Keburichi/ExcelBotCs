@@ -1,46 +1,8 @@
 <script setup lang="ts">
-import { ref } from 'vue'
 import BaseButton from '@/components/BaseButton.vue'
+import { useTheme } from '@/composables/useTheme'
 
-const storageKey = 'theme'
-
-type Theme = 'light' | 'dark'
-
-function getSystemTheme(): Theme {
-  if (typeof window === 'undefined')
-    return 'light'
-  return window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'
-}
-
-function getCurrentTheme(): Theme {
-  if (typeof document === 'undefined')
-    return 'light'
-  const ds = document.documentElement.dataset.theme as Theme | undefined
-  return ds ?? getSystemTheme()
-}
-
-function applyTheme(next: Theme) {
-  if (typeof document === 'undefined')
-    return
-  document.documentElement.setAttribute('data-theme', next)
-}
-
-function saveTheme(next: Theme) {
-  try {
-    localStorage.setItem(storageKey, next)
-  }
-  catch {
-  }
-}
-
-const isDark = ref(getCurrentTheme() === 'dark')
-
-function toggle() {
-  const next: Theme = isDark.value ? 'light' : 'dark'
-  applyTheme(next)
-  saveTheme(next)
-  isDark.value = !isDark.value
-}
+const { isDark, toggleTheme } = useTheme()
 </script>
 
 <template>
@@ -52,7 +14,7 @@ function toggle() {
     size="small"
     state="secondary"
     variant="outlined"
-    @clicked="toggle"
+    @clicked="toggleTheme"
   >
     <template #icon>
       <svg

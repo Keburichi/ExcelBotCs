@@ -59,6 +59,7 @@ export function useAuth() {
   const user = computed(() => me.value)
   const isAdmin = computed(() => me.value?.IsAdmin)
   const isMember = computed(() => me.value?.IsMember)
+  const isDeveloper = computed(() => me.value?.IsDeveloper)
 
-  return { authorized, user, isAdmin, isMember, loadMe, ensureAuth, login, logout }
+  return { authorized, user, isAdmin, isMember, isDeveloper, loadMe, ensureAuth, login, logout }
 }

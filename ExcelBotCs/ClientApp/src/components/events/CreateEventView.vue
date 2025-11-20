@@ -1,17 +1,20 @@
 <script setup lang="ts">
 import type { FCEvent } from '@/features/events/events.types'
 import type { Fight } from '@/features/fights/fights.types'
+import type { RecurrenceConfig } from '@/utils/ical'
 import { computed, onMounted, reactive, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import BaseButton from '@/components/BaseButton.vue'
 import DateTimePicker from '@/components/DateTimePicker.vue'
+import RecurrenceOptions from '@/components/events/RecurrenceOptions.vue'
 import SearchableDropdown from '@/components/SearchableDropdown.vue'
 import { useAuth } from '@/composables/useAuth'
 import { EventsApi } from '@/features/events/events.api'
-import { EventType } from '@/features/events/events.types'
+import { EventType, SignupType } from '@/features/events/events.types'
 import { FightsApi } from '@/features/fights/fights.api'
 import { fightTypeToString } from '@/features/fights/fights.types'
 import mapsPlaceholder from '@/static/img/maps-placeholder.png'
+import { generateICalString, parseICalString } from '@/utils/ical'
 
 const router = useRouter()
 const route = useRoute()
@@ -54,11 +57,39 @@ const form = reactive<FCEvent>({
   FightId: undefined,
   Organizer: '', // will be filled from current user on submit, server sets Author,
   StartDate: new Date(),
+  EndDate: new Date(),
   Duration: 0,
+  ICalString: '',
   MaxNumberOfParticipants: 8,
   Signups: [],
   Participants: [],
   AvailableForSignup: false,
+})
+
+// Recurrence configuration
+const recurrence = ref<RecurrenceConfig>({
+  enabled: false,
+  frequency: 'WEEKLY',
+  interval: 1,
+  endType: 'never',
+  byWeekday: [],
+})
+
+// Signup type configuration
+const signupType = ref<SignupType>(SignupType.SingleEvent)
+
+// Watch recurrence.enabled and set appropriate default signup type
+watch(() => recurrence.value.enabled, (enabled) => {
+  if (enabled) {
+    // When enabling recurrence, default to IndependentSignups
+    if (signupType.value === SignupType.SingleEvent) {
+      signupType.value = SignupType.IndependentSignups
+    }
+  }
+  else {
+    // When disabling recurrence, always set to SingleEvent
+    signupType.value = SignupType.SingleEvent
+  }
 })
 
 // Function to set party preset and update max participants
@@ -162,6 +193,17 @@ onMounted(async () => {
         if (eventData.FightId) {
           selectedFight.value = fights.value.find(f => f.Id === eventData.FightId) || null
         }
+        // Parse recurrence configuration from iCal string
+        if (eventData.ICalString) {
+          const parsedRecurrence = parseICalString(eventData.ICalString)
+          if (parsedRecurrence) {
+            recurrence.value = parsedRecurrence
+          }
+        }
+        // Set signup type from event data
+        if (eventData.SignupType !== undefined) {
+          signupType.value = eventData.SignupType
+        }
       }
     }
     catch (e: any) {
@@ -229,6 +271,12 @@ async function submit() {
     if (form.PictureUrl) {
       form.PictureUrl = toAbsoluteUrl(form.PictureUrl)
     }
+
+    // Set signup type
+    form.SignupType = signupType.value
+
+    // Generate iCal string with recurrence configuration
+    form.ICalString = generateICalString(form, recurrence.value)
 
     if (isEditMode.value) {
       await EventsApi.update(form.Id, form)
@@ -308,7 +356,13 @@ function cancel() {
       </div>
       <div class="form-row">
         <label>Duration (minutes)</label>
-        <input v-model.number="form.Duration" type="number" min="0" required placeholder="e.g. 120 for 2 hours">
+        <input
+          v-model.number="form.Duration" inputmode="numeric" min="0" pattern="[0-9]*" placeholder="e.g. 120 for 2 hours"
+          required type="number"
+        >
+      </div>
+      <div class="form-row">
+        <RecurrenceOptions v-model="recurrence" v-model:signup-type="signupType" />
       </div>
       <div class="form-row">
         <label>Max Number of Participants</label>
@@ -357,6 +411,8 @@ function cancel() {
           max="99"
           required
           placeholder="Enter custom value"
+          inputmode="numeric"
+          pattern="[0-9]*"
           :disabled="isInputDisabled"
         >
       </div>

@@ -14,9 +14,9 @@ public class Member : BaseEntity
 
     // Token the user must place in their Lodestone Bio to verify ownership
     public string? LodestoneVerificationToken { get; set; }
-    
-    [BsonIgnore]
-    public List<Fight>? Experience { get; set; }
+
+    [BsonIgnore] public List<Fight>? Experience { get; set; }
+
     public List<string> ExperienceIds { get; set; }
 
     // FFLogs sync tracking
@@ -25,15 +25,20 @@ public class Member : BaseEntity
 
     [BsonIgnore] public List<MemberRole> Roles { get; set; } = new();
     public List<string> RoleIds { get; set; }
-    
+
     public bool? IsAdmin
     {
         get { return Roles != null && Roles.Any(x => x.IsAdmin); }
     }
-    
+
     public bool? IsMember
     {
         // This is true if the user is an admin or has a member role
         get { return Roles != null && (Roles.Any(x => x.IsMember) || IsAdmin.GetValueOrDefault()); }
+    }
+
+    public bool? IsDeveloper
+    {
+        get { return Roles != null && Roles.Any(x => x.IsDeveloper); }
     }
 }

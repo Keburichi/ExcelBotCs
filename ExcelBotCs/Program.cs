@@ -1,6 +1,9 @@
 using System.Text.Json.Serialization;
 using DotNetEnv;
 using ExcelBotCs;
+using ExcelBotCs.Authorization;
+using ExcelBotCs.Authorization.Handlers;
+using ExcelBotCs.Authorization.Requirements;
 using ExcelBotCs.Data;
 using ExcelBotCs.Discord;
 using ExcelBotCs.Extensions;
@@ -15,9 +18,11 @@ using ExcelBotCs.Services.Import;
 using ExcelBotCs.Services.Lottery;
 using ExcelBotCs.Services.Lottery.Interfaces;
 using ExcelBotCs.Utilities;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.DataProtection.KeyManagement;
 using Microsoft.Extensions.Options;
+using MongoDB.Driver;
 
 Env.Load();
 
@@ -72,10 +77,10 @@ builder.Services.AddSingleton<LodestoneService>(sp =>
 });
 
 // Register MongoDB client as singleton (shared across all repositories)
-builder.Services.AddSingleton<MongoDB.Driver.IMongoClient>(sp =>
+builder.Services.AddSingleton<IMongoClient>(sp =>
 {
     var dbOptions = sp.GetRequiredService<IOptions<DatabaseOptions>>();
-    return new MongoDB.Driver.MongoClient(dbOptions.Value.ConnectionString);
+    return new MongoClient(dbOptions.Value.ConnectionString);
 });
 
 builder.Services.AddDataProtection().SetApplicationName("ExcelBotCs");
@@ -92,16 +97,16 @@ builder.Services
 // Add services to the container.
 builder.Services.AddAuthorization(options =>
 {
-    options.AddPolicy(ExcelBotCs.Authorization.Policies.Admin,
-        policy => policy.AddRequirements(new ExcelBotCs.Authorization.Requirements.AdminRequirement()));
-    options.AddPolicy(ExcelBotCs.Authorization.Policies.Member,
-        policy => policy.AddRequirements(new ExcelBotCs.Authorization.Requirements.MemberRequirement()));
+    options.AddPolicy(Policies.Admin,
+        policy => policy.AddRequirements(new AdminRequirement()));
+    options.AddPolicy(Policies.Member,
+        policy => policy.AddRequirements(new MemberRequirement()));
 });
 
 // Custom authorization handlers
 // Handlers depend on ICurrentMemberAccessor (scoped), so they must not be singletons
-builder.Services.AddScoped<Microsoft.AspNetCore.Authorization.IAuthorizationHandler, ExcelBotCs.Authorization.Handlers.AdminAuthorizationHandler>();
-builder.Services.AddScoped<Microsoft.AspNetCore.Authorization.IAuthorizationHandler, ExcelBotCs.Authorization.Handlers.MemberAuthorizationHandler>();
+builder.Services.AddScoped<IAuthorizationHandler, AdminAuthorizationHandler>();
+builder.Services.AddScoped<IAuthorizationHandler, MemberAuthorizationHandler>();
 
 // configure serialization to omit null values
 builder.Services.ConfigureHttpJsonOptions(options =>
@@ -125,6 +130,7 @@ builder.Services.AddScoped<ICurrentMemberAccessor, CurrentMemberAccessor>();
 // register all custom services, repositories and mappers
 builder.Services.AddDatabaseRepositories();
 builder.Services.AddApiServices();
+builder.Services.AddDomainServices();
 builder.Services.AddDiscordClient();
 builder.Services.AddFFLogsServices();
 AddHostedService<WorkerService>();

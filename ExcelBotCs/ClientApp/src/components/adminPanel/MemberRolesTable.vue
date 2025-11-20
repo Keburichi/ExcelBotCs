@@ -1,4 +1,4 @@
-<script setup lang="ts">
+<script lang="ts" setup>
 import type { MemberRole } from '@/features/members/members.types'
 import BaseButton from '@/components/BaseButton.vue'
 
@@ -22,6 +22,7 @@ const emit = defineEmits<{
         <th>Name</th>
         <th>Is Admin</th>
         <th>Is Member</th>
+        <th>Is Developer</th>
         <th>Discord Id</th>
       </tr>
     </thead>
@@ -31,27 +32,50 @@ const emit = defineEmits<{
           <td>{{ role.Name }}</td>
           <td><input v-model="props.memberRoleEditBuffer.IsAdmin" type="checkbox"></td>
           <td><input v-model="props.memberRoleEditBuffer.IsMember" type="checkbox"></td>
+          <td><input v-model="props.memberRoleEditBuffer.IsDeveloper" type="checkbox"></td>
           <td><input v-model="props.memberRoleEditBuffer.DiscordId" type="text"></td>
           <BaseButton
-            title="Save"
             size="small"
+            title="Save"
             @clicked="emit('save-role-edit', role)"
           />
           <BaseButton
-            title="Cancel"
             size="small"
             state="secondary"
+            title="Cancel"
             @clicked="emit('cancel-role-edit', role)"
           />
         </template>
         <template v-else>
           <td>{{ role.Name }}</td>
-          <td><input v-model="role.IsAdmin" type="checkbox"></td>
-          <td><input v-model="role.IsMember" type="checkbox"></td>
+          <td>
+            <input
+              :checked="role.IsAdmin"
+              aria-disabled="true"
+              disabled
+              type="checkbox"
+            >
+          </td>
+          <td>
+            <input
+              :checked="role.IsMember"
+              aria-disabled="true"
+              disabled
+              type="checkbox"
+            >
+          </td>
+          <td>
+            <input
+              :checked="role.IsDeveloper"
+              aria-disabled="true"
+              disabled
+              type="checkbox"
+            >
+          </td>
           <td>{{ role.DiscordId }}</td>
           <BaseButton
-            title="Edit"
             size="small"
+            title="Edit"
             @clicked="emit('start-role-edit', role)"
           />
         </template>

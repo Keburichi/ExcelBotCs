@@ -12,6 +12,7 @@ import RaidplanDialog from '@/components/fights/RaidplanDialog.vue'
 import { useEvents } from '@/composables/useEvents'
 import { eventTypeToString } from '@/features/events/events.types'
 import { FightsApi } from '@/features/fights/fights.api'
+import { describeRecurrence, isRecurring, parseICalString } from '@/utils/ical'
 
 const props = defineProps<{
   isMember?: boolean
@@ -48,30 +49,75 @@ const associatedFight = computed(() => {
   return fights.value.find(f => f.Id === fcEventValue.value.FightId)
 })
 
-// Format date/time for display
-const localDateTime = computed(() => {
-  const date = new Date(fcEventValue.value.StartDate)
-  return date.toLocaleString(undefined, {
+// Duration and time formatting
+const formattedDuration = computed(() => {
+  const minutes = fcEventValue.value.Duration
+  if (minutes < 60) {
+    return `${minutes} min`
+  }
+  const hours = Math.floor(minutes / 60)
+  const remainingMinutes = minutes % 60
+  if (remainingMinutes === 0) {
+    return `${hours}h`
+  }
+  return `${hours}h ${remainingMinutes}min`
+})
+
+// Compact local time display: "Mon, Jan 15, 2025, 8:00 PM - 10:00 PM (2h)"
+const localTimeRange = computed(() => {
+  const startDate = new Date(fcEventValue.value.StartDate)
+  const endDate = new Date(startDate.getTime() + fcEventValue.value.Duration * 60 * 1000)
+
+  const dateStr = startDate.toLocaleString(undefined, {
     weekday: 'short',
     year: 'numeric',
     month: 'short',
     day: 'numeric',
+  })
+
+  const startTime = startDate.toLocaleString(undefined, {
     hour: '2-digit',
     minute: '2-digit',
   })
+
+  const endTime = endDate.toLocaleString(undefined, {
+    hour: '2-digit',
+    minute: '2-digit',
+  })
+
+  return `${dateStr}, ${startTime} - ${endTime} (${formattedDuration.value})`
 })
 
-const serverDateTime = computed(() => {
-  const date = new Date(fcEventValue.value.StartDate)
-  return date.toLocaleString('en-US', {
-    weekday: 'short',
-    year: 'numeric',
-    month: 'short',
-    day: 'numeric',
+// Compact server time display: "8:00 PM - 10:00 PM (ST)"
+const serverTimeRange = computed(() => {
+  const startDate = new Date(fcEventValue.value.StartDate)
+  const endDate = new Date(startDate.getTime() + fcEventValue.value.Duration * 60 * 1000)
+
+  const startTime = startDate.toLocaleString('en-US', {
     hour: '2-digit',
     minute: '2-digit',
     timeZone: 'UTC',
   })
+
+  const endTime = endDate.toLocaleString('en-US', {
+    hour: '2-digit',
+    minute: '2-digit',
+    timeZone: 'UTC',
+  })
+
+  return `${startTime} - ${endTime} (ST)`
+})
+
+// Recurrence information
+const eventIsRecurring = computed(() => {
+  return fcEventValue.value.ICalString && isRecurring(fcEventValue.value.ICalString)
+})
+
+const recurrenceDescription = computed(() => {
+  if (!eventIsRecurring.value)
+    return ''
+  const config = parseICalString(fcEventValue.value.ICalString)
+  return config ? describeRecurrence(config, fcEventValue.value.ICalString) : ''
 })
 
 // Handle EventSignupDialog close - fetch updated event data
@@ -159,12 +205,16 @@ onMounted(async () => {
       <div class="event-datetime">
         <div class="datetime-row">
           <span class="datetime-label">Local Time:</span>
-          <span class="datetime-value">{{ localDateTime }}</span>
+          <span class="datetime-value">{{ localTimeRange }}</span>
         </div>
         <div class="datetime-row">
           <span class="datetime-label">Server Time:</span>
-          <span class="datetime-value">{{ serverDateTime }} (ST)</span>
+          <span class="datetime-value">{{ serverTimeRange }}</span>
         </div>
+      </div>
+      <div v-if="eventIsRecurring" class="recurrence-info">
+        <span class="recurrence-icon">🔄</span>
+        <span class="recurrence-text">{{ recurrenceDescription }}</span>
       </div>
       <p>Organized by: {{ fcEventValue.Organizer }}</p>
       <div class="actions">
@@ -204,6 +254,11 @@ onMounted(async () => {
 </template>
 
 <style scoped>
+.card__image {
+  /* zoom in on the image since the fight images have a small white gradient */
+  transform: scale(1.1);
+}
+
 .event-metadata {
   display: flex;
   flex-wrap: wrap;
@@ -314,5 +369,28 @@ onMounted(async () => {
   font-size: 0.95rem;
   color: var(--fg, #333);
   font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}
+
+.recurrence-info {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 12px;
+  padding: 10px 12px;
+  background: var(--muted-bg, #f9f9f9);
+  border-radius: 8px;
+  border: 1px solid var(--border, #e0e0e0);
+}
+
+.recurrence-icon {
+  font-size: 1.2rem;
+  flex-shrink: 0;
+}
+
+.recurrence-text {
+  font-size: 0.9rem;
+  font-weight: 500;
+  color: var(--fg, #333);
+  font-style: italic;
 }
 </style>

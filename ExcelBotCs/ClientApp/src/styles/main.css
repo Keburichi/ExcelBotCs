@@ -628,15 +628,19 @@ tr:hover td {
     border: 1px solid var(--card-border);
     border-radius: 8px;
     font-size: 13px;
-    white-space: nowrap;
     opacity: 0;
     pointer-events: none;
     transition: opacity 0.2s ease, transform 0.2s ease;
     box-shadow: var(--elev);
     z-index: 1001;
-    max-width: 300px;
-    white-space: normal;
-    text-align: center;
+    /* Make tooltips wider by default while preventing them from becoming too wide */
+    width: max-content; /* expand to fit content nicely */
+    min-width: 16ch; /* ensure a comfortable minimum width */
+    max-width: 42ch; /* cap the width for readability (about ~42 characters) */
+    white-space: normal; /* allow wrapping when needed */
+    overflow-wrap: break-word; /* break long words if necessary */
+    text-align: left; /* left-align text for easier reading */
+    box-sizing: border-box;
     line-height: 1.4;
 }
 

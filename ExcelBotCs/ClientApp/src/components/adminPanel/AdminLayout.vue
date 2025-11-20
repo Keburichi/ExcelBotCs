@@ -1,14 +1,25 @@
 <script lang="ts" setup>
 import type { Tab } from '@/components/TabNavigation.vue'
+import { computed } from 'vue'
 import TabNavigation from '@/components/TabNavigation.vue'
+import { useAuth } from '@/composables/useAuth'
 
-const tabs: Tab[] = [
-  { name: 'Members', path: '/admin/members' },
-  { name: 'Roles', path: '/admin/roles' },
-  { name: 'Statistics', path: '/admin/statistics' },
-  { name: 'Settings', path: '/admin/settings' },
-  { name: 'Dev Resources', path: '/admin/dev-resources' },
-]
+const { isDeveloper } = useAuth()
+
+const tabs = computed<Tab[]>(() => {
+  const base: Tab[] = [
+    { name: 'Members', path: '/admin/members' },
+    { name: 'Roles', path: '/admin/roles' },
+    { name: 'Statistics', path: '/admin/statistics' },
+    { name: 'Settings', path: '/admin/settings' },
+  ]
+
+  if (isDeveloper?.value) {
+    base.push({ name: 'Dev Resources', path: '/admin/dev-resources' })
+  }
+
+  return base
+})
 </script>
 
 <template>

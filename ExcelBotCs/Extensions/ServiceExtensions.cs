@@ -2,6 +2,7 @@
 using Discord.WebSocket;
 using ExcelBotCs.Database;
 using ExcelBotCs.Database.Interfaces;
+using ExcelBotCs.Services;
 using ExcelBotCs.Services.API;
 using ExcelBotCs.Services.API.Interfaces;
 using ExcelBotCs.Services.FFLogs;
@@ -31,6 +32,11 @@ public static class ServiceExtensions
         services.AddSingleton<IMemberRoleService, MemberRoleService>();
         services.AddSingleton<ILodestoneDutyService, LodestoneDutyService>();
         services.AddSingleton<IRaidplanService, RaidplanService>();
+    }
+
+    public static void AddDomainServices(this IServiceCollection services)
+    {
+        services.AddSingleton<IICalService, ICalService>();
     }
 
     public static void AddDiscordClient(this IServiceCollection services)

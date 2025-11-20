@@ -4,18 +4,28 @@ namespace ExcelBotCs.Models.Database;
 
 public class Event : BaseEntity
 {
+    // Denormalized fields for efficient querying
     public string Name { get; set; }
     public string Description { get; set; }
+    public EventType Type { get; set; } = EventType.Other;
+    public DateTime StartDate { get; set; } // First occurrence start date
+    public DateTime EndDate { get; set; } // Last occurrence end date (calculated from last occurrence + duration)
+    public int Duration { get; set; } // Duration in minutes
+
+    // iCal source of truth
+    public string ICalString { get; set; }
+
+    // Signup configuration
+    public SignupType SignupType { get; set; } = SignupType.SingleEvent;
+
+    // Legacy/additional fields
     public string DiscordMessageId { get; set; }
     public string? PictureUrl { get; set; }
-    public EventType Type { get; set; } = EventType.Other;
     public string? FightId { get; set; }
     public List<EventParticipant> Participants { get; set; } = [];
     public List<EventUserSignup> Signups { get; set; } = [];
     public string? AuthorId { get; set; }
     public string? Organizer { get; set; }
-    public DateTime StartDate { get; set; }
-    public int Duration { get; set; }
     public int MaxNumberOfParticipants { get; set; }
 
     public bool AvailableForSignup

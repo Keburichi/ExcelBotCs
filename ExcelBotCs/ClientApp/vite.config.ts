@@ -11,6 +11,9 @@ export default defineConfig(({ mode }) => {
   const backend = env.VITE_BACKEND_URL || 'http://localhost:8080'
 
   return {
+    optimizeDeps: {
+      include: ['vue-cal'],
+    },
     plugins: [
       vue(),
       tailwindcss(),

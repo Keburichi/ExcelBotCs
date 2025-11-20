@@ -4,6 +4,7 @@ import AppShell from '@/app/AppShell.vue'
 import { router } from '@/app/router'
 import '@/styles/main.css'
 import '@/styles/cards.css'
+import 'vue-cal/dist/vuecal.css'
 
 // Initialize theme early to avoid FOUC
 (function initTheme() {
