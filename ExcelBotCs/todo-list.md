@@ -19,21 +19,28 @@
 - [ ] Lottery
     - [x] Show current lottery guesses
     - [x] Add new lottery guess
-    - [ ] Edit lottery guess
+  - [x] Edit lottery guess
     - [ ] Show past lottery results
-    - [ ] Run lottery
-    - [ ] Start new lottery
+  - [x] Run lottery
+  - [x] Start new lottery
 - [ ] Events
     - [ ] Calendar view of upcoming events
-    - [ ] Add option to select which type of event this is and which fight is being done (statistics/tracking of min-ilvl/downsynced/academy/BLU/etc)
+  - [x] Add option to select which type of event this is and which fight is being done (statistics/tracking of
+    min-ilvl/downsynced/academy/BLU/etc)
+  - [ ] Add option to have event be reoccurring (Daily, weekly, bi-weekly, for x weeks)
 - [ ] Fights
     - [x] Allow filtering of fights
-    - [ ] Allow searching of fights
-    - [ ] Add resource view for fights
-    - [ ] Add ability to add resources to fights
+  - [x] Allow searching of fights
+  - [x] Add resource view for fights
+  - [x] Add ability to add resources to fights
 - [x] Fetch announcements from the discord server
 - [ ] Implement Anniversary messages for users (discord join date if they are a member)
 - [ ] Save date of last signed up event for each user
 - [ ] Add statistics on which users attend events how often
-- [ ] Add a ranking system for group creation (scale 1-10 with consistency, preparedness, learning speed, previously cleared fights?)
+- [ ] Add a ranking system for group creation (scale 1-10 with consistency, preparedness, learning speed, previously
+  cleared fights?)
 - [ ] Create LFG/LFM section for people to post to/get notified if people are looking for a group for something
+- [ ] Add discord command so users can trigger a sync of their character manually
+- [ ] Add discord command to get resources of a specific fight
+- [ ] Add option/settings to automatically run the lottery on a set schedule
+- 
