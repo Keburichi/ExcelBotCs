@@ -1,21 +1,23 @@
-import type { Member } from '@/features/members/members.types'
-
 export interface Fight {
   Id?: string
   Name: string
   Description: string
   ImageUrl?: string
-  Expansion: string
   Type: FightType
   Raidplans: Raidplan[]
+
+  // FFLogs Integration Fields
+  FFLogsZoneName?: string
+  FFLogsExpansionName?: string
+  IsFrozen?: boolean
 }
 
 export interface Raidplan {
-  Id: string
+  Id?: string
   Name: string
   Description: string
   Url: string
-  Author: Member
+  AuthorId: string
 }
 
 export enum FightType {

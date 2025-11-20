@@ -8,6 +8,7 @@ import BaseModal from '@/components/BaseModal.vue'
 import DiscordMessageRenderer from '@/components/DiscordMessageRenderer.vue'
 import EventOrganizationDialog from '@/components/events/EventOrganizationDialog.vue'
 import EventSignupDialog from '@/components/events/EventSignupDialog.vue'
+import RaidplanDialog from '@/components/fights/RaidplanDialog.vue'
 import { useEvents } from '@/composables/useEvents'
 import { eventTypeToString } from '@/features/events/events.types'
 import { FightsApi } from '@/features/fights/fights.api'
@@ -30,6 +31,7 @@ const fcEventValue = defineModel<FCEvent>('fcEvent', { required: true })
 const isOpen = ref(false)
 const isOrganizationOpen = ref(false)
 const isDeleteOpen = ref(false)
+const isRaidplanDialogOpen = ref(false)
 
 // Fights data for lookup
 const fights = ref<Fight[]>([])
@@ -93,6 +95,11 @@ function getSignUpNumber(fcEvent: FCEvent) {
   return fcEvent.Signups.filter(signup => signup.Roles.length > 0).length
 }
 
+function openFightResources(event: MouseEvent) {
+  event.stopPropagation() // Prevent event card click
+  isRaidplanDialogOpen.value = true
+}
+
 // Load fights on mount for lookup
 onMounted(async () => {
   try {
@@ -140,7 +147,14 @@ onMounted(async () => {
           {{ eventTypeLabel }}
         </span>
         <span v-if="associatedFight" class="fight-info">
-          <strong>Fight:</strong> {{ associatedFight.Name }}
+          <strong>Fight:</strong>
+          <button
+            :title="`View ${associatedFight.Name} resources`"
+            class="fight-link"
+            @click="openFightResources"
+          >
+            {{ associatedFight.Name }}
+          </button>
         </span>
       </div>
       <div class="event-datetime">
@@ -171,6 +185,14 @@ onMounted(async () => {
       <BaseButton v-if="props.isAdmin" title="Edit" size="medium" tooltip="Edit event" @clicked="emit('startEdit', fcEventValue)" />
     </template>
   </BaseCard>
+
+  <!-- Raidplan Dialog -->
+  <RaidplanDialog
+    v-if="associatedFight"
+    v-model:is-open="isRaidplanDialogOpen"
+    :fight="associatedFight"
+    @close="isRaidplanDialogOpen = false"
+  />
 </template>
 
 <style scoped>
@@ -245,12 +267,37 @@ onMounted(async () => {
 .fight-info {
   font-size: 0.9rem;
   color: var(--fg, #333);
+  display: flex;
+  align-items: center;
+  gap: 4px;
 }
 
 .fight-info strong {
   color: var(--muted, #666);
   font-weight: 500;
-  margin-right: 4px;
+}
+
+.fight-link {
+  background: none;
+  border: none;
+  padding: 0;
+  font: inherit;
+  color: var(--link, #2563eb);
+  cursor: pointer;
+  text-decoration: none;
+  transition: all 0.2s;
+  font-weight: 500;
+}
+
+.fight-link:hover {
+  text-decoration: underline;
+  color: var(--link-hover, #1d4ed8);
+}
+
+.fight-link:focus {
+  outline: 2px solid var(--link, #2563eb);
+  outline-offset: 2px;
+  border-radius: 2px;
 }
 
 .event-datetime {

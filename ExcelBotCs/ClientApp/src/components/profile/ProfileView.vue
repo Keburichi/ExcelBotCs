@@ -1,6 +1,8 @@
-<script setup lang="ts">
+<script lang="ts" setup>
 import type { Member } from '@/features/members/members.types'
 import { computed, onMounted, reactive, ref, watch } from 'vue'
+import BaseButton from '@/components/BaseButton.vue'
+import ExperienceTags from '@/components/members/ExperienceTags.vue'
 import { useAuth } from '@/composables/useAuth'
 import { MembersApi } from '@/features/members/members.api'
 
@@ -36,6 +38,8 @@ function hydrateForm() {
 const avatarUrl = computed(() => auth.user.value?.DiscordAvatar || '')
 const displayName = computed(() => auth.user.value?.PlayerName || auth.user.value?.DiscordName || 'My Profile')
 const verificationToken = computed(() => auth.user.value?.LodestoneVerificationToken || '')
+const hasLodestone = computed(() => !!auth.user.value?.LodestoneId)
+const experience = computed(() => auth.user.value?.Experience || [])
 
 function startEdit() {
   editMode.value = true
@@ -140,12 +144,19 @@ async function verifyClaim() {
         </div>
       </div>
       <div class="profile__actions">
-        <button v-if="!editMode" class="btn" @click="startEdit">
-          Edit Profile
-        </button>
-        <button v-else class="btn ghost" @click="cancelEdit">
-          Cancel
-        </button>
+        <BaseButton
+          v-if="!editMode"
+          state="primary"
+          title="Edit Profile"
+          @clicked="startEdit"
+        />
+        <BaseButton
+          v-else
+          state="secondary"
+          title="Cancel"
+          variant="outlined"
+          @clicked="cancelEdit"
+        />
       </div>
     </div>
 
@@ -167,7 +178,7 @@ async function verifyClaim() {
           </div>
         </div>
 
-        <div class="kv-row" :class="{ editable: editMode }">
+        <div :class="{ editable: editMode }" class="kv-row">
           <label for="playerName">Player Name</label>
           <template v-if="editMode">
             <input id="playerName" v-model="form.PlayerName" placeholder="Your in-game name">
@@ -177,7 +188,7 @@ async function verifyClaim() {
           </div>
         </div>
 
-        <div class="kv-row" :class="{ editable: editMode }">
+        <div :class="{ editable: editMode }" class="kv-row">
           <label for="lodestoneId">Lodestone ID</label>
           <template v-if="editMode">
             <input id="lodestoneId" v-model="form.LodestoneId" placeholder="Character ID or Lodestone URL">
@@ -200,19 +211,24 @@ async function verifyClaim() {
               </div>
             </div>
             <div class="form-actions">
-              <button class="btn secondary" :disabled="tokenLoading" @click="generateVerificationToken">
-                <span v-if="tokenLoading">Generating...</span>
-                <span v-else>Generate message</span>
-              </button>
-              <button class="btn primary" :disabled="verifying || !form.LodestoneId" @click="verifyClaim">
-                <span v-if="verifying">Verifying...</span>
-                <span v-else>Verify now</span>
-              </button>
+              <BaseButton
+                :disabled="tokenLoading"
+                :title="tokenLoading ? 'Generating...' : 'Generate message'"
+                state="secondary"
+                variant="outlined"
+                @clicked="generateVerificationToken"
+              />
+              <BaseButton
+                :disabled="verifying || !form.LodestoneId"
+                :title="verifying ? 'Verifying...' : 'Verify now'"
+                state="primary"
+                @clicked="verifyClaim"
+              />
             </div>
           </div>
         </div>
 
-        <div class="kv-row" :class="{ editable: editMode }">
+        <div :class="{ editable: editMode }" class="kv-row">
           <label>Subbed</label>
           <template v-if="editMode">
             <label class="switch">
@@ -221,16 +237,36 @@ async function verifyClaim() {
             </label>
           </template>
           <div v-else class="kv-value">
-            <span class="pill" :class="[auth.user.value?.Subbed ? 'on' : 'off']">{{ auth.user.value?.Subbed ? 'Yes' : 'No' }}</span>
+            <span
+              :class="[auth.user.value?.Subbed ? 'on' : 'off']"
+              class="pill"
+            >{{ auth.user.value?.Subbed ? 'Yes' : 'No' }}</span>
           </div>
         </div>
 
         <div v-if="editMode" class="form-actions">
-          <button class="btn primary" :disabled="saving" @click="save">
-            <span v-if="saving">Saving...</span>
-            <span v-else>Save Changes</span>
-          </button>
+          <BaseButton
+            :disabled="saving"
+            :title="saving ? 'Saving...' : 'Save Changes'"
+            state="primary"
+            @clicked="save"
+          />
         </div>
+      </div>
+
+      <div class="card">
+        <h2>Experience</h2>
+        <template v-if="hasLodestone">
+          <ExperienceTags :experience="experience" />
+          <p v-if="!experience.length" class="muted">
+            No experience recorded yet.
+          </p>
+        </template>
+        <template v-else>
+          <p class="muted">
+            Connect your Lodestone to see your in-game experience here.
+          </p>
+        </template>
       </div>
 
       <div class="card">

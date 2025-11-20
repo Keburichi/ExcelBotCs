@@ -1,6 +1,8 @@
 <script setup lang="ts">
 import type { Fight } from '@/features/fights/fights.types'
+import { ref } from 'vue'
 import BaseCard from '@/components/BaseCard.vue'
+import RaidplanDialog from '@/components/fights/RaidplanDialog.vue'
 import { fightTypeToString } from '@/features/fights/fights.types'
 
 const props = defineProps<{
@@ -8,15 +10,21 @@ const props = defineProps<{
   isMember?: boolean
 }>()
 
+const showRaidplanDialog = ref(false)
+
 function cardClick(fight: Fight) {
-  alert(fight.Name)
+  showRaidplanDialog.value = true
 }
 </script>
 
 <template>
   <BaseCard :title="props.fight.Name" variant="outlined" :clickable="true" @click="cardClick(props.fight)">
     <template #body>
-      <p>{{ props.fight.Description }}</p>
+      <div class="fight-info">
+        <p class="fight-description">
+          {{ props.fight.Description }}
+        </p>
+      </div>
     </template>
     <template #image>
       <img
@@ -26,12 +34,120 @@ function cardClick(fight: Fight) {
       <div v-else class="card__image card__image--placeholder" :title="`No image available for ${props.fight.Name}`" />
     </template>
     <template #footer>
-      <p>Difficulty: {{ fightTypeToString(props.fight.Type) }}</p>
+      <div class="fight-metadata">
+        <span
+          :class="`difficulty-${fightTypeToString(props.fight.Type).toLowerCase()}`"
+          class="fight-badge difficulty-badge"
+        >
+          {{ fightTypeToString(props.fight.Type) }}
+        </span>
+        <span v-if="props.fight.FFLogsExpansionName" class="fight-badge expansion-badge">
+          {{ props.fight.FFLogsExpansionName }}
+        </span>
+        <span v-if="props.fight.FFLogsZoneName" class="fight-badge zone-badge">
+          {{ props.fight.FFLogsZoneName }}
+        </span>
+      </div>
     </template>
   </BaseCard>
+
+  <!-- Raidplan Dialog -->
+  <RaidplanDialog
+    v-model:is-open="showRaidplanDialog"
+    :fight="props.fight"
+    @close="showRaidplanDialog = false"
+  />
 </template>
 
 <style scoped>
+/* Override BaseCard title styling for fights */
+.card :deep(.card__title) {
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: var(--fg);
+  margin-bottom: 0.75rem;
+  line-height: 1.3;
+}
+
+.card :deep(.card__header) {
+  padding-bottom: 0.5rem;
+  border-bottom: 2px solid var(--border);
+  margin-bottom: 1rem;
+}
+
+.fight-info {
+  display: flex;
+  flex-direction: column;
+}
+
+.fight-description {
+  color: var(--muted);
+  line-height: 1.6;
+  font-size: 0.95rem;
+  font-weight: 400;
+}
+
+.fight-metadata {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+}
+
+.fight-badge {
+  display: inline-block;
+  padding: 4px 12px;
+  border-radius: 12px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  white-space: nowrap;
+}
+
+/* Difficulty badges */
+.difficulty-badge.difficulty-normal {
+  background: #e3f2fd;
+  color: #1565c0;
+}
+
+.difficulty-badge.difficulty-extreme {
+  background: #f3e5f5;
+  color: #7b1fa2;
+}
+
+.difficulty-badge.difficulty-savage {
+  background: #ffebee;
+  color: #c62828;
+}
+
+.difficulty-badge.difficulty-legacysavage {
+  background: #fce4ec;
+  color: #c2185b;
+}
+
+.difficulty-badge.difficulty-ultimate {
+  background: #fff3e0;
+  color: #e65100;
+}
+
+.difficulty-badge.difficulty-chaotic {
+  background: #ede7f6;
+  color: #4527a0;
+}
+
+/* Expansion badge */
+.expansion-badge {
+  background: #e8f5e9;
+  color: #2e7d32;
+}
+
+/* Zone badge */
+.zone-badge {
+  background: #e0f2f1;
+  color: #00695c;
+}
+
 .card__image--placeholder {
   display: flex;
   align-items: center;

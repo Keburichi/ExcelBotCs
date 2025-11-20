@@ -1,10 +1,7 @@
-﻿using System.Reflection;
-using Discord;
+﻿using Discord;
 using Discord.WebSocket;
 using ExcelBotCs.Database;
 using ExcelBotCs.Database.Interfaces;
-using ExcelBotCs.Mappers;
-using ExcelBotCs.Models.Database;
 using ExcelBotCs.Services.API;
 using ExcelBotCs.Services.API.Interfaces;
 using ExcelBotCs.Services.FFLogs;
@@ -22,6 +19,7 @@ public static class ServiceExtensions
         services.AddSingleton<IMemberRoleRepository, MemberRoleRepository>();
         services.AddSingleton<IFFLogsImportLogRepository, FFLogsImportLogRepository>();
         services.AddSingleton<ILodestoneDutyRepository, LodestoneDutyRepository>();
+        services.AddSingleton<IRaidplanRepository, RaidplanRepository>();
     }
 
     public static void AddApiServices(this IServiceCollection services)
@@ -32,6 +30,7 @@ public static class ServiceExtensions
         services.AddSingleton<IMemberService, MemberService>();
         services.AddSingleton<IMemberRoleService, MemberRoleService>();
         services.AddSingleton<ILodestoneDutyService, LodestoneDutyService>();
+        services.AddSingleton<IRaidplanService, RaidplanService>();
     }
 
     public static void AddDiscordClient(this IServiceCollection services)

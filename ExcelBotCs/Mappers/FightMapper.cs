@@ -14,8 +14,10 @@ public static class FightMapper
             Description = fight.Description,
             ImageUrl = fight.ImageUrl,
             Type = fight.Type,
-            Raidplans = fight.Raidplans,
+            Raidplans = fight.Raidplans?.Select(RaidplanMapper.ToDto).ToList(),
             FFLogsExpansionName = fight.FFLogsExpansionName,
+            FFLogsZoneName = fight.FFLogsZoneName,
+            IsFrozen = fight.IsFrozen
         };
     }
 
@@ -28,8 +30,10 @@ public static class FightMapper
             Description = fight.Description,
             ImageUrl = fight.ImageUrl,
             Type = fight.Type,
-            Raidplans = fight.Raidplans,
+            Raidplans = fight.Raidplans?.Select(RaidplanMapper.ToEntity).ToList(),
             FFLogsExpansionName = fight.FFLogsExpansionName,
+            FFLogsZoneName = fight.FFLogsZoneName,
+            IsFrozen = fight.IsFrozen
         };
     }
 }

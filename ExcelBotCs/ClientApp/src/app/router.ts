@@ -2,7 +2,11 @@ import type { RouteRecordRaw } from 'vue-router'
 import { createRouter, createWebHistory } from 'vue-router'
 import ButtonShowcaseView from '@/app/ButtonShowcaseView.vue'
 import HomeView from '@/app/HomeView.vue'
-import AdminView from '@/components/adminPanel/AdminView.vue'
+import AdminLayout from '@/components/adminPanel/AdminLayout.vue'
+import DevResourcesView from '@/components/adminPanel/DevResourcesView.vue'
+import MemberRolesView from '@/components/adminPanel/MemberRolesView.vue'
+import SettingsView from '@/components/adminPanel/SettingsView.vue'
+import StatisticsView from '@/components/adminPanel/StatisticsView.vue'
 import LoginView from '@/components/auth/LoginView.vue'
 import CreateEventView from '@/components/events/CreateEventView.vue'
 import EventsListView from '@/components/events/EventsListView.vue'
@@ -49,10 +53,20 @@ const routes: RouteRecordRaw[] = [
   { path: '/lottery', name: 'lottery', component: LotteryView, meta: { requiresAuth: true } },
   { path: '/lottery/new', name: 'lottery-create', component: ProfileView, meta: { requiresAuth: true } },
 
-  // Admin routes
-  { path: '/admin', name: 'admin', component: AdminView, meta: { requiresAuth: true, requiresAdmin: true } },
-  { path: '/admin/roles', name: 'admin-roles', component: AdminView, meta: { requiresAuth: true, requiresAdmin: true } },
-  { path: '/admin/members', name: 'admin-members', component: MembersListView, meta: { requiresAuth: true, requiresAdmin: true } },
+  // Admin routes - nested under AdminLayout
+  {
+    path: '/admin',
+    component: AdminLayout,
+    meta: { requiresAuth: true, requiresAdmin: true },
+    children: [
+      { path: '', redirect: '/admin/members' },
+      { path: 'members', name: 'admin-members', component: MembersListView },
+      { path: 'roles', name: 'admin-roles', component: MemberRolesView },
+      { path: 'statistics', name: 'admin-statistics', component: StatisticsView },
+      { path: 'settings', name: 'admin-settings', component: SettingsView },
+      { path: 'dev-resources', name: 'admin-dev-resources', component: DevResourcesView },
+    ],
+  },
 
   // Redirect everything unknown to NotFound
   { path: '/:pathMatch(.*)*', name: 'not-found', component: () => import('@/app/NotFound.vue') },

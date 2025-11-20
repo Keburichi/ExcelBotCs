@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import type { Member } from './members.types'
+import BaseButton from '@/components/BaseButton.vue'
 import ExperienceTags from './ExperienceTags.vue'
 
 const props = defineProps<{
@@ -59,12 +60,21 @@ const editBufferModel = defineModel<Member>({ required: true })
             <input v-model="editBufferModel.LodestoneId">
           </td>
           <td v-if="props.canEdit">
-            <button class="btn" @click="emit('saveEdit')">
-              Save
-            </button>
-            <button class="btn secondary" @click="emit('cancelEdit')">
-              Cancel
-            </button>
+            <div class="action-buttons">
+              <BaseButton
+                size="small"
+                state="primary"
+                title="Save"
+                @clicked="emit('saveEdit')"
+              />
+              <BaseButton
+                size="small"
+                state="secondary"
+                title="Cancel"
+                variant="outlined"
+                @clicked="emit('cancelEdit')"
+              />
+            </div>
           </td>
         </template>
         <template v-else>
@@ -91,12 +101,24 @@ const editBufferModel = defineModel<Member>({ required: true })
             </template>
           </td>
           <td v-if="props.canEdit">
-            <button class="btn" @click="emit('startEdit', m)">
-              Edit
-            </button>
+            <BaseButton
+              size="small"
+              state="primary"
+              title="Edit"
+              variant="outlined"
+              @clicked="emit('startEdit', m)"
+            />
           </td>
         </template>
       </tr>
     </tbody>
   </table>
 </template>
+
+<style scoped>
+.action-buttons {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+}
+</style>

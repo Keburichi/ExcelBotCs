@@ -31,7 +31,7 @@ const { isMember, isAdmin } = useAuth()
             Lottery
           </RouterLink>
           <RouterLink v-if="isAdmin" to="/admin">
-            Admin Stuff
+            Admin
           </RouterLink>
         </nav>
       </template>
