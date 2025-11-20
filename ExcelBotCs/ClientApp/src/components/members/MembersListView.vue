@@ -24,7 +24,9 @@ onMounted(m.load)
 <template>
   <section class="home">
     <div class="header-section">
-      <h2>Members</h2>
+      <h2 class="text-3xl font-bold">
+        Members
+      </h2>
 
       <div class="view-toggle">
         <BaseButton

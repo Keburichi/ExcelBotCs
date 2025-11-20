@@ -11,11 +11,13 @@ const props = withDefaults(defineProps<{
   width?: string | number
   maxWidth?: string | number
   minHeight?: string | number
+  titleClass?: string
 }>(), {
   clickable: false,
   loading: false,
   variant: 'elevated',
   density: 'comfortable',
+  titleClass: '',
 })
 
 const emit = defineEmits<{ (e: 'click'): void }>()
@@ -63,7 +65,7 @@ function onClick() {
     <header v-if="$slots.header || title || subtitle" class="card__header">
       <slot name="header">
         <div class="card__titles">
-          <h3 v-if="title" class="card__title">
+          <h3 v-if="title" :class="titleClass" class="card__title">
             {{ title }}
           </h3>
           <p v-if="subtitle" class="card__subtitle">

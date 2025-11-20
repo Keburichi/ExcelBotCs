@@ -130,7 +130,7 @@ onMounted(async () => {
     </template>
   </BaseModal>
 
-  <BaseCard :title="fcEventValue.Name" size="large" variant="elevated">
+  <BaseCard :title="fcEventValue.Name" size="large" title-class="text-2xl font-bold" variant="elevated">
     <template #image>
       <img
         v-if="fcEventValue.PictureUrl" :src="fcEventValue.PictureUrl" alt="avatar" class="card__image"

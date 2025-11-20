@@ -16,7 +16,9 @@ onMounted(m.load)
     <p v-if="m.error" class="error">
       {{ m.error }}
     </p>
-    <h2>Members ({{ m.members.value.length }})</h2>
+    <h2 class="text-3xl font-bold">
+      Members ({{ m.members.value.length }})
+    </h2>
 
     <CardList
       :items="m.members.value"
