@@ -19,6 +19,44 @@ const participants = ref<EventParticipant[]>([])
 const saving = ref(false)
 const selectionMode = ref<'simple' | 'role'>('role') // Toggle between simple and role-based selection
 
+// Local modal state (avoid browser alert/confirm)
+const isConfirmOpen = ref(false)
+const confirmMessage = ref('')
+const pendingMode = ref<'simple' | 'role' | null>(null)
+
+const isInfoOpen = ref(false)
+const infoMessage = ref('')
+
+function openInfo(message: string) {
+  infoMessage.value = message
+  isInfoOpen.value = true
+}
+
+function closeInfo() {
+  isInfoOpen.value = false
+  infoMessage.value = ''
+}
+
+function requestModeSwitch(newMode: 'simple' | 'role') {
+  confirmMessage.value = `Switching to ${newMode} mode will clear current selections. Continue?`
+  pendingMode.value = newMode
+  isConfirmOpen.value = true
+}
+
+function cancelModeSwitch() {
+  isConfirmOpen.value = false
+  confirmMessage.value = ''
+  pendingMode.value = null
+}
+
+function confirmModeSwitch() {
+  if (pendingMode.value) {
+    participants.value = []
+    selectionMode.value = pendingMode.value
+  }
+  cancelModeSwitch()
+}
+
 // Load members when component mounts
 onMounted(() => {
   if (members.value.length === 0) {
@@ -42,12 +80,8 @@ function isMemberSelected(discordId: string): boolean {
 // Toggle selection mode
 function toggleSelectionMode() {
   const newMode = selectionMode.value === 'simple' ? 'role' : 'simple'
-
-  // Clear participants when switching modes to avoid confusion
-  if (confirm(`Switching to ${newMode} mode will clear current selections. Continue?`)) {
-    participants.value = []
-    selectionMode.value = newMode
-  }
+  // Ask for confirmation using modal
+  requestModeSwitch(newMode)
 }
 
 // Toggle simple selection (for simple mode)
@@ -61,7 +95,7 @@ function toggleSimpleSelection(discordId: string) {
   else {
     // Check if we've reached the limit
     if (participants.value.length >= eventValue.value.MaxNumberOfParticipants) {
-      alert(`You can only select up to ${eventValue.value.MaxNumberOfParticipants} members.`)
+      openInfo(`You can only select up to ${eventValue.value.MaxNumberOfParticipants} members.`)
       return
     }
     // Add new participant without a specific role (use Tank as default/placeholder)
@@ -90,7 +124,7 @@ function toggleRole(discordId: string, role: Role) {
   else {
     // Check if we've reached the limit
     if (participants.value.length >= eventValue.value.MaxNumberOfParticipants) {
-      alert(`You can only select up to ${eventValue.value.MaxNumberOfParticipants} members.`)
+      openInfo(`You can only select up to ${eventValue.value.MaxNumberOfParticipants} members.`)
       return
     }
     // Add new participant with this role
@@ -268,6 +302,37 @@ async function save() {
     <template #actions>
       <BaseButton title="Cancel" state="secondary" :disabled="saving" @clicked="modelValue = false" />
       <BaseButton :title="saving ? 'Saving...' : 'Save'" state="primary" :disabled="saving" @click="save" />
+    </template>
+  </BaseModal>
+
+  <!-- Confirm switch mode modal -->
+  <BaseModal
+    v-model="isConfirmOpen"
+    :close-on-outside-click="false"
+    size="small"
+    title="Switch Mode"
+  >
+    <template #body>
+      <p>{{ confirmMessage }}</p>
+    </template>
+    <template #actions>
+      <BaseButton state="secondary" title="Cancel" @clicked="cancelModeSwitch" />
+      <BaseButton state="primary" title="Confirm" @clicked="confirmModeSwitch" />
+    </template>
+  </BaseModal>
+
+  <!-- Info modal -->
+  <BaseModal
+    v-model="isInfoOpen"
+    :close-on-outside-click="true"
+    size="small"
+    title="Notice"
+  >
+    <template #body>
+      <p>{{ infoMessage }}</p>
+    </template>
+    <template #actions>
+      <BaseButton state="primary" title="OK" @clicked="closeInfo" />
     </template>
   </BaseModal>
 </template>
