@@ -21,9 +21,9 @@ namespace ExcelBotCs.Controllers;
 [Route("api/[controller]")]
 public class EventsController : AuthorizedController, IBaseCrudController<EventDto>
 {
-    private readonly IEventService _eventService;
     private readonly ICurrentMemberAccessor _currentMemberAccessor;
     private readonly IDiscordMessageService _discordMessageService;
+    private readonly IEventService _eventService;
     private readonly string _rootUrl;
 
     public EventsController(ILogger<EventsController> logger, IEventService eventService,
@@ -34,15 +34,15 @@ public class EventsController : AuthorizedController, IBaseCrudController<EventD
         _discordMessageService = discordMessageService;
         _rootUrl = Utils.GetEnvVar("EVENT_ENDPOINT_URL", nameof(TeamFormationInteraction));
     }
-    
+
     [HttpGet]
     public async Task<ActionResult<List<EventDto>>> GetEntities()
     {
         var entities = await _eventService.GetAsync();
-        
-        if(entities is null)
+
+        if (entities is null)
             return new List<EventDto>();
-        
+
         var dtos = entities.Select(EventMapper.ToDto).ToList();
 
         return dtos;
@@ -70,7 +70,7 @@ public class EventsController : AuthorizedController, IBaseCrudController<EventD
         entity.Organizer = member.PlayerName;
 
         await _eventService.CreateAsync(EventMapper.ToEntity(entity));
-        return CreatedAtAction(nameof(CreateEntity), new  { id = entity.Id }, entity);
+        return CreatedAtAction(nameof(CreateEntity), new { id = entity.Id }, entity);
     }
 
     [HttpPut("{id:length(24)}")]
@@ -114,17 +114,13 @@ public class EventsController : AuthorizedController, IBaseCrudController<EventD
             // Update the signup. That means we remove the role if its present or add it if its not
             var eventSignup = fcEvent.Signups.First(x => x.DiscordUserId == member.DiscordId);
             if (eventSignup.Roles.Contains(signup.Role))
-            {
                 eventSignup.Roles.Remove(signup.Role);
-            }
             else
-            {
                 eventSignup.Roles.Add(signup.Role);
-            }
         }
         else
         {
-            fcEvent.Signups.Add(new EventUserSignup()
+            fcEvent.Signups.Add(new EventUserSignup
             {
                 DiscordUserId = member.DiscordId,
                 Roles = [signup.Role]
@@ -160,31 +156,61 @@ public class EventsController : AuthorizedController, IBaseCrudController<EventD
     }
 
     [HttpGet]
-    [Route("retrieve/{id:int}.ics")]
+    [Route("retrieve/{id}.ics")]
     public async Task<IActionResult> GetEventIcal(string id)
     {
         try
         {
-            var userEvents = new List<Event>();
+            // The id here is a Discord user id. Build a calendar of events the user signed up for or participates in.
+            var allEvents = await _eventService.GetAsync();
+            if (allEvents is null || !allEvents.Any()) return NotFound();
 
-            var calendar = new Calendar();
-            calendar.Name = "Excelsior Events Calendar";
-            calendar.Method = CalendarMethods.Publish;
-            calendar.ProductId = "-//Excelsior//Excelsior Events Calendar//EN";
-            calendar.Version = "2.0";
-            calendar.Scale = CalendarScales.Gregorian;
-            calendar.AddProperty(new CalendarProperty("URL", $"https://{_rootUrl}event/retrieve/{id}.ics"));
+            var userEvents = allEvents.Where(ev =>
+                (ev.Signups != null && ev.Signups.Any(s => s.DiscordUserId == id)) ||
+                (ev.Participants != null && ev.Participants.Any(p => p.DiscordUserId == id))
+            ).ToList();
 
-            foreach (var userEvent in userEvents)
+            // It's okay to return an empty but valid calendar if there are no events
+
+            var calendar = new Calendar
             {
-                calendar.Events.Add(CreateCalendarEvent(userEvent));
+                Name = "Excelsior Events Calendar",
+                Method = CalendarMethods.Publish,
+                ProductId = "-//Excelsior//Excelsior Events Calendar//EN",
+                Version = "2.0",
+                Scale = CalendarScales.Gregorian
+            };
+
+            // Best-effort absolute URL to this ICS
+            var baseUrl = $"{Request.Scheme}://{Request.Host}";
+            calendar.AddProperty(new CalendarProperty("URL", $"{baseUrl}/api/Events/retrieve/{id}.ics"));
+
+            foreach (var fcEvent in userEvents)
+            {
+                var calEvent = CreateCalendarEvent(fcEvent);
+
+                // Propagate recurrence rules if present in stored ICal string
+                if (!string.IsNullOrWhiteSpace(fcEvent.ICalString))
+                    try
+                    {
+                        var srcCal = Calendar.Load(fcEvent.ICalString);
+                        var srcEvt = srcCal.Events.FirstOrDefault();
+                        if (srcEvt?.RecurrenceRules != null && srcEvt.RecurrenceRules.Any())
+                            foreach (var rrule in srcEvt.RecurrenceRules)
+                                calEvent.RecurrenceRules.Add(rrule);
+                    }
+                    catch
+                    {
+                        // Ignore malformed recurrence; still provide a valid single event
+                    }
+
+                calendar.Events.Add(calEvent);
             }
 
-            var calendarSerializer = new CalendarSerializer(calendar);
-            calendarSerializer.SerializeToString();
-
-            var file = Encoding.UTF8.GetBytes(calendarSerializer.SerializeToString());
-            return File(file, "text/calendar", $"{id}.ics");
+            var serializer = new CalendarSerializer();
+            var ics = serializer.SerializeToString(calendar);
+            var file = Encoding.UTF8.GetBytes(ics);
+            return File(file, "text/calendar; charset=utf-8", $"{id}.ics");
         }
         catch (Exception e)
         {
@@ -194,14 +220,19 @@ public class EventsController : AuthorizedController, IBaseCrudController<EventD
 
     private CalendarEvent CreateCalendarEvent(Event fcEvent)
     {
+        var startUtc = DateTime.SpecifyKind(fcEvent.StartDate, DateTimeKind.Utc);
+        var endUtc = startUtc.AddMinutes(fcEvent.Duration);
+
         return new CalendarEvent
         {
             Location = "Final Fantasy XIV Online",
             Status = EventStatus.Confirmed,
             Summary = fcEvent.Name,
             Description = fcEvent.Description,
-            Start = new CalDateTime(fcEvent.StartDate, TimeZoneInfo.Utc.Id),
-            Duration = Duration.FromMinutes(fcEvent.Duration)
+            Uid = string.IsNullOrWhiteSpace(fcEvent.Id) ? Guid.NewGuid().ToString() : fcEvent.Id,
+            DtStamp = new CalDateTime(DateTime.UtcNow, TimeZoneInfo.Utc.Id),
+            Start = new CalDateTime(startUtc, TimeZoneInfo.Utc.Id),
+            End = new CalDateTime(endUtc, TimeZoneInfo.Utc.Id)
         };
     }
 }

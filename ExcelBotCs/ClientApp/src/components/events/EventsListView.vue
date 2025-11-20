@@ -13,7 +13,7 @@ import { eventTypeToString } from '@/features/events/events.types'
 import { parseICalString } from '@/utils/ical'
 
 const e = useEvents()
-const { isAdmin, isMember, isDeveloper } = useAuth()
+const { isAdmin, isMember, isDeveloper, user } = useAuth()
 const router = useRouter()
 const { isDark } = useTheme()
 
@@ -27,6 +27,22 @@ function goCreate() {
 
 function goEdit(event: any) {
   router.push({ name: 'event-edit', params: { id: event.id || event.Id } })
+}
+
+// Subscription / download calendar URL for the current user (Discord user id)
+const calendarUrl = computed(() => {
+  const discordId = user.value?.DiscordId
+  if (!discordId)
+    return ''
+  const origin = typeof window !== 'undefined' ? window.location.origin : ''
+  return `${origin}/api/Events/retrieve/${discordId}.ics`
+})
+
+function subscribeCalendar() {
+  if (!calendarUrl.value)
+    return
+  // Open in a new tab so users can download or copy the URL to subscribe in external apps
+  window.open(calendarUrl.value, '_blank')
 }
 
 const freqMap = {
@@ -147,7 +163,7 @@ onMounted(e.load)
         <h2 class="text-2xl font-bold">
           Upcoming FC Events
         </h2>
-        <div class="flex gap-2">
+        <div class="flex gap-2 items-center">
           <BaseButton
             :state="activeView === 'month' ? 'primary' : 'secondary'" title="Month"
             @clicked="activeView = 'month'"
@@ -190,8 +206,25 @@ onMounted(e.load)
       {{ e.error }}
     </p>
 
-    <div v-if="isAdmin" class="container">
-      <BaseButton v-if="isAdmin" size="medium" state="primary" title="Create Event" @clicked="goCreate" />
+    <div class="container">
+      <div class="flex gap-2 items-center">
+        <BaseButton
+          v-if="isMember"
+          :disabled="!calendarUrl"
+          :tooltip="calendarUrl ? 'Download or copy URL to subscribe in your calendar app' : 'Sign in first'"
+          state="pressed"
+          title="Subscribe to Calendar"
+          variant="outlined"
+          @clicked="subscribeCalendar"
+        />
+        <BaseButton
+          v-if="isAdmin"
+          size="medium"
+          state="primary"
+          title="Create Event"
+          @clicked="goCreate"
+        />
+      </div>
     </div>
 
     <CardList :columns="2" :items="e.events.value" item-key="Id">
