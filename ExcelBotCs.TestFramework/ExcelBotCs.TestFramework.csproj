@@ -12,4 +12,15 @@
         </Reference>
     </ItemGroup>
 
+    <ItemGroup>
+        <PackageReference Include="MongoDB.Driver" Version="2.28.0"/>
+        <PackageReference Include="MongoDB.Driver.Linq.AsyncEnumerable" Version="2.15.4"/>
+        <PackageReference Include="Testcontainers" Version="4.7.0"/>
+        <PackageReference Include="Testcontainers.MongoDb" Version="4.7.0"/>
+    </ItemGroup>
+
+    <ItemGroup>
+        <ProjectReference Include="..\ExcelBotCs\ExcelBotCs.csproj"/>
+    </ItemGroup>
+
 </Project>

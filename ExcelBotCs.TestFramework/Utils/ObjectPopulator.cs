@@ -1,6 +1,7 @@
 using System.Collections;
 using System.Globalization;
 using System.Reflection;
+using MongoDB.Bson.Serialization.Attributes;
 
 namespace ExcelBotCs.TestFramework.Utils;
 
@@ -28,7 +29,8 @@ public static class ObjectPopulator
 
         var type = obj.GetType();
         var properties = type.GetProperties(BindingFlags.Public | BindingFlags.Instance)
-            .Where(p => p.CanWrite && p.GetSetMethod() != null);
+            .Where(p => p.CanWrite && p.GetSetMethod() != null)
+            .Where(p => !HasBsonIdAttribute(p)); // Skip properties with [BsonId] attribute
 
         foreach (var property in properties)
             try
@@ -42,6 +44,14 @@ public static class ObjectPopulator
             }
 
         return obj;
+    }
+
+    /// <summary>
+    ///     Checks if a property has the [BsonId] attribute
+    /// </summary>
+    private static bool HasBsonIdAttribute(PropertyInfo property)
+    {
+        return property.GetCustomAttribute<BsonIdAttribute>() != null;
     }
 
     private static object? GenerateRandomValue(PropertyInfo property, int recursionDepth)

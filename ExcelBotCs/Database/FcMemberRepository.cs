@@ -15,6 +15,9 @@ public class FcMemberRepository : BaseRepository<FcMember>, IFcMemberRepository
 
     public async Task<FcMember> GetByCharacterId(string characterId)
     {
+        if (string.IsNullOrWhiteSpace(characterId))
+            return null;
+
         return await Collection.Find(x => x.CharacterId == characterId).FirstOrDefaultAsync();
     }
 }

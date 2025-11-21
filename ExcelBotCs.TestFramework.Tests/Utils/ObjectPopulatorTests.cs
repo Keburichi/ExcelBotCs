@@ -1,11 +1,26 @@
 using ExcelBotCs.Models.Database;
 using ExcelBotCs.TestFramework.Utils;
+using MongoDB.Bson.Serialization.Attributes;
 
 namespace ExcelBotCs.TestFramework.Tests.Utils;
 
 [TestFixture]
 public class ObjectPopulatorTests
 {
+    private class TestEntityWithCustomBsonId
+    {
+        [BsonId] public string CustomId { get; set; } = "original-custom-id";
+
+        public string Name { get; } = string.Empty;
+        public int Value { get; set; }
+    }
+
+    private class TestEntityWithoutBsonId
+    {
+        public string Id { get; set; } = "original-id";
+        public string Name { get; } = string.Empty;
+        public int Age { get; set; }
+    }
     [Test]
     public void PopulateWithRandomData_ShouldPopulateAllProperties()
     {
@@ -54,7 +69,8 @@ public class ObjectPopulatorTests
 
         // Assert - Names should be different due to random UUIDs
         Assert.That(event1.Name, Is.Not.EqualTo(event2.Name));
-        Assert.That(event1.Id, Is.Not.EqualTo(event2.Id));
+        Assert.That(event1.Description, Is.Not.EqualTo(event2.Description));
+        // Note: Id is not populated because it has [BsonId] attribute
     }
 
     [Test]
@@ -80,7 +96,7 @@ public class ObjectPopulatorTests
         member.PopulateWithRandomData();
 
         // Assert
-        Assert.That(member.Id, Is.Not.Null);
+        // Note: Id is not populated because it has [BsonId] attribute
         Assert.That(member.DiscordName, Is.Not.Null);
         Assert.That(member.DiscordId, Is.Not.Null);
     }
@@ -94,5 +110,117 @@ public class ObjectPopulatorTests
         // Assert
         Assert.That(testEvent, Is.Not.Null);
         Assert.That(testEvent.Name, Is.Not.Null);
+    }
+
+    [Test]
+    public void PopulateWithRandomData_ShouldNotModifyBsonIdProperty()
+    {
+        // Arrange
+        var entity = new Event
+        {
+            Id = "fixed-id-123"
+        };
+
+        // Act
+        entity.PopulateWithRandomData();
+
+        // Assert
+        Assert.That(entity.Id, Is.EqualTo("fixed-id-123"), "BsonId property should not be modified");
+        Assert.That(entity.Name, Is.Not.Empty, "Other properties should be populated");
+        Assert.That(entity.Description, Is.Not.Empty, "Other properties should be populated");
+    }
+
+    [Test]
+    public void PopulateWithRandomData_ShouldNotModifyCustomBsonIdProperty()
+    {
+        // Arrange
+        var entity = new TestEntityWithCustomBsonId
+        {
+            CustomId = "custom-id-456"
+        };
+
+        // Act
+        entity.PopulateWithRandomData();
+
+        // Assert
+        Assert.That(entity.CustomId, Is.EqualTo("custom-id-456"), "Custom BsonId property should not be modified");
+        Assert.That(entity.Name, Is.Not.Empty, "Other properties should be populated");
+        Assert.That(entity.Value, Is.GreaterThan(0), "Other properties should be populated");
+    }
+
+    [Test]
+    public void PopulateWithRandomData_ShouldModifyIdWithoutBsonIdAttribute()
+    {
+        // Arrange
+        var entity = new TestEntityWithoutBsonId
+        {
+            Id = "original-id"
+        };
+
+        // Act
+        entity.PopulateWithRandomData();
+
+        // Assert
+        Assert.That(entity.Id, Is.Not.EqualTo("original-id"), "Id without BsonId attribute should be modified");
+        Assert.That(entity.Name, Is.Not.Empty, "Other properties should be populated");
+        Assert.That(entity.Age, Is.GreaterThan(0), "Other properties should be populated");
+    }
+
+    [Test]
+    public void PopulateWithRandomData_WithBaseEntity_ShouldNotModifyId()
+    {
+        // Arrange
+        var member = new Member
+        {
+            Id = "member-id-789"
+        };
+
+        // Act
+        member.PopulateWithRandomData();
+
+        // Assert
+        Assert.That(member.Id, Is.EqualTo("member-id-789"), "BaseEntity Id (which has BsonId) should not be modified");
+        Assert.That(member.DiscordName, Is.Not.Empty, "Other properties should be populated");
+    }
+
+    [Test]
+    public void PopulateWithRandomData_MultipleCalls_ShouldNotModifyBsonId()
+    {
+        // Arrange
+        var entity = new Event
+        {
+            Id = "persistent-id-999"
+        };
+
+        // Act
+        entity.PopulateWithRandomData();
+        var firstPopulation = entity.Name;
+
+        entity.PopulateWithRandomData();
+        var secondPopulation = entity.Name;
+
+        // Assert
+        Assert.That(entity.Id, Is.EqualTo("persistent-id-999"),
+            "BsonId should remain unchanged after multiple populations");
+        Assert.That(firstPopulation, Is.Not.EqualTo(secondPopulation),
+            "Other properties should change with each population");
+    }
+
+    [Test]
+    public void PopulateWithRandomData_ShouldSetCreateDateAndEditDateButNotId()
+    {
+        // Arrange
+        var entity = new Event
+        {
+            Id = "test-id-000"
+        };
+
+        // Act
+        entity.PopulateWithRandomData();
+
+        // Assert
+        Assert.That(entity.Id, Is.EqualTo("test-id-000"), "Id should not be modified");
+        Assert.That(entity.CreateDate, Is.Not.EqualTo(default(DateTime)), "CreateDate should be populated");
+        Assert.That(entity.EditDate, Is.Not.EqualTo(default(DateTime)), "EditDate should be populated");
     }
 }

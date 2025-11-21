@@ -9,8 +9,8 @@ namespace ExcelBotCs.Database;
 public abstract class BaseRepository<T> : IBaseRepository<T> where T : BaseEntity
 {
     protected readonly IMongoClient Client;
-    protected readonly IMongoDatabase Database;
     protected readonly IMongoCollection<T> Collection;
+    protected readonly IMongoDatabase Database;
 
     protected BaseRepository(IMongoClient mongoClient, IOptions<DatabaseOptions> databaseOptions)
     {
@@ -22,12 +22,13 @@ public abstract class BaseRepository<T> : IBaseRepository<T> where T : BaseEntit
         Collection = Database.GetCollection<T>(GetCollectionName());
     }
 
-    public virtual async Task<List<T>> GetAsync() =>
-        await Collection.Find(entity => true).ToListAsync();
+    public virtual async Task<List<T>> GetAsync()
+    {
+        return await Collection.Find(entity => true).ToListAsync();
+    }
 
     public virtual async Task<T?> GetAsync(string id)
     {
-        
         return await Collection.Find(entity => entity.Id == id).FirstOrDefaultAsync();
     }
 
@@ -44,8 +45,10 @@ public abstract class BaseRepository<T> : IBaseRepository<T> where T : BaseEntit
         await Collection.ReplaceOneAsync(entity => entity.Id == id, updatedEntity);
     }
 
-    public async Task DeleteAsync(string id) =>
+    public async Task DeleteAsync(string id)
+    {
         await Collection.DeleteOneAsync(entity => entity.Id == id);
+    }
 
     private void EnsureDatabaseExists(IMongoClient client, string databaseName, string collectionName)
     {
@@ -62,11 +65,11 @@ public abstract class BaseRepository<T> : IBaseRepository<T> where T : BaseEntit
 
         // If the DB exists but the target collection is missing, create it as well.
         var existingCollections = db.ListCollectionNames().ToList();
-        if (!existingCollections.Contains(collectionName))
-        {
-            db.CreateCollection(collectionName);
-        }
+        if (!existingCollections.Contains(collectionName)) db.CreateCollection(collectionName);
     }
 
-    private string GetCollectionName() => typeof(T).Name;
+    private string GetCollectionName()
+    {
+        return typeof(T).Name;
+    }
 }

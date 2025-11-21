@@ -15,6 +15,9 @@ public class MemberRoleRepository : BaseRepository<MemberRole>, IMemberRoleRepos
 
     public async Task<MemberRole> GetByDiscordId(string discordId)
     {
+        if (string.IsNullOrWhiteSpace(discordId))
+            return null;
+
         return await Collection.Find(x => x.DiscordId == discordId).FirstOrDefaultAsync();
     }
 }

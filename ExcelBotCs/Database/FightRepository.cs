@@ -15,6 +15,9 @@ public class FightRepository : BaseRepository<Fight>, IFightRepository
 
     public async Task<Fight?> GetByNameAndTypeAsync(string name, FightType type)
     {
+        if (string.IsNullOrWhiteSpace(name))
+            return null;
+
         return await Collection.Find(x => x.Name == name && x.Type == type).FirstOrDefaultAsync();
     }
 }
