@@ -2,14 +2,12 @@ using ExcelBotCs.Modules.TeamFormation;
 
 namespace ExcelBotCs.Models.Database;
 
-public class EventUserSignup
+/// <summary>
+///     Represents a user signup for an event occurrence (embedded subdocument)
+/// </summary>
+public class EventSignup
 {
     public string DiscordUserId { get; set; }
     public List<Role> Roles { get; set; }
-
-    /// <summary>
-    ///     For IndependentSignups type: which occurrence this signup is for
-    ///     Null for SingleEvent and LockedGroup types
-    /// </summary>
-    public DateTime? OccurrenceDate { get; set; }
+    public DateTime SignupDate { get; set; } = DateTime.UtcNow;
 }

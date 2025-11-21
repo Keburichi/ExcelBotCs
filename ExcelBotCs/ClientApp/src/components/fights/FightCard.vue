@@ -1,4 +1,4 @@
-<script setup lang="ts">
+<script lang="ts" setup>
 import type { Fight } from '@/features/fights/fights.types'
 import { ref } from 'vue'
 import BaseCard from '@/components/BaseCard.vue'
@@ -18,7 +18,7 @@ function cardClick(fight: Fight) {
 </script>
 
 <template>
-  <BaseCard :title="props.fight.Name" variant="outlined" :clickable="true" @click="cardClick(props.fight)">
+  <BaseCard :clickable="true" :title="props.fight.Name" variant="outlined" @click="cardClick(props.fight)">
     <template #body>
       <div class="fight-info">
         <p class="fight-description">
@@ -28,10 +28,10 @@ function cardClick(fight: Fight) {
     </template>
     <template #image>
       <img
-        v-if="props.fight.ImageUrl" :src="props.fight.ImageUrl" :alt="props.fight.Name" class="card__image"
+        v-if="props.fight.ImageUrl" :alt="props.fight.Name" :src="props.fight.ImageUrl" class="card__image"
         referrerpolicy="no-referrer"
       >
-      <div v-else class="card__image card__image--placeholder" :title="`No image available for ${props.fight.Name}`" />
+      <div v-else :title="`No image available for ${props.fight.Name}`" class="card__image card__image--placeholder" />
     </template>
     <template #footer>
       <div class="fight-metadata">
@@ -146,6 +146,11 @@ function cardClick(fight: Fight) {
 .zone-badge {
   background: #e0f2f1;
   color: #00695c;
+}
+
+.card__image {
+  /* zoom in on the image since the fight images have a small white gradient */
+  transform: scale(1.1);
 }
 
 .card__image--placeholder {

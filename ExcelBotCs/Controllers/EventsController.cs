@@ -14,6 +14,7 @@ using Ical.Net.CalendarComponents;
 using Ical.Net.DataTypes;
 using Ical.Net.Serialization;
 using Microsoft.AspNetCore.Mvc;
+using DbEventSignup = ExcelBotCs.Models.Database.EventSignup;
 
 namespace ExcelBotCs.Controllers;
 
@@ -24,14 +25,17 @@ public class EventsController : AuthorizedController, IBaseCrudController<EventD
     private readonly ICurrentMemberAccessor _currentMemberAccessor;
     private readonly IDiscordMessageService _discordMessageService;
     private readonly IEventService _eventService;
+    private readonly IICalService _iiCalService;
     private readonly string _rootUrl;
 
     public EventsController(ILogger<EventsController> logger, IEventService eventService,
-        ICurrentMemberAccessor currentMemberAccessor, IDiscordMessageService discordMessageService) : base(logger)
+        ICurrentMemberAccessor currentMemberAccessor, IDiscordMessageService discordMessageService,
+        IICalService iiCalService) : base(logger)
     {
         _eventService = eventService;
         _currentMemberAccessor = currentMemberAccessor;
         _discordMessageService = discordMessageService;
+        _iiCalService = iiCalService;
         _rootUrl = Utils.GetEnvVar("EVENT_ENDPOINT_URL", nameof(TeamFormationInteraction));
     }
 
@@ -97,7 +101,7 @@ public class EventsController : AuthorizedController, IBaseCrudController<EventD
 
     [HttpPost]
     [Route("{id}/signup")]
-    public async Task<IActionResult> SignupForEvent(string id, [FromBody] EventSignup signup)
+    public async Task<IActionResult> SignupForEvent(string id, [FromBody] EventSignupDto signup)
     {
         var fcEvent = await _eventService.GetAsync(id);
 
@@ -108,24 +112,259 @@ public class EventsController : AuthorizedController, IBaseCrudController<EventD
         if (member is null)
             return BadRequest("Member not found for the current user");
 
-        // Check if the member is already signed up for the event
-        if (fcEvent.Signups.Any(x => x.DiscordUserId == member.DiscordId))
+        // Determine target occurrence: prefer next upcoming scheduled occurrence, fall back to the first; create if none exists
+        var occurrence = fcEvent.Occurrences
+                             ?.Where(o => o.Status == OccurrenceStatus.Scheduled && o.OccurrenceDate >= DateTime.UtcNow)
+                             .OrderBy(o => o.OccurrenceDate)
+                             .FirstOrDefault()
+                         ?? fcEvent.Occurrences?.FirstOrDefault();
+
+        if (occurrence == null)
         {
-            // Update the signup. That means we remove the role if its present or add it if its not
-            var eventSignup = fcEvent.Signups.First(x => x.DiscordUserId == member.DiscordId);
-            if (eventSignup.Roles.Contains(signup.Role))
-                eventSignup.Roles.Remove(signup.Role);
-            else
-                eventSignup.Roles.Add(signup.Role);
+            occurrence = new EventOccurrence
+            {
+                OccurrenceDate = fcEvent.StartDate,
+                Status = OccurrenceStatus.Scheduled
+            };
+            fcEvent.Occurrences ??= new List<EventOccurrence>();
+            fcEvent.Occurrences.Add(occurrence);
         }
+
+        occurrence.Signups ??= new List<DbEventSignup>();
+
+        // Check if the member is already signed up for this occurrence
+        var existing = occurrence.Signups.FirstOrDefault(x => x.DiscordUserId == member.DiscordId);
+        if (existing != null)
+            // Update roles for existing signup
+            existing.Roles = signup.Roles;
         else
-        {
-            fcEvent.Signups.Add(new EventUserSignup
+            occurrence.Signups.Add(new DbEventSignup
             {
                 DiscordUserId = member.DiscordId,
-                Roles = [signup.Role]
+                Roles = signup.Roles,
+                SignupDate = DateTime.UtcNow
             });
+
+        await _eventService.UpdateAsync(fcEvent.Id, fcEvent);
+
+        return Ok();
+    }
+
+    [HttpPost]
+    [Route("{eventId}/occurrences/{occurrenceId}/signup")]
+    public async Task<IActionResult> SignupForOccurrence(string eventId, string occurrenceId,
+        [FromBody] EventSignupDto signup)
+    {
+        var fcEvent = await _eventService.GetAsync(eventId);
+        if (fcEvent is null)
+            return NotFound("Event not found");
+
+        var member = await _currentMemberAccessor.GetCurrentAsync();
+        if (member is null)
+            return BadRequest("Member not found for the current user");
+
+        var occurrence = fcEvent.Occurrences?.FirstOrDefault(o => o.Id == occurrenceId);
+        if (occurrence == null)
+            return NotFound("Occurrence not found");
+
+        // Check if occurrence is available for signup
+        if (occurrence.Status != OccurrenceStatus.Scheduled)
+            return BadRequest("Cannot sign up for non-scheduled occurrence");
+
+        if (occurrence.OccurrenceDate < DateTime.UtcNow)
+            return BadRequest("Cannot sign up for past occurrence");
+
+        occurrence.Signups ??= new List<DbEventSignup>();
+
+        // Check if the member is already signed up for this occurrence
+        var existing = occurrence.Signups.FirstOrDefault(x => x.DiscordUserId == member.DiscordId);
+        if (existing != null)
+            // Update roles for existing signup
+            existing.Roles = signup.Roles;
+        else
+            occurrence.Signups.Add(new DbEventSignup
+            {
+                DiscordUserId = member.DiscordId,
+                Roles = signup.Roles,
+                SignupDate = DateTime.UtcNow
+            });
+
+        await _eventService.UpdateAsync(fcEvent.Id, fcEvent);
+
+        return Ok();
+    }
+
+    [HttpDelete]
+    [Route("{eventId}/occurrences/{occurrenceId}/signup")]
+    public async Task<IActionResult> CancelSignupForOccurrence(string eventId, string occurrenceId)
+    {
+        var fcEvent = await _eventService.GetAsync(eventId);
+        if (fcEvent is null)
+            return NotFound("Event not found");
+
+        var member = await _currentMemberAccessor.GetCurrentAsync();
+        if (member is null)
+            return BadRequest("Member not found for the current user");
+
+        var occurrence = fcEvent.Occurrences?.FirstOrDefault(o => o.Id == occurrenceId);
+        if (occurrence == null)
+            return NotFound("Occurrence not found");
+
+        occurrence.Signups ??= new List<DbEventSignup>();
+
+        // Remove the user's signup
+        var signup = occurrence.Signups.FirstOrDefault(s => s.DiscordUserId == member.DiscordId);
+        if (signup != null)
+        {
+            occurrence.Signups.Remove(signup);
+            await _eventService.UpdateAsync(fcEvent.Id, fcEvent);
         }
+
+        return Ok();
+    }
+
+    [HttpPost]
+    [Route("{eventId}/occurrences/{occurrenceId}/participants")]
+    [AdminAuth]
+    public async Task<IActionResult> SelectParticipants(string eventId, string occurrenceId,
+        [FromBody] List<EventParticipant> participants)
+    {
+        var user = await _currentMemberAccessor.GetCurrentAsync();
+        if (user is null)
+            return BadRequest("User not found for the current user");
+
+        if (!user.IsAdmin.GetValueOrDefault())
+            return Forbid();
+
+        var fcEvent = await _eventService.GetAsync(eventId);
+        if (fcEvent is null)
+            return NotFound("Event not found");
+
+        var occurrence = fcEvent.Occurrences?.FirstOrDefault(o => o.Id == occurrenceId);
+        if (occurrence == null)
+            return NotFound("Occurrence not found");
+
+        // Set selection date for all participants
+        foreach (var participant in participants) participant.SelectionDate = DateTime.UtcNow;
+
+        // For LockedGroup, copy participants to ALL occurrences
+        if (fcEvent.SignupType == SignupType.LockedGroup)
+            foreach (var occ in fcEvent.Occurrences ?? new List<EventOccurrence>())
+                occ.Participants = participants.Select(p => new EventParticipant
+                {
+                    DiscordUserId = p.DiscordUserId,
+                    Role = p.Role,
+                    SelectionDate = p.SelectionDate
+                }).ToList();
+        else
+            // For other types, only update the specified occurrence
+            occurrence.Participants = participants;
+
+        await _eventService.UpdateAsync(fcEvent.Id, fcEvent);
+
+        return Ok();
+    }
+
+    [HttpDelete]
+    [Route("{eventId}/occurrences/{occurrenceId}/participants/{userId}")]
+    [AdminAuth]
+    public async Task<IActionResult> RemoveParticipant(string eventId, string occurrenceId, string userId)
+    {
+        var user = await _currentMemberAccessor.GetCurrentAsync();
+        if (user is null)
+            return BadRequest("User not found for the current user");
+
+        if (!user.IsAdmin.GetValueOrDefault())
+            return Forbid();
+
+        var fcEvent = await _eventService.GetAsync(eventId);
+        if (fcEvent is null)
+            return NotFound("Event not found");
+
+        var occurrence = fcEvent.Occurrences?.FirstOrDefault(o => o.Id == occurrenceId);
+        if (occurrence == null)
+            return NotFound("Occurrence not found");
+
+        occurrence.Participants ??= new List<EventParticipant>();
+
+        var participant = occurrence.Participants.FirstOrDefault(p => p.DiscordUserId == userId);
+        if (participant != null)
+        {
+            occurrence.Participants.Remove(participant);
+            await _eventService.UpdateAsync(fcEvent.Id, fcEvent);
+        }
+
+        return Ok();
+    }
+
+    [HttpPatch]
+    [Route("{eventId}/occurrences/{occurrenceId}/status")]
+    [AdminAuth]
+    public async Task<IActionResult> UpdateOccurrenceStatus(string eventId, string occurrenceId,
+        [FromBody] OccurrenceStatusUpdateDto statusUpdate)
+    {
+        var user = await _currentMemberAccessor.GetCurrentAsync();
+        if (user is null)
+            return BadRequest("User not found for the current user");
+
+        if (!user.IsAdmin.GetValueOrDefault())
+            return Forbid();
+
+        var fcEvent = await _eventService.GetAsync(eventId);
+        if (fcEvent is null)
+            return NotFound("Event not found");
+
+        var occurrence = fcEvent.Occurrences?.FirstOrDefault(o => o.Id == occurrenceId);
+        if (occurrence == null)
+            return NotFound("Occurrence not found");
+
+        // Validation: Can't complete future occurrences
+        if (statusUpdate.Status == OccurrenceStatus.Completed && occurrence.OccurrenceDate > DateTime.UtcNow)
+            return BadRequest("Cannot mark future occurrence as completed");
+
+        occurrence.Status = statusUpdate.Status;
+
+        // If the event is reoccurring and has no end date, create a new occurrence for the next occurrence date
+        if (_iiCalService.IsRecurringEvent(fcEvent.ICalString) && !_iiCalService.IsRecurrenceEnding(fcEvent.ICalString))
+        {
+            // Check if there already is an occurrence for this date
+            var occurences = _iiCalService.GetOccurrences(fcEvent, occurrence.OccurrenceDate.ToUniversalTime(),
+                occurrence.OccurrenceDate.AddMonths(1).ToUniversalTime()).OrderBy(x => x.Period.StartTime).ToList();
+
+            // Filter out the current occurrence
+            occurences.RemoveAll(x => x.Period.StartTime.AsUtc == occurrence.OccurrenceDate.ToUniversalTime());
+
+            if (!occurences.Any())
+                Console.WriteLine("test");
+        }
+
+        await _eventService.UpdateAsync(fcEvent.Id, fcEvent);
+
+        return Ok();
+    }
+
+    [HttpDelete]
+    [Route("{eventId}/occurrences/{occurrenceId}")]
+    [AdminAuth]
+    public async Task<IActionResult> CancelOccurrence(string eventId, string occurrenceId)
+    {
+        var user = await _currentMemberAccessor.GetCurrentAsync();
+        if (user is null)
+            return BadRequest("User not found for the current user");
+
+        if (!user.IsAdmin.GetValueOrDefault())
+            return Forbid();
+
+        var fcEvent = await _eventService.GetAsync(eventId);
+        if (fcEvent is null)
+            return NotFound("Event not found");
+
+        var occurrence = fcEvent.Occurrences?.FirstOrDefault(o => o.Id == occurrenceId);
+        if (occurrence == null)
+            return NotFound("Occurrence not found");
+
+        // Mark as cancelled rather than deleting to preserve history
+        occurrence.Status = OccurrenceStatus.Cancelled;
 
         await _eventService.UpdateAsync(fcEvent.Id, fcEvent);
 
@@ -166,8 +405,10 @@ public class EventsController : AuthorizedController, IBaseCrudController<EventD
             if (allEvents is null || !allEvents.Any()) return NotFound();
 
             var userEvents = allEvents.Where(ev =>
-                (ev.Signups != null && ev.Signups.Any(s => s.DiscordUserId == id)) ||
-                (ev.Participants != null && ev.Participants.Any(p => p.DiscordUserId == id))
+                (ev.Occurrences != null &&
+                 ev.Occurrences.Any(oc => oc.Signups != null && oc.Signups.Any(s => s.DiscordUserId == id))) ||
+                (ev.Occurrences != null && ev.Occurrences.Any(oc =>
+                    oc.Participants != null && oc.Participants.Any(p => p.DiscordUserId == id)))
             ).ToList();
 
             // It's okay to return an empty but valid calendar if there are no events

@@ -1,4 +1,4 @@
-<script setup lang="ts">
+<script lang="ts" setup>
 import type { FCEvent } from '@/features/events/events.types'
 import type { Fight } from '@/features/fights/fights.types'
 import type { RecurrenceConfig } from '@/utils/ical'
@@ -58,7 +58,8 @@ const form = reactive<FCEvent>({
   Organizer: '', // will be filled from current user on submit, server sets Author,
   StartDate: new Date(),
   EndDate: new Date(),
-  Duration: 0,
+  // Default duration set to 30 minutes
+  Duration: 30,
   ICalString: '',
   MaxNumberOfParticipants: 8,
   Signups: [],
@@ -119,6 +120,11 @@ function setPartyPreset(preset: PartyPreset) {
   }
 }
 
+// Quick setters for common durations (in minutes)
+function setDuration(minutes: number) {
+  form.Duration = minutes
+}
+
 // Determine preset from MaxNumberOfParticipants value
 function detectPreset(maxParticipants: number): PartyPreset {
   switch (maxParticipants) {
@@ -141,7 +147,7 @@ const isInputDisabled = computed(() => partyPreset.value !== 'custom')
 // Event type options for dropdown
 const eventTypeOptions = computed(() => {
   return Object.keys(EventType)
-    .filter(key => isNaN(Number(key)))
+    .filter(key => Number.isNaN(Number(key)))
     .map(key => ({
       value: EventType[key as keyof typeof EventType],
       label: key,
@@ -309,11 +315,11 @@ function cancel() {
     <form class="form" @submit.prevent="submit">
       <div class="form-row">
         <label>Name</label>
-        <input v-model="form.Name" type="text" required placeholder="Event name">
+        <input v-model="form.Name" placeholder="Event name" required type="text">
       </div>
       <div class="form-row">
         <label>Description</label>
-        <textarea v-model="form.Description" rows="5" placeholder="Describe the event" />
+        <textarea v-model="form.Description" placeholder="Describe the event" rows="5" />
       </div>
       <div class="form-row">
         <label>Event Type</label>
@@ -325,7 +331,7 @@ function cancel() {
       </div>
       <div v-if="form.DiscordMessageId" class="form-row">
         <label>Discord Message Id</label>
-        <input v-model="form.DiscordMessageId" type="text" placeholder="The message id of the discord post.">
+        <input v-model="form.DiscordMessageId" placeholder="The message id of the discord post." type="text">
       </div>
       <div v-if="showFightSelection" class="form-row">
         <label>Select Fight (Optional)</label>
@@ -344,7 +350,10 @@ function cancel() {
       <div v-if="form.PictureUrl" class="form-row">
         <label>Preview</label>
         <div class="image-preview">
-          <img :src="form.PictureUrl" alt="Event preview" @error="(e) => (e.target as HTMLImageElement).style.display = 'none'">
+          <img
+            :src="form.PictureUrl" alt="Event preview"
+            @error="(e) => (e.target as HTMLImageElement).style.display = 'none'"
+          >
         </div>
       </div>
       <div class="form-row">
@@ -356,8 +365,35 @@ function cancel() {
       </div>
       <div class="form-row">
         <label>Duration (minutes)</label>
+        <div class="duration-preset-buttons">
+          <BaseButton
+            :state="form.Duration === 60 ? 'primary' : 'secondary'"
+            :variant="form.Duration === 60 ? 'elevated' : 'outlined'"
+            title="60 min"
+            tooltip="Set duration to 60 minutes"
+            type="button"
+            @clicked="setDuration(60)"
+          />
+          <BaseButton
+            :state="form.Duration === 120 ? 'primary' : 'secondary'"
+            :variant="form.Duration === 120 ? 'elevated' : 'outlined'"
+            title="120 min"
+            tooltip="Set duration to 120 minutes"
+            type="button"
+            @clicked="setDuration(120)"
+          />
+          <BaseButton
+            :state="form.Duration === 180 ? 'primary' : 'secondary'"
+            :variant="form.Duration === 180 ? 'elevated' : 'outlined'"
+            title="180 min"
+            tooltip="Set duration to 180 minutes"
+            type="button"
+            @clicked="setDuration(180)"
+          />
+        </div>
         <input
-          v-model.number="form.Duration" inputmode="numeric" min="0" pattern="[0-9]*" placeholder="e.g. 120 for 2 hours"
+          v-model.number="form.Duration" inputmode="numeric" min="0" pattern="[0-9]*"
+          placeholder="e.g. 120 for 2 hours"
           required type="number"
         >
       </div>
@@ -368,66 +404,66 @@ function cancel() {
         <label>Max Number of Participants</label>
         <div class="party-preset-buttons">
           <BaseButton
-            title="Light Party (4)"
-            type="button"
             :state="partyPreset === 'light-party' ? 'primary' : 'secondary'"
             :variant="partyPreset === 'light-party' ? 'elevated' : 'outlined'"
+            title="Light Party (4)"
+            type="button"
             @clicked="setPartyPreset('light-party')"
           />
 
           <BaseButton
-            title="Full Party (8)"
-            type="button"
             :state="partyPreset === 'full-party' ? 'primary' : 'secondary'"
             :variant="partyPreset === 'full-party' ? 'elevated' : 'outlined'"
+            title="Full Party (8)"
+            type="button"
             @clicked="setPartyPreset('full-party')"
           />
           <BaseButton
-            title="Alliance Raid (24)"
-            type="button"
             :state="partyPreset === 'alliance-raid' ? 'primary' : 'secondary'"
             :variant="partyPreset === 'alliance-raid' ? 'elevated' : 'outlined'"
+            title="Alliance Raid (24)"
+            type="button"
             @clicked="setPartyPreset('alliance-raid')"
           />
           <BaseButton
-            title="Any (99)"
-            type="button"
             :state="partyPreset === 'any' ? 'primary' : 'secondary'"
             :variant="partyPreset === 'any' ? 'elevated' : 'outlined'"
+            title="Any (99)"
+            type="button"
             @clicked="setPartyPreset('any')"
           />
           <BaseButton
-            title="Custom"
-            type="button"
             :state="partyPreset === 'custom' ? 'primary' : 'secondary'"
             :variant="partyPreset === 'custom' ? 'elevated' : 'outlined'"
+            title="Custom"
+            type="button"
             @clicked="setPartyPreset('custom')"
           />
         </div>
         <input
           v-model.number="form.MaxNumberOfParticipants"
-          type="number"
-          min="1"
-          max="99"
-          required
-          placeholder="Enter custom value"
-          inputmode="numeric"
-          pattern="[0-9]*"
           :disabled="isInputDisabled"
+          inputmode="numeric"
+          max="99"
+          min="1"
+          pattern="[0-9]*"
+          placeholder="Enter custom value"
+          required
+          type="number"
         >
       </div>
       <div v-if="isEditMode" class="form-row">
         <label>Organizer</label>
-        <input :value="user?.PlayerName || ''" type="text" disabled>
+        <input :value="user?.PlayerName || ''" disabled type="text">
       </div>
       <div class="actions">
         <BaseButton
-          :title="loading ? (isEditMode ? 'Updating...' : 'Creating...') : (isEditMode ? 'Update' : 'Create')"
           :disabled="loading"
+          :title="loading ? (isEditMode ? 'Updating...' : 'Creating...') : (isEditMode ? 'Update' : 'Create')"
           type="submit"
         />
 
-        <BaseButton title="Cancel" :disabled="loading" state="secondary" variant="outlined" @clicked="cancel" />
+        <BaseButton :disabled="loading" state="secondary" title="Cancel" variant="outlined" @clicked="cancel" />
       </div>
     </form>
   </section>
@@ -477,6 +513,13 @@ function cancel() {
   flex-wrap: wrap;
   gap: 0.5rem;
   margin-bottom: 0.5rem;
+}
+
+/* Duration preset buttons */
+.duration-preset-buttons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
 }
 
 /* Responsive layout for preset buttons */

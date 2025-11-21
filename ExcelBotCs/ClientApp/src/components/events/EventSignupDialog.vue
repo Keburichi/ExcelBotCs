@@ -1,7 +1,7 @@
 <script setup lang="ts">
-import type { FCEvent, Role } from '@/features/events/events.types'
+import type { EventOccurrence, FCEvent, Role } from '@/features/events/events.types'
+import { computed, onMounted, ref, watch } from 'vue'
 
-import { computed, onMounted, ref } from 'vue'
 import BaseButton from '@/components/BaseButton.vue'
 import BaseModal from '@/components/BaseModal.vue'
 import DiscordMessageRenderer from '@/components/DiscordMessageRenderer.vue'
@@ -21,7 +21,20 @@ const emit = defineEmits<{
 
 const { user } = useAuth()
 const members = useMembers()
+const eventsComposable = useEvents()
 const fcEvent = ref<FCEvent | null>(props.event)
+
+// Get next occurrence for signup
+const nextOccurrence = computed((): EventOccurrence | null => {
+  if (!fcEvent.value)
+    return null
+  return eventsComposable.getNextOccurrence(fcEvent.value)
+})
+
+// Watch for event prop changes
+watch(() => props.event, (newEvent) => {
+  fcEvent.value = newEvent
+}, { deep: true })
 
 // Load members data when component mounts
 onMounted(() => {
@@ -30,32 +43,32 @@ onMounted(() => {
   }
 })
 
-// Check if current user is signed up for a specific role
+// Check if current user is signed up for a specific role (in next occurrence)
 function isSignedUpForRole(role: Role): boolean {
-  if (!user.value?.DiscordId)
+  if (!user.value?.DiscordId || !nextOccurrence.value)
     return false
 
-  return fcEvent.value?.Signups?.some(signup =>
+  return nextOccurrence.value.Signups?.some(signup =>
     signup.DiscordUserId === user.value?.DiscordId && signup.Roles.includes(role),
   ) ?? false
 }
 
-// Get signup count for a specific role
+// Get signup count for a specific role (in next occurrence)
 function getSignupCountForRole(role: Role): number {
-  if (!fcEvent.value?.Signups)
+  if (!nextOccurrence.value?.Signups)
     return 0
 
-  return fcEvent.value.Signups.filter(signup =>
+  return nextOccurrence.value.Signups.filter(signup =>
     signup.Roles.includes(role),
   ).length
 }
 
-// Get list of user display names signed up for a specific role
+// Get list of user display names signed up for a specific role (in next occurrence)
 function getSignedUpUsersForRole(role: Role): string[] {
-  if (!fcEvent.value?.Signups)
+  if (!nextOccurrence.value?.Signups)
     return []
 
-  return fcEvent.value.Signups
+  return nextOccurrence.value.Signups
     .filter(signup => signup.Roles.includes(role))
     .map((signup) => {
       const member = members.members.value.find(m => m.DiscordId === signup.DiscordUserId)
@@ -90,15 +103,33 @@ const casterUsers = computed(() => getSignedUpUsersForRole(ROLE.Caster))
 const rangedUsers = computed(() => getSignedUpUsersForRole(ROLE.Ranged))
 
 async function signUp(signupEvent: FCEvent, role: Role) {
-  await useEvents().signup(signupEvent, role).then(async () => {
-    // emit('update:modelValue', false)
+  if (!nextOccurrence.value) {
+    alert('No upcoming occurrence available for signup')
+    return
+  }
+
+  // Get current roles user is signed up for
+  const currentSignup = nextOccurrence.value.Signups?.find(s => s.DiscordUserId === user.value?.DiscordId)
+  const currentRoles = currentSignup?.Roles ?? []
+
+  // Toggle the role: if already signed up for this role, remove it; otherwise add it
+  let updatedRoles: Role[]
+  if (currentRoles.includes(role)) {
+    updatedRoles = currentRoles.filter(r => r !== role)
+  }
+  else {
+    updatedRoles = [...currentRoles, role]
+  }
+
+  try {
+    await eventsComposable.signUpForOccurrence(signupEvent.Id, nextOccurrence.value.Id, updatedRoles)
     // Reload event after signup and update button states
-    fcEvent.value = await useEvents().getEvent(signupEvent.Id)
-  }).catch((error) => {
+    fcEvent.value = await eventsComposable.getEvent(signupEvent.Id)
+  }
+  catch (error) {
     console.error('Error signing up:', error)
     alert('Error signing up. Please try again.')
-  },
-  )
+  }
 }
 </script>
 
@@ -109,6 +140,22 @@ async function signUp(signupEvent: FCEvent, role: Role) {
   >
     <template #body>
       <DiscordMessageRenderer :content="event.Description" />
+      <div v-if="nextOccurrence" class="occurrence-info">
+        <strong>Signing up for:</strong>
+        {{
+          new Date(nextOccurrence.OccurrenceDate).toLocaleString(undefined, {
+            weekday: 'short',
+            year: 'numeric',
+            month: 'short',
+            day: 'numeric',
+            hour: '2-digit',
+            minute: '2-digit',
+          })
+        }}
+      </div>
+      <div v-else class="no-occurrence-warning">
+        No upcoming occurrences available for signup.
+      </div>
     </template>
     <template #image>
       <img v-if="event.PictureUrl" :src="event.PictureUrl" alt="avatar" class="card__image">
@@ -150,5 +197,27 @@ async function signUp(signupEvent: FCEvent, role: Role) {
 </template>
 
 <style scoped>
+.occurrence-info {
+  margin-top: 16px;
+  padding: 12px;
+  background: var(--muted-bg, #f9f9f9);
+  border-radius: 8px;
+  border: 1px solid var(--border, #e0e0e0);
+  font-size: 0.9rem;
+}
 
+.occurrence-info strong {
+  color: var(--muted, #666);
+  margin-right: 8px;
+}
+
+.no-occurrence-warning {
+  margin-top: 16px;
+  padding: 12px;
+  background: #fff3cd;
+  border: 1px solid #ffc107;
+  border-radius: 8px;
+  color: #856404;
+  font-weight: 500;
+}
 </style>

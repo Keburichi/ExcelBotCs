@@ -11,24 +11,66 @@ export interface FCEvent {
   DiscordMessageId: string
   PictureUrl?: string
   FightId?: string
-  Participants: EventParticipant[]
-  Signups: EventSignup[]
+  Occurrences: EventOccurrence[]
   AuthorId?: string
   Organizer: string
   AvailableForSignup: boolean
   MaxNumberOfParticipants: number
 }
 
+export interface EventOccurrence {
+  Id: string
+  OccurrenceDate: Date
+  Status: OccurrenceStatus
+  DiscordMessageId?: string
+  Signups: EventSignup[]
+  Participants: EventParticipant[]
+}
+
 export interface EventParticipant {
   DiscordUserId: string
   Role: Role
-  OccurrenceDate?: Date
+  SelectionDate: Date
 }
 
 export interface EventSignup {
   DiscordUserId: string
   Roles: Role[]
-  OccurrenceDate?: Date
+  SignupDate: Date
+}
+
+export enum OccurrenceStatus {
+  Scheduled = 0,
+  InProgress = 1,
+  Completed = 2,
+  Cancelled = 3,
+}
+
+export function occurrenceStatusToString(status: OccurrenceStatus): string {
+  switch (status) {
+    case OccurrenceStatus.Scheduled:
+      return 'Scheduled'
+    case OccurrenceStatus.InProgress:
+      return 'In Progress'
+    case OccurrenceStatus.Completed:
+      return 'Completed'
+    case OccurrenceStatus.Cancelled:
+      return 'Cancelled'
+    default:
+      return 'Unknown'
+  }
+}
+
+export function isOccurrencePast(occurrence: EventOccurrence): boolean {
+  return new Date(occurrence.OccurrenceDate) < new Date()
+}
+
+export function canSignUpForOccurrence(occurrence: EventOccurrence, maxParticipants: number): boolean {
+  return (
+    occurrence.Status === OccurrenceStatus.Scheduled
+    && !isOccurrencePast(occurrence)
+    && (occurrence.Participants?.length ?? 0) < maxParticipants
+  )
 }
 
 export enum SignupType {

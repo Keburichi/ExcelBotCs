@@ -9,18 +9,29 @@ public static class FcEventExtensions
     public static string CreateUpcomingRosterMessage(this Event fcEvent)
     {
         var messageBuilder = new StringBuilder();
-        
+
+        // Get next upcoming occurrence or first occurrence
+        var occurrence = fcEvent.Occurrences
+                             ?.Where(o => o.Status == OccurrenceStatus.Scheduled && o.OccurrenceDate >= DateTime.UtcNow)
+                             .OrderBy(o => o.OccurrenceDate)
+                             .FirstOrDefault()
+                         ?? fcEvent.Occurrences?.FirstOrDefault();
+
+        if (occurrence == null) return $"**No upcoming occurrences for: {fcEvent.Name}**";
+
+        var participants = occurrence.Participants ?? new List<EventParticipant>();
+
         messageBuilder.AppendLine($"**Upcoming roster for: {fcEvent.Name}**");
-        messageBuilder.AppendLine($"**Date:** {fcEvent.StartDate.ToLongDiscordDateLongTime()}");
-        messageBuilder.AppendLine($"**In:** {fcEvent.StartDate.ToRelativeDiscordTime()}");
+        messageBuilder.AppendLine($"**Date:** {occurrence.OccurrenceDate.ToLongDiscordDateLongTime()}");
+        messageBuilder.AppendLine($"**In:** {occurrence.OccurrenceDate.ToRelativeDiscordTime()}");
         messageBuilder.AppendLine($"**Duration:** {fcEvent.Duration} minutes");
         messageBuilder.AppendLine();
-        messageBuilder.AppendLine($":RoleTank: {RoleMentions(fcEvent.Participants, Role.Tank)}");
-        messageBuilder.AppendLine($":RoleHealer: {RoleMentions(fcEvent.Participants, Role.Healer)}");
-        messageBuilder.AppendLine($":RoleMelee: {RoleMentions(fcEvent.Participants, Role.Melee)}");
-        messageBuilder.AppendLine($":RoleCaster: {RoleMentions(fcEvent.Participants, Role.Caster)}");
-        messageBuilder.AppendLine($":RoleRanged: {RoleMentions(fcEvent.Participants, Role.Ranged)}");
-        
+        messageBuilder.AppendLine($":RoleTank: {RoleMentions(participants, Role.Tank)}");
+        messageBuilder.AppendLine($":RoleHealer: {RoleMentions(participants, Role.Healer)}");
+        messageBuilder.AppendLine($":RoleMelee: {RoleMentions(participants, Role.Melee)}");
+        messageBuilder.AppendLine($":RoleCaster: {RoleMentions(participants, Role.Caster)}");
+        messageBuilder.AppendLine($":RoleRanged: {RoleMentions(participants, Role.Ranged)}");
+
         return messageBuilder.ToString();
     }
 

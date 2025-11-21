@@ -1,16 +1,17 @@
 <script lang="ts" setup>
-import type { FCEvent } from '@/features/events/events.types'
+import type { EventOccurrence, FCEvent } from '@/features/events/events.types'
 import type { Fight } from '@/features/fights/fights.types'
 import { computed, onMounted, ref } from 'vue'
 import BaseButton from '@/components/BaseButton.vue'
 import BaseCard from '@/components/BaseCard.vue'
 import BaseModal from '@/components/BaseModal.vue'
 import DiscordMessageRenderer from '@/components/DiscordMessageRenderer.vue'
+import ConcludeEventDialog from '@/components/events/ConcludeEventDialog.vue'
 import EventOrganizationDialog from '@/components/events/EventOrganizationDialog.vue'
 import EventSignupDialog from '@/components/events/EventSignupDialog.vue'
 import RaidplanDialog from '@/components/fights/RaidplanDialog.vue'
 import { useEvents } from '@/composables/useEvents'
-import { eventTypeToString } from '@/features/events/events.types'
+import { eventTypeToString, OccurrenceStatus, occurrenceStatusToString } from '@/features/events/events.types'
 import { FightsApi } from '@/features/fights/fights.api'
 import { describeRecurrence, isRecurring, parseICalString } from '@/utils/ical'
 
@@ -32,10 +33,30 @@ const fcEventValue = defineModel<FCEvent>('fcEvent', { required: true })
 const isOpen = ref(false)
 const isOrganizationOpen = ref(false)
 const isDeleteOpen = ref(false)
+const isConcludeOpen = ref(false)
 const isRaidplanDialogOpen = ref(false)
 
 // Fights data for lookup
 const fights = ref<Fight[]>([])
+
+// Get next occurrence for display
+const nextOccurrence = computed((): EventOccurrence | null => {
+  return useEvents().getNextOccurrence(fcEventValue.value)
+})
+
+// Get past scheduled occurrence (for skip functionality)
+const pastScheduledOccurrence = computed((): EventOccurrence | null => {
+  if (!fcEventValue.value.Occurrences)
+    return null
+
+  const now = new Date()
+  return fcEventValue.value.Occurrences
+    .filter(o =>
+      o.Status === OccurrenceStatus.Scheduled
+      && new Date(o.OccurrenceDate) < now,
+    )
+    .sort((a, b) => new Date(a.OccurrenceDate).getTime() - new Date(b.OccurrenceDate).getTime())[0] || null
+})
 
 // Computed properties for display
 const eventTypeLabel = computed(() => {
@@ -65,7 +86,9 @@ const formattedDuration = computed(() => {
 
 // Compact local time display: "Mon, Jan 15, 2025, 8:00 PM - 10:00 PM (2h)"
 const localTimeRange = computed(() => {
-  const startDate = new Date(fcEventValue.value.StartDate)
+  // Use next occurrence date if available, otherwise fall back to event start date
+  const occurrenceDate = nextOccurrence.value?.OccurrenceDate ?? fcEventValue.value.StartDate
+  const startDate = new Date(occurrenceDate)
   const endDate = new Date(startDate.getTime() + fcEventValue.value.Duration * 60 * 1000)
 
   const dateStr = startDate.toLocaleString(undefined, {
@@ -90,7 +113,8 @@ const localTimeRange = computed(() => {
 
 // Compact server time display: "8:00 PM - 10:00 PM (ST)"
 const serverTimeRange = computed(() => {
-  const startDate = new Date(fcEventValue.value.StartDate)
+  const occurrenceDate = nextOccurrence.value?.OccurrenceDate ?? fcEventValue.value.StartDate
+  const startDate = new Date(occurrenceDate)
   const endDate = new Date(startDate.getTime() + fcEventValue.value.Duration * 60 * 1000)
 
   const startTime = startDate.toLocaleString('en-US', {
@@ -134,16 +158,57 @@ async function handleSignupDialogClose(value: boolean) {
 }
 
 function getSignUpNumber(fcEvent: FCEvent) {
-  if (!fcEvent.Signups)
+  // Get signups from next occurrence
+  const occurrence = nextOccurrence.value
+  if (!occurrence || !occurrence.Signups)
     return 0
 
   // count the number of signups where at least one role is selected
-  return fcEvent.Signups.filter(signup => signup.Roles.length > 0).length
+  return occurrence.Signups.filter(signup => signup.Roles.length > 0).length
+}
+
+function getParticipantCount(fcEvent: FCEvent) {
+  const occurrence = nextOccurrence.value
+  if (!occurrence || !occurrence.Participants)
+    return 0
+  return occurrence.Participants.length
 }
 
 function openFightResources(event: MouseEvent) {
   event.stopPropagation() // Prevent event card click
   isRaidplanDialogOpen.value = true
+}
+
+// Handle event concluded - reload event data
+async function handleEventConcluded() {
+  const updatedEvent = await useEvents().getEvent(fcEventValue.value.Id)
+  if (updatedEvent) {
+    fcEventValue.value = updatedEvent
+  }
+}
+
+// Skip past occurrence
+async function skipPastOccurrence() {
+  if (!pastScheduledOccurrence.value)
+    return
+
+  try {
+    await useEvents().updateOccurrenceStatusById(
+      fcEventValue.value.Id,
+      pastScheduledOccurrence.value.Id,
+      OccurrenceStatus.Cancelled,
+    )
+
+    // Reload event data
+    const updatedEvent = await useEvents().getEvent(fcEventValue.value.Id)
+    if (updatedEvent) {
+      fcEventValue.value = updatedEvent
+    }
+  }
+  catch (error) {
+    console.error('Error skipping occurrence:', error)
+    alert('Failed to skip occurrence. Please try again.')
+  }
 }
 
 // Load fights on mount for lookup
@@ -164,6 +229,14 @@ onMounted(async () => {
     v-model:fc-event="fcEventValue"
     v-model:is-open="isOrganizationOpen"
     @event-planned="handleSignupDialogClose(false)"
+  />
+
+  <ConcludeEventDialog
+    v-if="nextOccurrence"
+    v-model="isConcludeOpen"
+    :event="fcEventValue"
+    :occurrence="nextOccurrence"
+    @concluded="handleEventConcluded"
   />
 
   <BaseModal v-model="isDeleteOpen" :title="`Deleting Event - ${fcEventValue.Name}`">
@@ -216,6 +289,13 @@ onMounted(async () => {
         <span class="recurrence-icon">🔄</span>
         <span class="recurrence-text">{{ recurrenceDescription }}</span>
       </div>
+      <div v-if="nextOccurrence" class="occurrence-status">
+        <span class="status-label">Status:</span>
+        <span class="status-value">{{ occurrenceStatusToString(nextOccurrence.Status) }}</span>
+        <span class="participants-info">{{ getParticipantCount(fcEventValue) }}/{{
+          fcEventValue.MaxNumberOfParticipants
+        }} selected</span>
+      </div>
       <p>Organized by: {{ fcEventValue.Organizer }}</p>
       <div class="actions">
         <BaseButton
@@ -230,8 +310,19 @@ onMounted(async () => {
           title="Select Participants" @clicked="isOrganizationOpen = true"
         />
         <BaseButton
-          v-if="props.isAdmin && !fcEventValue.AvailableForSignup" size="small" title="Conclude Event"
-          tooltip="Conclude Event"
+          v-if="props.isAdmin && pastScheduledOccurrence"
+          :tooltip="`Skip occurrence from ${new Date(pastScheduledOccurrence.OccurrenceDate).toLocaleDateString()}`"
+          size="small"
+          state="warning"
+          title="Skip Past Occurrence"
+          @clicked="skipPastOccurrence"
+        />
+        <BaseButton
+          v-if="props.isAdmin && nextOccurrence && nextOccurrence.Status !== OccurrenceStatus.Completed && nextOccurrence.Status !== OccurrenceStatus.Cancelled"
+          size="small"
+          title="Conclude Event"
+          tooltip="Mark occurrence as completed and optionally award lottery guesses"
+          @clicked="isConcludeOpen = true"
         />
         <BaseButton v-if="props.isAdmin" size="small" state="danger" title="Delete" @clicked="isDeleteOpen = true" />
       </div>
@@ -392,5 +483,38 @@ onMounted(async () => {
   font-weight: 500;
   color: var(--fg, #333);
   font-style: italic;
+}
+
+.occurrence-status {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 12px;
+  padding: 10px 12px;
+  background: var(--muted-bg, #f9f9f9);
+  border-radius: 8px;
+  border: 1px solid var(--border, #e0e0e0);
+}
+
+.status-label {
+  font-weight: 600;
+  color: var(--muted, #666);
+  font-size: 0.9rem;
+}
+
+.status-value {
+  font-size: 0.9rem;
+  font-weight: 500;
+  color: var(--fg, #333);
+  padding: 2px 8px;
+  border-radius: 4px;
+  background: var(--muted-bg, #e8f5e9);
+}
+
+.participants-info {
+  margin-left: auto;
+  font-size: 0.9rem;
+  color: var(--muted, #666);
+  font-weight: 500;
 }
 </style>
