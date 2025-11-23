@@ -70,6 +70,7 @@ if (typeof window !== 'undefined') {
 <style scoped>
 .user-menu {
   position: relative;
+  z-index: 9998;
 }
 
 .avatar-btn {
@@ -77,6 +78,11 @@ if (typeof window !== 'undefined') {
   border: 0;
   padding: 0;
   cursor: pointer;
+  transition: transform 0.2s ease;
+}
+
+.avatar-btn:hover {
+  transform: scale(1.05);
 }
 
 .avatar {
@@ -84,38 +90,93 @@ if (typeof window !== 'undefined') {
   height: 32px;
   border-radius: 9999px;
   display: block;
+  border: 2px solid transparent;
+  transition: border-color 0.2s ease;
+}
+
+.avatar-btn:hover .avatar {
+  border-color: rgba(59, 130, 246, 0.5);
 }
 
 .avatar.placeholder {
   width: 32px;
   height: 32px;
   border-radius: 9999px;
-  background: var(--border);
-  color: var(--muted);
+  background: linear-gradient(135deg, #3b82f6 0%, #8b5cf6 50%, #ec4899 100%);
+  color: white;
   display: inline-flex;
   align-items: center;
   justify-content: center;
   font-weight: 600;
+  font-size: 0.75rem;
 }
 
+/* Glass morphism dropdown menu */
 .menu {
   position: absolute;
   right: 0;
-  top: calc(100% + 8px);
-  background: var(--card);
+  top: calc(100% + 12px);
+  background: rgba(255, 255, 255, 0.85);
+  backdrop-filter: blur(20px);
   color: var(--fg);
-  border: 1px solid var(--card-border);
-  border-radius: 10px;
-  min-width: 200px;
-  box-shadow: var(--elev);
-  padding: .25rem;
-  z-index: 10;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  border-radius: 12px;
+  min-width: 220px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15),
+  inset 0 1px 0 rgba(255, 255, 255, 0.5);
+  padding: 0.5rem;
+  z-index: 9999;
+  animation: menuAppear 0.2s ease-out;
+}
+
+:root[data-theme='dark'] .menu {
+  background: rgba(18, 26, 45, 0.9);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4),
+  inset 0 1px 0 rgba(255, 255, 255, 0.1);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme='light']) .menu {
+    background: rgba(18, 26, 45, 0.9);
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4),
+    inset 0 1px 0 rgba(255, 255, 255, 0.1);
+  }
+}
+
+@keyframes menuAppear {
+  from {
+    opacity: 0;
+    transform: translateY(-8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 .menu-header {
-  padding: .6rem .75rem;
-  color: var(--muted);
-  border-bottom: 1px solid var(--border);
-  margin-bottom: .25rem;
+  padding: 0.75rem 1rem;
+  color: var(--fg);
+  border-bottom: 1px solid rgba(var(--color-border), 0.3);
+  margin-bottom: 0.5rem;
+  font-size: 0.9rem;
+}
+
+.menu-header strong {
+  background: linear-gradient(135deg, #3b82f6 0%, #8b5cf6 50%, #ec4899 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* Respect reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  .menu,
+  .avatar-btn {
+    animation: none !important;
+    transition: none !important;
+  }
 }
 </style>

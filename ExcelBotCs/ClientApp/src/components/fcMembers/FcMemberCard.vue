@@ -70,7 +70,7 @@ const rankBadgeClass = computed(() => {
 .member-rank-badge {
   display: inline-block;
   padding: 4px 12px;
-  border-radius: 12px;
+  border-radius: 16px;
   font-size: 0.85rem;
   font-weight: 600;
   text-transform: uppercase;

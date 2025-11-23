@@ -1,7 +1,7 @@
 <script lang="ts" setup>
-import {computed, onMounted, ref} from 'vue'
+import { computed, onMounted, ref } from 'vue'
 import BaseButton from '@/components/BaseButton.vue'
-import {LotteryApi} from '@/features/lottery/lottery.api'
+import { LotteryApi } from '@/features/lottery/lottery.api'
 
 const emit = defineEmits<{
   refresh: []
@@ -21,15 +21,16 @@ const filteredMembers = computed(() => {
     return []
   const search = awardUserInput.value.toLowerCase()
   return fcMembers.value.filter(name =>
-      name.toLowerCase().includes(search)
-      && !selectedUsers.value.includes(name),
+    name.toLowerCase().includes(search)
+    && !selectedUsers.value.includes(name),
   ).slice(0, 10)
 })
 
 onMounted(async () => {
   try {
     fcMembers.value = await LotteryApi.fcMembers()
-  } catch (e: any) {
+  }
+  catch (e: any) {
     console.error('Failed to load FC members:', e)
   }
 })
@@ -68,9 +69,11 @@ async function runLottery() {
     const result = await LotteryApi.runLottery()
     success.value = result.message
     emit('refresh')
-  } catch (e: any) {
+  }
+  catch (e: any) {
     error.value = e.message || 'Failed to run lottery'
-  } finally {
+  }
+  finally {
     loading.value = false
   }
 }
@@ -96,9 +99,11 @@ async function awardUsers() {
     awardReason.value = ''
     selectedUsers.value = []
     emit('refresh')
-  } catch (e: any) {
+  }
+  catch (e: any) {
     error.value = e.message || 'Failed to award users'
-  } finally {
+  }
+  finally {
     loading.value = false
   }
 }
@@ -126,10 +131,10 @@ async function awardUsers() {
         Execute the lottery to select winners based on the random number. This action cannot be undone.
       </p>
       <BaseButton
-          :disabled="loading"
-          state="danger"
-          title="Run Lottery"
-          @clicked="runLottery"
+        :disabled="loading"
+        state="danger"
+        title="Run Lottery"
+        @clicked="runLottery"
       />
     </div>
 
@@ -144,10 +149,10 @@ async function awardUsers() {
       <div class="form-group">
         <label for="award-reason">Reason</label>
         <input
-            id="award-reason"
-            v-model="awardReason"
-            placeholder="e.g., Event participation reward"
-            type="text"
+          id="award-reason"
+          v-model="awardReason"
+          placeholder="e.g., Event participation reward"
+          type="text"
         >
       </div>
 
@@ -155,19 +160,19 @@ async function awardUsers() {
         <label for="award-users">Select Users</label>
         <div class="autocomplete-container">
           <input
-              id="award-users"
-              v-model="awardUserInput"
-              placeholder="Start typing a member name..."
-              type="text"
-              @blur="handleInputBlur"
-              @focus="handleInputFocus"
+            id="award-users"
+            v-model="awardUserInput"
+            placeholder="Start typing a member name..."
+            type="text"
+            @blur="handleInputBlur"
+            @focus="handleInputFocus"
           >
           <div v-if="showSuggestions && filteredMembers.length > 0" class="autocomplete-suggestions">
             <div
-                v-for="member in filteredMembers"
-                :key="member"
-                class="suggestion-item"
-                @click="addUser(member)"
+              v-for="member in filteredMembers"
+              :key="member"
+              class="suggestion-item"
+              @click="addUser(member)"
             >
               {{ member }}
             </div>
@@ -185,10 +190,10 @@ async function awardUsers() {
       </div>
 
       <BaseButton
-          :disabled="loading"
-          state="tertiary"
-          title="Award Guesses"
-          @clicked="awardUsers"
+        :disabled="loading"
+        state="tertiary"
+        title="Award Guesses"
+        @clicked="awardUsers"
       />
     </div>
   </div>
@@ -196,10 +201,30 @@ async function awardUsers() {
 
 <style scoped>
 .admin-container {
-  background: var(--card, #fff);
-  border: 1px solid var(--border, #e5e7eb);
-  border-radius: 0.75rem;
+  background: rgba(255, 255, 255, 0.7);
+  backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  border-radius: 16px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08),
+  inset 0 1px 0 rgba(255, 255, 255, 0.5);
   padding: 1.5rem;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+:root[data-theme='dark'] .admin-container {
+  background: rgba(18, 26, 45, 0.7);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3),
+  inset 0 1px 0 rgba(255, 255, 255, 0.08);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme='light']) .admin-container {
+    background: rgba(18, 26, 45, 0.7);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3),
+    inset 0 1px 0 rgba(255, 255, 255, 0.08);
+  }
 }
 
 .admin-title {
@@ -212,7 +237,7 @@ async function awardUsers() {
 .admin-section {
   padding: 1.5rem;
   background: rgba(0, 0, 0, 0.02);
-  border-radius: 0.5rem;
+  border-radius: 16px;
   margin-bottom: 1.5rem;
   border: 1px solid var(--border, #e5e7eb);
 }

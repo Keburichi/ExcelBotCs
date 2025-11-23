@@ -207,10 +207,29 @@ a:hover {
 
 .create-form {
     margin: 1rem 0 2rem;
-    padding: 1rem;
-    border: 1px solid var(--border);
-    border-radius: 12px;
-    background: var(--card);
+    padding: 1.5rem;
+    background: rgba(255, 255, 255, 0.7);
+    backdrop-filter: blur(20px);
+    border-radius: 16px;
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08),
+    inset 0 1px 0 rgba(255, 255, 255, 0.5);
+}
+
+:root[data-theme='dark'] .create-form {
+    background: rgba(18, 26, 45, 0.7);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3),
+    inset 0 1px 0 rgba(255, 255, 255, 0.08);
+}
+
+@media (prefers-color-scheme: dark) {
+    :root:not([data-theme='light']) .create-form {
+        background: rgba(18, 26, 45, 0.7);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3),
+        inset 0 1px 0 rgba(255, 255, 255, 0.08);
+    }
 }
 
 .row {
@@ -228,12 +247,48 @@ label {
 }
 
 input, select, textarea {
-    background: var(--input-bg);
+    background: rgba(255, 255, 255, 0.5);
+    backdrop-filter: blur(10px);
     color: var(--input-fg);
-    border: 1px solid var(--input-border);
-    border-radius: 10px;
-    padding: 0.5rem 0.65rem;
+    border: 1px solid rgba(var(--color-border), 0.5);
+    border-radius: 12px;
+    padding: 0.625rem 0.875rem;
     outline: 0;
+    transition: all 0.2s ease;
+}
+
+:root[data-theme='dark'] input,
+:root[data-theme='dark'] select,
+:root[data-theme='dark'] textarea {
+    background: rgba(15, 23, 42, 0.5);
+    border: 1px solid rgba(255, 255, 255, 0.15);
+}
+
+@media (prefers-color-scheme: dark) {
+    :root:not([data-theme='light']) input,
+    :root:not([data-theme='light']) select,
+    :root:not([data-theme='light']) textarea {
+        background: rgba(15, 23, 42, 0.5);
+        border: 1px solid rgba(255, 255, 255, 0.15);
+    }
+}
+
+input:hover, select:hover, textarea:hover {
+    border-color: rgba(59, 130, 246, 0.4);
+}
+
+:root[data-theme='dark'] input:hover,
+:root[data-theme='dark'] select:hover,
+:root[data-theme='dark'] textarea:hover {
+    border-color: rgba(59, 130, 246, 0.5);
+}
+
+@media (prefers-color-scheme: dark) {
+    :root:not([data-theme='light']) input:hover,
+    :root:not([data-theme='light']) select:hover,
+    :root:not([data-theme='light']) textarea:hover {
+        border-color: rgba(59, 130, 246, 0.5);
+    }
 }
 
 input:focus, select:focus, textarea:focus, .btn:focus {
@@ -260,10 +315,29 @@ label.checkbox {
 table {
     width: 100%;
     border-collapse: collapse;
-    background: var(--card);
-    border: 1px solid var(--card-border);
-    border-radius: 12px;
+    background: rgba(255, 255, 255, 0.7);
+    backdrop-filter: blur(20px);
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    border-radius: 16px;
     overflow: hidden;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08),
+    inset 0 1px 0 rgba(255, 255, 255, 0.5);
+}
+
+:root[data-theme='dark'] table {
+    background: rgba(18, 26, 45, 0.7);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3),
+    inset 0 1px 0 rgba(255, 255, 255, 0.08);
+}
+
+@media (prefers-color-scheme: dark) {
+    :root:not([data-theme='light']) table {
+        background: rgba(18, 26, 45, 0.7);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3),
+        inset 0 1px 0 rgba(255, 255, 255, 0.08);
+    }
 }
 
 th, td {
@@ -546,10 +620,12 @@ tr:hover td {
 
 /* Alert theming */
 .alert {
-    padding: 10px 12px;
-    border-radius: 8px;
-    margin: 8px 0;
+    padding: 12px 16px;
+    border-radius: 12px;
+    margin: 10px 0;
     font-size: 14px;
+    backdrop-filter: blur(10px);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
 }
 
 .alert.error {
@@ -568,6 +644,8 @@ tr:hover td {
 .badge {
     background: var(--badge-bg);
     color: var(--badge-fg);
+    backdrop-filter: blur(10px);
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
 }
 
 .badge.admin {
@@ -583,16 +661,20 @@ tr:hover td {
 .chip {
     background: var(--chip-bg);
     color: var(--chip-fg);
+    backdrop-filter: blur(10px);
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
 }
 
 .pill.on {
     background: var(--pill-on-bg);
     color: var(--pill-on-fg);
+    backdrop-filter: blur(10px);
 }
 
 .pill.off {
     background: var(--pill-off-bg);
     color: var(--pill-off-fg);
+    backdrop-filter: blur(10px);
 }
 
 /* Small fixes for muted texts to respect theme */

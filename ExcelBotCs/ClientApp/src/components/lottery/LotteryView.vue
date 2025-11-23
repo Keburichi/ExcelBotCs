@@ -56,7 +56,9 @@ function handleSelect(num: number) {
     </div>
 
     <div class="quick-pick-section">
-      <h3 class="section-title">Quick Pick</h3>
+      <h3 class="section-title">
+        Quick Pick
+      </h3>
       <div class="quick-pick-actions">
         <BaseButton
           title="Any 1–99"
@@ -100,7 +102,7 @@ function handleSelect(num: number) {
     </div>
 
     <div v-if="isAdmin" class="lottery-admin-section">
-      <LotteryAdmin @refresh="lottery.load"/>
+      <LotteryAdmin @refresh="lottery.load" />
     </div>
   </section>
 </template>
@@ -155,10 +157,30 @@ function handleSelect(num: number) {
 }
 
 .info-card {
-  background: var(--card, #fff);
-  border: 1px solid var(--border, #e5e7eb);
-  border-radius: 0.75rem;
+  background: rgba(255, 255, 255, 0.7);
+  backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  border-radius: 16px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08),
+  inset 0 1px 0 rgba(255, 255, 255, 0.5);
   padding: 1.5rem;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+:root[data-theme='dark'] .info-card {
+  background: rgba(18, 26, 45, 0.7);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3),
+  inset 0 1px 0 rgba(255, 255, 255, 0.08);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme='light']) .info-card {
+    background: rgba(18, 26, 45, 0.7);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3),
+    inset 0 1px 0 rgba(255, 255, 255, 0.08);
+  }
 }
 
 .info-title {

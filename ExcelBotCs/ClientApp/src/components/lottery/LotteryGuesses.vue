@@ -8,7 +8,9 @@ defineProps<{
 
 <template>
   <div class="guesses-container">
-    <h3 class="guesses-title">All Current Guesses</h3>
+    <h3 class="guesses-title">
+      All Current Guesses
+    </h3>
     <div v-if="guesses.length === 0" class="no-guesses">
       No guesses yet. Be the first to make a guess!
     </div>
@@ -22,7 +24,9 @@ defineProps<{
         </thead>
         <tbody>
           <tr v-for="guess in guesses" :key="guess.Number">
-            <td class="number-cell">{{ guess.Number }}</td>
+            <td class="number-cell">
+              {{ guess.Number }}
+            </td>
             <td>{{ guess.Guessers.map(u => u.DiscordName).join(', ') }}</td>
           </tr>
         </tbody>
@@ -33,10 +37,30 @@ defineProps<{
 
 <style scoped>
 .guesses-container {
-  background: var(--card, #fff);
-  border: 1px solid var(--border, #e5e7eb);
-  border-radius: 0.75rem;
+  background: rgba(255, 255, 255, 0.7);
+  backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  border-radius: 16px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08),
+  inset 0 1px 0 rgba(255, 255, 255, 0.5);
   padding: 1.5rem;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+:root[data-theme='dark'] .guesses-container {
+  background: rgba(18, 26, 45, 0.7);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3),
+  inset 0 1px 0 rgba(255, 255, 255, 0.08);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme='light']) .guesses-container {
+    background: rgba(18, 26, 45, 0.7);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3),
+    inset 0 1px 0 rgba(255, 255, 255, 0.08);
+  }
 }
 
 .guesses-title {
@@ -56,7 +80,7 @@ defineProps<{
 .guesses-table-container {
   overflow-x: auto;
   border: 1px solid var(--border, #e5e7eb);
-  border-radius: 0.5rem;
+  border-radius: 16px;
 }
 
 .guesses-table {
