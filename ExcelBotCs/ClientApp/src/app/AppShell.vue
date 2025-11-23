@@ -205,6 +205,9 @@ const isLoginPage = computed(() => route.path === '/login')
   max-width: 1100px;
   margin: 0 auto;
   padding: 1rem;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
 }
 
 /* Glass morphism header */
@@ -222,6 +225,13 @@ const isLoginPage = computed(() => route.path === '/login')
   inset 0 1px 0 rgba(255, 255, 255, 0.5);
   gap: 1.5rem;
   flex-wrap: wrap;
+  position: sticky;
+  top: -1rem;
+  z-index: 1000;
+  transition: all 0.3s ease;
+  margin-left: -1rem;
+  margin-right: -1rem;
+  margin-top: -1rem;
 }
 
 :root[data-theme='dark'] .app-header {
@@ -314,13 +324,14 @@ const isLoginPage = computed(() => route.path === '/login')
 .app-content {
   position: relative;
   z-index: 1;
+  flex: 1;
 }
 
 /* Subtle glassmorphism footer */
 .app-footer {
   position: relative;
   z-index: 1;
-  margin-top: 4rem;
+  margin-top: auto;
   padding: 2rem;
   text-align: center;
   background: rgba(255, 255, 255, 0.08);
