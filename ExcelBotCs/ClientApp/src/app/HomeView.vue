@@ -37,10 +37,13 @@ import AnnouncementsView from '@/components/announcements/AnnouncementsView.vue'
 
 .intro-title {
   margin: 0 0 .25rem 0;
+  color: var(--fg) !important;
+  font-weight: 700;
 }
 
 .intro-text {
   margin: 0;
-  color: var(--muted);
+  color: var(--fg);
+  opacity: 0.8;
 }
 </style>

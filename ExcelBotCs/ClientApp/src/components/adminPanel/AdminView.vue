@@ -14,5 +14,20 @@ import MemberRolesView from '@/components/adminPanel/MemberRolesView.vue'
 </template>
 
 <style scoped>
+h2, h3 {
+  color: var(--fg);
+}
 
+h2 {
+  font-size: 2rem;
+  font-weight: 700;
+  margin-bottom: 1.5rem;
+}
+
+h3 {
+  font-size: 1.5rem;
+  font-weight: 600;
+  margin-top: 2rem;
+  margin-bottom: 1rem;
+}
 </style>

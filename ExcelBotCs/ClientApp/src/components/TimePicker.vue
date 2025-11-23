@@ -482,12 +482,7 @@ function setPreset(h: number, m: number) {
   background: var(--primary, #4a90e2);
   color: white;
   border-color: var(--primary, #4a90e2);
-  transform: translateY(-1px);
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-}
-
-.preset-button:active {
-  transform: translateY(0);
 }
 
 /* Responsive */

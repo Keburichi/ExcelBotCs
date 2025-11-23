@@ -70,7 +70,7 @@ const isLoginPage = computed(() => route.path === '/login')
       </main>
 
       <footer class="app-footer">
-        <small>© {{ new Date().getFullYear() }} Excelsior FC</small>
+        <span class="copyright-text">© {{ new Date().getFullYear() }} Excelsior FC</span>
       </footer>
     </div>
 
@@ -316,32 +316,50 @@ const isLoginPage = computed(() => route.path === '/login')
   z-index: 1;
 }
 
-/* Glass morphism footer */
+/* Subtle glassmorphism footer */
 .app-footer {
   position: relative;
   z-index: 1;
-  margin-top: 3rem;
-  padding: 1.25rem;
+  margin-top: 4rem;
+  padding: 2rem;
   text-align: center;
-  background: rgba(255, 255, 255, 0.4);
-  backdrop-filter: blur(20px);
+  background: rgba(255, 255, 255, 0.08);
+  backdrop-filter: blur(12px);
   border-radius: 16px;
-  border: 1px solid rgba(255, 255, 255, 0.3);
-  color: var(--muted);
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.06);
 }
 
 :root[data-theme='dark'] .app-footer {
-  background: rgba(18, 26, 45, 0.4);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
+  background: rgba(18, 26, 45, 0.12);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.15);
 }
 
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme='light']) .app-footer {
-    background: rgba(18, 26, 45, 0.4);
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
+    background: rgba(18, 26, 45, 0.12);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.15);
+  }
+}
+
+.copyright-text {
+  font-size: 0.875rem;
+  font-weight: 500;
+  letter-spacing: 0.5px;
+  opacity: 0.85;
+  color: rgba(0, 0, 0, 0.75);
+  line-height: 1.6;
+}
+
+:root[data-theme='dark'] .copyright-text {
+  color: rgba(255, 255, 255, 0.85);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme='light']) .copyright-text {
+    color: rgba(255, 255, 255, 0.85);
   }
 }
 

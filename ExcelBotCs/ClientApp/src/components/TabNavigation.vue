@@ -26,47 +26,20 @@ const activeTab = computed(() => {
 
 <template>
   <nav :class="{ sticky }" class="tab-navigation">
-    <div class="tab-container">
-      <router-link
-        v-for="tab in tabs"
-        :key="tab.name"
-        :class="{ active: activeTab === tab.name }"
-        :to="tab.path"
-        class="tab-link"
-      >
-        {{ tab.name }}
-      </router-link>
-    </div>
+    <router-link
+      v-for="tab in tabs"
+      :key="tab.name"
+      :class="{ active: activeTab === tab.name }"
+      :to="tab.path"
+      class="tab-link"
+    >
+      {{ tab.name }}
+    </router-link>
   </nav>
 </template>
 
 <style scoped>
 .tab-navigation {
-  margin-bottom: 1.5rem;
-}
-
-.tab-navigation.sticky {
-  position: sticky;
-  top: 0;
-  z-index: 100;
-  padding: 1rem 0;
-  background: rgba(255, 255, 255, 0.8);
-  backdrop-filter: blur(20px);
-  margin: -1rem 0 1.5rem;
-  border-radius: 16px;
-}
-
-:root[data-theme='dark'] .tab-navigation.sticky {
-  background: rgba(11, 16, 32, 0.8);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root:not([data-theme='light']) .tab-navigation.sticky {
-    background: rgba(11, 16, 32, 0.8);
-  }
-}
-
-.tab-container {
   display: flex;
   gap: 0.375rem;
   padding: 0.5rem;
@@ -78,9 +51,16 @@ const activeTab = computed(() => {
   inset 0 1px 0 rgba(255, 255, 255, 0.5);
   overflow-x: auto;
   scrollbar-width: thin;
+  margin-bottom: 1.5rem;
 }
 
-:root[data-theme='dark'] .tab-container {
+.tab-navigation.sticky {
+  position: sticky;
+  top: 0;
+  z-index: 100;
+}
+
+:root[data-theme='dark'] .tab-navigation {
   background: rgba(18, 26, 45, 0.6);
   border: 1px solid rgba(255, 255, 255, 0.1);
   box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3),
@@ -88,7 +68,7 @@ const activeTab = computed(() => {
 }
 
 @media (prefers-color-scheme: dark) {
-  :root:not([data-theme='light']) .tab-container {
+  :root:not([data-theme='light']) .tab-navigation {
     background: rgba(18, 26, 45, 0.6);
     border: 1px solid rgba(255, 255, 255, 0.1);
     box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3),
@@ -143,20 +123,20 @@ const activeTab = computed(() => {
 }
 
 /* Custom scrollbar for horizontal scroll */
-.tab-container::-webkit-scrollbar {
+.tab-navigation::-webkit-scrollbar {
   height: 6px;
 }
 
-.tab-container::-webkit-scrollbar-track {
+.tab-navigation::-webkit-scrollbar-track {
   background: transparent;
 }
 
-.tab-container::-webkit-scrollbar-thumb {
+.tab-navigation::-webkit-scrollbar-thumb {
   background: rgba(var(--color-muted), 0.3);
   border-radius: 3px;
 }
 
-.tab-container::-webkit-scrollbar-thumb:hover {
+.tab-navigation::-webkit-scrollbar-thumb:hover {
   background: rgba(var(--color-muted), 0.5);
 }
 </style>

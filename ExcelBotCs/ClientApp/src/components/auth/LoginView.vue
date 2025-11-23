@@ -108,7 +108,7 @@ async function proceed() {
       </div>
 
       <footer class="login-footer">
-        <small>© {{ new Date().getFullYear() }} Excelsior FC. All rights reserved.</small>
+        <span class="copyright-text">© {{ new Date().getFullYear() }} Excelsior FC. All rights reserved.</span>
       </footer>
     </div>
   </div>
@@ -155,8 +155,25 @@ async function proceed() {
 /* Footer */
 .login-footer {
   text-align: center;
-  color: var(--muted);
-  opacity: 0.8;
+}
+
+.login-footer .copyright-text {
+  font-size: 0.875rem;
+  font-weight: 500;
+  letter-spacing: 0.5px;
+  opacity: 0.75;
+  color: rgba(0, 0, 0, 0.65);
+  line-height: 1.6;
+}
+
+:root[data-theme='dark'] .login-footer .copyright-text {
+  color: rgba(255, 255, 255, 0.75);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme='light']) .login-footer .copyright-text {
+    color: rgba(255, 255, 255, 0.75);
+  }
 }
 
 /* Animated gradient background */
@@ -405,16 +422,11 @@ async function proceed() {
 }
 
 .discord-button:hover {
-  transform: translateY(-2px);
   box-shadow: 0 6px 20px rgba(88, 101, 242, 0.4);
 }
 
 .discord-button:hover::before {
   opacity: 1;
-}
-
-.discord-button:active {
-  transform: translateY(0);
 }
 
 .discord-icon {
