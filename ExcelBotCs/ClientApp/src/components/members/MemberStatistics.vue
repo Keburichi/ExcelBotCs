@@ -1,15 +1,16 @@
 <script setup lang="ts">
+import type { ChartConfiguration } from 'chart.js'
 import type { Member } from '@/features/members/members.types'
-import { FightType } from '@/features/fights/fights.types'
-import { Chart, type ChartConfiguration, registerables } from 'chart.js'
+import { Chart, registerables } from 'chart.js'
 import { computed, nextTick, onMounted, onUnmounted, ref, watch } from 'vue'
-
-// Register Chart.js components
-Chart.register(...registerables)
+import { FightType } from '@/features/fights/fights.types'
 
 const props = defineProps<{
   members: Member[]
 }>()
+
+// Register Chart.js components
+Chart.register(...registerables)
 
 const subscriptionChartCanvas = ref<HTMLCanvasElement>()
 const contentChartCanvas = ref<HTMLCanvasElement>()
@@ -46,9 +47,9 @@ const contentStats = computed(() => {
     }
   }
 
-  props.members.forEach(member => {
+  props.members.forEach((member) => {
     if (member?.Experience && Array.isArray(member.Experience) && member.Experience.length > 0) {
-      member.Experience.forEach(fight => {
+      member.Experience.forEach((fight) => {
         if (fight && typeof fight.Type !== 'undefined') {
           const typeKey = FightType[fight.Type] as keyof typeof stats
           if (stats[typeKey] && member.Id) {
@@ -259,13 +260,57 @@ watch(() => props.members, () => {
 }
 
 .chart-card {
-  background: var(--card, #fff);
-  border: 1px solid var(--border, #e5e7eb);
-  border-radius: 0.75rem;
+  background: rgba(255, 255, 255, 0.7);
+  backdrop-filter: blur(20px);
+  border: 2px solid rgba(255, 255, 255, 0.4);
+  border-radius: 16px;
   padding: 1.5rem;
   height: 400px;
   display: flex;
   flex-direction: column;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08),
+  inset 0 1px 0 rgba(255, 255, 255, 0.5);
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+:root[data-theme='dark'] .chart-card {
+  background: rgba(18, 26, 45, 0.7);
+  border: 2px solid rgba(255, 255, 255, 0.15);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3),
+  inset 0 1px 0 rgba(255, 255, 255, 0.08);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme='light']) .chart-card {
+    background: rgba(18, 26, 45, 0.7);
+    border: 2px solid rgba(255, 255, 255, 0.15);
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3),
+    inset 0 1px 0 rgba(255, 255, 255, 0.08);
+  }
+}
+
+.chart-card:hover {
+  backdrop-filter: blur(24px);
+  border-color: rgba(59, 130, 246, 0.4);
+  box-shadow: 0 8px 32px rgba(59, 130, 246, 0.15),
+  0 4px 16px rgba(0, 0, 0, 0.1),
+  inset 0 1px 0 rgba(255, 255, 255, 0.6);
+}
+
+:root[data-theme='dark'] .chart-card:hover {
+  border-color: rgba(59, 130, 246, 0.5);
+  box-shadow: 0 8px 32px rgba(59, 130, 246, 0.25),
+  0 4px 16px rgba(0, 0, 0, 0.4),
+  inset 0 1px 0 rgba(255, 255, 255, 0.12);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme='light']) .chart-card:hover {
+    border-color: rgba(59, 130, 246, 0.5);
+    box-shadow: 0 8px 32px rgba(59, 130, 246, 0.25),
+    0 4px 16px rgba(0, 0, 0, 0.4),
+    inset 0 1px 0 rgba(255, 255, 255, 0.12);
+  }
 }
 
 .chart-card canvas {

@@ -24,10 +24,10 @@ const tabs = computed<Tab[]>(() => {
 
 <template>
   <div class="admin-layout">
-    <div class="admin-header">
-      <h1 class="text-4xl font-bold text-gray-900 dark:text-white mb-6">
+    <div class="page-header">
+      <h2 class="page-title">
         Admin Panel
-      </h1>
+      </h2>
 
       <TabNavigation :sticky="true" :tabs="tabs" />
     </div>
@@ -46,12 +46,24 @@ const tabs = computed<Tab[]>(() => {
   padding: 1rem;
 }
 
-.admin-header {
-  margin-bottom: 2rem;
-}
-
 .tab-content {
   /* Let child components handle their own backgrounds */
   width: 100%;
+}
+
+.page-header {
+  margin-bottom: 2rem;
+}
+
+.page-title {
+  font-size: 2rem;
+  font-weight: 700;
+  margin: 0;
+  background: linear-gradient(135deg, #3b82f6 0%, #8b5cf6 50%, #ec4899 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  color: transparent;
+  letter-spacing: -0.02em;
 }
 </style>

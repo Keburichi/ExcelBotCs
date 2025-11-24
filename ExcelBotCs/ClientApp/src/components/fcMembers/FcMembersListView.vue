@@ -16,9 +16,11 @@ onMounted(m.load)
     <p v-if="m.error" class="error">
       {{ m.error }}
     </p>
-    <h2 class="text-3xl font-bold">
-      Members ({{ m.members.value.length }})
-    </h2>
+    <div class="page-header">
+      <h2 class="page-title">
+        Members ({{ m.members.value.length }})
+      </h2>
+    </div>
 
     <CardList
       :items="m.members.value"
@@ -31,3 +33,22 @@ onMounted(m.load)
     </CardList>
   </section>
 </template>
+
+<style scoped>
+/* Page header */
+.page-header {
+  margin-bottom: 2rem;
+}
+
+.page-title {
+  font-size: 2rem;
+  font-weight: 700;
+  margin: 0;
+  background: linear-gradient(135deg, #3b82f6 0%, #8b5cf6 50%, #ec4899 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  color: transparent;
+  letter-spacing: -0.02em;
+}
+</style>

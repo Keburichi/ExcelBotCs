@@ -24,9 +24,11 @@ onMounted(m.load)
 <template>
   <section class="home">
     <div class="header-section">
-      <h2 class="text-3xl font-bold">
-        Members
-      </h2>
+      <div class="page-header">
+        <h2 class="page-title">
+          Members
+        </h2>
+      </div>
 
       <div class="view-toggle">
         <BaseButton
@@ -84,6 +86,23 @@ onMounted(m.load)
 </template>
 
 <style scoped>
+/* Page header */
+.page-header {
+  margin-bottom: 0;
+}
+
+.page-title {
+  font-size: 2rem;
+  font-weight: 700;
+  margin: 0;
+  background: linear-gradient(135deg, #3b82f6 0%, #8b5cf6 50%, #ec4899 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  color: transparent;
+  letter-spacing: -0.02em;
+}
+
 .header-section {
   display: flex;
   justify-content: space-between;

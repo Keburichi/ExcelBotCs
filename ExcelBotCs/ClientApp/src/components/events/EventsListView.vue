@@ -158,11 +158,17 @@ onMounted(e.load)
 
 <template>
   <section class="home">
+    <div class="page-header">
+      <h2 class="page-title">
+        Events
+      </h2>
+    </div>
+
     <template v-if="isDeveloper">
       <div class="flex justify-between items-center mb-4">
-        <h2 class="text-2xl font-bold">
-          Upcoming FC Events
-        </h2>
+        <h3 class="text-xl font-semibold">
+          Calendar
+        </h3>
         <div class="flex gap-2 items-center">
           <BaseButton
             :state="activeView === 'month' ? 'primary' : 'secondary'" title="Month"
@@ -197,11 +203,13 @@ onMounted(e.load)
         <h3 class="text-xl font-semibold mb-2">
           Calendar coming soon
         </h3>
-        <p>We’re working on the calendar experience. It’s currently visible only to developers.</p>
+        <p>We're working on the calendar experience. It's currently visible only to developers.</p>
       </div>
     </template>
 
-    <h2>Events List ({{ e.events.value.length }})</h2>
+    <h3 class="section-subheading">
+      Events List ({{ e.events.value.length }})
+    </h3>
     <p v-if="e.error" class="error">
       {{ e.error }}
     </p>
@@ -244,6 +252,30 @@ onMounted(e.load)
 </template>
 
 <style>
+/* Page header */
+.page-header {
+  margin-bottom: 2rem;
+}
+
+.page-title {
+  font-size: 2rem;
+  font-weight: 700;
+  margin: 0;
+  background: linear-gradient(135deg, #3b82f6 0%, #8b5cf6 50%, #ec4899 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  color: transparent;
+  letter-spacing: -0.02em;
+}
+
+.section-subheading {
+  font-size: 1.5rem;
+  font-weight: 600;
+  color: var(--fg);
+  margin: 2rem 0 1rem 0;
+}
+
 .vuecal__event {
   cursor: pointer;
 }

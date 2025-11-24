@@ -325,6 +325,7 @@ const isLoginPage = computed(() => route.path === '/login')
   position: relative;
   z-index: 1;
   flex: 1;
+  padding-bottom: 3rem;
 }
 
 /* Subtle glassmorphism footer */

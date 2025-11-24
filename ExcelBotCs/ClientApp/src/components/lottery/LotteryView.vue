@@ -27,9 +27,11 @@ function handleSelect(num: number) {
 
 <template>
   <section class="lottery-view">
-    <h2 class="lottery-title">
-      Lottery
-    </h2>
+    <div class="page-header">
+      <h2 class="page-title">
+        Lottery
+      </h2>
+    </div>
 
     <div v-if="lottery.error.value && lottery.error.value.trim().length > 0" class="message message--error">
       {{ lottery.error.value }}
@@ -114,11 +116,21 @@ function handleSelect(num: number) {
   padding: 1.5rem;
 }
 
-.lottery-title {
+/* Page header */
+.page-header {
+  margin-bottom: 2rem;
+}
+
+.page-title {
   font-size: 2rem;
-  font-weight: bold;
-  margin: 0 0 1.5rem 0;
-  color: var(--fg, #111827);
+  font-weight: 700;
+  margin: 0;
+  color: var(--fg);
+  background: linear-gradient(135deg, #3b82f6 0%, #8b5cf6 50%, #ec4899 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  letter-spacing: -0.02em;
 }
 
 .message {

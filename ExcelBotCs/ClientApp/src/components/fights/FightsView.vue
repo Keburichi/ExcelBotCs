@@ -108,7 +108,11 @@ const searchFiltered = computed(() => {
 
 <template>
   <section class="home">
-    <h2>Fights</h2>
+    <div class="page-header">
+      <h2 class="page-title">
+        Fights
+      </h2>
+    </div>
 
     <div class="search-section">
       <input
@@ -138,6 +142,23 @@ const searchFiltered = computed(() => {
 </template>
 
 <style scoped>
+/* Page header */
+.page-header {
+  margin-bottom: 2rem;
+}
+
+.page-title {
+  font-size: 2rem;
+  font-weight: 700;
+  margin: 0;
+  color: var(--fg);
+  background: linear-gradient(135deg, #3b82f6 0%, #8b5cf6 50%, #ec4899 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  letter-spacing: -0.02em;
+}
+
 .search-section {
   margin-bottom: 1rem;
 }
