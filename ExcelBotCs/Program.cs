@@ -1,10 +1,8 @@
 using System.Text.Json.Serialization;
 using DotNetEnv;
-using ExcelBotCs;
 using ExcelBotCs.Authorization;
 using ExcelBotCs.Authorization.Handlers;
 using ExcelBotCs.Authorization.Requirements;
-using ExcelBotCs.Data;
 using ExcelBotCs.Discord;
 using ExcelBotCs.Extensions;
 using ExcelBotCs.Filters;
@@ -24,155 +22,165 @@ using Microsoft.AspNetCore.DataProtection.KeyManagement;
 using Microsoft.Extensions.Options;
 using MongoDB.Driver;
 
-Env.Load();
+namespace ExcelBotCs;
 
-var builder = WebApplication.CreateBuilder(args);
-
-void AddHostedService<T>() where T : class, IHostedService
+public class Program
 {
-    builder.Services.AddHostedService<T>().AddSingleton(x => x.GetServices<IHostedService>().OfType<T>().First());
-}
-
-void AddInstance<T>(T instance, bool activate = true) where T : class
-{
-    var service = builder.Services.AddSingleton(instance);
-    if (activate) service.ActivateSingleton<T>();
-}
-
-void AddConfig<T>(string key) where T : class
-{
-    AddInstance(Utils.GetEnvConfig<T>(key, nameof(T)));
-}
-
-void AddService<T>(bool activate = true) where T : class
-{
-    var service = builder.Services.AddSingleton<T>();
-    if (activate) service.ActivateSingleton<T>();
-}
-
-AddHostedService<DiscordBotService>();
-AddService<Database>();
-AddService<DiscordLogger>();
-AddInstance(new Prng());
-
-
-AddService<ImportService>();
-
-builder.Services.LoadSettings(builder);
-
-builder.Services.AddScoped<ILotteryService, LotteryService>();
-builder.Services.AddScoped<IDiscordMessageService, DiscordMessageService>();
-builder.Services.AddSingleton<LodestoneService>(sp =>
-{
-    var options = sp.GetRequiredService<IOptions<LodestoneOptions>>();
-    var fcMemberService = sp.GetRequiredService<IFcMemberService>();
-    var fightService = sp.GetRequiredService<IFightService>();
-    var logger = sp.GetRequiredService<ILogger<LodestoneService>>();
-    var httpClientFactory = sp.GetRequiredService<IHttpClientFactory>();
-    var httpClient = httpClientFactory.CreateClient();
-    var memberService = sp.GetRequiredService<IMemberService>();
-    var lodestoneDutyService = sp.GetRequiredService<ILodestoneDutyService>();
-
-    return new LodestoneService(options, fcMemberService, fightService, logger, httpClient, memberService, lodestoneDutyService);
-});
-
-// Register MongoDB client as singleton (shared across all repositories)
-builder.Services.AddSingleton<IMongoClient>(sp =>
-{
-    var dbOptions = sp.GetRequiredService<IOptions<DatabaseOptions>>();
-    return new MongoClient(dbOptions.Value.ConnectionString);
-});
-
-builder.Services.AddDataProtection().SetApplicationName("ExcelBotCs");
-
-builder.Services
-    .AddOptions<KeyManagementOptions>()
-    .Configure<IOptions<DatabaseOptions>>((opt, db) =>
+    public static void Main(string[] args)
     {
-        opt.XmlRepository = new MongoXmlRepository(
-            db.Value.ConnectionString,
-            db.Value.DatabaseName);
-    });
+        Env.Load();
 
-// Add services to the container.
-builder.Services.AddAuthorization(options =>
-{
-    options.AddPolicy(Policies.Admin,
-        policy => policy.AddRequirements(new AdminRequirement()));
-    options.AddPolicy(Policies.Member,
-        policy => policy.AddRequirements(new MemberRequirement()));
-});
+        var builder = WebApplication.CreateBuilder(args);
 
-// Custom authorization handlers
-// Handlers depend on ICurrentMemberAccessor (scoped), so they must not be singletons
-builder.Services.AddScoped<IAuthorizationHandler, AdminAuthorizationHandler>();
-builder.Services.AddScoped<IAuthorizationHandler, MemberAuthorizationHandler>();
+        void AddHostedService<T>() where T : class, IHostedService
+        {
+            builder.Services.AddHostedService<T>()
+                .AddSingleton(x => x.GetServices<IHostedService>().OfType<T>().First());
+        }
 
-// configure serialization to omit null values
-builder.Services.ConfigureHttpJsonOptions(options =>
-{
-    options.SerializerOptions.DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull;
-});
+        void AddInstance<T>(T instance, bool activate = true) where T : class
+        {
+            var service = builder.Services.AddSingleton(instance);
+            if (activate) service.ActivateSingleton<T>();
+        }
 
-// register services
-builder.Services.AddScoped<RsaKeyService>();
-builder.Services.AddLogging(options =>
-{
-    options.AddConsole();
-    options.SetMinimumLevel(LogLevel.Information);
-});
-builder.Services.AddHttpLogging();
+        void AddConfig<T>(string key) where T : class
+        {
+            AddInstance(Utils.GetEnvConfig<T>(key, nameof(T)));
+        }
 
-// per-request user context helpers
-builder.Services.AddHttpContextAccessor();
-builder.Services.AddScoped<ICurrentMemberAccessor, CurrentMemberAccessor>();
+        void AddService<T>(bool activate = true) where T : class
+        {
+            var service = builder.Services.AddSingleton<T>();
+            if (activate) service.ActivateSingleton<T>();
+        }
 
-// register all custom services, repositories and mappers
-builder.Services.AddDatabaseRepositories();
-builder.Services.AddApiServices();
-builder.Services.AddDomainServices();
-builder.Services.AddDiscordClient();
-builder.Services.AddFFLogsServices();
-AddHostedService<WorkerService>();
+        AddHostedService<DiscordBotService>();
+        AddService<Data.Database>();
+        AddService<DiscordLogger>();
+        AddInstance(new Prng());
 
-// configure the serialization settings to remove sensitive data
-builder.Services.AddControllers(options => { options.Filters.Add<RoleRedactionResultFilter>(); })
-    .AddJsonOptions(options =>
-    {
-        options.JsonSerializerOptions.PropertyNamingPolicy = null;
-        options.JsonSerializerOptions.DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull;
-    });
 
-// Configure the discord authentication
-builder.Services.AddAppAuthentication(builder.Configuration);
+        AddService<ImportService>();
 
-var app = builder.Build();
+        builder.Services.LoadSettings(builder);
 
-app.UseHttpsRedirection();
+        builder.Services.AddScoped<ILotteryService, LotteryService>();
+        builder.Services.AddScoped<IDiscordMessageService, DiscordMessageService>();
+        builder.Services.AddSingleton<LodestoneService>(sp =>
+        {
+            var options = sp.GetRequiredService<IOptions<LodestoneOptions>>();
+            var fcMemberService = sp.GetRequiredService<IFcMemberService>();
+            var fightService = sp.GetRequiredService<IFightService>();
+            var logger = sp.GetRequiredService<ILogger<LodestoneService>>();
+            var httpClientFactory = sp.GetRequiredService<IHttpClientFactory>();
+            var httpClient = httpClientFactory.CreateClient();
+            var memberService = sp.GetRequiredService<IMemberService>();
+            var lodestoneDutyService = sp.GetRequiredService<ILodestoneDutyService>();
 
-// Serve static files for the SPA (built by Vite into wwwroot)
-app.UseDefaultFiles();
-app.UseStaticFiles();
+            return new LodestoneService(options, fcMemberService, fightService, logger, httpClient, memberService,
+                lodestoneDutyService);
+        });
 
-// Populate the current Member for authenticated requests
-app.UseMiddleware<CurrentMemberMiddleware>();
-app.UseAuthentication();
-app.UseAuthorization();
+        // Register MongoDB client as singleton (shared across all repositories)
+        builder.Services.AddSingleton<IMongoClient>(sp =>
+        {
+            var dbOptions = sp.GetRequiredService<IOptions<DatabaseOptions>>();
+            return new MongoClient(dbOptions.Value.ConnectionString);
+        });
 
-// disable static file serving for the public folder for now
-// app.UseStaticFiles(new StaticFileOptions
-// {
-// 	FileProvider = new PhysicalFileProvider(Path.Combine(AppContext.BaseDirectory, "Static")),
-// 	RequestPath = "/public"
-// });
+        builder.Services.AddDataProtection().SetApplicationName("ExcelBotCs");
 
-// For unknown API routes, return 404 instead of serving the SPA
-app.MapMethods("/api/{**path}", new[] { "GET", "POST", "PUT", "DELETE", "PATCH", "HEAD", "OPTIONS" },
-    () => Results.NotFound());
+        builder.Services
+            .AddOptions<KeyManagementOptions>()
+            .Configure<IOptions<DatabaseOptions>>((opt, db) =>
+            {
+                opt.XmlRepository = new MongoXmlRepository(
+                    db.Value.ConnectionString,
+                    db.Value.DatabaseName);
+            });
 
-app.MapControllers();
+        // Add services to the container.
+        builder.Services.AddAuthorization(options =>
+        {
+            options.AddPolicy(Policies.Admin,
+                policy => policy.AddRequirements(new AdminRequirement()));
+            options.AddPolicy(Policies.Member,
+                policy => policy.AddRequirements(new MemberRequirement()));
+        });
 
-// SPA fallback: route unmatched non-API paths to index.html
-app.MapFallbackToFile("/index.html");
+        // Custom authorization handlers
+        // Handlers depend on ICurrentMemberAccessor (scoped), so they must not be singletons
+        builder.Services.AddScoped<IAuthorizationHandler, AdminAuthorizationHandler>();
+        builder.Services.AddScoped<IAuthorizationHandler, MemberAuthorizationHandler>();
 
-app.Run();
+        // configure serialization to omit null values
+        builder.Services.ConfigureHttpJsonOptions(options =>
+        {
+            options.SerializerOptions.DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull;
+        });
+
+        // register services
+        builder.Services.AddScoped<RsaKeyService>();
+        builder.Services.AddLogging(options =>
+        {
+            options.AddConsole();
+            options.SetMinimumLevel(LogLevel.Information);
+        });
+        builder.Services.AddHttpLogging();
+
+        // per-request user context helpers
+        builder.Services.AddHttpContextAccessor();
+        builder.Services.AddScoped<ICurrentMemberAccessor, CurrentMemberAccessor>();
+
+        // register all custom services, repositories and mappers
+        builder.Services.AddDatabaseRepositories();
+        builder.Services.AddApiServices();
+        builder.Services.AddDomainServices();
+        builder.Services.AddDiscordClient();
+        builder.Services.AddFFLogsServices();
+        AddHostedService<WorkerService>();
+
+        // configure the serialization settings to remove sensitive data
+        builder.Services.AddControllers(options => { options.Filters.Add<RoleRedactionResultFilter>(); })
+            .AddJsonOptions(options =>
+            {
+                options.JsonSerializerOptions.PropertyNamingPolicy = null;
+                options.JsonSerializerOptions.DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull;
+            });
+
+        // Configure the discord authentication
+        builder.Services.AddAppAuthentication(builder.Configuration);
+
+        var app = builder.Build();
+
+        app.UseHttpsRedirection();
+
+        // Serve static files for the SPA (built by Vite into wwwroot)
+        app.UseDefaultFiles();
+        app.UseStaticFiles();
+
+        // Populate the current Member for authenticated requests
+        app.UseMiddleware<CurrentMemberMiddleware>();
+        app.UseAuthentication();
+        app.UseAuthorization();
+
+        // disable static file serving for the public folder for now
+        // app.UseStaticFiles(new StaticFileOptions
+        // {
+        // 	FileProvider = new PhysicalFileProvider(Path.Combine(AppContext.BaseDirectory, "Static")),
+        // 	RequestPath = "/public"
+        // });
+
+        // For unknown API routes, return 404 instead of serving the SPA
+        app.MapMethods("/api/{**path}", new[] { "GET", "POST", "PUT", "DELETE", "PATCH", "HEAD", "OPTIONS" },
+            () => Results.NotFound());
+
+        app.MapControllers();
+
+        // SPA fallback: route unmatched non-API paths to index.html
+        app.MapFallbackToFile("/index.html");
+
+        app.Run();
+    }
+}

@@ -1,5 +1,6 @@
 using System.Globalization;
 using System.Security.Claims;
+using System.Text;
 using AspNet.Security.OAuth.Discord;
 using ExcelBotCs.Models.Config;
 using ExcelBotCs.Models.Discord;
@@ -14,14 +15,15 @@ namespace ExcelBotCs.Extensions;
 
 public static class AuthenticationExtensions
 {
-    public static IServiceCollection AddAppAuthentication(this IServiceCollection services, IConfiguration configuration)
+    public static IServiceCollection AddAppAuthentication(this IServiceCollection services,
+        IConfiguration configuration)
     {
         var auth = services
             .AddAuthentication(options =>
-        {
-            options.DefaultScheme = CookieAuthenticationDefaults.AuthenticationScheme;
-            options.DefaultChallengeScheme = DiscordAuthenticationDefaults.AuthenticationScheme;
-        });
+            {
+                options.DefaultScheme = CookieAuthenticationDefaults.AuthenticationScheme;
+                options.DefaultChallengeScheme = DiscordAuthenticationDefaults.AuthenticationScheme;
+            });
 
         auth.AddDiscord(options =>
         {
@@ -107,10 +109,31 @@ public static class AuthenticationExtensions
 
         auth.AddJwtBearer(options =>
         {
+            var env = Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT")
+                      ?? Environment.GetEnvironmentVariable("DOTNET_ENVIRONMENT");
+            var isTesting = string.Equals(env, "Testing", StringComparison.OrdinalIgnoreCase);
+
             var jwtOptions = configuration.GetSection("Jwt").Get<JwtOptions>();
             if (jwtOptions is null) throw new InvalidOperationException("JwtOptions is not configured");
 
-            // Ensure RSA key pair exists in MongoDB and use it for JWT validation
+            if (isTesting)
+            {
+                // In tests, avoid any MongoDB access and use a simple symmetric key for JWT validation.
+                // Tests use a custom auth scheme, so JWTs are typically not used, but we keep this safe.
+                var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes("test-key-for-jwt-validation-32bytes"));
+                options.TokenValidationParameters = new TokenValidationParameters
+                {
+                    ValidateIssuer = false,
+                    ValidateAudience = false,
+                    ValidateLifetime = false,
+                    ValidateIssuerSigningKey = true,
+                    IssuerSigningKey = key,
+                    RequireSignedTokens = false
+                };
+                return;
+            }
+
+            // Ensure RSA key pair exists in MongoDB and use it for JWT validation (non-testing environments)
             var dbCfgLocal = configuration.GetSection("Database").Get<DatabaseOptions>()
                              ?? throw new InvalidOperationException("Database configuration missing");
             var rsaService = new RsaKeyService(new OptionsWrapper<DatabaseOptions>(dbCfgLocal));

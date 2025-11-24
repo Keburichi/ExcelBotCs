@@ -1,13 +1,14 @@
+using ExcelBotCs.Attributes;
 using ExcelBotCs.Controllers.Interfaces;
 using ExcelBotCs.Mappers;
 using ExcelBotCs.Models.DTO;
-using ExcelBotCs.Services.API;
 using ExcelBotCs.Services.API.Interfaces;
 using Microsoft.AspNetCore.Mvc;
 
 namespace ExcelBotCs.Controllers;
 
 [ApiController]
+[MemberAuth]
 [Route("api/[controller]")]
 public class MemberRolesController : AuthorizedController, IBaseCrudController<MemberRoleDto>
 {
@@ -20,7 +21,7 @@ public class MemberRolesController : AuthorizedController, IBaseCrudController<M
         _memberRoleService = memberRoleService;
         _memberService = memberService;
     }
-    
+
     [HttpGet]
     public async Task<ActionResult<List<MemberRoleDto>>> GetEntities()
     {
@@ -45,6 +46,7 @@ public class MemberRolesController : AuthorizedController, IBaseCrudController<M
         return MemberRoleMapper.ToDto(entity);
     }
 
+    [AdminAuth]
     [HttpPost]
     public async Task<ActionResult<MemberRoleDto>> CreateEntity(MemberRoleDto entity)
     {
@@ -52,6 +54,7 @@ public class MemberRolesController : AuthorizedController, IBaseCrudController<M
         return CreatedAtAction(nameof(CreateEntity), new { id = entity.Id }, entity);
     }
 
+    [AdminAuth]
     [HttpPut("{id:length(24)}")]
     public async Task<ActionResult<MemberRoleDto>> UpdateEntity(string id, MemberRoleDto updatedEntity)
     {
@@ -62,6 +65,7 @@ public class MemberRolesController : AuthorizedController, IBaseCrudController<M
         return NoContent();
     }
 
+    [AdminAuth]
     [HttpDelete("{id:length(24)}")]
     public async Task<ActionResult<MemberRoleDto>> DeleteEntity(string id)
     {
