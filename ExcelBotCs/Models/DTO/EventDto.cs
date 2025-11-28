@@ -1,3 +1,4 @@
+using ExcelBotCs.Extensions;
 using ExcelBotCs.Models.Database;
 
 namespace ExcelBotCs.Models.DTO;
@@ -9,7 +10,20 @@ public class EventDto : BaseDto
     public string Description { get; set; }
     public EventType Type { get; set; } = EventType.Other;
     public DateTime StartDate { get; set; } // First occurrence start date
-    public DateTime EndDate { get; set; } // Last occurrence end date
+
+    public DateTime EndDate
+    {
+        get
+        {
+            // If there are no occurrences, simply calculate the date by adding the duration 
+            if (Occurrences.IsNullOrEmpty())
+                return StartDate.AddMinutes(Duration);
+
+            // If there are occurrences, we calculate the end date of the last occurrence
+            return Occurrences.OrderByDescending(x => x.OccurrenceDate).First().OccurrenceDate.AddMinutes(Duration);
+        }
+    }
+
     public int Duration { get; set; } // Duration in minutes
 
     // iCal source of truth

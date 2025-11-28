@@ -203,10 +203,12 @@ async function save() {
       </div>
 
       <p v-if="selectionMode === 'role'">
-        Select up to <b>{{ eventValue.MaxNumberOfParticipants }}</b> members who should participate in the Event '<b>{{ eventValue.Name }}</b>' and assign roles. Click '<b>Save</b>' once you are done.
+        Select up to <b>{{ eventValue.MaxNumberOfParticipants }}</b> members who should participate in the Event
+        '<b>{{ eventValue.Name }}</b>' and assign roles. Click '<b>Save</b>' once you are done.
       </p>
       <p v-else>
-        Select up to <b>{{ eventValue.MaxNumberOfParticipants }}</b> members who should participate in the Event '<b>{{ eventValue.Name }}</b>'. Click '<b>Save</b>' once you are done.
+        Select up to <b>{{ eventValue.MaxNumberOfParticipants }}</b> members who should participate in the Event
+        '<b>{{ eventValue.Name }}</b>'. Click '<b>Save</b>' once you are done.
       </p>
       <p class="muted" style="font-size: 0.9rem; margin-bottom: 1rem;">
         The bot will automatically post a new message in <b>#upcoming-roster</b>.
@@ -238,9 +240,9 @@ async function save() {
           <!-- Simple Mode: Single Select Button -->
           <div v-if="selectionMode === 'simple'" class="simple-selection">
             <button
-              class="btn-select"
               :class="{ selected: isMemberSelected(member.DiscordId) }"
               :disabled="!isMemberSelected(member.DiscordId) && participants.length >= eventValue.MaxNumberOfParticipants"
+              class="btn-select"
               @click="toggleSimpleSelection(member.DiscordId)"
             >
               <span v-if="isMemberSelected(member.DiscordId)">✓ Selected</span>
@@ -251,45 +253,45 @@ async function save() {
           <!-- Role Mode: Role Buttons -->
           <div v-else class="role-buttons">
             <button
-              class="btn-role"
               :class="{ active: getMemberRole(member.DiscordId) === ROLE.Tank }"
               :disabled="!hasSignedUpForRole(member.DiscordId, ROLE.Tank) || (!isMemberSelected(member.DiscordId) && participants.length >= eventValue.MaxNumberOfParticipants)"
+              class="btn-role"
               title="Tank"
               @click="toggleRole(member.DiscordId, ROLE.Tank)"
             >
               T
             </button>
             <button
-              class="btn-role"
               :class="{ active: getMemberRole(member.DiscordId) === ROLE.Healer }"
               :disabled="!hasSignedUpForRole(member.DiscordId, ROLE.Healer) || (!isMemberSelected(member.DiscordId) && participants.length >= eventValue.MaxNumberOfParticipants)"
+              class="btn-role"
               title="Healer"
               @click="toggleRole(member.DiscordId, ROLE.Healer)"
             >
               H
             </button>
             <button
-              class="btn-role"
               :class="{ active: getMemberRole(member.DiscordId) === ROLE.Melee }"
               :disabled="!hasSignedUpForRole(member.DiscordId, ROLE.Melee) || (!isMemberSelected(member.DiscordId) && participants.length >= eventValue.MaxNumberOfParticipants)"
+              class="btn-role"
               title="Melee"
               @click="toggleRole(member.DiscordId, ROLE.Melee)"
             >
               M
             </button>
             <button
-              class="btn-role"
               :class="{ active: getMemberRole(member.DiscordId) === ROLE.Caster }"
               :disabled="!hasSignedUpForRole(member.DiscordId, ROLE.Caster) || (!isMemberSelected(member.DiscordId) && participants.length >= eventValue.MaxNumberOfParticipants)"
+              class="btn-role"
               title="Caster"
               @click="toggleRole(member.DiscordId, ROLE.Caster)"
             >
               C
             </button>
             <button
-              class="btn-role"
               :class="{ active: getMemberRole(member.DiscordId) === ROLE.Ranged }"
               :disabled="!hasSignedUpForRole(member.DiscordId, ROLE.Ranged) || (!isMemberSelected(member.DiscordId) && participants.length >= eventValue.MaxNumberOfParticipants)"
+              class="btn-role"
               title="Ranged"
               @click="toggleRole(member.DiscordId, ROLE.Ranged)"
             >
@@ -300,8 +302,8 @@ async function save() {
       </div>
     </template>
     <template #actions>
-      <BaseButton title="Cancel" state="secondary" :disabled="saving" @clicked="modelValue = false" />
-      <BaseButton :title="saving ? 'Saving...' : 'Save'" state="primary" :disabled="saving" @click="save" />
+      <BaseButton :disabled="saving" state="secondary" title="Cancel" @clicked="modelValue = false" />
+      <BaseButton :disabled="saving" :title="saving ? 'Saving...' : 'Save'" state="primary" @click="save" />
     </template>
   </BaseModal>
 
@@ -338,6 +340,11 @@ async function save() {
 </template>
 
 <style scoped>
+.card__image {
+  /* zoom in on the image since the fight images have a small white gradient */
+  transform: scale(1.1);
+}
+
 .participants-summary {
   background: var(--muted-bg);
   padding: 1rem;

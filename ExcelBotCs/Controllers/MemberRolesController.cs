@@ -50,8 +50,9 @@ public class MemberRolesController : AuthorizedController, IBaseCrudController<M
     [HttpPost]
     public async Task<ActionResult<MemberRoleDto>> CreateEntity(MemberRoleDto entity)
     {
-        await _memberRoleService.CreateAsync(MemberRoleMapper.ToEntity(entity));
-        return CreatedAtAction(nameof(CreateEntity), new { id = entity.Id }, entity);
+        var entit = MemberRoleMapper.ToEntity(entity);
+        await _memberRoleService.CreateAsync(entit);
+        return CreatedAtAction(nameof(CreateEntity), new { id = entit.Id }, MemberRoleMapper.ToDto(entit));
     }
 
     [AdminAuth]
@@ -74,7 +75,7 @@ public class MemberRolesController : AuthorizedController, IBaseCrudController<M
         if (entity is null)
             return NotFound();
 
-        await _memberService.DeleteAsync(id);
+        await _memberRoleService.DeleteAsync(id);
         return NoContent();
     }
 }

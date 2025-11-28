@@ -48,7 +48,6 @@ public class ICalServiceTests
         {
             Name = "Test",
             StartDate = DateTime.UtcNow,
-            EndDate = DateTime.UtcNow.AddDays(1),
             SignupType = SignupType.SingleEvent
         };
 

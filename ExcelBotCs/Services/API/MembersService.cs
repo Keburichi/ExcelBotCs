@@ -1,6 +1,5 @@
 ﻿using ExcelBotCs.Database.Interfaces;
 using ExcelBotCs.Exceptions;
-using ExcelBotCs.Extensions;
 using ExcelBotCs.Models.Database;
 using ExcelBotCs.Services.API.Interfaces;
 
@@ -38,11 +37,11 @@ public class MemberService : IMemberService
         var dbEntity = await _memberRepository.GetAsync(id);
         if (dbEntity is null)
             throw new NotFoundException();
-
-        // Check if the roles changed
         
         // Update all properties
-        updatedEntity.UpdateUpdatedAttributes(dbEntity);
+        updatedEntity.CreateDate = dbEntity.CreateDate;
+        updatedEntity.ExperienceIds = dbEntity.ExperienceIds;
+        updatedEntity.RoleIds = dbEntity.RoleIds;
 
         // Enforce: LodestoneId can only be set/changed via the verification flow
         // Prevent any modifications to LodestoneId through generic PUT updates

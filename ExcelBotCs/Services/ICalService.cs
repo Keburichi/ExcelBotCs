@@ -125,8 +125,6 @@ public class ICalService : IICalService
                     Description = recurringEvent.Description ?? "",
                     Type = recurringEvent.Type,
                     StartDate = occurrence.Period.StartTime.AsUtc,
-                    EndDate = occurrence.Period.EndTime?.AsUtc ??
-                              occurrence.Period.StartTime.AsUtc.AddMinutes(recurringEvent.Duration),
                     Duration = recurringEvent.Duration,
                     ICalString = recurringEvent.ICalString ?? "",
                     DiscordMessageId = recurringEvent.DiscordMessageId ?? "",
@@ -147,28 +145,6 @@ public class ICalService : IICalService
         {
             // If parsing fails, return the original event
             return new List<Event> { recurringEvent };
-        }
-    }
-
-    public void UpdateEventDatesFromICalString(Event eventData)
-    {
-        if (string.IsNullOrEmpty(eventData.ICalString))
-        {
-            // For non-recurring events, set EndDate based on StartDate + Duration
-            eventData.EndDate = eventData.StartDate.AddMinutes(eventData.Duration);
-            return;
-        }
-
-        try
-        {
-            var (firstOccurrence, lastOccurrence) = GetOccurrenceDateRange(eventData.ICalString, eventData.Duration);
-            eventData.StartDate = firstOccurrence;
-            eventData.EndDate = lastOccurrence;
-        }
-        catch
-        {
-            // Fallback if parsing fails
-            eventData.EndDate = eventData.StartDate.AddMinutes(eventData.Duration);
         }
     }
 

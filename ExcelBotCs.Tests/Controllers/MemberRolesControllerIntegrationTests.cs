@@ -1,7 +1,10 @@
 using System.Net;
 using System.Net.Http.Json;
+using ExcelBotCs.Models.Database;
 using ExcelBotCs.Models.DTO;
+using ExcelBotCs.Services.API.Interfaces;
 using ExcelBotCs.Tests.Utils;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace ExcelBotCs.Tests.Controllers;
 
@@ -33,41 +36,46 @@ public class MemberRolesControllerIntegrationTests : IntegrationTestBase
     }
 
     [Test]
-    public async Task GetEntities_WhenNoRolesExist_ReturnsEmptyList()
+    public async Task GetEntities()
     {
         // Act
+        await AuthenticateAsMember();
         var response = await Client.GetAsync("/api/MemberRoles");
 
         // Assert
         response.EnsureSuccessStatusCode();
         var roles = await response.Content.ReadFromJsonAsync<List<MemberRoleDto>>();
         Assert.That(roles, Is.Not.Null);
-        Assert.That(roles, Is.Empty);
+
+        // Since we create a role and user for the authentication to work, there should be one result
+        Assert.That(roles.Count, Is.AtLeast(1));
     }
 
     [Test]
     public async Task GetEntities_WhenRolesExist_ReturnsAllRoles()
     {
         // Arrange
-        var role1 = new MemberRoleDto
+        await AuthenticateAsMember();
+        var role1 = new MemberRole
         {
-            DiscordId = "123456789",
+            DiscordId = GenerateRandomDiscordId(),
             Name = "Admin Role",
             IsAdmin = true,
             IsMember = true,
             IsDeveloper = false
         };
-        var role2 = new MemberRoleDto
+        var role2 = new MemberRole
         {
-            DiscordId = "987654321",
+            DiscordId = GenerateRandomDiscordId(),
             Name = "Member Role",
             IsAdmin = false,
             IsMember = true,
             IsDeveloper = false
         };
 
-        await Client.PostAsJsonAsync("/api/MemberRoles", role1);
-        await Client.PostAsJsonAsync("/api/MemberRoles", role2);
+        var memberRoleService = Factory.Services.GetRequiredService<IMemberRoleService>();
+        await memberRoleService.CreateAsync(role1);
+        await memberRoleService.CreateAsync(role2);
 
         // Act
         var response = await Client.GetAsync("/api/MemberRoles");
@@ -76,7 +84,7 @@ public class MemberRolesControllerIntegrationTests : IntegrationTestBase
         response.EnsureSuccessStatusCode();
         var roles = await response.Content.ReadFromJsonAsync<List<MemberRoleDto>>();
         Assert.That(roles, Is.Not.Null);
-        Assert.That(roles, Has.Count.EqualTo(2));
+        Assert.That(roles, Has.Count.AtLeast(2));
         Assert.That(roles.Any(r => r.Name == "Admin Role"), Is.True);
         Assert.That(roles.Any(r => r.Name == "Member Role"), Is.True);
     }
@@ -85,29 +93,29 @@ public class MemberRolesControllerIntegrationTests : IntegrationTestBase
     public async Task GetEntity_WhenRoleExists_ReturnsRole()
     {
         // Arrange
-        var role = new MemberRoleDto
+        await AuthenticateAsMember();
+        var role = new MemberRole
         {
-            DiscordId = "123456789",
+            DiscordId = GenerateRandomDiscordId(),
             Name = "Test Role",
             IsAdmin = true,
             IsMember = true,
             IsDeveloper = true
         };
 
-        var createResponse = await Client.PostAsJsonAsync("/api/MemberRoles", role);
-        createResponse.EnsureSuccessStatusCode();
-        var createdRole = await createResponse.Content.ReadFromJsonAsync<MemberRoleDto>();
+        var memberRoleService = Factory.Services.GetRequiredService<IMemberRoleService>();
+        await memberRoleService.CreateAsync(role);
 
         // Act
-        var response = await Client.GetAsync($"/api/MemberRoles/{createdRole!.Id}");
+        var response = await Client.GetAsync($"/api/MemberRoles/{role.Id}");
 
         // Assert
         response.EnsureSuccessStatusCode();
         var retrievedRole = await response.Content.ReadFromJsonAsync<MemberRoleDto>();
         Assert.That(retrievedRole, Is.Not.Null);
-        Assert.That(retrievedRole.Id, Is.EqualTo(createdRole.Id));
-        Assert.That(retrievedRole.Name, Is.EqualTo("Test Role"));
-        Assert.That(retrievedRole.DiscordId, Is.EqualTo("123456789"));
+        Assert.That(retrievedRole.Id, Is.EqualTo(role.Id));
+        Assert.That(retrievedRole.Name, Is.EqualTo(role.Name));
+        Assert.That(retrievedRole.DiscordId, Is.EqualTo(role.DiscordId));
         Assert.That(retrievedRole.IsAdmin, Is.True);
         Assert.That(retrievedRole.IsMember, Is.True);
         Assert.That(retrievedRole.IsDeveloper, Is.True);
@@ -117,6 +125,7 @@ public class MemberRolesControllerIntegrationTests : IntegrationTestBase
     public async Task GetEntity_WhenRoleDoesNotExist_ReturnsNotFound()
     {
         // Arrange
+        await AuthenticateAsMember();
         var nonExistentId = "507f1f77bcf86cd799439011"; // Valid MongoDB ObjectId format
 
         // Act
@@ -130,9 +139,10 @@ public class MemberRolesControllerIntegrationTests : IntegrationTestBase
     public async Task CreateEntity_WithValidData_CreatesRole()
     {
         // Arrange
+        await AuthenticateAsAdmin();
         var role = new MemberRoleDto
         {
-            DiscordId = "111222333",
+            DiscordId = GenerateRandomDiscordId(),
             Name = "New Role",
             IsAdmin = false,
             IsMember = true,
@@ -148,17 +158,19 @@ public class MemberRolesControllerIntegrationTests : IntegrationTestBase
 
         var createdRole = await response.Content.ReadFromJsonAsync<MemberRoleDto>();
         Assert.That(createdRole, Is.Not.Null);
-        Assert.That(createdRole.Name, Is.EqualTo("New Role"));
-        Assert.That(createdRole.DiscordId, Is.EqualTo("111222333"));
+        Assert.That(createdRole.Id, Is.Not.Null);
+        Assert.That(createdRole.Name, Is.EqualTo(role.Name));
+        Assert.That(createdRole.DiscordId, Is.EqualTo(role.DiscordId));
     }
 
     [Test]
     public async Task CreateEntity_PersistsToDatabase()
     {
         // Arrange
+        await AuthenticateAsAdmin();
         var role = new MemberRoleDto
         {
-            DiscordId = "444555666",
+            DiscordId = GenerateRandomDiscordId(),
             Name = "Persistent Role",
             IsAdmin = false,
             IsMember = true,
@@ -177,16 +189,17 @@ public class MemberRolesControllerIntegrationTests : IntegrationTestBase
         getResponse.EnsureSuccessStatusCode();
         var retrievedRole = await getResponse.Content.ReadFromJsonAsync<MemberRoleDto>();
         Assert.That(retrievedRole, Is.Not.Null);
-        Assert.That(retrievedRole.Name, Is.EqualTo("Persistent Role"));
+        Assert.That(retrievedRole.Name, Is.EqualTo(role.Name));
     }
 
     [Test]
     public async Task UpdateEntity_WithValidData_UpdatesRole()
     {
         // Arrange
+        await AuthenticateAsAdmin();
         var role = new MemberRoleDto
         {
-            DiscordId = "777888999",
+            DiscordId = GenerateRandomDiscordId(),
             Name = "Original Name",
             IsAdmin = false,
             IsMember = true,
@@ -211,7 +224,7 @@ public class MemberRolesControllerIntegrationTests : IntegrationTestBase
         var getResponse = await Client.GetAsync($"/api/MemberRoles/{createdRole.Id}");
         var updatedRole = await getResponse.Content.ReadFromJsonAsync<MemberRoleDto>();
         Assert.That(updatedRole, Is.Not.Null);
-        Assert.That(updatedRole.Name, Is.EqualTo("Updated Name"));
+        Assert.That(updatedRole.Name, Is.EqualTo(createdRole.Name));
         Assert.That(updatedRole.IsAdmin, Is.True);
         Assert.That(updatedRole.IsDeveloper, Is.True);
     }
@@ -220,9 +233,10 @@ public class MemberRolesControllerIntegrationTests : IntegrationTestBase
     public async Task DeleteEntity_WhenRoleExists_DeletesRole()
     {
         // Arrange
+        await AuthenticateAsAdmin();
         var role = new MemberRoleDto
         {
-            DiscordId = "999000111",
+            DiscordId = GenerateRandomDiscordId(),
             Name = "Role To Delete",
             IsAdmin = false,
             IsMember = true,
@@ -247,6 +261,7 @@ public class MemberRolesControllerIntegrationTests : IntegrationTestBase
     public async Task DeleteEntity_WhenRoleDoesNotExist_ReturnsNotFound()
     {
         // Arrange
+        await AuthenticateAsAdmin();
         var nonExistentId = "507f1f77bcf86cd799439011"; // Valid MongoDB ObjectId format
 
         // Act
@@ -260,6 +275,7 @@ public class MemberRolesControllerIntegrationTests : IntegrationTestBase
     public async Task GetEntity_WithInvalidIdFormat_ReturnsBadRequest()
     {
         // Arrange
+        await AuthenticateAsMember();
         var invalidId = "invalid-id";
 
         // Act

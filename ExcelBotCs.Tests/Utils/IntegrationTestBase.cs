@@ -159,18 +159,6 @@ public abstract class IntegrationTestBase : MongoDbTest
     }
 
     /// <summary>
-    ///     Generates a random Discord ID (18-digit snowflake format)
-    /// </summary>
-    private static string GenerateRandomDiscordId()
-    {
-        // Discord IDs are 18-digit snowflakes
-        // Generate a random 18-digit number as a string
-        var random = new Random();
-        var discordId = random.NextInt64(100000000000000000, 999999999999999999);
-        return discordId.ToString();
-    }
-
-    /// <summary>
     ///     Creates a Member in the database and configures the test client to authenticate as that member.
     ///     Returns the created Member for further test assertions.
     /// </summary>
@@ -195,14 +183,17 @@ public abstract class IntegrationTestBase : MongoDbTest
         var memberRoleRepository = Factory.Services.GetRequiredService<IMemberRoleRepository>();
         await memberRoleRepository.CreateAsync(memberRole);
 
-        // IMPORTANT: RoleIds stores the DiscordId of the MemberRole, NOT the MongoDB ObjectId
-        // The MemberRepository aggregation pipeline joins on RoleIds -> MemberRole.DiscordId
+        // MongoDB automatically populates the Id after CreateAsync
+        if (string.IsNullOrEmpty(memberRole.Id))
+            throw new InvalidOperationException("MemberRole.Id was not populated after CreateAsync");
+
+        // RoleIds contains MongoDB ObjectIds that reference MemberRole documents
         var member = new Member
         {
             DiscordId = discordId,
             DiscordName = name,
             PlayerName = name,
-            RoleIds = new List<string> { memberRole.DiscordId }, // Use DiscordId, not Id!
+            RoleIds = new List<string> { memberRole.Id }, // Reference by MongoDB ObjectId
             ExperienceIds = new List<string>()
         };
 

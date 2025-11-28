@@ -26,11 +26,6 @@ public interface IICalService
     List<Event> ExpandRecurringEvent(Event recurringEvent, DateTime rangeStart, DateTime rangeEnd);
 
     /// <summary>
-    ///     Updates an Event object with calculated StartDate and EndDate from its iCal string
-    /// </summary>
-    void UpdateEventDatesFromICalString(Event eventData);
-
-    /// <summary>
     ///     Creates EventOccurrence objects from an iCal string within a date range
     /// </summary>
     List<EventOccurrence> CreateOccurrences(string iCalString, DateTime rangeStart, DateTime rangeEnd);

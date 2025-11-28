@@ -19,6 +19,9 @@ public class EventService : IEventService
     {
         var events = await _eventRepository.GetAsync();
 
+        if (events is null)
+            return new List<Event>();
+
         // Return events as-is without expanding recurring events
         // The frontend will display recurrence information in the card
         return events.OrderBy(e => e.StartDate).ToList();
@@ -31,15 +34,9 @@ public class EventService : IEventService
 
     public async Task CreateAsync(Event entity)
     {
-        // Update StartDate and EndDate from iCal string if provided
-        if (!string.IsNullOrEmpty(entity.ICalString))
-            _iCalService.UpdateEventDatesFromICalString(entity);
-        else
-            // For non-recurring events, calculate EndDate
-            entity.EndDate = entity.StartDate.AddMinutes(entity.Duration);
-
         // Create occurrences from iCal string or single occurrence for non-recurring events
         var rangeStart = entity.StartDate;
+
         // For recurring events, always look ahead 1 year from start date, not end date
         // This ensures we generate enough occurrences even if EndDate calculation fails
         var rangeEnd = string.IsNullOrEmpty(entity.ICalString)
@@ -55,13 +52,6 @@ public class EventService : IEventService
     {
         // Get existing event to check if iCal changed
         var existingEvent = await _eventRepository.GetAsync(id);
-
-        // Update StartDate and EndDate from iCal string if provided
-        if (!string.IsNullOrEmpty(updatedEntity.ICalString))
-            _iCalService.UpdateEventDatesFromICalString(updatedEntity);
-        else
-            // For non-recurring events, calculate EndDate
-            updatedEntity.EndDate = updatedEntity.StartDate.AddMinutes(updatedEntity.Duration);
 
         // Check if iCal string has changed or if occurrences need regeneration
         var iCalChanged = existingEvent?.ICalString != updatedEntity.ICalString;

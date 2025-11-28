@@ -62,4 +62,16 @@ public abstract class MongoDbTest
     {
         Assert.Pass("Repository initialized successfully.");
     }
+
+    /// <summary>
+    ///     Generates a random Discord ID (18-digit snowflake format)
+    /// </summary>
+    protected static string GenerateRandomDiscordId()
+    {
+        // Discord IDs are 18-digit snowflakes
+        // Generate a random 18-digit number as a string
+        var random = new Random();
+        var discordId = random.NextInt64(100000000000000000, 999999999999999999);
+        return discordId.ToString();
+    }
 }

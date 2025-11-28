@@ -1,8 +1,8 @@
 <script setup lang="ts">
 import type { EventOccurrence, FCEvent, Role } from '@/features/events/events.types'
 import { computed, onMounted, ref, watch } from 'vue'
-
 import BaseButton from '@/components/BaseButton.vue'
+
 import BaseModal from '@/components/BaseModal.vue'
 import DiscordMessageRenderer from '@/components/DiscordMessageRenderer.vue'
 import { useAuth } from '@/composables/useAuth'
@@ -135,8 +135,8 @@ async function signUp(signupEvent: FCEvent, role: Role) {
 
 <template>
   <BaseModal
-    :model-value="props.modelValue" :title="`${event.Name} - signup`"
-    :description="event.Description" @update:model-value="emit('update:modelValue', $event)"
+    :description="event.Description" :model-value="props.modelValue"
+    :title="`${event.Name} - signup`" @update:model-value="emit('update:modelValue', $event)"
   >
     <template #body>
       <DiscordMessageRenderer :content="event.Description" />
@@ -163,33 +163,33 @@ async function signUp(signupEvent: FCEvent, role: Role) {
 
     <template #actions>
       <BaseButton
+        :state="isSignedUpTank ? 'pressed' : 'primary'"
         :title="`Tank (${tankCount})`"
         :tooltip="tankUsers.length > 0 ? tankUsers.join(', ') : 'No signups yet'"
-        :state="isSignedUpTank ? 'pressed' : 'primary'"
         @clicked="signUp(event, ROLE.Tank)"
       />
       <BaseButton
+        :state="isSignedUpHealer ? 'pressed' : 'primary'"
         :title="`Healer (${healerCount})`"
         :tooltip="healerUsers.length > 0 ? healerUsers.join(', ') : 'No signups yet'"
-        :state="isSignedUpHealer ? 'pressed' : 'primary'"
         @clicked="signUp(event, ROLE.Healer)"
       />
       <BaseButton
+        :state="isSignedUpMelee ? 'pressed' : 'primary'"
         :title="`Melee (${meleeCount})`"
         :tooltip="meleeUsers.length > 0 ? meleeUsers.join(', ') : 'No signups yet'"
-        :state="isSignedUpMelee ? 'pressed' : 'primary'"
         @clicked="signUp(event, ROLE.Melee)"
       />
       <BaseButton
+        :state="isSignedUpCaster ? 'pressed' : 'primary'"
         :title="`Caster (${casterCount})`"
         :tooltip="casterUsers.length > 0 ? casterUsers.join(', ') : 'No signups yet'"
-        :state="isSignedUpCaster ? 'pressed' : 'primary'"
         @clicked="signUp(event, ROLE.Caster)"
       />
       <BaseButton
+        :state="isSignedUpRanged ? 'pressed' : 'primary'"
         :title="`Ranged (${rangedCount})`"
         :tooltip="rangedUsers.length > 0 ? rangedUsers.join(', ') : 'No signups yet'"
-        :state="isSignedUpRanged ? 'pressed' : 'primary'"
         @clicked="signUp(event, ROLE.Ranged)"
       />
     </template>
@@ -197,6 +197,11 @@ async function signUp(signupEvent: FCEvent, role: Role) {
 </template>
 
 <style scoped>
+.card__image {
+  /* zoom in on the image since the fight images have a small white gradient */
+  transform: scale(1.1);
+}
+
 .occurrence-info {
   margin-top: 16px;
   padding: 12px;

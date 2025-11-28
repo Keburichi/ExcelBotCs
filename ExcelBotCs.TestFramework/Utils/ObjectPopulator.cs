@@ -35,8 +35,13 @@ public static class ObjectPopulator
         foreach (var property in properties)
             try
             {
-                var value = GenerateRandomValue(property, recursionDepth);
-                if (value != null || IsNullableType(property.PropertyType)) property.SetValue(obj, value);
+                // Only populate properties that have default/null values
+                var currentValue = property.GetValue(obj);
+                if (!HasNonDefaultValue(currentValue, property.PropertyType))
+                {
+                    var value = GenerateRandomValue(property, recursionDepth);
+                    if (value != null || IsNullableType(property.PropertyType)) property.SetValue(obj, value);
+                }
             }
             catch
             {
@@ -198,6 +203,35 @@ public static class ObjectPopulator
     private static bool IsNullableType(Type type)
     {
         return Nullable.GetUnderlyingType(type) != null;
+    }
+
+    /// <summary>
+    ///     Checks if a value is non-default (i.e., has been manually set)
+    /// </summary>
+    private static bool HasNonDefaultValue(object? value, Type propertyType)
+    {
+        // Null values are considered default
+        if (value == null)
+            return false;
+
+        // For value types, compare with default value
+        if (propertyType.IsValueType)
+        {
+            var defaultValue = Activator.CreateInstance(propertyType);
+            return !value.Equals(defaultValue);
+        }
+
+        // For reference types (strings, collections, objects), non-null is considered non-default
+        // Special handling for strings - empty strings are considered default
+        if (propertyType == typeof(string))
+            return !string.IsNullOrEmpty((string)value);
+
+        // For collections, check if they have elements
+        if (value is ICollection collection)
+            return collection.Count > 0;
+
+        // Other reference types - non-null means they have been set
+        return true;
     }
 
     /// <summary>

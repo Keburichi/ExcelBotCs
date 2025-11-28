@@ -1,9 +1,7 @@
 using Discord.WebSocket;
-using ExcelBotCs.Discord;
 using ExcelBotCs.Extensions;
 using ExcelBotCs.Models.Config;
 using ExcelBotCs.Models.Database;
-using ExcelBotCs.Services.API;
 using ExcelBotCs.Services.API.Interfaces;
 using Microsoft.Extensions.Options;
 
@@ -80,7 +78,13 @@ public class ImportService
                 member.Subbed = dbMember.Subbed;
                 member.LodestoneId = dbMember.LodestoneId;
                 member.LodestoneVerificationToken = dbMember.LodestoneVerificationToken;
-                member.Experience = dbMember.Experience;
+                member.Notes = dbMember.Notes;
+                member.PlayerName = dbMember.PlayerName;
+                member.LastFFLogsSyncTime = dbMember.LastFFLogsSyncTime;
+
+                // Don't update the 'Experience' list, since its being ignored for the database
+                // Instead update/keep the list of experience ids, since we are only saving references
+                member.ExperienceIds = dbMember.ExperienceIds;
 
                 await _memberService.UpdateAsync(dbMember.Id, member);
             }
@@ -92,7 +96,7 @@ public class ImportService
     private async Task<List<Member>> GetGuildMembers(SocketGuild guild)
     {
         var members = new List<Member>();
-        // var memberRoles = await _memberRoleService.GetAsync();
+        var memberRoles = await _memberRoleService.GetAsync();
 
         var guildMembers = guild.Users;
 
@@ -105,9 +109,10 @@ public class ImportService
                 continue;
 
             var guildRoles = guildMember.Roles.ToList();
-            // var assignedRoles = guildRoles
-            //     .Select(guildRole => memberRoles.FirstOrDefault(x => x.DiscordId == guildRole.Id.ToString())).OfType<MemberRole>()
-            //     .ToList();
+            var assignedRoles = guildRoles
+                .Select(guildRole => memberRoles.FirstOrDefault(x => x.DiscordId == guildRole.Id.ToString()))
+                .OfType<MemberRole>()
+                .ToList();
 
             members.Add(new Member()
             {
@@ -115,7 +120,8 @@ public class ImportService
                 DiscordName = guildMember.DisplayName,
                 DiscordAvatar = $"https://cdn.discordapp.com/avatars/{guildMember.Id}/{guildMember.AvatarId}",
                 // Roles = assignedRoles,
-                RoleIds = guildRoles.Select(x => x.Id.ToString()).ToList()
+                // RoleIds = guildRoles.Select(x => x.Id.ToString()).ToList(),
+                RoleIds = assignedRoles.Select(x => x.Id.ToString()).ToList()
             });
         }
 
@@ -173,10 +179,10 @@ public class ImportService
             else
             {
                 // automatically assign the member and admin flags for the initial import
-                if(_options.Value.AdminRoleIds.Any(x => x.ToString() == memberRole.DiscordId))
+                if (_options.Value.AdminRoleIds.Any(x => x.ToString() == memberRole.DiscordId))
                     memberRole.IsAdmin = true;
 
-                if(_options.Value.MemberRoleIds.Any(x => x.ToString() == memberRole.DiscordId))
+                if (_options.Value.MemberRoleIds.Any(x => x.ToString() == memberRole.DiscordId))
                     memberRole.IsMember = true;
 
                 await _memberRoleService.CreateAsync(memberRole);

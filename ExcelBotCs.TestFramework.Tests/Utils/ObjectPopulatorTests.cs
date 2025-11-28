@@ -11,16 +11,17 @@ public class ObjectPopulatorTests
     {
         [BsonId] public string CustomId { get; set; } = "original-custom-id";
 
-        public string Name { get; } = string.Empty;
+        public string Name { get; set; }
         public int Value { get; set; }
     }
 
     private class TestEntityWithoutBsonId
     {
         public string Id { get; set; } = "original-id";
-        public string Name { get; } = string.Empty;
+        public string Name { get; set; }
         public int Age { get; set; }
     }
+
     [Test]
     public void PopulateWithRandomData_ShouldPopulateAllProperties()
     {
