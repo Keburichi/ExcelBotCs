@@ -284,7 +284,7 @@ public class LotteryService : ILotteryService
     private async Task<bool> CanParticipateAsync(ulong discordUserId)
     {
         var user = await _memberService.GetByDiscordId(discordUserId);
-        return user.IsMember != null && user.IsMember.Value;
+        return user?.IsMember != null && user.IsMember.Value;
     }
 
     #region Guess

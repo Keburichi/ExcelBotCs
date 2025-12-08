@@ -11,14 +11,16 @@ public class Database
 {
 	private readonly IMongoDatabase _database;
 
-	public Database(IOptions<DatabaseOptions> options)
+	public Database(IOptions<DatabaseOptions> options, ILogger<Database> logger)
 	{
 		var settings = MongoClientSettings.FromConnectionString(options.Value.ConnectionString);
 		settings.ServerApi = new ServerApi(ServerApiVersion.V1);
 		settings.LinqProvider = LinqProvider.V3;
 
 		var objectSerializer = new ObjectSerializer(ObjectSerializer.AllAllowedTypes);
-		BsonSerializer.RegisterSerializer(objectSerializer);
+
+		if (!BsonSerializer.TryRegisterSerializer(objectSerializer))
+			logger.LogWarning("Serializer was already registered");
 
 		var client = new MongoClient(settings);
 		try
