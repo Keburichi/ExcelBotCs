@@ -1,5 +1,6 @@
 using ExcelBotCs.Services.FFLogs;
 using ExcelBotCs.Services.Import;
+using ExcelBotCs.Services.Lodestone;
 
 namespace ExcelBotCs.Services;
 
@@ -11,7 +12,8 @@ public class WorkerService : BackgroundService
     private readonly FFLogsSyncService _ffLogsSyncService;
 
     public WorkerService(IServiceScopeFactory scopeFactory, ILogger<WorkerService> logger,
-        ImportService importService, LodestoneService lodestoneService, FFLogsSyncService ffLogsSyncService) : base(scopeFactory)
+        ImportService importService, LodestoneService lodestoneService,
+        FFLogsSyncService ffLogsSyncService) : base(scopeFactory)
     {
         _logger = logger;
         _importService = importService;

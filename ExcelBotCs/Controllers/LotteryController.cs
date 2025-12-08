@@ -1,10 +1,10 @@
+using ExcelBotCs.Attributes;
+using ExcelBotCs.Models.DTO;
 using ExcelBotCs.Services;
 using ExcelBotCs.Services.API.Interfaces;
 using ExcelBotCs.Services.Lottery;
 using ExcelBotCs.Services.Lottery.Interfaces;
 using ExcelBotCs.Services.Lottery.Records;
-using Microsoft.AspNetCore.Authorization;
-using ExcelBotCs.Attributes;
 using Microsoft.AspNetCore.Mvc;
 
 namespace ExcelBotCs.Controllers;
@@ -76,11 +76,12 @@ public class LotteryController : AuthorizedController
     [Route("all-guesses")]
     public async Task<IActionResult> GetAllGuesses()
     {
-        var allGuesses = new List<GuessInfo>();
+        var allGuesses = new List<GuessInfoDto>();
         for (var i = 1; i <= 100; i++)
         {
             var whoGuessed = await _lotteryService.WhoGuessedAsync(i);
-            if (whoGuessed.Users.Count > 0) allGuesses.Add(new GuessInfo { Number = i, Guessers = whoGuessed.Users });
+            if (whoGuessed.Users.Count > 0)
+                allGuesses.Add(new GuessInfoDto { Number = i, Guessers = whoGuessed.Users });
         }
 
         return Ok(allGuesses);
@@ -135,9 +136,3 @@ public class LotteryController : AuthorizedController
 public record ChangeGuessRequest(int OldNumber, int NewNumber);
 
 public record AwardUsersRequest(string Reason, List<string> UserNames);
-
-public record GuessInfo
-{
-    public int Number { get; set; }
-    public List<LotteryUser> Guessers { get; set; }
-}

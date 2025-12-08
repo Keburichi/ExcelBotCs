@@ -5,6 +5,8 @@ public class LodestoneDuty : BaseEntity
     public string Name { get; set; }
     public string LodestoneId { get; set; }
     public List<string> BossNames { get; set; } = new();
+    public string? Description { get; set; }
+    public string? ImageUrl { get; set; }
 
     // Cache metadata
     public int ExpansionId { get; set; }

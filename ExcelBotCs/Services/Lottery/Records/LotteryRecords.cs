@@ -4,23 +4,23 @@ namespace ExcelBotCs.Services.Lottery.Records;
 
 #region Guess Responses
 
-record SuccessGuessResponse(IEnumerable<int> CurrentGuesses, string PrettyCurrentGuesses, int Number)
+public record SuccessGuessResponse(IEnumerable<int> CurrentGuesses, string PrettyCurrentGuesses, int Number)
     : IGuessResponse;
 
-record OutOfRangeGuessResponse : IGuessResponse;
+public record OutOfRangeGuessResponse : IGuessResponse;
 
-record NotFcMemberGuessResponse : IGuessResponse;
+public record NotFcMemberGuessResponse : IGuessResponse;
 
-record AlreadyGuessedNumberGuessResponse(int Number) : IGuessResponse;
+public record AlreadyGuessedNumberGuessResponse(int Number) : IGuessResponse;
 
-record NotCurrentGuessedNumberGuessResponse(int Number) : IGuessResponse;
+public record NotCurrentGuessedNumberGuessResponse(int Number) : IGuessResponse;
 
-record NoMoreGuessesGuessResponse(IEnumerable<int> CurrentGuesses, string PrettyCurrentGuesses)
+public record NoMoreGuessesGuessResponse(IEnumerable<int> CurrentGuesses, string PrettyCurrentGuesses)
     : IGuessResponse;
 
-record RandomGuessTimeoutResponse : IGuessResponse;
+public record RandomGuessTimeoutResponse : IGuessResponse;
 
-record RandomGuessErrorResponse : IGuessResponse;
+public record RandomGuessErrorResponse : IGuessResponse;
 
 #endregion
 

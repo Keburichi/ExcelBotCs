@@ -1,11 +1,13 @@
-﻿using ExcelBotCs.Controllers.Interfaces;
+﻿using ExcelBotCs.Attributes;
+using ExcelBotCs.Controllers.Interfaces;
 using ExcelBotCs.Mappers;
+using ExcelBotCs.Models.Database;
 using ExcelBotCs.Models.DTO;
 using ExcelBotCs.Services;
 using ExcelBotCs.Services.API.Interfaces;
-using Microsoft.AspNetCore.Authorization;
-using ExcelBotCs.Attributes;
+using ExcelBotCs.Services.Lodestone;
 using Microsoft.AspNetCore.Mvc;
+using MongoDB.Bson;
 
 namespace ExcelBotCs.Controllers;
 
@@ -63,7 +65,7 @@ public class MembersController : AuthorizedController, IBaseCrudController<Membe
         var me = await _currentMemberAccessor.GetCurrentAsync();
         if (me is null || me.Id != updatedEntity.Id)
             return Forbid();
-        
+
         Logger.LogInformation("Updating entity with id: {id}", id);
 
         await _memberService.UpdateAsync(id, MemberMapper.ToEntity(updatedEntity));
@@ -188,16 +190,16 @@ public class MembersController : AuthorizedController, IBaseCrudController<Membe
         if (member is null)
             return NotFound();
 
-        var note = new Models.Database.MemberNote
+        var note = new MemberNote
         {
-            Id = MongoDB.Bson.ObjectId.GenerateNewId().ToString(),
+            Id = ObjectId.GenerateNewId().ToString(),
             Note = request.Note,
             Author = currentUser.DiscordName,
             CreateDate = DateTime.UtcNow,
             EditDate = DateTime.UtcNow
         };
 
-        member.Notes ??= new List<Models.Database.MemberNote>();
+        member.Notes ??= new List<MemberNote>();
         member.Notes.Add(note);
 
         await _memberService.UpdateAsync(memberId, member);

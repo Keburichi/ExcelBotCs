@@ -9,10 +9,12 @@ using ExcelBotCs.Filters;
 using ExcelBotCs.Middleware;
 using ExcelBotCs.Models.Config;
 using ExcelBotCs.Services;
+using ExcelBotCs.Services.API;
 using ExcelBotCs.Services.API.Interfaces;
 using ExcelBotCs.Services.Discord;
 using ExcelBotCs.Services.Discord.Interfaces;
 using ExcelBotCs.Services.Import;
+using ExcelBotCs.Services.Lodestone;
 using ExcelBotCs.Services.Lottery;
 using ExcelBotCs.Services.Lottery.Interfaces;
 using ExcelBotCs.Utilities;
@@ -21,6 +23,7 @@ using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.DataProtection.KeyManagement;
 using Microsoft.Extensions.Options;
 using MongoDB.Driver;
+using NetStone;
 
 namespace ExcelBotCs;
 
@@ -67,6 +70,23 @@ public class Program
 
         builder.Services.AddScoped<ILotteryService, LotteryService>();
         builder.Services.AddScoped<IDiscordMessageService, DiscordMessageService>();
+
+        // Register Lodestone-related services
+        builder.Services.AddSingleton<DutyMatchingService>(sp =>
+        {
+            var logger = sp.GetRequiredService<ILogger<DutyMatchingService>>();
+            return new DutyMatchingService(logger);
+        });
+
+        builder.Services.AddSingleton<LodestoneDutyScraperService>(sp =>
+        {
+            var logger = sp.GetRequiredService<ILogger<LodestoneDutyScraperService>>();
+            var httpClientFactory = sp.GetRequiredService<IHttpClientFactory>();
+            var httpClient = httpClientFactory.CreateClient();
+            var options = sp.GetRequiredService<IOptions<LodestoneOptions>>();
+            return new LodestoneDutyScraperService(logger, httpClient, options);
+        });
+
         builder.Services.AddSingleton<LodestoneService>(sp =>
         {
             var options = sp.GetRequiredService<IOptions<LodestoneOptions>>();
@@ -77,9 +97,19 @@ public class Program
             var httpClient = httpClientFactory.CreateClient();
             var memberService = sp.GetRequiredService<IMemberService>();
             var lodestoneDutyService = sp.GetRequiredService<ILodestoneDutyService>();
+            var dutyMatchingService = sp.GetRequiredService<DutyMatchingService>();
+            var scraperService = sp.GetRequiredService<LodestoneDutyScraperService>();
+            var lodestoneClient = sp.GetRequiredService<ILodestoneClient>();
 
             return new LodestoneService(options, fcMemberService, fightService, logger, httpClient, memberService,
-                lodestoneDutyService);
+                lodestoneDutyService, dutyMatchingService, scraperService, lodestoneClient);
+        });
+
+        // Register underlying NetStone client and our abstraction
+        builder.Services.AddSingleton<ILodestoneClient>(sp =>
+        {
+            var lodestoneClient = LodestoneClient.GetClientAsync().Result;
+            return new NetStoneLodestoneClient(lodestoneClient);
         });
 
         // Register MongoDB client as singleton (shared across all repositories)

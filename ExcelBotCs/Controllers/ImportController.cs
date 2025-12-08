@@ -1,10 +1,9 @@
 ﻿using System.Text.Json;
 using ExcelBotCs.Models.Config;
 using ExcelBotCs.Models.Database;
-using ExcelBotCs.Services;
-using ExcelBotCs.Services.API;
 using ExcelBotCs.Services.API.Interfaces;
 using ExcelBotCs.Services.Import;
+using ExcelBotCs.Services.Lodestone;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Options;
 
@@ -36,8 +35,8 @@ public class ImportController : ControllerBase
     [Route("lodestone")]
     public async Task<IActionResult> ImportLodestone()
     {
-        var fcMembers = await _lodestoneService.ImportMembers(); 
-        return Ok(new {number = fcMembers.Count, members = fcMembers});
+        var fcMembers = await _lodestoneService.ImportMembers();
+        return Ok(new { number = fcMembers.Count, members = fcMembers });
     }
 
     [HttpGet]

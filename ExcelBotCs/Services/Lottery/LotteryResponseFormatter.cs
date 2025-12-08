@@ -65,6 +65,7 @@ public static class LotteryResponseFormatter
     {
         var formattedNumbers = (List<string>)
             ["  ", .. Enumerable.Range(1, 99).Select(num => response.UsedNumbers.Contains(num) ? "__" : num.ToString("D2"))];
-        return string.Join('\n', formattedNumbers.Chunk(10).Select(subList => string.Join(' ', subList)));
+        return string.Join(Environment.NewLine,
+            formattedNumbers.Chunk(10).Select(subList => string.Join(' ', subList)));
     }
 }

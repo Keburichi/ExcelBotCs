@@ -13,13 +13,11 @@ namespace ExcelBotCs.Controllers;
 public class MemberRolesController : AuthorizedController, IBaseCrudController<MemberRoleDto>
 {
     private readonly IMemberRoleService _memberRoleService;
-    private readonly IMemberService _memberService;
 
-    public MemberRolesController(ILogger<MemberRolesController> logger, IMemberRoleService memberRoleService,
-        IMemberService memberService) : base(logger)
+    public MemberRolesController(ILogger<MemberRolesController> logger, IMemberRoleService memberRoleService) :
+        base(logger)
     {
         _memberRoleService = memberRoleService;
-        _memberService = memberService;
     }
 
     [HttpGet]
