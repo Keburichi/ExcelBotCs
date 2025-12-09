@@ -37,24 +37,6 @@ public class MiscInteraction : InteractionModuleBase<SocketInteractionContext>
 		await RespondAsync($"According to Discord, {users.Count} user{(users.Count == 1 ? " is" : "s are")} currently logged in to FFXIV: {string.Join(", ", users.Select(user => $"<@{user.Id}>"))}");
 	}
 
-	[SlashCommand("testb", "Does whatever Zahrymm is testing")]
-	public async Task TestCommand(int maxValue, int total)
-	{
-		await DeferAsync();
-
-		var dict = new Dictionary<int, int>();
-
-		for (var i = 0; i < total; i++)
-		{
-			var result = _rng.NextInt(0, maxValue);
-
-			if (!dict.TryAdd(result, 1))
-				dict[result]++;
-		}
-
-		await FollowupAsync($"Histogram:\n{string.Join(Environment.NewLine, dict.Select(kvp => $"{kvp.Key}:{kvp.Value}"))}");
-	}
-
 	private async Task RandomJob(params string[] jobs) => await RespondAsync($"I picked {_rng.Pick(jobs).First()} for you!");
 
 	[SlashCommand("randommelee", "Gives you a random Melee DPS job")]
@@ -83,7 +65,7 @@ public class MiscInteraction : InteractionModuleBase<SocketInteractionContext>
 	[SlashCommand("rdmmanaficoncd", "Tells you whether you should use Manafication on cooldown based on your expected kill time")]
 	public async Task ShouldIManaficRush(int minutes, int seconds)
 	{
-		var total = minutes * 60 + seconds;
+		var total = (minutes * 60) + seconds;
 		var emboldenUses = (int)Math.Floor(total / 120f);
 		var manaficUses = (int)Math.Floor(total / 110f);
 
