@@ -1,72 +1,74 @@
-using Discord;
 using System.Collections.Concurrent;
 using System.Diagnostics;
 using System.Text;
-using Discord.WebSocket;
+using Discord;
+using ExcelBotCs.Models.Config;
+using ExcelBotCs.Services.Discord.Interfaces;
+using Microsoft.Extensions.Options;
 
 namespace ExcelBotCs.Discord;
 
 public class DiscordLogger : TextWriter
 {
-	private readonly DiscordSocketClient _discord;
-	private readonly TextWriter _stdOut;
-	private readonly ConcurrentQueue<string> _logQueue;
-	private ITextChannel? _channel;
+    private readonly IDiscordMessageService _discordMessageService;
+    private readonly IOptions<DiscordBotOptions> _options;
+    private readonly TextWriter _stdOut;
+    private readonly ConcurrentQueue<string> _logQueue;
+    private ITextChannel? _channel;
 
-	private const ulong LogChannel = 1275042232797237279;
+    public DiscordLogger(IDiscordMessageService discordMessageService, IOptions<DiscordBotOptions> options)
+    {
+        _logQueue = new ConcurrentQueue<string>();
+        _discordMessageService = discordMessageService;
+        _options = options;
+        _stdOut = Console.Out;
+        Console.SetOut(this);
 
-	public DiscordLogger(DiscordSocketClient discord)
-	{
-		_logQueue = new ConcurrentQueue<string>();
-		_discord = discord;
-		_stdOut = Console.Out;
-		Console.SetOut(this);
+        Task.Run(FlushLog);
+    }
 
-		Task.Run(FlushLog);
-	}
+    private async void FlushLog()
+    {
+        while (true)
+        {
+            if (_logQueue.TryDequeue(out var line))
+            {
+                if (_channel == null)
+                {
+                    try
+                    {
+                        var channel = await _discordMessageService.GetLogChannelAsync();
+                        if (channel is null)
+                            return;
 
-	private async void FlushLog()
-	{
-		while (true)
-		{
-			if (_logQueue.TryDequeue(out var line))
-			{
-				if (_channel == null)
-				{
-					try
-					{
-						var channel = await _discord.GetChannelAsync(LogChannel);
-						if (channel is not ITextChannel textChannel)
-							return;
+                        _channel = channel;
+                    }
+                    catch (Exception e)
+                    {
+                        Debug.WriteLine($"Exception: {e} {Environment.NewLine}Unable to access log channel");
+                    }
+                }
 
-						_channel = textChannel;
-					}
-					catch (Exception e)
-					{
-						Debug.WriteLine($"Exception: {e} {Environment.NewLine}Unable to access log channel");
-					}
-				}
+                if (_channel != null)
+                    await _channel.SendMessageAsync(line);
+            }
 
-				if(_channel != null)
-					await _channel.SendMessageAsync(line);
-			}
+            await Task.Delay(TimeSpan.FromSeconds(0.5));
+        }
+    }
 
-			await Task.Delay(TimeSpan.FromSeconds(0.5));
-		}
-	}
+    public override void WriteLine(string? line)
+    {
+        if (line.Contains($"POST channels/{_options.Value.LogChannel}/messages"))
+            return;
 
-	public override void WriteLine(string? line)
-	{
-		if (line.Contains($"POST channels/{LogChannel}/messages"))
-			return;
+        if (line.Contains("Received Dispatch (MESSAGE_CREATE)"))
+            return;
 
-		if (line.Contains("Received Dispatch (MESSAGE_CREATE)"))
-			return;
+        _stdOut.WriteLine(line);
+        Debug.WriteLine(line);
+        _logQueue.Enqueue(line);
+    }
 
-		_stdOut.WriteLine(line);
-		Debug.WriteLine(line);
-		_logQueue.Enqueue(line);
-	}
-
-	public override Encoding Encoding { get; }
+    public override Encoding Encoding { get; }
 }

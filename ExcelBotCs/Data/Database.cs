@@ -4,7 +4,6 @@ using MongoDB.Bson;
 using MongoDB.Bson.Serialization;
 using MongoDB.Bson.Serialization.Serializers;
 using MongoDB.Driver;
-using MongoDB.Driver.Linq;
 
 namespace ExcelBotCs.Data;
 public class Database
@@ -15,7 +14,6 @@ public class Database
 	{
 		var settings = MongoClientSettings.FromConnectionString(options.Value.ConnectionString);
 		settings.ServerApi = new ServerApi(ServerApiVersion.V1);
-		settings.LinqProvider = LinqProvider.V3;
 
 		var objectSerializer = new ObjectSerializer(ObjectSerializer.AllAllowedTypes);
 

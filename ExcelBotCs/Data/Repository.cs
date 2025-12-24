@@ -1,6 +1,5 @@
-using MongoDB.Driver;
-using MongoDB.Driver.Linq;
 using System.Linq.Expressions;
+using MongoDB.Driver;
 
 namespace ExcelBotCs.Data;
 public class Repository<T> where T : DatabaseObject
@@ -46,7 +45,7 @@ public class Repository<T> where T : DatabaseObject
 		await _collection.ReplaceOneAsync(MatchById(item), item, new ReplaceOptions() { IsUpsert = true });
 	}
 
-	public IMongoQueryable<T> Where(Expression<Func<T, bool>> predicate)
+	public IQueryable<T> Where(Expression<Func<T, bool>> predicate)
 	{
 		return _collection.AsQueryable().Where(predicate);
 	}
@@ -56,5 +55,5 @@ public class Repository<T> where T : DatabaseObject
 		return Builders<T>.Filter.Eq(r => r.Id, item.Id);
 	}
 
-	public IMongoQueryable<T> Query => _collection.AsQueryable();
+	public IQueryable<T> Query => _collection.AsQueryable();
 }

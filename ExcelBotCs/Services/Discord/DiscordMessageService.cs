@@ -1,6 +1,5 @@
 using Discord;
 using Discord.WebSocket;
-using ExcelBotCs.Discord;
 using ExcelBotCs.Models.Config;
 using ExcelBotCs.Services.Discord.Interfaces;
 using Microsoft.Extensions.Options;
@@ -44,7 +43,7 @@ public class DiscordMessageService : IDiscordMessageService
 
         await channel.SendMessageAsync(message);
     }
-    
+
     public async Task PostInLotteryChannelAsync(string message)
     {
         var channel = await GetTextChannelFromChannelId(_config.Value.LotteryChannel);
@@ -59,9 +58,18 @@ public class DiscordMessageService : IDiscordMessageService
         var channel = await GetTextChannelFromChannelId(_config.Value.AnnouncementChannel);
         if (channel == null)
             return new List<IMessage>();
-        
+
         var discordMessages = await channel.GetMessagesAsync(3, CacheMode.AllowDownload).ToListAsync();
         return discordMessages.SelectMany(x => x).ToList();
+    }
+
+    public async Task<ITextChannel?> GetLogChannelAsync()
+    {
+        var channel = await GetTextChannelFromChannelId(_config.Value.LogChannel);
+        if (channel == null)
+            return null;
+
+        return channel as ITextChannel;
     }
 
     private async Task<IMessageChannel?> GetTextChannelFromChannelId(ulong channelId)

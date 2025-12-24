@@ -109,60 +109,6 @@ public class LotteryInteraction : InteractionModuleBase<SocketInteractionContext
         await DeferAsync(true);
 
         await _lotteryService.RemindAsync(Context.GuildUser().Id);
-
-        // var fcMembers = Context.Guild.Users.Where(user => user.Roles.IsMember() && !user.IsBot).Select(user => user.Id);
-        // var currentGuesses = (await _lotteryGuesses.Where(_ => true).ToListAsync()).Select(guess => guess.DiscordId)
-        // 	.GroupBy(x => x)
-        // 	.ToDictionary(x => x.Key, x => x.Count());
-        // var awardedGuesses = (await _extraLotteryGuesses.Where(_ => true).ToListAsync())
-        // 	.Select(award => award.DiscordId)
-        // 	.GroupBy(x => x)
-        // 	.ToDictionary(x => x.Key, x => x.Count());
-        //
-        // foreach (var fcMember in fcMembers)
-        // 	currentGuesses.TryAdd(fcMember, 0);
-        //
-        // var remainingGuesses = new List<(ulong Id, int Remaining)>();
-        //
-        // foreach (var (id, current) in currentGuesses)
-        // {
-        // 	if (awardedGuesses.TryGetValue(id, out var remaining))
-        // 	{
-        // 		var count = (remaining + 1) - current;
-        // 		if (count > 0)
-        // 			remainingGuesses.Add((id, count));
-        // 	}
-        // 	else
-        // 	{
-        // 		if (current == 0)
-        // 			remainingGuesses.Add((id, 1));
-        // 	}
-        // }
-        //
-        // var output = remainingGuesses
-        // 	.GroupBy(x => x.Remaining)
-        // 	.OrderBy(x => x.Key)
-        // 	.Aggregate(string.Empty,
-        // 		(current, guesses)
-        // 			=> current + $"{guesses.Key} guess{(guesses.Key == 1 ? "" : "es")} remaining: {guesses.Select(user => $"<@{user.Id}>").ToList().PrettyJoin()}\n");
-        //
-        // await FollowupAsync(output, ephemeral: true);
-        //
-        // var previousParticipants = (await _lotteryResults.Where(_ => true).ToListAsync())
-        // 	.OrderBy(result => result.DateCreated)
-        // 	.Take(3)
-        // 	.SelectMany(result => result.Guesses)
-        // 	.Select(guess => guess.DiscordId)
-        // 	.Distinct();
-        //
-        // var intersectionOutput = remainingGuesses
-        // 	.Where(guess => previousParticipants.Contains(guess.Id))
-        // 	.GroupBy(x => x.Remaining)
-        // 	.OrderBy(x => x.Key)
-        // 	.Aggregate("## Use your guesses before it's too late!\n",
-        // 		(current, guesses)
-        // 			=> current + $"{guesses.Key} guess{(guesses.Key == 1 ? "" : "es")} remaining: {guesses.Select(user => $"<@{user.Id}>").ToList().PrettyJoin()}\n");
-        // await PostInLotteryChannel(intersectionOutput);
     }
 
     [SlashCommand("award", "Grants extra guesses for the current lottery period")]

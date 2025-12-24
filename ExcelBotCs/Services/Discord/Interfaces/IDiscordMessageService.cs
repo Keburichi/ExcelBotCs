@@ -9,4 +9,5 @@ public interface IDiscordMessageService
     Task PostInUpcomingRosterChannelAsync(string message);
     Task PostInLotteryChannelAsync(string message);
     Task<List<IMessage>> GetAnnouncementChannelMessagesAsync();
+    Task<ITextChannel?> GetLogChannelAsync();
 }

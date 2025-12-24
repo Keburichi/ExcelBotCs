@@ -6,7 +6,7 @@ using ExcelBotCs.Services.Discord.Interfaces;
 using ExcelBotCs.Services.Lottery.Enums;
 using ExcelBotCs.Services.Lottery.Interfaces;
 using ExcelBotCs.Services.Lottery.Records;
-using MongoDB.Driver;
+using MongoDB.Driver.Linq;
 
 namespace ExcelBotCs.Services.Lottery;
 

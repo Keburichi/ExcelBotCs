@@ -1,7 +1,7 @@
+using System.Reflection;
 using Discord;
 using Discord.Interactions;
 using Discord.WebSocket;
-using System.Reflection;
 using ExcelBotCs.Models.Config;
 using Microsoft.Extensions.Options;
 
@@ -13,6 +13,7 @@ public class DiscordBotService : BackgroundService
     private readonly InteractionService _interaction;
     private readonly DiscordBotOptions _config;
     private readonly IServiceProvider _serviceProvider;
+    private readonly ILogger<DiscordSocketClient> _logger;
 
     public DiscordBotService(IServiceScopeFactory scopeFactory, IOptions<DiscordBotOptions> config,
         IServiceProvider serviceProvider, ILogger<DiscordSocketClient> logger) : base(scopeFactory)
@@ -29,6 +30,7 @@ public class DiscordBotService : BackgroundService
         _interaction = new InteractionService(_client);
         _config = config.Value;
         _serviceProvider = serviceProvider;
+        _logger = logger;
 
         _client.Ready += ClientOnReady;
         _client.Disconnected += async (ex) => await StopAsync(CancellationToken.None);
@@ -59,15 +61,15 @@ public class DiscordBotService : BackgroundService
 
     public override async Task StopAsync(CancellationToken cancellationToken)
     {
-        Console.WriteLine("Discord bot is stopping.");
+        _logger.LogInformation("Discord bot disconnected. Attempting to re-connect...");
         await _client.StopAsync();
 
         // Lets attempt to restart this
-        Console.WriteLine("Restarting bot");
+        _logger.LogInformation("Restarting bot");
         await _client.LoginAsync(TokenType.Bot, _config.Token);
         await _client.StartAsync();
 
-        Console.WriteLine("Discord bot is re-started.");
+        _logger.LogInformation("Discord bot is re-started.");
         // _lifeTime.StopApplication();
     }
 }

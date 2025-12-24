@@ -38,25 +38,6 @@ public class MiscInteraction : InteractionModuleBase<SocketInteractionContext>
             $"According to Discord, {users.Count} user{(users.Count == 1 ? " is" : "s are")} currently logged in to FFXIV: {string.Join(", ", users.Select(user => $"<@{user.Id}>"))}");
     }
 
-    [SlashCommand("testb", "Does whatever Zahrymm is testing")]
-    public async Task TestCommand(int maxValue, int total)
-    {
-        await DeferAsync();
-
-        var dict = new Dictionary<int, int>();
-
-        for (var i = 0; i < total; i++)
-        {
-            var result = _rng.NextInt(0, maxValue);
-
-            if (!dict.TryAdd(result, 1))
-                dict[result]++;
-        }
-
-        await FollowupAsync(
-            $"Histogram:\n{string.Join(Environment.NewLine, dict.Select(kvp => $"{kvp.Key}:{kvp.Value}"))}");
-    }
-
     private async Task RandomJob(params string[] jobs)
     {
         await RespondAsync($"I picked {_rng.Pick(jobs).First()} for you!");

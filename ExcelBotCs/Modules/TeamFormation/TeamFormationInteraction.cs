@@ -1,4 +1,6 @@
-﻿using Discord;
+﻿using System.Globalization;
+using System.Text.RegularExpressions;
+using Discord;
 using Discord.Interactions;
 using ExcelBotCs.Data;
 using ExcelBotCs.Extensions;
@@ -8,21 +10,7 @@ namespace ExcelBotCs.Modules.TeamFormation;
 [Group("event", "Event commands")]
 public class TeamFormationInteraction : InteractionModuleBase<SocketInteractionContext>
 {
-    public enum Month
-    {
-        January = 1,
-        February,
-        March,
-        April,
-        May,
-        June,
-        July,
-        August,
-        September,
-        October,
-        November,
-        December
-    }
+    private readonly Prng _rng;
 
     private const string TankRoleEmote = "<:RoleTank:1380979172423499846>";
     private const string HealerRoleEmote = "<:RoleHealer:1380979170787721368>";
@@ -31,18 +19,6 @@ public class TeamFormationInteraction : InteractionModuleBase<SocketInteractionC
     private const string RangedRoleEmote = "<:RoleRanged:873621778453368895>";
 
     private readonly Repository<EventDetails> _eventDetails;
-
-    private readonly Dictionary<Role, (Emote Emote, int Minimum, int Maximum)> _groups =
-        new()
-        {
-            { Role.Tank, (TankRoleEmote, 2, 2) },
-            { Role.Healer, (HealerRoleEmote, 2, 2) },
-            { Role.Melee, (MeleeRoleEmote, 1, 2) },
-            { Role.Caster, (CasterRoleEmote, 1, 2) },
-            { Role.Ranged, (RangedRoleEmote, 1, 1) }
-        };
-
-    private readonly Prng _rng;
     private readonly string _rootUrl;
 
     public TeamFormationInteraction(Prng rng, Data.Database database)
@@ -52,29 +28,41 @@ public class TeamFormationInteraction : InteractionModuleBase<SocketInteractionC
         _rootUrl = Utils.GetEnvVar("EVENT_ENDPOINT_URL", nameof(TeamFormationInteraction));
     }
 
-    private async Task<Dictionary<Role, HashSet<ulong>>> GetSignupsFromMessage(IMessage message)
+    private async Task<Dictionary<IEmote, HashSet<ulong>>> GetSignupsFromMessage(IEnumerable<IEmote> emotes,
+        IMessage message)
     {
-        var signups = new Dictionary<Role, HashSet<ulong>>
-        {
-            { Role.Tank, [] },
-            { Role.Healer, [] },
-            { Role.Melee, [] },
-            { Role.Caster, [] },
-            { Role.Ranged, [] }
-        };
+        var signups = new Dictionary<IEmote, HashSet<ulong>>();
 
-        foreach (var (role, (emote, _, _)) in _groups)
+        foreach (var emote in emotes)
         {
+            signups.Add(emote, []);
+
             var users = await message.GetReactionUsersAsync(emote, 100).FlattenAsync();
-            foreach (var user in users) signups[role].Add(user.Id);
+            foreach (var user in users) signups[emote].Add(user.Id);
         }
 
         return signups;
     }
 
+    private static IEnumerable<IEmote> ExtractEmotes(string input)
+    {
+        var matches = Regex.Matches(input, @"<a?:\w+:\d+>");
+        foreach (Match match in matches)
+            if (Emote.TryParse(match.Value, out var emote))
+                yield return emote;
+
+        var stripped = Regex.Replace(input, @"<a?:\w+:\d+>", "");
+        var enumerator = StringInfo.GetTextElementEnumerator(stripped);
+        while (enumerator.MoveNext())
+        {
+            var element = enumerator.GetTextElement();
+            if (Emoji.TryParse(element, out var emoji))
+                yield return emoji;
+        }
+    }
 
     [SlashCommand("list", "Get a list of signups from the post provided")]
-    public async Task GetSignups(string postUrl)
+    public async Task GetSignups(string postUrl, string? checkEmoji = null)
     {
         if (!Context.GuildUser().Roles.IsOfficer())
         {
@@ -97,32 +85,65 @@ public class TeamFormationInteraction : InteractionModuleBase<SocketInteractionC
                 break;
 
             case DiscordSocketExtensions.SuccessMessageResponse msg:
-                var group = await GetSignupsFromMessage(msg.Message);
+                var useEmoji = ExtractEmotes(checkEmoji ?? string.Empty).ToList();
+                var emotes = useEmoji.Any()
+                    ? msg.Message.Reactions.Keys.Where(useEmoji.Contains)
+                    : msg.Message.Reactions.Keys;
+                var group = await GetSignupsFromMessage(emotes, msg.Message);
                 var allSignups = group.Values.SelectMany(list => list.Select(id => id)).ToList();
 
-                string GenerateInlineText(Dictionary<Role, HashSet<ulong>> group, Role role)
+                string GenerateInlineText(IEmote emote, HashSet<ulong> ids)
                 {
                     return
-                        $"{_groups[role].Emote} ({group[role].Count}): {group[role].Select(id => allSignups.Count(signupId => signupId == id) == 1 ? $"⭐<@{id}>" : $"<@{id}>").ToList().PrettyJoin()}\n";
+                        $"{ToDisplay(emote)} ({ids.Count}): {ids.Select(id => allSignups.Count(signupId => signupId == id) == 1 ? $"⭐<@{id}>" : $"<@{id}>").ToList().PrettyJoin()}\n";
                 }
 
-                await FollowupAsync(
-                    $"### Signups from {postUrl}\nTotal unique signups: {allSignups.Distinct().Count()}\n" +
-                    $"{GenerateInlineText(group, Role.Tank)}" +
-                    $"{GenerateInlineText(group, Role.Healer)}" +
-                    $"{GenerateInlineText(group, Role.Melee)}" +
-                    $"{GenerateInlineText(group, Role.Caster)}" +
-                    $"{GenerateInlineText(group, Role.Ranged)}");
+                await FollowupAsync($"### Reactions from {postUrl}");
+                await Context.Channel.SendMessageAsync($"Total unique reactions: {allSignups.Distinct().Count()}");
+                if (useEmoji.Any())
+                    await Context.Channel.SendMessageAsync(
+                        $"Checking specified emotes: {string.Join(string.Empty, emotes.Select(ToDisplay) ?? [])}");
+
+                foreach (var reaction in group.Select(kvp => GenerateInlineText(kvp.Key, kvp.Value)))
+                {
+                    await Context.Channel.SendMessageAsync(reaction, allowedMentions: AllowedMentions.None);
+                }
+
                 break;
         }
+    }
+
+    private static string ToDisplay(IEmote emote)
+    {
+        return emote switch
+        {
+            Emoji emoji => emoji.Name,
+            Emote em => $"<:{em.Name}:{em.Id}>",
+            _ => emote.Name
+        };
+    }
+
+    public enum Month
+    {
+        January = 1,
+        February,
+        March,
+        April,
+        May,
+        June,
+        July,
+        August,
+        September,
+        October,
+        November,
+        December
     }
 
     [SlashCommand("schedule", "Creates the group to run")]
     public async Task ScheduleGroup(string eventName, Month month, [MinValue(1)] [MaxValue(31)] int day,
         [MinValue(0)] [MaxValue(23)] int startHourSt,
-        [MinValue(0)] [MaxValue(23)] int endHourSt, IUser tank1, IUser tank2, IUser healer1, IUser healer2,
-        IUser melee1, IUser caster1, IUser ranged1,
-        IUser? melee2 = null, IUser? caster2 = null, IUser? ranged2 = null,
+        [MinValue(0)] [MaxValue(23)] int endHourSt, string? tanks = null, string? healers = null,
+        string? meleeDps = null, string? casterDps = null, string? rangedDps = null,
         [MinValue(0)] [MaxValue(59)] int startMinuteSt = 0,
         [MinValue(0)] [MaxValue(59)] int endMinuteSt = 0)
     {
@@ -132,11 +153,33 @@ public class TeamFormationInteraction : InteractionModuleBase<SocketInteractionC
             return;
         }
 
-        var sanityCheck = new List<IUser?> { melee2, caster2, ranged2 }.Count(user => user != null);
-        if (sanityCheck != 1)
+        IEnumerable<IUser> GetUsersFromString(string input)
         {
-            // we have too few or too many members, reject it
-            await RespondAsync("An incorrect number of members was specified, fix your input", ephemeral: true);
+            var ids = Regex.Matches(input, @"\d+").Select(m => ulong.Parse(m.Value));
+            return ids.Select(id => Context.Client.GetUser(id));
+        }
+
+        var tankIds = (string.IsNullOrWhiteSpace(tanks) ? [] : GetUsersFromString(tanks)).ToList();
+        var healerIds = (string.IsNullOrWhiteSpace(healers) ? [] : GetUsersFromString(healers)).ToList();
+        var meleeDpsIds = (string.IsNullOrWhiteSpace(meleeDps) ? [] : GetUsersFromString(meleeDps)).ToList();
+        var casterDpsIds = (string.IsNullOrWhiteSpace(casterDps) ? [] : GetUsersFromString(casterDps)).ToList();
+        var rangedDpsIds = (string.IsNullOrWhiteSpace(rangedDps) ? [] : GetUsersFromString(rangedDps)).ToList();
+
+        var participants = new List<EventMemberDetails>();
+        participants.AddRange(
+            tankIds.Select(user => new EventMemberDetails { DiscordId = user.Id, Role = Role.Tank }));
+        participants.AddRange(healerIds.Select(user => new EventMemberDetails
+            { DiscordId = user.Id, Role = Role.Healer }));
+        participants.AddRange(meleeDpsIds.Select(user => new EventMemberDetails
+            { DiscordId = user.Id, Role = Role.Melee }));
+        participants.AddRange(casterDpsIds.Select(user => new EventMemberDetails
+            { DiscordId = user.Id, Role = Role.Caster }));
+        participants.AddRange(rangedDpsIds.Select(user => new EventMemberDetails
+            { DiscordId = user.Id, Role = Role.Ranged }));
+
+        if (participants.Count == 0)
+        {
+            await RespondAsync("No users were specified!", ephemeral: true);
             return;
         }
 
@@ -152,34 +195,15 @@ public class TeamFormationInteraction : InteractionModuleBase<SocketInteractionC
             $"## {eventName}\r\n" +
             $"<t:{startEpoch}:R>\r\n" +
             $"<t:{startEpoch}:F> - <t:{endEpoch}:F>\r\n\r\n" +
-            $"<:RoleTank:1380979172423499846> <@{tank1.Id}> <@{tank2.Id}>\r\n" +
-            $"<:RoleHealer:1380979170787721368> <@{healer1.Id}> <@{healer2.Id}>\r\n" +
-            $"<:RoleMelee:873621778214318091> <@{melee1.Id}> {(melee2 != null ? $"<@{melee2.Id}>" : string.Empty)}\r\n" +
-            $"<:RoleCaster:873621778566635540> <@{caster1.Id}> {(caster2 != null ? $"<@{caster2.Id}>" : string.Empty)}\r\n" +
-            $"<:RoleRanged:873621778453368895> <@{ranged1.Id}> {(ranged2 != null ? $"<@{ranged2.Id}>" : string.Empty)}";
+            $"{(tankIds.Count > 0 ? $"<:RoleTank:1380979172423499846> {string.Join(" ", tankIds.Select(user => $"<@{user.Id}>"))}\r\n" : string.Empty)}" +
+            $"{(healerIds.Count > 0 ? $"<:RoleHealer:1380979170787721368> {string.Join(" ", healerIds.Select(user => $"<@{user.Id}>"))}\r\n" : string.Empty)}" +
+            $"{(meleeDpsIds.Count > 0 ? $"<:RoleMelee:873621778214318091> {string.Join(" ", meleeDpsIds.Select(user => $"<@{user.Id}>"))}\r\n" : string.Empty)}" +
+            $"{(casterDpsIds.Count > 0 ? $"<:RoleCaster:873621778566635540> {string.Join(" ", casterDpsIds.Select(user => $"<@{user.Id}>"))}\r\n" : string.Empty)}" +
+            $"{(rangedDpsIds.Count > 0 ? $"<:RoleRanged:873621778453368895> {string.Join(" ", rangedDpsIds.Select(user => $"<@{user.Id}>"))}\r\n" : string.Empty)}";
+        output = output.Trim();
 
         var rosterChannel = Context.Guild.GetTextChannel(1411293182133665792);
         await rosterChannel.SendMessageAsync(output);
-
-        var participants = new List<EventMemberDetails>
-        {
-            new() { DiscordId = tank1.Id, Role = Role.Tank },
-            new() { DiscordId = tank2.Id, Role = Role.Tank },
-            new() { DiscordId = healer1.Id, Role = Role.Healer },
-            new() { DiscordId = healer2.Id, Role = Role.Healer },
-            new() { DiscordId = melee1.Id, Role = Role.Melee },
-            new() { DiscordId = caster1.Id, Role = Role.Caster },
-            new() { DiscordId = ranged1.Id, Role = Role.Ranged }
-        };
-
-        if (melee2 != null)
-            participants.Add(new EventMemberDetails { DiscordId = melee2.Id, Role = Role.Melee });
-
-        if (caster2 != null)
-            participants.Add(new EventMemberDetails { DiscordId = caster2.Id, Role = Role.Caster });
-
-        if (ranged2 != null)
-            participants.Add(new EventMemberDetails { DiscordId = ranged2.Id, Role = Role.Ranged });
 
         await _eventDetails.Insert(new EventDetails
         {
