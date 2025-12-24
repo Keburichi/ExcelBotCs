@@ -10,6 +10,7 @@ using Microsoft.AspNetCore.Mvc;
 namespace ExcelBotCs.Controllers;
 
 [ApiController]
+[MemberAuth]
 [Route("api/[controller]")]
 public class LotteryController : AuthorizedController
 {

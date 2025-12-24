@@ -19,6 +19,7 @@ using DbEventSignup = ExcelBotCs.Models.Database.EventSignup;
 namespace ExcelBotCs.Controllers;
 
 [ApiController]
+[MemberAuth]
 [Route("api/[controller]")]
 public class EventsController : AuthorizedController, IBaseCrudController<EventDto>
 {

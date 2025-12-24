@@ -1,3 +1,4 @@
+using ExcelBotCs.Attributes;
 using ExcelBotCs.Models;
 using ExcelBotCs.Services.Discord.Interfaces;
 using Microsoft.AspNetCore.Mvc;
@@ -5,6 +6,7 @@ using Microsoft.AspNetCore.Mvc;
 namespace ExcelBotCs.Controllers;
 
 [ApiController]
+[MemberAuth]
 [Route("api/[controller]")]
 public class HomeController : AuthorizedController
 {
@@ -14,7 +16,7 @@ public class HomeController : AuthorizedController
     {
         _discordMessageService = discordMessageService;
     }
-    
+
     [HttpGet]
     [Route("announcements")]
     public async Task<List<Announcement>> GetAnnouncements()

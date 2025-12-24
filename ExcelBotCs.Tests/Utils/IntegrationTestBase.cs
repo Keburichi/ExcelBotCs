@@ -1,6 +1,8 @@
+using Discord;
 using ExcelBotCs.Database.Interfaces;
 using ExcelBotCs.Models.Config;
 using ExcelBotCs.Models.Database;
+using ExcelBotCs.Services.Discord.Interfaces;
 using ExcelBotCs.TestFramework.Database;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
@@ -15,6 +17,7 @@ using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using MongoDB.Driver;
+using Moq;
 
 namespace ExcelBotCs.Tests.Utils;
 
@@ -101,6 +104,22 @@ public abstract class IntegrationTestBase : MongoDbTest
                     // Register the shared options instance
                     services.AddSingleton<IOptionsMonitor<TestAuthHandlerOptions>>(
                         new TestAuthOptionsMonitor(_testAuthOptions));
+
+                    // Mock Discord message service since we can't create a real instance of the bot
+                    services.RemoveAll<IDiscordMessageService>();
+                    var mockDiscordMessageService =
+                        new Mock<IDiscordMessageService>();
+                    mockDiscordMessageService.Setup(x => x.PostInLotteryChannelAsync(It.IsAny<string>()))
+                        .Returns(Task.CompletedTask);
+                    mockDiscordMessageService.Setup(x => x.PostInAnnouncementChannelAsync(It.IsAny<string>()))
+                        .Returns(Task.CompletedTask);
+                    mockDiscordMessageService.Setup(x => x.PostInEventChannelAsync(It.IsAny<string>()))
+                        .Returns(Task.CompletedTask);
+                    mockDiscordMessageService.Setup(x => x.PostInUpcomingRosterChannelAsync(It.IsAny<string>()))
+                        .Returns(Task.CompletedTask);
+                    mockDiscordMessageService.Setup(x => x.GetAnnouncementChannelMessagesAsync())
+                        .ReturnsAsync(new List<IMessage>());
+                    services.AddSingleton(mockDiscordMessageService.Object);
                 });
             });
 

@@ -1,13 +1,14 @@
+using ExcelBotCs.Attributes;
 using ExcelBotCs.Controllers.Interfaces;
 using ExcelBotCs.Mappers;
 using ExcelBotCs.Models.DTO;
-using ExcelBotCs.Services.API;
 using ExcelBotCs.Services.API.Interfaces;
 using Microsoft.AspNetCore.Mvc;
 
 namespace ExcelBotCs.Controllers;
 
 [ApiController]
+[MemberAuth]
 [Route("api/[controller]")]
 public class FcMembersController : AuthorizedController, IBaseCrudController<FcMemberDto>
 {
@@ -22,10 +23,10 @@ public class FcMembersController : AuthorizedController, IBaseCrudController<FcM
     public async Task<ActionResult<List<FcMemberDto>>> GetEntities()
     {
         var entities = await _fcMemberService.GetAsync();
-        
-        if(entities is null)
+
+        if (entities is null)
             return new List<FcMemberDto>();
-        
+
         var dtos = entities.Select(FcMemberMapper.ToDto).ToList();
 
         return dtos;
@@ -45,8 +46,9 @@ public class FcMembersController : AuthorizedController, IBaseCrudController<FcM
     [HttpPost]
     public async Task<ActionResult<FcMemberDto>> CreateEntity(FcMemberDto entity)
     {
-        await _fcMemberService.CreateAsync(FcMemberMapper.ToEntity(entity));
-        return CreatedAtAction(nameof(CreateEntity), new { id = entity.Id }, entity);
+        var fcMember = FcMemberMapper.ToEntity(entity);
+        await _fcMemberService.CreateAsync(fcMember);
+        return CreatedAtAction(nameof(CreateEntity), new { id = fcMember.Id }, FcMemberMapper.ToDto(fcMember));
     }
 
     [HttpPut("{id:length(24)}")]

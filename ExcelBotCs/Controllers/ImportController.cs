@@ -1,4 +1,5 @@
 ﻿using System.Text.Json;
+using ExcelBotCs.Attributes;
 using ExcelBotCs.Models.Config;
 using ExcelBotCs.Models.Database;
 using ExcelBotCs.Services.API.Interfaces;
@@ -10,6 +11,7 @@ using Microsoft.Extensions.Options;
 namespace ExcelBotCs.Controllers;
 
 [ApiController]
+[AdminAuth]
 [Route("api/[controller]")]
 public class ImportController : ControllerBase
 {

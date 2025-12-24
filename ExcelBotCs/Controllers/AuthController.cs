@@ -1,22 +1,20 @@
-﻿using ExcelBotCs.Models.Database;
+﻿using ExcelBotCs.Attributes;
+using ExcelBotCs.Models.Database;
 using ExcelBotCs.Services;
-using ExcelBotCs.Services.API;
-using ExcelBotCs.Services.API.Interfaces;
 using Microsoft.AspNetCore.Mvc;
 
 namespace ExcelBotCs.Controllers;
 
+[ApiController]
 [Route("api/[controller]")]
+[MemberAuth]
 public class AuthController : AuthorizedController
 {
     private readonly ICurrentMemberAccessor _currentMemberAccessor;
-    private readonly IMemberService _memberService;
 
-    public AuthController(ILogger<AuthController> logger, ICurrentMemberAccessor currentMemberAccessor,
-        IMemberService memberService) : base(logger)
+    public AuthController(ILogger<AuthController> logger, ICurrentMemberAccessor currentMemberAccessor) : base(logger)
     {
         _currentMemberAccessor = currentMemberAccessor;
-        _memberService = memberService;
     }
 
     [HttpHead]
@@ -32,21 +30,6 @@ public class AuthController : AuthorizedController
         var member = await _currentMemberAccessor.GetCurrentAsync();
         if (member is not null)
         {
-            // // Assign debug roles
-            // member.Roles = new List<MemberRole>()
-            // {
-            //     new MemberRole()
-            //     {
-            //         Name = "Debug",
-            //         IsAdmin = true,
-            //         IsMember = true,
-            //         CreateDate = DateTime.UtcNow,
-            //         EditDate = DateTime.UtcNow
-            //     }
-            // };
-            //
-            // await _memberService.UpdateAsync(member.Id, member);
-
             return member;
         }
 

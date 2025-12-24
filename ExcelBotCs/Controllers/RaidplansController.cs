@@ -1,3 +1,4 @@
+using ExcelBotCs.Attributes;
 using ExcelBotCs.Mappers;
 using ExcelBotCs.Models.DTO;
 using ExcelBotCs.Services;
@@ -7,6 +8,7 @@ using Microsoft.AspNetCore.Mvc;
 namespace ExcelBotCs.Controllers;
 
 [ApiController]
+[MemberAuth]
 [Route("api/fights/{fightId}/raidplans")]
 public class RaidplansController : AuthorizedController
 {
@@ -80,7 +82,7 @@ public class RaidplansController : AuthorizedController
         var isOwner = existingRaidplan.AuthorId == member.Id;
 
         if (!isAdmin && !isOwner)
-            return Forbid("You can only edit your own raidplans");
+            return Forbid();
 
         var entity = RaidplanMapper.ToEntity(dto);
         entity.AuthorId = existingRaidplan.AuthorId; // Preserve original author
@@ -105,7 +107,7 @@ public class RaidplansController : AuthorizedController
         var isAdmin = member.IsAdmin == true;
 
         if (!isAdmin)
-            return Forbid("Only admins can delete raidplans");
+            return Forbid();
 
         await _raidplanService.DeleteAsync(fightId, id);
         return NoContent();

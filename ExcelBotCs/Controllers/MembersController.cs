@@ -12,6 +12,7 @@ using MongoDB.Bson;
 namespace ExcelBotCs.Controllers;
 
 [ApiController]
+[MemberAuth]
 [Route("api/[controller]")]
 public class MembersController : AuthorizedController, IBaseCrudController<MemberDto>
 {
