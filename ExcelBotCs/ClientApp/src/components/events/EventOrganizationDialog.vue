@@ -31,6 +31,9 @@ const pendingMode = ref<'simple' | 'role' | null>(null)
 const isInfoOpen = ref(false)
 const infoMessage = ref('')
 
+// Confirmation for saving with fewer participants
+const isInsufficientParticipantsOpen = ref(false)
+
 function openInfo(message: string) {
   infoMessage.value = message
   isInfoOpen.value = true
@@ -199,13 +202,31 @@ const roleCount = computed(() => {
   }
 })
 
-// Save participants to occurrence
-async function save() {
+// Check if we have enough participants and prompt if not
+function handleSave() {
   if (!props.occurrence) {
     console.error('No occurrence to save participants to')
     return
   }
 
+  // Check if we have fewer participants than required
+  if (participants.value.length < eventValue.value.MaxNumberOfParticipants) {
+    isInsufficientParticipantsOpen.value = true
+    return
+  }
+
+  // If we have enough, save directly
+  doSave()
+}
+
+// Actually save participants to occurrence
+async function doSave() {
+  if (!props.occurrence) {
+    console.error('No occurrence to save participants to')
+    return
+  }
+
+  isInsufficientParticipantsOpen.value = false
   saving.value = true
   try {
     await EventsApi.selectParticipants(eventValue.value.Id, props.occurrence.Id, participants.value)
@@ -218,6 +239,10 @@ async function save() {
   finally {
     saving.value = false
   }
+}
+
+function cancelInsufficientParticipants() {
+  isInsufficientParticipantsOpen.value = false
 }
 </script>
 
@@ -349,7 +374,7 @@ async function save() {
     </template>
     <template #actions>
       <BaseButton :disabled="saving" state="secondary" title="Cancel" @clicked="modelValue = false" />
-      <BaseButton :disabled="saving" :title="saving ? 'Saving...' : 'Save'" state="primary" @click="save" />
+      <BaseButton :disabled="saving" :title="saving ? 'Saving...' : 'Save'" state="primary" @click="handleSave" />
     </template>
   </BaseModal>
 
@@ -381,6 +406,31 @@ async function save() {
     </template>
     <template #actions>
       <BaseButton state="primary" title="OK" @clicked="closeInfo" />
+    </template>
+  </BaseModal>
+
+  <!-- Insufficient participants confirmation modal -->
+  <BaseModal
+    v-model="isInsufficientParticipantsOpen"
+    :close-on-outside-click="false"
+    size="small"
+    title="Not Enough Participants"
+  >
+    <template #body>
+      <div class="insufficient-warning">
+        <p>
+          You have selected <strong>{{ participants.length }}</strong>
+          participant{{ participants.length === 1 ? '' : 's' }},
+          but this event requires <strong>{{ eventValue.MaxNumberOfParticipants }}</strong>.
+        </p>
+        <p class="warning-question">
+          Do you want to continue anyway?
+        </p>
+      </div>
+    </template>
+    <template #actions>
+      <BaseButton state="secondary" title="Go Back" @clicked="cancelInsufficientParticipants" />
+      <BaseButton state="warning" title="Save Anyway" @clicked="doSave" />
     </template>
   </BaseModal>
 </template>
@@ -521,9 +571,10 @@ async function save() {
 }
 
 .btn-role.active {
-  background: var(--btn-success-bg);
-  color: var(--btn-success-fg);
-  border-color: var(--btn-success-bg);
+  background: var(--btn-primary-bg, #3b82f6);
+  color: var(--btn-primary-fg, #fff);
+  border-color: var(--btn-primary-bg, #3b82f6);
+  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.3);
 }
 
 .btn-role:focus {
@@ -603,9 +654,10 @@ async function save() {
 }
 
 .btn-select.selected {
-  background: var(--btn-success-bg);
-  color: var(--btn-success-fg);
-  border-color: var(--btn-success-bg);
+  background: var(--btn-primary-bg, #3b82f6);
+  color: var(--btn-primary-fg, #fff);
+  border-color: var(--btn-primary-bg, #3b82f6);
+  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.3);
 }
 
 .btn-select:disabled {
@@ -619,5 +671,26 @@ async function save() {
 .btn-select:focus {
   outline: none;
   box-shadow: 0 0 0 3px var(--ring);
+}
+
+/* Insufficient participants warning */
+.insufficient-warning {
+  text-align: center;
+}
+
+.insufficient-warning p {
+  margin: 0 0 1rem 0;
+  color: var(--fg);
+  font-size: 1rem;
+  line-height: 1.5;
+}
+
+.insufficient-warning p:last-child {
+  margin-bottom: 0;
+}
+
+.insufficient-warning .warning-question {
+  color: var(--muted);
+  font-size: 0.95rem;
 }
 </style>
