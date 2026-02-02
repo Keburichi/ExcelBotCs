@@ -265,6 +265,7 @@ onMounted(async () => {
     :event="fcEventValue"
     :occurrence="occurrenceToComplete"
     @concluded="handleEventConcluded"
+    @skipped="handleEventConcluded"
   />
 
   <BaseModal v-model="isDeleteOpen" :title="`Deleting Event - ${fcEventValue.Name}`">

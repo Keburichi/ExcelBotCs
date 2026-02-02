@@ -178,6 +178,7 @@ export function useEvents() {
     }
     catch (e: any) {
       error.value = e.message || 'Failed to update occurrence status'
+      throw e // Re-throw so callers can handle it
     }
   }
 

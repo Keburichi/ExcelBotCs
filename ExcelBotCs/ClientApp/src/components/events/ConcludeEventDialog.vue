@@ -18,6 +18,7 @@ const props = defineProps<{
 const emit = defineEmits<{
   (e: 'update:modelValue', value: boolean): void
   (e: 'concluded'): void
+  (e: 'skipped'): void
 }>()
 
 const eventsComposable = useEvents()
@@ -28,6 +29,7 @@ const awardLottery = ref(true)
 const selectedParticipants = ref<string[]>([])
 const searchQuery = ref('')
 const isSubmitting = ref(false)
+const errorMessage = ref('')
 
 // Members list
 const allMembers = computed(() => membersComposable.members.value)
@@ -76,6 +78,7 @@ watch(() => props.modelValue, (isOpen) => {
     awardLottery.value = true
     searchQuery.value = ''
     isSubmitting.value = false
+    errorMessage.value = ''
   }
 })
 
@@ -93,9 +96,10 @@ function removeMember(name: string) {
   selectedParticipants.value = selectedParticipants.value.filter(n => n !== name)
 }
 
-// Submit and conclude event
+// Submit and conclude event (mark as Completed)
 async function concludeEvent() {
   isSubmitting.value = true
+  errorMessage.value = ''
 
   try {
     // Update occurrence status to Completed
@@ -114,9 +118,35 @@ async function concludeEvent() {
     emit('update:modelValue', false)
     emit('concluded')
   }
-  catch (error) {
+  catch (error: any) {
     console.error('Error concluding event:', error)
-    alert('Failed to conclude event. Please try again.')
+    errorMessage.value = error?.message || 'Failed to conclude event. Please try again.'
+  }
+  finally {
+    isSubmitting.value = false
+  }
+}
+
+// Skip occurrence (mark as Cancelled without awarding lottery)
+async function skipOccurrence() {
+  isSubmitting.value = true
+  errorMessage.value = ''
+
+  try {
+    // Update occurrence status to Cancelled
+    await eventsComposable.updateOccurrenceStatusById(
+      props.event.Id,
+      props.occurrence.Id,
+      OccurrenceStatus.Cancelled,
+    )
+
+    // Close dialog and notify parent
+    emit('update:modelValue', false)
+    emit('skipped')
+  }
+  catch (error: any) {
+    console.error('Error skipping occurrence:', error)
+    errorMessage.value = error?.message || 'Failed to skip occurrence. Please try again.'
   }
   finally {
     isSubmitting.value = false
@@ -198,8 +228,13 @@ onMounted(() => {
           </div>
         </div>
 
-        <div class="warning-section">
-          <p>⚠️ This will mark the occurrence as completed. This action cannot be undone.</p>
+        <div v-if="errorMessage" class="error-section">
+          <p>{{ errorMessage }}</p>
+        </div>
+
+        <div class="info-section">
+          <p><strong>Conclude:</strong> Mark as completed and optionally award lottery guesses.</p>
+          <p><strong>Skip:</strong> Mark as cancelled (no lottery awarded). Use this if the event didn't happen.</p>
         </div>
       </div>
     </template>
@@ -207,13 +242,21 @@ onMounted(() => {
     <template #actions>
       <BaseButton
         state="secondary"
-        title="Cancel"
+        title="Close"
         @clicked="emit('update:modelValue', false)"
       />
       <BaseButton
         :disabled="isSubmitting"
-        :title="isSubmitting ? 'Processing...' : 'Conclude Event'"
+        :title="isSubmitting ? 'Processing...' : 'Skip'"
+        state="warning"
+        tooltip="Mark this occurrence as cancelled (no lottery awarded)"
+        @clicked="skipOccurrence"
+      />
+      <BaseButton
+        :disabled="isSubmitting"
+        :title="isSubmitting ? 'Processing...' : 'Conclude'"
         state="primary"
+        tooltip="Mark as completed and award lottery guesses"
         @clicked="concludeEvent"
       />
     </template>
@@ -366,17 +409,34 @@ onMounted(() => {
   border-bottom: 1px solid var(--border, #e0e0e0);
 }
 
-.warning-section {
+.error-section {
   padding: 12px;
-  background: #fff3cd;
-  border: 1px solid #ffc107;
+  background: #f8d7da;
+  border: 1px solid #f5c6cb;
   border-radius: 8px;
 }
 
-.warning-section p {
+.error-section p {
   margin: 0;
-  color: #856404;
+  color: #721c24;
   font-size: 0.9rem;
   font-weight: 500;
+}
+
+.info-section {
+  padding: 12px;
+  background: var(--muted-bg, #f9f9f9);
+  border: 1px solid var(--border, #e0e0e0);
+  border-radius: 8px;
+}
+
+.info-section p {
+  margin: 0 0 4px 0;
+  color: var(--muted, #666);
+  font-size: 0.85rem;
+}
+
+.info-section p:last-child {
+  margin-bottom: 0;
 }
 </style>
