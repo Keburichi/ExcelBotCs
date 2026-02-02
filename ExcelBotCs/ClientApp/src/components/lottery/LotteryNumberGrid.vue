@@ -1,5 +1,5 @@
 <script lang="ts" setup>
-import type {GuessInfo} from '@/features/lottery/lottery.types'
+import type { GuessInfo } from '@/features/lottery/lottery.types'
 import BaseButton from '@/components/BaseButton.vue'
 
 const props = defineProps<{
@@ -96,31 +96,31 @@ function getTooltip(num: number): string | undefined {
   <div class="number-grid-container">
     <div class="number-grid">
       <BaseButton
-          v-for="num in 100"
-          :key="num"
-          :state="getButtonState(num)"
-          :title="num.toString()"
-          :tooltip="getTooltip(num)"
-          size="small"
-          @clicked="handleNumberClick(num)"
-          @dblclick="handleGuessClick(num)"
+        v-for="num in 100"
+        :key="num"
+        :state="getButtonState(num)"
+        :title="num.toString()"
+        :tooltip="getTooltip(num)"
+        size="small"
+        @clicked="handleNumberClick(num)"
+        @dblclick="handleGuessClick(num)"
       />
     </div>
     <div class="grid-legend">
       <div class="legend-item">
-        <div class="legend-box legend-box--available"/>
+        <div class="legend-box legend-box--available" />
         <span>Available</span>
       </div>
       <div class="legend-item">
-        <div class="legend-box legend-box--my-guess"/>
+        <div class="legend-box legend-box--my-guess" />
         <span>Your Guess</span>
       </div>
       <div class="legend-item">
-        <div class="legend-box legend-box--selected"/>
+        <div class="legend-box legend-box--selected" />
         <span>Selected</span>
       </div>
       <div class="legend-item">
-        <div class="legend-box legend-box--taken"/>
+        <div class="legend-box legend-box--taken" />
         <span>Taken</span>
       </div>
     </div>

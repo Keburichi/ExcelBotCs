@@ -93,7 +93,8 @@ export function useLottery() {
   type QuickPickMode = 'any' | 'available' | 'taken'
 
   async function quickPick(mode: QuickPickMode) {
-    if (loading.value) return
+    if (loading.value)
+      return
     error.value = ''
 
     // Build candidate pools based on current guesses
@@ -124,8 +125,8 @@ export function useLottery() {
       error.value = mode === 'available'
         ? 'No available numbers left between 1 and 99.'
         : (mode === 'taken'
-          ? 'No taken numbers found between 1 and 99.'
-          : 'No numbers to choose from.')
+            ? 'No taken numbers found between 1 and 99.'
+            : 'No numbers to choose from.')
       return
     }
 

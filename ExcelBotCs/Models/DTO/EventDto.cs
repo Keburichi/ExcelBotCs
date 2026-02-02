@@ -43,6 +43,26 @@ public class EventDto : BaseDto
     // Occurrences
     public List<EventOccurrenceDto> Occurrences { get; set; } = new();
 
+    // Archive properties
+    public bool IsArchived { get; set; } = false;
+    public DateTime? ArchivedDate { get; set; }
+    public string? ArchivedByUserId { get; set; }
+
+    /// <summary>
+    ///     An event can be archived when all occurrences are either Completed or Cancelled
+    /// </summary>
+    public bool CanBeArchived
+    {
+        get
+        {
+            if (Occurrences == null || !Occurrences.Any())
+                return false;
+
+            return Occurrences.All(o => o.Status == OccurrenceStatus.Completed ||
+                                        o.Status == OccurrenceStatus.Cancelled);
+        }
+    }
+
     public bool AvailableForSignup
     {
         get

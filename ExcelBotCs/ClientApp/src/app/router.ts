@@ -8,6 +8,7 @@ import MemberRolesView from '@/components/adminPanel/MemberRolesView.vue'
 import SettingsView from '@/components/adminPanel/SettingsView.vue'
 import StatisticsView from '@/components/adminPanel/StatisticsView.vue'
 import LoginView from '@/components/auth/LoginView.vue'
+import ArchivedEventsView from '@/components/events/ArchivedEventsView.vue'
 import CreateEventView from '@/components/events/CreateEventView.vue'
 import EventsListView from '@/components/events/EventsListView.vue'
 import FcMembersListView from '@/components/fcMembers/FcMembersListView.vue'
@@ -30,6 +31,12 @@ const routes: RouteRecordRaw[] = [
 
   // Event routes
   { path: '/events', name: 'events', component: EventsListView, meta: { requiresAuth: true } },
+  {
+    path: '/events/archived',
+    name: 'events-archived',
+    component: ArchivedEventsView,
+    meta: { requiresAuth: true, requiresAdmin: true },
+  },
   {
     path: '/events/new',
     name: 'event-create',

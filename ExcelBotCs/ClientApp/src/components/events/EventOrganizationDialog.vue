@@ -1,11 +1,15 @@
 <script setup lang="ts">
-import type { EventParticipant, FCEvent, Role } from '@/features/events/events.types'
-import { computed, onMounted, ref } from 'vue'
+import type { EventOccurrence, EventParticipant, FCEvent, Role } from '@/features/events/events.types'
+import { computed, onMounted, ref, watch } from 'vue'
 import BaseButton from '@/components/BaseButton.vue'
 import BaseModal from '@/components/BaseModal.vue'
 import { useMembers } from '@/composables/useMembers'
 import { EventsApi } from '@/features/events/events.api'
-import { ROLE } from '@/features/events/events.types'
+import { ROLE, SignupType } from '@/features/events/events.types'
+
+const props = defineProps<{
+  occurrence: EventOccurrence | null
+}>()
 
 const emit = defineEmits<{
   eventPlanned: []
@@ -62,9 +66,35 @@ onMounted(() => {
   if (members.value.length === 0) {
     memberLoad()
   }
-  // Initialize participants from event
-  participants.value = [...(eventValue.value.Participants || [])]
+  // Initialize participants from occurrence
+  if (props.occurrence) {
+    participants.value = [...(props.occurrence.Participants || [])]
+  }
 })
+
+// Watch for occurrence changes (when dialog opens with different occurrence)
+watch(() => props.occurrence, (newOccurrence) => {
+  if (newOccurrence) {
+    participants.value = [...(newOccurrence.Participants || [])]
+  }
+}, { immediate: true })
+
+// Format occurrence date for display
+const occurrenceDateFormatted = computed(() => {
+  if (!props.occurrence)
+    return ''
+  return new Date(props.occurrence.OccurrenceDate).toLocaleDateString(undefined, {
+    weekday: 'short',
+    year: 'numeric',
+    month: 'short',
+    day: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+  })
+})
+
+// Check if this is a LockedGroup event
+const isLockedGroup = computed(() => eventValue.value.SignupType === SignupType.LockedGroup)
 
 // Get the role assigned to a member, or null if not assigned
 function getMemberRole(discordId: string): Role | null {
@@ -135,9 +165,9 @@ function toggleRole(discordId: string, role: Role) {
   }
 }
 
-// Get the roles a member signed up for
+// Get the roles a member signed up for (from occurrence)
 function getMemberSignupRoles(discordId: string): Role[] {
-  const signup = eventValue.value.Signups?.find(s => s.DiscordUserId === discordId)
+  const signup = props.occurrence?.Signups?.find(s => s.DiscordUserId === discordId)
   return signup?.Roles ?? []
 }
 
@@ -147,14 +177,14 @@ function hasSignedUpForRole(discordId: string, role: Role): boolean {
   return signupRoles.includes(role)
 }
 
-// Filter members to only show those who signed up
+// Filter members to only show those who signed up (from occurrence)
 const signedUpMembers = computed(() => {
-  if (!eventValue.value.Signups || eventValue.value.Signups.length === 0) {
+  if (!props.occurrence?.Signups || props.occurrence.Signups.length === 0) {
     return []
   }
 
   return members.value.filter(member =>
-    eventValue.value.Signups.some(signup => signup.DiscordUserId === member.DiscordId),
+    props.occurrence!.Signups.some(signup => signup.DiscordUserId === member.DiscordId),
   )
 })
 
@@ -169,11 +199,16 @@ const roleCount = computed(() => {
   }
 })
 
-// Save participants to event
+// Save participants to occurrence
 async function save() {
+  if (!props.occurrence) {
+    console.error('No occurrence to save participants to')
+    return
+  }
+
   saving.value = true
   try {
-    await EventsApi.plan(eventValue.value)
+    await EventsApi.selectParticipants(eventValue.value.Id, props.occurrence.Id, participants.value)
     modelValue.value = false
     emit('eventPlanned')
   }
@@ -192,6 +227,17 @@ async function save() {
       <img v-if="eventValue.PictureUrl" :src="eventValue.PictureUrl" alt="avatar" class="card__image">
     </template>
     <template #body>
+      <!-- Occurrence info -->
+      <div v-if="occurrence" class="occurrence-info">
+        <span class="occurrence-label">Managing occurrence:</span>
+        <span class="occurrence-date">{{ occurrenceDateFormatted }}</span>
+      </div>
+
+      <!-- LockedGroup notice -->
+      <div v-if="isLockedGroup" class="locked-group-notice">
+        Participants will apply to <b>all occurrences</b> of this recurring event.
+      </div>
+
       <!-- Mode Toggle Button -->
       <div class="mode-toggle-container">
         <BaseButton
@@ -343,6 +389,43 @@ async function save() {
 .card__image {
   /* zoom in on the image since the fight images have a small white gradient */
   transform: scale(1.1);
+}
+
+.occurrence-info {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+  padding: 0.75rem 1rem;
+  background: var(--muted-bg);
+  border-radius: 8px;
+  border: 1px solid var(--border);
+}
+
+.occurrence-label {
+  font-weight: 500;
+  color: var(--muted);
+}
+
+.occurrence-date {
+  font-weight: 600;
+  color: var(--fg);
+}
+
+.locked-group-notice {
+  margin-bottom: 1rem;
+  padding: 0.75rem 1rem;
+  background: #fff3e0;
+  border: 1px solid #ffb74d;
+  border-radius: 8px;
+  color: #e65100;
+  font-size: 0.9rem;
+}
+
+[data-theme="dark"] .locked-group-notice {
+  background: #3d2f1e;
+  border-color: #8d6e4d;
+  color: #ffcc80;
 }
 
 .participants-summary {

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import type { Member, MemberNote } from '@/features/members/members.types'
+import type { MemberNote } from '@/features/members/members.types'
 import { computed, ref, watch } from 'vue'
 import BaseButton from '@/components/BaseButton.vue'
 
@@ -33,7 +33,8 @@ function close() {
 }
 
 function save() {
-  if (!canSave.value) return
+  if (!canSave.value)
+    return
 
   const savedNote: MemberNote = props.isEdit && props.note
     ? { ...props.note, Note: noteText.value.trim() }
@@ -59,13 +60,14 @@ function cancelDelete() {
 }
 
 function formatDate(date?: string): string {
-  if (!date) return 'N/A'
+  if (!date)
+    return 'N/A'
   return new Date(date).toLocaleDateString('en-US', {
     year: 'numeric',
     month: 'short',
     day: 'numeric',
     hour: '2-digit',
-    minute: '2-digit'
+    minute: '2-digit',
   })
 }
 </script>
@@ -75,7 +77,9 @@ function formatDate(date?: string): string {
     <div class="dialog">
       <div class="dialog__header">
         <h2>{{ isEdit ? 'Edit Note' : 'Add Note' }}</h2>
-        <button class="dialog__close" @click="close">×</button>
+        <button class="dialog__close" @click="close">
+          ×
+        </button>
       </div>
 
       <div v-if="!showDeleteConfirm" class="dialog__body">
@@ -108,8 +112,12 @@ function formatDate(date?: string): string {
 
       <div v-else class="dialog__body">
         <div class="delete-confirmation">
-          <p class="delete-warning">Are you sure you want to delete this note?</p>
-          <p class="delete-details">This action cannot be undone.</p>
+          <p class="delete-warning">
+            Are you sure you want to delete this note?
+          </p>
+          <p class="delete-details">
+            This action cannot be undone.
+          </p>
         </div>
       </div>
 

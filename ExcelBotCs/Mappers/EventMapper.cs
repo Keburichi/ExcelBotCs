@@ -25,7 +25,10 @@ public static class EventMapper
             MaxNumberOfParticipants = fcEvent.MaxNumberOfParticipants,
             AuthorId = fcEvent.AuthorId,
             Organizer = fcEvent.Organizer,
-            Occurrences = fcEvent.Occurrences?.Select(MapOccurrenceToDto).ToList() ?? new List<EventOccurrenceDto>()
+            Occurrences = fcEvent.Occurrences?.Select(MapOccurrenceToDto).ToList() ?? new List<EventOccurrenceDto>(),
+            IsArchived = fcEvent.IsArchived,
+            ArchivedDate = fcEvent.ArchivedDate,
+            ArchivedByUserId = fcEvent.ArchivedByUserId
         };
     }
 
@@ -47,7 +50,10 @@ public static class EventMapper
             MaxNumberOfParticipants = fcEvent.MaxNumberOfParticipants,
             AuthorId = fcEvent.AuthorId,
             Organizer = fcEvent.Organizer,
-            Occurrences = fcEvent.Occurrences?.Select(MapOccurrenceToEntity).ToList() ?? new List<EventOccurrence>()
+            Occurrences = fcEvent.Occurrences?.Select(MapOccurrenceToEntity).ToList() ?? new List<EventOccurrence>(),
+            IsArchived = fcEvent.IsArchived,
+            ArchivedDate = fcEvent.ArchivedDate,
+            ArchivedByUserId = fcEvent.ArchivedByUserId
         };
     }
 

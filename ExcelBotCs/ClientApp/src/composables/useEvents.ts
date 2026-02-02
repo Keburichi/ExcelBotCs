@@ -1,4 +1,11 @@
-import type { EventOccurrence, EventParticipant, FCEvent, OccurrenceStatus, Role } from '@/features/events/events.types'
+import type {
+  ArchiveSearchParams,
+  EventOccurrence,
+  EventParticipant,
+  FCEvent,
+  OccurrenceStatus,
+  Role,
+} from '@/features/events/events.types'
 import { reactive, ref } from 'vue'
 import { EventsApi } from '@/features/events/events.api'
 import { canSignUpForOccurrence, isOccurrencePast, OccurrenceStatus as OccStatus } from '@/features/events/events.types'
@@ -7,6 +14,8 @@ export function useEvents() {
   const loading = ref(false)
   const error = ref('')
   const events = ref<FCEvent[]>([])
+  const archivedEvents = ref<FCEvent[]>([])
+  const archiveLoading = ref(false)
 
   const newEvent = reactive<FCEvent>({
     Name: '',
@@ -196,8 +205,88 @@ export function useEvents() {
     return upcoming.length > 0 ? upcoming[0] : null
   }
 
+  /**
+   * Gets the next occurrence that can be concluded.
+   * Prioritizes past scheduled occurrences (since you can only complete past events),
+   * then falls back to the next upcoming scheduled occurrence.
+   */
+  function getOccurrenceToComplete(event: FCEvent): EventOccurrence | null {
+    if (!event.Occurrences)
+      return null
+
+    // First, look for past scheduled occurrences (these need to be concluded)
+    const pastScheduled = event.Occurrences
+      .filter(o => o.Status === OccStatus.Scheduled && isOccurrencePast(o))
+      .sort((a, b) => new Date(a.OccurrenceDate).getTime() - new Date(b.OccurrenceDate).getTime())
+
+    if (pastScheduled.length > 0)
+      return pastScheduled[0]
+
+    // Fall back to next upcoming occurrence (for display purposes, though it can't be completed yet)
+    return getNextOccurrence(event)
+  }
+
   function canUserSignUp(event: FCEvent, occurrence: EventOccurrence): boolean {
     return canSignUpForOccurrence(occurrence, event.MaxNumberOfParticipants)
+  }
+
+  // Archive/Restore methods
+  async function loadArchived(searchParams?: ArchiveSearchParams) {
+    archiveLoading.value = true
+    error.value = ''
+    try {
+      archivedEvents.value = await EventsApi.listArchived(searchParams)
+    }
+    catch (e: any) {
+      error.value = e.message || 'Failed to load archived events'
+    }
+    finally {
+      archiveLoading.value = false
+    }
+  }
+
+  async function archiveEvent(eventId: string) {
+    try {
+      await EventsApi.archive(eventId)
+      // Remove from active events
+      events.value = events.value.filter(e => e.Id !== eventId)
+      return true
+    }
+    catch (e: any) {
+      error.value = e.message || 'Failed to archive event'
+      return false
+    }
+  }
+
+  async function restoreEvent(eventId: string) {
+    try {
+      await EventsApi.restore(eventId)
+      // Remove from archived events
+      archivedEvents.value = archivedEvents.value.filter(e => e.Id !== eventId)
+      // Reload active events to include the restored one
+      await load()
+      return true
+    }
+    catch (e: any) {
+      error.value = e.message || 'Failed to restore event'
+      return false
+    }
+  }
+
+  async function extendEvent(eventId: string, count: number) {
+    try {
+      const updatedEvent = await EventsApi.extend(eventId, { Count: count })
+      // Update event in the list
+      const index = events.value.findIndex(e => e.Id === eventId)
+      if (index >= 0) {
+        events.value[index] = updatedEvent
+      }
+      return updatedEvent
+    }
+    catch (e: any) {
+      error.value = e.message || 'Failed to extend event'
+      return null
+    }
   }
 
   return {
@@ -225,6 +314,14 @@ export function useEvents() {
     // Helper methods
     getUpcomingOccurrences,
     getNextOccurrence,
+    getOccurrenceToComplete,
     canUserSignUp,
+    // Archive/Restore methods
+    archivedEvents,
+    archiveLoading,
+    loadArchived,
+    archiveEvent,
+    restoreEvent,
+    extendEvent,
   }
 }

@@ -29,6 +29,15 @@ function goEdit(event: any) {
   router.push({ name: 'event-edit', params: { id: event.id || event.Id } })
 }
 
+function goArchived() {
+  router.push({ name: 'events-archived' })
+}
+
+function handleEventArchived(event: any) {
+  // Remove the archived event from the list
+  e.events.value = e.events.value.filter(ev => ev.Id !== event.Id)
+}
+
 // Subscription / download calendar URL for the current user (Discord user id)
 const calendarUrl = computed(() => {
   const discordId = user.value?.DiscordId
@@ -228,6 +237,14 @@ onMounted(e.load)
         <BaseButton
           v-if="isAdmin"
           size="medium"
+          state="secondary"
+          title="View Archive"
+          tooltip="View archived events"
+          @clicked="goArchived"
+        />
+        <BaseButton
+          v-if="isAdmin"
+          size="medium"
           state="primary"
           title="Create Event"
           @clicked="goCreate"
@@ -240,7 +257,9 @@ onMounted(e.load)
         <EventCard
           :fc-event="item"
           :is-admin="isAdmin?.valueOf()"
+          :is-developer="isDeveloper?.valueOf()"
           :is-member="isMember?.valueOf()"
+          @archived="handleEventArchived"
           @start-edit="goEdit"
           @cancel-edit="e.cancelEdit"
           @save-edit="e.save"

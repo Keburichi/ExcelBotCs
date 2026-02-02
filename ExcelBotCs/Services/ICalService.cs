@@ -253,4 +253,37 @@ public class ICalService : IICalService
                calendarEvent.RecurrenceRules.FirstOrDefault()?.Until == null &&
                calendarEvent.RecurrenceRules.FirstOrDefault()?.Count == null;
     }
+
+    public List<EventOccurrence> GetNextOccurrences(string iCalString, DateTime afterDate, int count)
+    {
+        if (string.IsNullOrEmpty(iCalString) || count <= 0)
+            return new List<EventOccurrence>();
+
+        try
+        {
+            var calendar = Calendar.Load(iCalString);
+            var calendarEvent = calendar?.Events.FirstOrDefault();
+
+            if (calendarEvent == null)
+                return new List<EventOccurrence>();
+
+            // Get occurrences starting after the specified date, limiting to count
+            // Use a reasonable look-ahead window (2 years should be enough for most recurrence patterns)
+            var rangeEnd = afterDate.AddYears(2);
+            var occurrences = calendarEvent.GetOccurrences(new CalDateTime(afterDate))
+                .Where(o => o?.Period?.StartTime != null && o.Period.StartTime.AsUtc > afterDate)
+                .Take(count)
+                .ToList();
+
+            return occurrences.Select(o => new EventOccurrence
+            {
+                OccurrenceDate = o.Period.StartTime.AsUtc,
+                Status = OccurrenceStatus.Scheduled
+            }).ToList();
+        }
+        catch
+        {
+            return new List<EventOccurrence>();
+        }
+    }
 }

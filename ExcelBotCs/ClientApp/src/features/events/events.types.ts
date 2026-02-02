@@ -16,6 +16,22 @@ export interface FCEvent {
   Organizer: string
   AvailableForSignup: boolean
   MaxNumberOfParticipants: number
+  // Archive properties
+  IsArchived: boolean
+  ArchivedDate?: string
+  ArchivedByUserId?: string
+  CanBeArchived: boolean
+}
+
+export interface ArchiveSearchParams {
+  searchText?: string
+  startDate?: string
+  endDate?: string
+  eventType?: EventType
+}
+
+export interface ExtendEventRequest {
+  Count: number
 }
 
 export interface EventOccurrence {

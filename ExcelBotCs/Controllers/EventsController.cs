@@ -41,9 +41,20 @@ public class EventsController : AuthorizedController, IBaseCrudController<EventD
     }
 
     [HttpGet]
-    public async Task<ActionResult<List<EventDto>>> GetEntities()
+    public async Task<ActionResult<List<EventDto>>> GetEntities([FromQuery] bool archived = false)
     {
-        var entities = await _eventService.GetAsync();
+        return await GetEntitiesInternal(archived);
+    }
+
+    // Explicit interface implementation to satisfy IBaseCrudController<EventDto>
+    async Task<ActionResult<List<EventDto>>> IBaseCrudController<EventDto>.GetEntities()
+    {
+        return await GetEntitiesInternal(false);
+    }
+
+    private async Task<ActionResult<List<EventDto>>> GetEntitiesInternal(bool archived)
+    {
+        var entities = await _eventService.GetAsync(archived);
 
         if (entities is null)
             return new List<EventDto>();
@@ -51,6 +62,81 @@ public class EventsController : AuthorizedController, IBaseCrudController<EventD
         var dtos = entities.Select(EventMapper.ToDto).ToList();
 
         return dtos;
+    }
+
+    [HttpGet("archived")]
+    [AdminAuth]
+    public async Task<ActionResult<List<EventDto>>> GetArchivedEvents(
+        [FromQuery] ArchiveSearchParams? searchParams = null)
+    {
+        var user = await _currentMemberAccessor.GetCurrentAsync();
+        if (user is null)
+            return BadRequest("User not found for the current user");
+
+        if (!user.IsAdmin.GetValueOrDefault())
+            return Forbid();
+
+        var entities = await _eventService.GetArchivedAsync(searchParams);
+        var dtos = entities.Select(EventMapper.ToDto).ToList();
+
+        return dtos;
+    }
+
+    [HttpPost("{id:length(24)}/archive")]
+    [AdminAuth]
+    public async Task<IActionResult> ArchiveEvent(string id)
+    {
+        var user = await _currentMemberAccessor.GetCurrentAsync();
+        if (user is null)
+            return BadRequest("User not found for the current user");
+
+        if (!user.IsAdmin.GetValueOrDefault())
+            return Forbid();
+
+        var (success, errorMessage) = await _eventService.ArchiveAsync(id, user.DiscordId);
+
+        if (!success)
+            return BadRequest(errorMessage);
+
+        return Ok();
+    }
+
+    [HttpPost("{id:length(24)}/restore")]
+    [AdminAuth]
+    public async Task<IActionResult> RestoreEvent(string id)
+    {
+        var user = await _currentMemberAccessor.GetCurrentAsync();
+        if (user is null)
+            return BadRequest("User not found for the current user");
+
+        if (!user.IsAdmin.GetValueOrDefault())
+            return Forbid();
+
+        var (success, errorMessage) = await _eventService.RestoreAsync(id);
+
+        if (!success)
+            return BadRequest(errorMessage);
+
+        return Ok();
+    }
+
+    [HttpPost("{id:length(24)}/extend")]
+    [AdminAuth]
+    public async Task<ActionResult<EventDto>> ExtendEvent(string id, [FromBody] ExtendEventRequest request)
+    {
+        var user = await _currentMemberAccessor.GetCurrentAsync();
+        if (user is null)
+            return BadRequest("User not found for the current user");
+
+        if (!user.IsAdmin.GetValueOrDefault())
+            return Forbid();
+
+        var (updatedEvent, errorMessage) = await _eventService.ExtendEventAsync(id, request.Count);
+
+        if (updatedEvent == null)
+            return BadRequest(errorMessage);
+
+        return Ok(EventMapper.ToDto(updatedEvent));
     }
 
     [HttpGet("{id:length(24)}")]
@@ -175,20 +261,41 @@ public class EventsController : AuthorizedController, IBaseCrudController<EventD
         if (occurrence.OccurrenceDate < DateTime.UtcNow)
             return BadRequest("Cannot sign up for past occurrence");
 
-        occurrence.Signups ??= new List<DbEventSignup>();
-
-        // Check if the member is already signed up for this occurrence
-        var existing = occurrence.Signups.FirstOrDefault(x => x.DiscordUserId == member.DiscordId);
-        if (existing != null)
-            // Update roles for existing signup
-            existing.Roles = signup.Roles;
-        else
-            occurrence.Signups.Add(new DbEventSignup
+        // For LockedGroup, propagate signup to ALL occurrences
+        if (fcEvent.SignupType == SignupType.LockedGroup)
+        {
+            foreach (var occ in fcEvent.Occurrences ?? new List<EventOccurrence>())
             {
-                DiscordUserId = member.DiscordId,
-                Roles = signup.Roles,
-                SignupDate = DateTime.UtcNow
-            });
+                occ.Signups ??= new List<DbEventSignup>();
+
+                var existing = occ.Signups.FirstOrDefault(x => x.DiscordUserId == member.DiscordId);
+                if (existing != null)
+                    existing.Roles = signup.Roles;
+                else
+                    occ.Signups.Add(new DbEventSignup
+                    {
+                        DiscordUserId = member.DiscordId,
+                        Roles = signup.Roles,
+                        SignupDate = DateTime.UtcNow
+                    });
+            }
+        }
+        else
+        {
+            // For other types, only update the specified occurrence
+            occurrence.Signups ??= new List<DbEventSignup>();
+
+            var existing = occurrence.Signups.FirstOrDefault(x => x.DiscordUserId == member.DiscordId);
+            if (existing != null)
+                existing.Roles = signup.Roles;
+            else
+                occurrence.Signups.Add(new DbEventSignup
+                {
+                    DiscordUserId = member.DiscordId,
+                    Roles = signup.Roles,
+                    SignupDate = DateTime.UtcNow
+                });
+        }
 
         await _eventService.UpdateAsync(fcEvent.Id, fcEvent);
 
@@ -211,15 +318,26 @@ public class EventsController : AuthorizedController, IBaseCrudController<EventD
         if (occurrence == null)
             return NotFound("Occurrence not found");
 
-        occurrence.Signups ??= new List<DbEventSignup>();
-
-        // Remove the user's signup
-        var signup = occurrence.Signups.FirstOrDefault(s => s.DiscordUserId == member.DiscordId);
-        if (signup != null)
+        // For LockedGroup, remove signup from ALL occurrences
+        if (fcEvent.SignupType == SignupType.LockedGroup)
         {
-            occurrence.Signups.Remove(signup);
-            await _eventService.UpdateAsync(fcEvent.Id, fcEvent);
+            foreach (var occ in fcEvent.Occurrences ?? new List<EventOccurrence>())
+            {
+                occ.Signups ??= new List<DbEventSignup>();
+                var signup = occ.Signups.FirstOrDefault(s => s.DiscordUserId == member.DiscordId);
+                if (signup != null)
+                    occ.Signups.Remove(signup);
+            }
         }
+        else
+        {
+            occurrence.Signups ??= new List<DbEventSignup>();
+            var signup = occurrence.Signups.FirstOrDefault(s => s.DiscordUserId == member.DiscordId);
+            if (signup != null)
+                occurrence.Signups.Remove(signup);
+        }
+
+        await _eventService.UpdateAsync(fcEvent.Id, fcEvent);
 
         return Ok();
     }
@@ -262,6 +380,9 @@ public class EventsController : AuthorizedController, IBaseCrudController<EventD
             occurrence.Participants = participants;
 
         await _eventService.UpdateAsync(fcEvent.Id, fcEvent);
+
+        // Post the roster to Discord
+        await _discordMessageService.PostInUpcomingRosterChannelAsync(fcEvent.CreateUpcomingRosterMessage());
 
         return Ok();
     }
@@ -341,6 +462,10 @@ public class EventsController : AuthorizedController, IBaseCrudController<EventD
 
         await _eventService.UpdateAsync(fcEvent.Id, fcEvent);
 
+        // Auto-archive if all occurrences are now completed or cancelled
+        if (statusUpdate.Status == OccurrenceStatus.Completed || statusUpdate.Status == OccurrenceStatus.Cancelled)
+            await _eventService.TryAutoArchiveAsync(fcEvent.Id, user.DiscordId);
+
         return Ok();
     }
 
@@ -368,6 +493,9 @@ public class EventsController : AuthorizedController, IBaseCrudController<EventD
         occurrence.Status = OccurrenceStatus.Cancelled;
 
         await _eventService.UpdateAsync(fcEvent.Id, fcEvent);
+
+        // Auto-archive if all occurrences are now completed or cancelled
+        await _eventService.TryAutoArchiveAsync(fcEvent.Id, user.DiscordId);
 
         return Ok();
     }

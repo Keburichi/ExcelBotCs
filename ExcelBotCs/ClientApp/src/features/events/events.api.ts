@@ -1,8 +1,15 @@
-import type { EventParticipant, FCEvent, OccurrenceStatus, Role } from '@/features/events/events.types'
+import type {
+  ArchiveSearchParams,
+  EventParticipant,
+  ExtendEventRequest,
+  FCEvent,
+  OccurrenceStatus,
+  Role,
+} from '@/features/events/events.types'
 import { http } from '@/services/http'
 
 export const EventsApi = {
-  list: () => http<FCEvent[]>('/api/events'),
+  list: (archived = false) => http<FCEvent[]>(`/api/events?archived=${archived}`),
   get: (id: string) => http<FCEvent>(`/api/events/${id}`),
   create: (e: FCEvent) => http<FCEvent>('/api/events', { method: 'POST', body: JSON.stringify(e) }),
   update: (id: string, e: FCEvent) => http<void>(`/api/events/${id}`, { method: 'PUT', body: JSON.stringify(e) }),
@@ -44,5 +51,36 @@ export const EventsApi = {
   cancelOccurrence: (eventId: string, occurrenceId: string) =>
     http<void>(`/api/events/${eventId}/occurrences/${occurrenceId}`, {
       method: 'DELETE',
+    }),
+
+  // Archive/Restore endpoints
+  listArchived: (searchParams?: ArchiveSearchParams) => {
+    const params = new URLSearchParams()
+    if (searchParams?.searchText)
+      params.append('searchText', searchParams.searchText)
+    if (searchParams?.startDate)
+      params.append('startDate', searchParams.startDate)
+    if (searchParams?.endDate)
+      params.append('endDate', searchParams.endDate)
+    if (searchParams?.eventType !== undefined)
+      params.append('eventType', String(searchParams.eventType))
+    const queryString = params.toString()
+    return http<FCEvent[]>(`/api/events/archived${queryString ? `?${queryString}` : ''}`)
+  },
+
+  archive: (eventId: string) =>
+    http<void>(`/api/events/${eventId}/archive`, {
+      method: 'POST',
+    }),
+
+  restore: (eventId: string) =>
+    http<void>(`/api/events/${eventId}/restore`, {
+      method: 'POST',
+    }),
+
+  extend: (eventId: string, request: ExtendEventRequest) =>
+    http<FCEvent>(`/api/events/${eventId}/extend`, {
+      method: 'POST',
+      body: JSON.stringify(request),
     }),
 }

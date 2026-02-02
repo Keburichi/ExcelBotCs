@@ -37,4 +37,10 @@ public interface IICalService
 
     bool IsRecurringEvent(string iCalString);
     bool IsRecurrenceEnding(string iCalString);
+
+    /// <summary>
+    ///     Gets the next N occurrences starting after a given date.
+    ///     Optimized for infinite recurring events to avoid full regeneration.
+    /// </summary>
+    List<EventOccurrence> GetNextOccurrences(string iCalString, DateTime afterDate, int count);
 }

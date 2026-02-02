@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import type { Fight } from '@/features/fights/fights.types'
-import { FightType } from '@/features/fights/fights.types'
 import { computed } from 'vue'
+import { FightType } from '@/features/fights/fights.types'
 
 const props = defineProps<{
   experience: Fight[]

@@ -9,6 +9,7 @@ import DiscordMessageRenderer from '@/components/DiscordMessageRenderer.vue'
 import ConcludeEventDialog from '@/components/events/ConcludeEventDialog.vue'
 import EventOrganizationDialog from '@/components/events/EventOrganizationDialog.vue'
 import EventSignupDialog from '@/components/events/EventSignupDialog.vue'
+import ExtendEventDialog from '@/components/events/ExtendEventDialog.vue'
 import RaidplanDialog from '@/components/fights/RaidplanDialog.vue'
 import { useEvents } from '@/composables/useEvents'
 import { eventTypeToString, OccurrenceStatus, occurrenceStatusToString } from '@/features/events/events.types'
@@ -18,6 +19,8 @@ import { describeRecurrence, isRecurring, parseICalString } from '@/utils/ical'
 const props = defineProps<{
   isMember?: boolean
   isAdmin?: boolean
+  isArchiveView?: boolean
+  isDeveloper?: boolean
 }>()
 
 const emit = defineEmits<{
@@ -26,6 +29,8 @@ const emit = defineEmits<{
   saveEdit: []
   deleteEvent: [event: FCEvent]
   cardClick: [event: FCEvent]
+  extended: [event: FCEvent]
+  archived: [event: FCEvent]
 }>()
 
 const fcEventValue = defineModel<FCEvent>('fcEvent', { required: true })
@@ -35,13 +40,19 @@ const isOrganizationOpen = ref(false)
 const isDeleteOpen = ref(false)
 const isConcludeOpen = ref(false)
 const isRaidplanDialogOpen = ref(false)
+const isExtendOpen = ref(false)
 
 // Fights data for lookup
 const fights = ref<Fight[]>([])
 
-// Get next occurrence for display
+// Get next occurrence for display (future scheduled occurrences only)
 const nextOccurrence = computed((): EventOccurrence | null => {
   return useEvents().getNextOccurrence(fcEventValue.value)
+})
+
+// Get occurrence that can be completed (prioritizes past scheduled occurrences)
+const occurrenceToComplete = computed((): EventOccurrence | null => {
+  return useEvents().getOccurrenceToComplete(fcEventValue.value)
 })
 
 // Get past scheduled occurrence (for skip functionality)
@@ -179,11 +190,16 @@ function openFightResources(event: MouseEvent) {
   isRaidplanDialogOpen.value = true
 }
 
-// Handle event concluded - reload event data
+// Handle event concluded - reload event data and check for auto-archive
 async function handleEventConcluded() {
   const updatedEvent = await useEvents().getEvent(fcEventValue.value.Id)
   if (updatedEvent) {
     fcEventValue.value = updatedEvent
+
+    // If the event was auto-archived, notify parent to remove from list
+    if (updatedEvent.IsArchived) {
+      emit('archived', updatedEvent)
+    }
   }
 }
 
@@ -203,12 +219,23 @@ async function skipPastOccurrence() {
     const updatedEvent = await useEvents().getEvent(fcEventValue.value.Id)
     if (updatedEvent) {
       fcEventValue.value = updatedEvent
+
+      // If the event was auto-archived, notify parent to remove from list
+      if (updatedEvent.IsArchived) {
+        emit('archived', updatedEvent)
+      }
     }
   }
   catch (error) {
     console.error('Error skipping occurrence:', error)
     alert('Failed to skip occurrence. Please try again.')
   }
+}
+
+// Handle extend event
+function handleExtended(updatedEvent: FCEvent) {
+  fcEventValue.value = updatedEvent
+  emit('extended', updatedEvent)
 }
 
 // Load fights on mount for lookup
@@ -228,14 +255,15 @@ onMounted(async () => {
   <EventOrganizationDialog
     v-model:fc-event="fcEventValue"
     v-model:is-open="isOrganizationOpen"
+    :occurrence="nextOccurrence"
     @event-planned="handleSignupDialogClose(false)"
   />
 
   <ConcludeEventDialog
-    v-if="nextOccurrence"
+    v-if="occurrenceToComplete"
     v-model="isConcludeOpen"
     :event="fcEventValue"
-    :occurrence="nextOccurrence"
+    :occurrence="occurrenceToComplete"
     @concluded="handleEventConcluded"
   />
 
@@ -249,6 +277,13 @@ onMounted(async () => {
     </template>
   </BaseModal>
 
+  <ExtendEventDialog
+    v-if="eventIsRecurring && !props.isArchiveView"
+    v-model="isExtendOpen"
+    :event="fcEventValue"
+    @extended="handleExtended"
+  />
+
   <BaseCard :title="fcEventValue.Name" size="large" title-class="text-2xl font-bold" variant="elevated">
     <template #image>
       <img
@@ -261,7 +296,10 @@ onMounted(async () => {
       <DiscordMessageRenderer :content="fcEventValue.Description" />
     </template>
     <template #footer>
-      <div v-if="eventTypeLabel || associatedFight" class="event-metadata">
+      <div v-if="eventTypeLabel || associatedFight || fcEventValue.IsArchived" class="event-metadata">
+        <span v-if="fcEventValue.IsArchived" class="archived-badge">
+          ARCHIVED
+        </span>
         <span v-if="eventTypeLabel" :class="`type-${eventTypeLabel.toLowerCase()}`" class="event-type-badge">
           {{ eventTypeLabel }}
         </span>
@@ -297,7 +335,7 @@ onMounted(async () => {
         }} selected</span>
       </div>
       <p>Organized by: {{ fcEventValue.Organizer }}</p>
-      <div class="actions">
+      <div v-if="!props.isArchiveView" class="actions">
         <BaseButton
           :disabled="!props.isMember || !fcEventValue.AvailableForSignup"
           :title="`Sign up (${getSignUpNumber(fcEventValue)})`"
@@ -306,7 +344,7 @@ onMounted(async () => {
           @clicked="isOpen = true"
         />
         <BaseButton
-          v-if="props.isAdmin && fcEventValue.AvailableForSignup" size="small" state="secondary"
+          v-if="props.isAdmin && fcEventValue.AvailableForSignup && nextOccurrence" size="small" state="secondary"
           title="Select Participants" @clicked="isOrganizationOpen = true"
         />
         <BaseButton
@@ -318,13 +356,24 @@ onMounted(async () => {
           @clicked="skipPastOccurrence"
         />
         <BaseButton
-          v-if="props.isAdmin && nextOccurrence && nextOccurrence.Status !== OccurrenceStatus.Completed && nextOccurrence.Status !== OccurrenceStatus.Cancelled"
+          v-if="props.isAdmin && occurrenceToComplete && occurrenceToComplete.Status !== OccurrenceStatus.Completed && occurrenceToComplete.Status !== OccurrenceStatus.Cancelled"
           size="small"
           title="Conclude Event"
           tooltip="Mark occurrence as completed and optionally award lottery guesses"
           @clicked="isConcludeOpen = true"
         />
-        <BaseButton v-if="props.isAdmin" size="small" state="danger" title="Delete" @clicked="isDeleteOpen = true" />
+        <BaseButton
+          v-if="props.isAdmin && eventIsRecurring && !fcEventValue.IsArchived && props.isDeveloper"
+          size="small"
+          state="secondary"
+          title="Extend"
+          tooltip="Add more occurrences to this recurring event"
+          @clicked="isExtendOpen = true"
+        />
+        <BaseButton
+          v-if="props.isAdmin" size="small" state="danger" title="Delete"
+          @clicked="isDeleteOpen = true"
+        />
       </div>
     </template>
     <template #actions>
@@ -516,5 +565,18 @@ onMounted(async () => {
   font-size: 0.9rem;
   color: var(--muted, #666);
   font-weight: 500;
+}
+
+.archived-badge {
+  display: inline-block;
+  padding: 4px 12px;
+  border-radius: 12px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  background: #fef3c7;
+  color: #92400e;
+  border: 1px solid #fbbf24;
 }
 </style>

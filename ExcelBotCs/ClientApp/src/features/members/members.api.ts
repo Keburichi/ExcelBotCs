@@ -13,17 +13,17 @@ export const MembersApi = {
   addNote: (memberId: string, noteText: string) =>
     http<MemberNote>(`/api/members/${memberId}/notes`, {
       method: 'POST',
-      body: JSON.stringify({ Note: noteText })
+      body: JSON.stringify({ Note: noteText }),
     }),
 
   updateNote: (memberId: string, noteId: string, noteText: string) =>
     http<void>(`/api/members/${memberId}/notes/${noteId}`, {
       method: 'PUT',
-      body: JSON.stringify({ Note: noteText })
+      body: JSON.stringify({ Note: noteText }),
     }),
 
   deleteNote: (memberId: string, noteId: string) =>
     http<void>(`/api/members/${memberId}/notes/${noteId}`, {
-      method: 'DELETE'
+      method: 'DELETE',
     }),
 }

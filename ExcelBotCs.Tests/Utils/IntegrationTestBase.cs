@@ -47,6 +47,9 @@ public abstract class IntegrationTestBase : MongoDbTest
     {
         base.SetUp();
 
+        // Set required environment variables for testing
+        Environment.SetEnvironmentVariable("EVENT_ENDPOINT_URL", "https://test.example.com/events");
+
         Factory = new WebApplicationFactory<Program>()
             .WithWebHostBuilder(builder =>
             {
