@@ -10,8 +10,36 @@ public class FcMember : BaseEntity
     public string Avatar { get; set; }
     public string Bio { get; set; }
 
+    public FcRankEnum Rank
+    {
+        get
+        {
+            // Map the string FCRank to the enum for sorting
+            switch (FcRank)
+            {
+                case "Master":
+                    return FcRankEnum.Master;
+                case "Officer":
+                    return FcRankEnum.Officer;
+                case "Living Memory":
+                    return FcRankEnum.LivingMemory;
+                case "Member":
+                default:
+                    return FcRankEnum.Member;
+            }
+        }
+    }
+
     public override string ToString()
     {
         return $"{Name} - {CharacterId}";
+    }
+
+    public enum FcRankEnum
+    {
+        Master,
+        Officer,
+        Member,
+        LivingMemory
     }
 }

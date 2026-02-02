@@ -27,7 +27,10 @@ public class FcMembersController : AuthorizedController, IBaseCrudController<FcM
         if (entities is null)
             return new List<FcMemberDto>();
 
-        var dtos = entities.Select(FcMemberMapper.ToDto).ToList();
+        var dtos = entities
+            .OrderBy(x => x.Rank)
+            .ThenBy(x => x.Name)
+            .Select(FcMemberMapper.ToDto).ToList();
 
         return dtos;
     }
