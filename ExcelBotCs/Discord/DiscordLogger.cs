@@ -10,16 +10,16 @@ namespace ExcelBotCs.Discord;
 
 public class DiscordLogger : TextWriter
 {
-    private readonly IDiscordMessageService _discordMessageService;
+    private readonly IServiceProvider _serviceProvider;
     private readonly IOptions<DiscordBotOptions> _options;
     private readonly TextWriter _stdOut;
     private readonly ConcurrentQueue<string> _logQueue;
     private ITextChannel? _channel;
 
-    public DiscordLogger(IDiscordMessageService discordMessageService, IOptions<DiscordBotOptions> options)
+    public DiscordLogger(IServiceProvider serviceProvider, IOptions<DiscordBotOptions> options)
     {
         _logQueue = new ConcurrentQueue<string>();
-        _discordMessageService = discordMessageService;
+        _serviceProvider = serviceProvider;
         _options = options;
         _stdOut = Console.Out;
         Console.SetOut(this);
@@ -37,7 +37,9 @@ public class DiscordLogger : TextWriter
                 {
                     try
                     {
-                        var channel = await _discordMessageService.GetLogChannelAsync();
+                        using var scope = _serviceProvider.CreateScope();
+                        var discordMessageService = scope.ServiceProvider.GetRequiredService<IDiscordMessageService>();
+                        var channel = await discordMessageService.GetLogChannelAsync();
                         if (channel is null)
                             return;
 

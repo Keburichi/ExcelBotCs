@@ -9,4 +9,9 @@ public class FcMember : BaseEntity
     public string FcRank { get; set; }
     public string Avatar { get; set; }
     public string Bio { get; set; }
+
+    public override string ToString()
+    {
+        return $"{Name} - {CharacterId}";
+    }
 }
