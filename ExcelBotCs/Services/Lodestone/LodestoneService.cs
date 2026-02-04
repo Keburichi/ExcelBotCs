@@ -1,8 +1,8 @@
 using ExcelBotCs.Models.Config;
 using ExcelBotCs.Models.Database;
+using ExcelBotCs.Models.LodestoneClient;
 using ExcelBotCs.Services.API.Interfaces;
 using Microsoft.Extensions.Options;
-using NetStone.Model.Parseables.FreeCompany.Members;
 using DbLodestoneDuty = ExcelBotCs.Models.Database.LodestoneDuty;
 
 namespace ExcelBotCs.Services.Lodestone;
@@ -48,22 +48,12 @@ public class LodestoneService
         return character?.Bio ?? string.Empty;
     }
 
-    public async Task<List<FreeCompanyMembersEntry>> ImportMembers()
+    public async Task<List<FcMemberEntry>> ImportMembers()
     {
         if (_lodestoneClient == null)
-            return new List<FreeCompanyMembersEntry>();
+            return new List<FcMemberEntry>();
 
-        var fc = await _lodestoneClient.GetFreeCompany(_options.Value.FCId);
-        var members = await fc.GetMembers();
-
-        var fcMembers = new List<FreeCompanyMembersEntry>();
-
-        while (members != null && members.CurrentPage <= members.NumPages)
-        {
-            Console.WriteLine("Adding members");
-            fcMembers.AddRange(members.Members);
-            members = await members.GetNextPage();
-        }
+        var fcMembers = await _lodestoneClient.GetFreeCompanyMembers(_options.Value.FCId);
 
         // Import all fc members into the database or update existing entries
         foreach (var freeCompanyMembersEntry in fcMembers)
@@ -103,7 +93,7 @@ public class LodestoneService
         return fcMembers;
     }
 
-    private async Task<FcMember> CreateFcMember(FreeCompanyMembersEntry freeCompanyMembersEntry)
+    private async Task<FcMember> CreateFcMember(FcMemberEntry freeCompanyMembersEntry)
     {
         var lodestoneCharacter = await _lodestoneClient.GetCharacter(freeCompanyMembersEntry.Id);
 

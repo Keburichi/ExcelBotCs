@@ -147,6 +147,9 @@ public class EventService : IEventService
 
         existingEvent.Occurrences ??= new List<EventOccurrence>();
 
+        // For bounded recurring events (with COUNT), extend the COUNT first
+        existingEvent.ICalString = _iCalService.ExtendRecurrenceCount(existingEvent.ICalString, count);
+
         // Find the latest occurrence date
         var latestDate = existingEvent.Occurrences.Any()
             ? existingEvent.Occurrences.Max(o => o.OccurrenceDate)

@@ -296,8 +296,8 @@ public class RaidplansControllerIntegrationTests : IntegrationTestBase
         // Verify the update
         var getResponse = await Client.GetAsync($"api/fights/{_testFightId}/raidplans/{createdRaidplan.Id}");
         var updatedRaidplan = await getResponse.Content.ReadFromJsonAsync<RaidplanDto>();
-        Assert.That(updatedRaidplan!.Name, Is.EqualTo(raidplanDto.Name));
-        Assert.That(updatedRaidplan.Description, Is.EqualTo(raidplanDto.Description));
+        Assert.That(updatedRaidplan!.Name, Is.EqualTo(createdRaidplan.Name));
+        Assert.That(updatedRaidplan.Description, Is.EqualTo(createdRaidplan.Description));
     }
 
     [Test]

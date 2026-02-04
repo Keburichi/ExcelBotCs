@@ -286,4 +286,39 @@ public class ICalService : IICalService
             return new List<EventOccurrence>();
         }
     }
+
+    public string ExtendRecurrenceCount(string iCalString, int additionalCount)
+    {
+        if (string.IsNullOrWhiteSpace(iCalString) || additionalCount <= 0)
+            return iCalString;
+
+        try
+        {
+            var calendar = Calendar.Load(iCalString);
+            var calendarEvent = calendar?.Events.FirstOrDefault();
+
+            if (calendarEvent == null)
+                return iCalString;
+
+            var rrule = calendarEvent.RecurrenceRules?.FirstOrDefault();
+            if (rrule == null)
+                return iCalString;
+
+            // Only extend if there's a COUNT (bounded recurrence)
+            if (rrule.Count > 0)
+            {
+                rrule.Count += additionalCount;
+
+                var serializer = new CalendarSerializer();
+                return serializer.SerializeToString(calendar);
+            }
+
+            // Unbounded recurrence - no change needed
+            return iCalString;
+        }
+        catch
+        {
+            return iCalString;
+        }
+    }
 }

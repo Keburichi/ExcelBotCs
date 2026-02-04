@@ -2,19 +2,14 @@ using System.Reflection;
 using ExcelBotCs.Database.Interfaces;
 using ExcelBotCs.Models.Config;
 using ExcelBotCs.Models.Database;
+using ExcelBotCs.Models.LodestoneClient;
 using ExcelBotCs.Services.API.Interfaces;
 using ExcelBotCs.Services.Lodestone;
 using ExcelBotCs.Tests.Utils;
-using HtmlAgilityPack;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Moq;
-using NetStone.Definitions;
-using NetStone.Definitions.Model.Character;
-using NetStone.Model.Parseables.Character;
-using NetStone.Model.Parseables.FreeCompany;
-using NetStone.Model.Parseables.FreeCompany.Members;
 
 namespace ExcelBotCs.Tests.Services.Lodestone;
 
@@ -31,6 +26,7 @@ public class LodestoneServiceTests : IntegrationTestBase
     private Mock<HttpMessageHandler> _httpMessageHandlerMock = null!;
     private HttpClient _httpClient = null!;
     private Mock<ILodestoneClient> _lodestoneClient;
+    private IOptions<LodestoneOptions> _options;
 
     [SetUp]
     public new void SetUp()
@@ -47,7 +43,7 @@ public class LodestoneServiceTests : IntegrationTestBase
         _httpClient = new HttpClient(_httpMessageHandlerMock.Object);
 
         // Create LodestoneService with real repositories and mocked HttpClient
-        var options = Options.Create(new LodestoneOptions
+        _options = Options.Create(new LodestoneOptions
         {
             FCId = "test-fc-id",
             BaseUrl = "https://na.finalfantasyxiv.com",
@@ -64,11 +60,11 @@ public class LodestoneServiceTests : IntegrationTestBase
         var dutyMatchingService = new DutyMatchingService(matchingLogger);
 
         var scraperLogger = Factory.Services.GetRequiredService<ILogger<LodestoneDutyScraperService>>();
-        var scraperService = new LodestoneDutyScraperService(scraperLogger, _httpClient, options);
+        var scraperService = new LodestoneDutyScraperService(scraperLogger, _httpClient, _options);
         _lodestoneClient = new Mock<ILodestoneClient>();
 
         _lodestoneService = new LodestoneService(
-            options,
+            _options,
             fcMemberService,
             _fightService,
             logger,
@@ -118,35 +114,11 @@ public class LodestoneServiceTests : IntegrationTestBase
         var id = Guid.NewGuid().ToString();
         var expectedBio = "This is my dummy bio";
 
-        // Create an HtmlDocument and load the HTML properly
-        var htmlDoc = new HtmlDocument();
-        htmlDoc.LoadHtml($@"
-            <html>
-                <body>
-                    <div class=""character__selfintroduction"">{expectedBio}</div>
-                </body>
-            </html>
-        ");
-
-        // Get the root node from the parsed document
-        var htmlNode = htmlDoc.DocumentNode;
-
-        var characterDefinition = new CharacterDefinition
-        {
-            Bio = new DefinitionsPack
-            {
-                Selector = ".character__selfintroduction"
-            }
-        };
-
-        var apiDefinitionsContainer = new XivApiDefinitionsContainer();
-
-        apiDefinitionsContainer.GetType().GetProperty(nameof(apiDefinitionsContainer.Character))!.SetValue(
-            apiDefinitionsContainer, characterDefinition);
-
         // Create TestLodestoneCharacter with properly parsed HTML
-        var testCharacter = new LodestoneCharacter(_lodestoneClient.Object.GetLodestoneClient(), htmlNode,
-            apiDefinitionsContainer, id);
+        var testCharacter = new LodestoneCharacter
+        {
+            Bio = expectedBio
+        };
 
         // Setup the GetCharacter method to return our test character
         _lodestoneClient.Setup(x => x.GetCharacter(id)).ReturnsAsync(testCharacter);
@@ -170,40 +142,18 @@ public class LodestoneServiceTests : IntegrationTestBase
         var field = typeof(LodestoneService).GetField("_lodestoneClient",
             BindingFlags.Instance | BindingFlags.NonPublic);
         field!.SetValue(_lodestoneService, null);
-        Assert.That(() => _lodestoneService.ImportMembers(), Is.EqualTo(new List<FreeCompanyMembersEntry>()));
+        Assert.That(() => _lodestoneService.ImportMembers(), Is.EqualTo(new List<FcMemberEntry>()));
     }
 
     [Test]
     public async Task ImportMembers_NoFcMembers()
     {
-        var id = Guid.NewGuid().ToString();
+        _lodestoneClient.Setup(x => x.GetFreeCompanyMembers(_options.Value.FCId))
+            .ReturnsAsync(new List<FcMemberEntry>());
 
-        var htmlDoc = new HtmlDocument();
-        htmlDoc.LoadHtml(@"
-            <html>
-                <body>
-                    <div class=""character__selfintroduction"">Hello world</div>
-                </body>
-            </html>
-        ");
-        var fc = new LodestoneFreeCompany(_lodestoneClient.Object.GetLodestoneClient(), htmlDoc.DocumentNode,
-            new XivApiDefinitionsContainer(), id);
-
-
-        // Setup the GetFreeCompanyMembers method to return our test character
-        var testFcMembers = new Mock<FreeCompanyMembers>();
-        testFcMembers.Setup(x => x.Members);
-
-        // TODO: I can't be bothered right now to reverse engineer the remaining lib to cobble the correct HTML and selectors together
-        // This is future Kebu's problem
-        _lodestoneClient.Setup(x => x.GetFreeCompanyMembers(id))
-            .ReturnsAsync(new FreeCompanyMembers(null, null, null, null));
-
-        // Setup the GetFreeCompany method to return our test fc
-        _lodestoneClient.Setup(x => x.GetFreeCompany(id)).ReturnsAsync(fc);
         var result = await _lodestoneService.ImportMembers();
 
-        Assert.That(result, Is.EqualTo(new List<FreeCompanyMembersEntry>()));
+        Assert.That(result, Is.Empty);
     }
 
     #endregion

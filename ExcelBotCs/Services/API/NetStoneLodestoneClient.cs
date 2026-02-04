@@ -1,11 +1,14 @@
+using ExcelBotCs.Models.LodestoneClient;
 using ExcelBotCs.Services.API.Interfaces;
 using NetStone;
-using NetStone.Model.Parseables.Character;
-using NetStone.Model.Parseables.FreeCompany;
-using NetStone.Model.Parseables.FreeCompany.Members;
 
 namespace ExcelBotCs.Services.API;
 
+/// <summary>
+///     Since the <see cref="LodestoneClient" /> is nearly impossible to properly mock,
+///     this class provides some abstraction to hide away the actual fetching of the data
+///     and converting everything into model classes that can be mocked.
+/// </summary>
 public sealed class NetStoneLodestoneClient : ILodestoneClient
 {
     private readonly LodestoneClient _inner;
@@ -20,18 +23,28 @@ public sealed class NetStoneLodestoneClient : ILodestoneClient
         return _inner;
     }
 
-    public Task<LodestoneCharacter?> GetCharacter(string id)
+    public async Task<LodestoneCharacter?> GetCharacter(string id)
     {
-        return _inner.GetCharacter(id);
+        var character = await _inner.GetCharacter(id);
+        return character is null ? null : new LodestoneCharacter(character);
     }
 
-    public Task<LodestoneFreeCompany?> GetFreeCompany(string id)
+    public async Task<LodestoneFreeCompany?> GetFreeCompany(string id)
     {
-        return _inner.GetFreeCompany(id);
+        var lodestoneFc = await _inner.GetFreeCompany(id);
+
+        return lodestoneFc is null ? null : new LodestoneFreeCompany(lodestoneFc);
     }
 
-    public Task<FreeCompanyMembers?> GetFreeCompanyMembers(string id)
+    public async Task<List<FcMemberEntry>> GetFreeCompanyMembers(string id)
     {
-        return _inner.GetFreeCompanyMembers(id);
+        var result = await _inner.GetFreeCompanyMembers(id);
+
+        var members = new List<FcMemberEntry>();
+        while (result != null && result.CurrentPage <= result.NumPages)
+            members.AddRange(
+                result.Members.Select(freeCompanyMembersEntry => new FcMemberEntry(freeCompanyMembersEntry)));
+
+        return members;
     }
 }

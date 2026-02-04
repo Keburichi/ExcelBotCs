@@ -43,4 +43,10 @@ public interface IICalService
     ///     Optimized for infinite recurring events to avoid full regeneration.
     /// </summary>
     List<EventOccurrence> GetNextOccurrences(string iCalString, DateTime afterDate, int count);
+
+    /// <summary>
+    ///     Extends the COUNT in a bounded recurring event's RRULE.
+    ///     Returns the updated iCal string, or the original if unbounded or non-recurring.
+    /// </summary>
+    string ExtendRecurrenceCount(string iCalString, int additionalCount);
 }

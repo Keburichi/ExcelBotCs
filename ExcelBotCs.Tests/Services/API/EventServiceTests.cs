@@ -49,6 +49,9 @@ public class EventServiceTests
             new Event { StartDate = DateTime.UtcNow.AddDays(1) }.PopulateWithRandomData(),
             new Event { StartDate = DateTime.UtcNow.AddDays(3) }.PopulateWithRandomData()
         };
+
+        events.ForEach(x => x.IsArchived = false);
+        
         _eventRepositoryMock.Setup(x => x.GetAsync()).ReturnsAsync(events);
 
         // Act
