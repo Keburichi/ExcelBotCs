@@ -105,7 +105,7 @@ public class LodestoneService
             FcRank = freeCompanyMembersEntry.FreeCompanyRank,
             Name = freeCompanyMembersEntry.Name,
             Title = lodestoneCharacter?.Title ?? string.Empty,
-            Bio = lodestoneCharacter.Bio
+            Bio = lodestoneCharacter?.Bio
         };
     }
 
