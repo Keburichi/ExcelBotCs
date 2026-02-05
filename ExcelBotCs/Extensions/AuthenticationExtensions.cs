@@ -35,7 +35,7 @@ public static class AuthenticationExtensions
             options.SaveTokens = true;
 
             options.CorrelationCookie.SameSite = SameSiteMode.Lax;
-            options.CorrelationCookie.SecurePolicy = CookieSecurePolicy.Always;
+            options.CorrelationCookie.SecurePolicy = CookieSecurePolicy.SameAsRequest;
 
             options.ClaimActions.MapCustomJson("urn:discord:avatar:url", user =>
                 string.Format(

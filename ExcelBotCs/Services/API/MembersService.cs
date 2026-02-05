@@ -17,7 +17,8 @@ public class MemberService : IMemberService
     public async Task<List<Member>> GetAsync()
     {
         var members = await _memberRepository.GetAsync();
-        return members;
+
+        return members is null ? null : members.OrderBy(x => x.DiscordName).ToList();
     }
 
     public async Task<Member> GetAsync(string id)
@@ -37,11 +38,10 @@ public class MemberService : IMemberService
         var dbEntity = await _memberRepository.GetAsync(id);
         if (dbEntity is null)
             throw new NotFoundException();
-        
+
         // Update all properties
         updatedEntity.CreateDate = dbEntity.CreateDate;
         updatedEntity.ExperienceIds = dbEntity.ExperienceIds;
-        updatedEntity.RoleIds = dbEntity.RoleIds;
 
         // Enforce: LodestoneId can only be set/changed via the verification flow
         // Prevent any modifications to LodestoneId through generic PUT updates
@@ -51,6 +51,18 @@ public class MemberService : IMemberService
         updatedEntity.LodestoneVerificationToken = dbEntity.LodestoneVerificationToken;
 
         await _memberRepository.UpdateAsync(id, updatedEntity);
+    }
+
+    public async Task UpdateDiscordRoles(string id, List<string> roleIds)
+    {
+        // Load the current DB state
+        var dbEntity = await _memberRepository.GetAsync(id);
+        if (dbEntity is null)
+            throw new NotFoundException();
+
+        dbEntity.RoleIds = roleIds;
+
+        await _memberRepository.UpdateAsync(id, dbEntity);
     }
 
     public async Task DeleteAsync(string id)

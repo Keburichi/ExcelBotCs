@@ -43,7 +43,7 @@ public class ImportService
         var members = new List<Member>();
 
         // Import all roles
-        await ImportRoles();
+        await ImportRoles(guildId);
 
         // If a guild id has been provided, only import that one. Otherwise we go for all servers
         if (guildId != 0)
@@ -66,7 +66,7 @@ public class ImportService
         {
             // Check if we need to create or update the member
             var dbMember = await _memberService.GetByDiscordId(member.DiscordId);
-
+            
             if (dbMember == null)
                 await _memberService.CreateAsync(member);
             else
@@ -87,6 +87,7 @@ public class ImportService
                 member.ExperienceIds = dbMember.ExperienceIds;
 
                 await _memberService.UpdateAsync(dbMember.Id, member);
+                await _memberService.UpdateDiscordRoles(dbMember.Id, member.RoleIds);
             }
         }
 
@@ -114,15 +115,15 @@ public class ImportService
                 .OfType<MemberRole>()
                 .ToList();
 
-            members.Add(new Member()
-            {
-                DiscordId = guildMember.Id.ToString(),
-                DiscordName = guildMember.DisplayName,
-                DiscordAvatar = $"https://cdn.discordapp.com/avatars/{guildMember.Id}/{guildMember.AvatarId}",
-                // Roles = assignedRoles,
-                // RoleIds = guildRoles.Select(x => x.Id.ToString()).ToList(),
-                RoleIds = assignedRoles.Select(x => x.Id.ToString()).ToList()
-            });
+            // Filter out all non-fc discord users
+            if (assignedRoles.Any(x => x.IsMember))
+                members.Add(new Member
+                {
+                    DiscordId = guildMember.Id.ToString(),
+                    DiscordName = guildMember.DisplayName,
+                    DiscordAvatar = $"https://cdn.discordapp.com/avatars/{guildMember.Id}/{guildMember.AvatarId}",
+                    RoleIds = assignedRoles.Select(x => x.Id.ToString()).ToList()
+                });
         }
 
         return members;

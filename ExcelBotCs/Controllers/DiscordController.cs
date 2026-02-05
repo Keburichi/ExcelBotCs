@@ -2,7 +2,6 @@
 using ExcelBotCs.Models.Config;
 using ExcelBotCs.Models.Database;
 using ExcelBotCs.Services;
-using ExcelBotCs.Services.API;
 using ExcelBotCs.Services.API.Interfaces;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
@@ -70,7 +69,7 @@ public class DiscordController : ControllerBase
         var member = await _memberService.GetByDiscordId(discordId);
 
         if (member is null)
-            _memberService.CreateAsync(new Member()
+            await _memberService.CreateAsync(new Member
             {
                 DiscordId = discordId,
                 DiscordName = discordName,

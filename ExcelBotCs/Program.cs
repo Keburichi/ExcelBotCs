@@ -190,10 +190,11 @@ public class Program
         app.UseDefaultFiles();
         app.UseStaticFiles();
 
-        // Populate the current Member for authenticated requests
-        app.UseMiddleware<CurrentMemberMiddleware>();
         app.UseAuthentication();
         app.UseAuthorization();
+
+        // Populate the current Member for authenticated requests (must run after authentication)
+        app.UseMiddleware<CurrentMemberMiddleware>();
 
         // disable static file serving for the public folder for now
         // app.UseStaticFiles(new StaticFileOptions

@@ -9,4 +9,5 @@ public interface IMemberService : IBaseEntityService<Member>
     Task<List<Member>> GetByDiscordIds(IEnumerable<ulong> discordIds);
     Task<Member> GetByLodestoneId(string lodestoneId);
     Task<List<Member>> GetFcMembers();
+    Task UpdateDiscordRoles(string id, List<string> roleIds);
 }

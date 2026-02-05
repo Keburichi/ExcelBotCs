@@ -13,6 +13,7 @@ public interface ILotteryService
 
     Task<IGuessResponse> ChangeGuessAsync(ulong discordUserId, int old, int @new);
 
+    Task<List<WhoGuessedResponse>> GetAllGuessesAsync();
     Task<WhoGuessedResponse> WhoGuessedAsync(int number);
 
     Task<IViewResponse> ViewAsync(ulong discordUserId);

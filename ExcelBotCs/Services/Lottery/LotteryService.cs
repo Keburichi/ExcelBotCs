@@ -89,6 +89,30 @@ public class LotteryService : ILotteryService
         return result;
     }
 
+    public async Task<List<WhoGuessedResponse>> GetAllGuessesAsync()
+    {
+        var currentGuesses = await _lotteryGuesses
+            .Where(x => x.DiscordId != 0)
+            .ToListAsync();
+
+        var discordUserIds = currentGuesses.Select(guess => guess.DiscordId).Distinct().ToList();
+        var members = await _memberService.GetByDiscordIds(discordUserIds);
+
+        return currentGuesses
+            .GroupBy(guess => guess.Number)
+            .Select(group =>
+            {
+                var users = group.Select(guess =>
+                {
+                    var member = members.FirstOrDefault(m => m.DiscordId == guess.DiscordId.ToString());
+                    return new LotteryUser(guess.DiscordId, member?.DiscordName ?? $"Unknown User ({guess.DiscordId})");
+                }).ToList();
+                return new WhoGuessedResponse(group.Key, users);
+            })
+            .OrderBy(r => r.Number)
+            .ToList();
+    }
+
     public async Task<WhoGuessedResponse> WhoGuessedAsync(int number)
     {
         var currentGuesses = await _lotteryGuesses

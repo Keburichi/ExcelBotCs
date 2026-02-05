@@ -26,7 +26,20 @@ public sealed class NetStoneLodestoneClient : ILodestoneClient
     public async Task<LodestoneCharacter?> GetCharacter(string id)
     {
         var character = await _inner.GetCharacter(id);
-        return character is null ? null : new LodestoneCharacter(character);
+
+        if (character is null)
+            return null;
+
+        // If a character profile cannot be viewed on lodestone, simply return null and not a garbled object
+        try
+        {
+            var jobLevel = character.ActiveClassJobLevel;
+            return new LodestoneCharacter(character);
+        }
+        catch (Exception e)
+        {
+            return null;
+        }
     }
 
     public async Task<LodestoneFreeCompany?> GetFreeCompany(string id)
@@ -42,8 +55,12 @@ public sealed class NetStoneLodestoneClient : ILodestoneClient
 
         var members = new List<FcMemberEntry>();
         while (result != null && result.CurrentPage <= result.NumPages)
+        {
             members.AddRange(
                 result.Members.Select(freeCompanyMembersEntry => new FcMemberEntry(freeCompanyMembersEntry)));
+
+            result = await result.GetNextPage();
+        }
 
         return members;
     }

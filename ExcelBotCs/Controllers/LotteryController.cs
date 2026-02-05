@@ -77,15 +77,11 @@ public class LotteryController : AuthorizedController
     [Route("all-guesses")]
     public async Task<IActionResult> GetAllGuesses()
     {
-        var allGuesses = new List<GuessInfoDto>();
-        for (var i = 1; i <= 100; i++)
-        {
-            var whoGuessed = await _lotteryService.WhoGuessedAsync(i);
-            if (whoGuessed.Users.Count > 0)
-                allGuesses.Add(new GuessInfoDto { Number = i, Guessers = whoGuessed.Users });
-        }
-
-        return Ok(allGuesses);
+        var allGuesses = await _lotteryService.GetAllGuessesAsync();
+        return Ok(allGuesses
+            .Where(g => g.Users.Count > 0)
+            .Select(g => new GuessInfoDto { Number = g.Number, Guessers = g.Users })
+            .ToList());
     }
 
     [HttpPost]
