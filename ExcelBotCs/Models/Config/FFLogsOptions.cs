@@ -13,7 +13,7 @@ public class FFLogsOptions
     /// <summary>
     /// Number of members to sync per wave (default: 20)
     /// </summary>
-    public int MembersPerWave { get; set; } = 20;
+    public int MembersPerWave { get; set; } = 10;
 
     /// <summary>
     /// Delay in milliseconds between individual member queries (default: 500ms)

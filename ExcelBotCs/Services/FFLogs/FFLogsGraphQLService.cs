@@ -83,7 +83,7 @@ public class FFLogsGraphQLService
                     if (attempt < maxRetries)
                     {
                         _authService.InvalidateToken();
-                        await _authService.RefreshTokenAsync();
+                        await _authService.GetAccessTokenAsync(); // Uses lock to prevent concurrent refreshes
                         continue;
                     }
 
@@ -230,6 +230,92 @@ query GetCharacterClears($lodestoneID: Int!");
     }
 
     /// <summary>
+    /// Fetches character clears for multiple zones in a single batched request.
+    /// Uses GraphQL aliases to query multiple zones at once.
+    /// </summary>
+    public async Task<Dictionary<int, ZoneRankings?>> GetCharacterActivityBatchedAsync(
+        long lodestoneId,
+        List<ZoneQueryRequest> zoneRequests)
+    {
+        if (zoneRequests.Count == 0)
+            return new Dictionary<int, ZoneRankings?>();
+
+        // Build a batched GraphQL query with aliases for each zone
+        var queryBuilder = new StringBuilder(@"
+query GetCharacterClearsBatched($lodestoneID: Int!) {
+  characterData {
+    character(lodestoneID: $lodestoneID) {
+      id
+      name
+");
+
+        // Add aliased zoneRankings for each zone request
+        foreach (var request in zoneRequests)
+            queryBuilder.AppendLine(
+                $"      zone{request.ZoneId}: zoneRankings(zoneID: {request.ZoneId}, difficulty: {request.DifficultyId}, metric: rdps)");
+
+        queryBuilder.Append(@"    }
+  }
+}");
+
+        var variables = new Dictionary<string, object>
+        {
+            { "lodestoneID", lodestoneId }
+        };
+
+        var queryString = queryBuilder.ToString();
+
+        _logger.LogDebug("Fetching batched character activity for Lodestone ID {LodestoneId}, Zones: [{Zones}]",
+            lodestoneId, string.Join(", ", zoneRequests.Select(z => z.ZoneId)));
+
+        var response = await ExecuteQueryAsync<JsonElement>(queryString, variables);
+        return ParseBatchedZoneRankings(response, zoneRequests);
+    }
+
+    /// <summary>
+    ///     Parses the batched zone rankings response from aliased GraphQL fields
+    /// </summary>
+    private Dictionary<int, ZoneRankings?> ParseBatchedZoneRankings(JsonElement response,
+        List<ZoneQueryRequest> zoneRequests)
+    {
+        var result = new Dictionary<int, ZoneRankings?>();
+
+        try
+        {
+            if (!response.TryGetProperty("characterData", out var characterData))
+                return result;
+
+            if (!characterData.TryGetProperty("character", out var character))
+                return result;
+
+            foreach (var request in zoneRequests)
+            {
+                var alias = $"zone{request.ZoneId}";
+                if (character.TryGetProperty(alias, out var zoneRankingsElement) &&
+                    zoneRankingsElement.ValueKind != JsonValueKind.Null)
+                    try
+                    {
+                        var zoneRankings = JsonSerializer.Deserialize<ZoneRankings>(zoneRankingsElement.GetRawText());
+                        result[request.ZoneId] = zoneRankings;
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.LogWarning(ex, "Failed to parse zone rankings for zone {ZoneId}", request.ZoneId);
+                        result[request.ZoneId] = null;
+                    }
+                else
+                    result[request.ZoneId] = null;
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to parse batched zone rankings response");
+        }
+
+        return result;
+    }
+
+    /// <summary>
     /// Checks rate limit status
     /// </summary>
     public async Task<RateLimitData> GetRateLimitDataAsync()
@@ -289,6 +375,15 @@ query {
 }
 
 #region FFLogs Data Models
+
+/// <summary>
+///     Request model for batched zone queries
+/// </summary>
+public class ZoneQueryRequest
+{
+    public int ZoneId { get; set; }
+    public int DifficultyId { get; set; }
+}
 
 public class WorldData
 {

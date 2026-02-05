@@ -1,4 +1,3 @@
-using ExcelBotCs.Database;
 using ExcelBotCs.Database.Interfaces;
 using ExcelBotCs.Extensions;
 using ExcelBotCs.Models.Config;
@@ -221,24 +220,29 @@ public class FFLogsSyncService
                         unclearedFights = allFights.Where(x => !x.IsFrozen && member.ExperienceIds.All(e => e != x.Id)).ToList();
                     else
                         unclearedFights = allFights;
-                    
-                    // Since FFLogs returns all fights for a specific zone we only need to get a list of distinct zone ids
-                    // to gather all information required
-                    var unclearedFightZones = unclearedFights.Select(x => x.FFLogsZoneId).Distinct().ToList();
-                    
+
+                    // Build zone query requests for batched API call
+                    var zoneRequests = unclearedFights
+                        .Where(x => x.FFLogsZoneId.HasValue && x.FFLogsDifficultyId.HasValue)
+                        .GroupBy(x => x.FFLogsZoneId!.Value)
+                        .Select(g => new ZoneQueryRequest
+                        {
+                            ZoneId = g.Key,
+                            DifficultyId = g.First().FFLogsDifficultyId!.Value
+                        })
+                        .ToList();
+
                     var updatedExperience = new List<string>();
                     var newClears = 0;
 
-                    foreach (var unclearedFightZone in unclearedFightZones)
+                    // Fetch all zone data in a single batched request
+                    var batchedZoneRankings =
+                        await _graphQLService.GetCharacterActivityBatchedAsync(lodestoneId, zoneRequests);
+                    log.ApiRequestCount++;
+
+                    // Process each zone's rankings
+                    foreach (var (zoneId, zoneRankings) in batchedZoneRankings)
                     {
-                        // gather information for all uncleared fights
-                        var characterData = await _graphQLService.GetCharacterActivityAsync(lodestoneId,
-                            unclearedFightZone,
-                            unclearedFights.First(x => x.FFLogsZoneId == unclearedFightZone).FFLogsDifficultyId);
-
-                        // Parse the JSON zoneRankings data
-                        var zoneRankings = characterData.characterData.character?.GetZoneRankings();
-
                         if (zoneRankings?.rankings == null || !zoneRankings.rankings.Any())
                         {
                             continue;
@@ -249,7 +253,7 @@ public class FFLogsSyncService
                         {
                             if(encounterRanking.totalKills == 0)
                                 continue;
-                            
+
                             if (fightsByFFLogsId.TryGetValue(encounterRanking.encounter.id, out var fight))
                             {
                                 // Check if member already has this fight in their experience
