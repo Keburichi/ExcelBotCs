@@ -36,8 +36,8 @@ function goEdit(member: Member) {
     </template>
     <template #body>
       <div class="subbed-section">
-        <input :id="props.member.DiscordId" v-model="props.member.Subbed" :name="props.member.DiscordId" type="checkbox" placeholder="Is player subbed?">
-        <label :for="props.member.DiscordId">Subbed?</label>
+        <span v-if="props.member.Subbed" class="sub-badge sub-badge--active">Subscribed</span>
+        <span v-else class="sub-badge sub-badge--inactive">Unsubscribed</span>
       </div>
     </template>
 
@@ -72,16 +72,53 @@ function goEdit(member: Member) {
   justify-content: center;
 }
 
-.subbed-section input[type="checkbox"] {
-  cursor: pointer;
-  width: 1.25rem;
-  height: 1.25rem;
+.sub-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.25rem 0.75rem;
+  border-radius: 9999px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.025em;
 }
 
-.subbed-section label {
-  cursor: pointer;
-  margin: 0;
-  font-weight: 500;
+.sub-badge--active {
+  background: rgba(34, 197, 94, 0.15);
+  color: #16a34a;
+  border: 1px solid rgba(34, 197, 94, 0.3);
+}
+
+.sub-badge--inactive {
+  background: rgba(239, 68, 68, 0.15);
+  color: #dc2626;
+  border: 1px solid rgba(239, 68, 68, 0.3);
+}
+
+:root[data-theme='dark'] .sub-badge--active {
+  background: rgba(34, 197, 94, 0.2);
+  color: #4ade80;
+  border-color: rgba(34, 197, 94, 0.4);
+}
+
+:root[data-theme='dark'] .sub-badge--inactive {
+  background: rgba(239, 68, 68, 0.2);
+  color: #f87171;
+  border-color: rgba(239, 68, 68, 0.4);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme='light']) .sub-badge--active {
+    background: rgba(34, 197, 94, 0.2);
+    color: #4ade80;
+    border-color: rgba(34, 197, 94, 0.4);
+  }
+
+  :root:not([data-theme='light']) .sub-badge--inactive {
+    background: rgba(239, 68, 68, 0.2);
+    color: #f87171;
+    border-color: rgba(239, 68, 68, 0.4);
+  }
 }
 
 .footer-content {

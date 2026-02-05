@@ -13,7 +13,9 @@ const route = useRoute()
 const { user, isAdmin, loadMe } = useAuth()
 
 const loading = ref(false)
+const saving = ref(false)
 const error = ref('')
+const successMessage = ref('')
 const noteLoading = ref(false)
 
 const form = reactive<Member>({
@@ -35,6 +37,23 @@ const form = reactive<Member>({
 const addNoteOpen = ref(false)
 const editNoteOpen = ref(false)
 const editNoteBuffer = ref<MemberNote>()
+
+async function handleSave() {
+  saving.value = true
+  error.value = ''
+  successMessage.value = ''
+  try {
+    await MembersApi.update(form.Id!, form)
+    successMessage.value = 'Member updated successfully'
+    setTimeout(() => successMessage.value = '', 3000)
+  }
+  catch (e: any) {
+    error.value = e?.message || 'Failed to save member'
+  }
+  finally {
+    saving.value = false
+  }
+}
 
 function openAddNote() {
   editNoteBuffer.value = undefined
@@ -148,6 +167,9 @@ onMounted(async () => {
     <p v-if="error" class="error">
       {{ error }}
     </p>
+    <p v-if="successMessage" class="success">
+      {{ successMessage }}
+    </p>
 
     <div class="member-form">
       <!-- Basic Information Section -->
@@ -174,6 +196,14 @@ onMounted(async () => {
             type="checkbox"
           >
           <label :for="form.DiscordId">Subbed?</label>
+        </div>
+
+        <div class="section-actions">
+          <BaseButton
+            :disabled="saving"
+            :title="saving ? 'Saving...' : 'Save Changes'"
+            @clicked="handleSave"
+          />
         </div>
       </section>
 
@@ -276,6 +306,30 @@ onMounted(async () => {
   border: 1px solid var(--alert-error-border, rgba(220, 38, 38, 0.3));
   border-radius: 12px;
   margin-bottom: 1.5rem;
+}
+
+/* Success message */
+.success {
+  padding: 1rem;
+  background: rgba(34, 197, 94, 0.1);
+  color: #16a34a;
+  border: 1px solid rgba(34, 197, 94, 0.3);
+  border-radius: 12px;
+  margin-bottom: 1.5rem;
+}
+
+:root[data-theme='dark'] .success {
+  background: rgba(34, 197, 94, 0.15);
+  color: #4ade80;
+  border-color: rgba(34, 197, 94, 0.4);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme='light']) .success {
+    background: rgba(34, 197, 94, 0.15);
+    color: #4ade80;
+    border-color: rgba(34, 197, 94, 0.4);
+  }
 }
 
 .member-form {
@@ -381,6 +435,14 @@ onMounted(async () => {
 
 .form-row-checkbox:last-child {
   margin-bottom: 0;
+}
+
+.section-actions {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 1rem;
+  padding-top: 1rem;
+  border-top: 1px solid rgba(var(--color-border), 0.2);
 }
 
 .form-row-checkbox input[type="checkbox"] {
