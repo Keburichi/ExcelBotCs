@@ -254,7 +254,7 @@ async function verifyClaim() {
         </div>
       </div>
 
-      <div class="card">
+      <div v-if="auth.user.value?.IsAdmin" class="card">
         <h2>Experience</h2>
         <template v-if="hasLodestone">
           <ExperienceTags :experience="experience" />

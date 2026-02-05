@@ -19,7 +19,7 @@ public class MemberDto : BaseDto
     // Token the user must place in their Lodestone Bio to verify ownership
     [RequiresMemberRole] public string? LodestoneVerificationToken { get; set; }
 
-    [RequiresMemberRole] public List<FightDto>? Experience { get; set; }
+    [RequiresAdminRole] public List<FightDto>? Experience { get; set; }
 
     [RequiresAdminRole] public List<MemberNoteDto>? Notes { get; set; }
 
