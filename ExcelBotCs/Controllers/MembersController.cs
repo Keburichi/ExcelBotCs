@@ -53,6 +53,7 @@ public class MembersController : AuthorizedController, IBaseCrudController<Membe
     }
 
     [HttpPost]
+    [AdminAuth]
     public async Task<ActionResult<MemberDto>> CreateEntity(MemberDto entity)
     {
         await _memberService.CreateAsync(MemberMapper.ToEntity(entity));
@@ -62,9 +63,10 @@ public class MembersController : AuthorizedController, IBaseCrudController<Membe
     [HttpPut("{id:length(24)}")]
     public async Task<ActionResult<MemberDto>> UpdateEntity(string id, MemberDto updatedEntity)
     {
-        // Only allow users to update their own profile
+        // Only allow users to update their own profile, unless they are an admin
         var me = await _currentMemberAccessor.GetCurrentAsync();
-        if (me is null || me.Id != updatedEntity.Id)
+
+        if (me is null || (me.Id != updatedEntity.Id && !me.IsAdmin.GetValueOrDefault()))
             return Forbid();
 
         Logger.LogInformation("Updating entity with id: {id}", id);
@@ -75,6 +77,7 @@ public class MembersController : AuthorizedController, IBaseCrudController<Membe
     }
 
     [HttpDelete("{id:length(24)}")]
+    [AdminAuth]
     public async Task<ActionResult<MemberDto>> DeleteEntity(string id)
     {
         var entity = await _memberService.GetAsync(id);
