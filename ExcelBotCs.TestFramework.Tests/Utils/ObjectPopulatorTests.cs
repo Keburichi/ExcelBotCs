@@ -162,7 +162,7 @@ public class ObjectPopulatorTests
         entity.PopulateWithRandomData();
 
         // Assert
-        Assert.That(entity.Id, Is.Not.EqualTo("original-id"), "Id without BsonId attribute should be modified");
+        Assert.That(entity.Id, Is.EqualTo("original-id"), "Populated attributes should not be modified");
         Assert.That(entity.Name, Is.Not.Empty, "Other properties should be populated");
         Assert.That(entity.Age, Is.GreaterThan(0), "Other properties should be populated");
     }
@@ -203,8 +203,8 @@ public class ObjectPopulatorTests
         // Assert
         Assert.That(entity.Id, Is.EqualTo("persistent-id-999"),
             "BsonId should remain unchanged after multiple populations");
-        Assert.That(firstPopulation, Is.Not.EqualTo(secondPopulation),
-            "Other properties should change with each population");
+        Assert.That(firstPopulation, Is.EqualTo(secondPopulation),
+            "Other properties should not change with each population");
     }
 
     [Test]

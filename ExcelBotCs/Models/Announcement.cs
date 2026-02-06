@@ -28,9 +28,9 @@ public class Announcement
         Content = message.Content;
 
         // instead of the discord username, use the display name on the server
-        var user = message.Author as SocketGuildUser;
+        var user = message.Author as IGuildUser;
         Author = user.DisplayName;
-        AuthorAvatarUrl = (user as IUser).GetDisplayAvatarUrl(ImageFormat.WebP);
+        AuthorAvatarUrl = message.Author.GetDisplayAvatarUrl(ImageFormat.WebP);
         Timestamp = message.Timestamp.UtcDateTime;
         Attachments = message.Attachments.Select(a => new MessageAttachment(a)).ToList();
 

@@ -14,6 +14,11 @@ public class DiscordBotService : BackgroundService
     private readonly DiscordBotOptions _config;
     private readonly IServiceProvider _serviceProvider;
     private readonly ILogger<DiscordSocketClient> _logger;
+    private TaskCompletionSource _disconnectedTcs = new(TaskCreationOptions.RunContinuationsAsynchronously);
+
+    private const int MaxConsecutiveFailures = 10;
+    private static readonly TimeSpan InitialDelay = TimeSpan.FromSeconds(5);
+    private static readonly TimeSpan MaxDelay = TimeSpan.FromSeconds(60);
 
     public DiscordBotService(IServiceScopeFactory scopeFactory, IOptions<DiscordBotOptions> config,
         IServiceProvider serviceProvider, ILogger<DiscordSocketClient> logger) : base(scopeFactory)
@@ -23,7 +28,6 @@ public class DiscordBotService : BackgroundService
         _client.Log += message =>
         {
             logger.LogInformation(message.ToString());
-            // Console.WriteLine(message);
             return Task.CompletedTask;
         };
 
@@ -33,8 +37,15 @@ public class DiscordBotService : BackgroundService
         _logger = logger;
 
         _client.Ready += ClientOnReady;
-        _client.Disconnected += async (ex) => await StopAsync(CancellationToken.None);
+        _client.Disconnected += OnDisconnected;
         _client.InteractionCreated += ClientOnInteractionCreated;
+    }
+
+    private Task OnDisconnected(Exception ex)
+    {
+        _logger.LogWarning(ex, "Discord client disconnected");
+        _disconnectedTcs.TrySetResult();
+        return Task.CompletedTask;
     }
 
     private async Task ClientOnReady()
@@ -43,33 +54,82 @@ public class DiscordBotService : BackgroundService
 
         // Instead of registering the commands only for the Excel discord, register them for all servers
         await _interaction.RegisterCommandsGloballyAsync(true);
-        // await Interaction.RegisterCommandsToGuildAsync(Constants.GuildId);
     }
 
     private async Task ClientOnInteractionCreated(SocketInteraction interaction)
     {
-        var scope = _serviceProvider.CreateScope();
+        await using var scope = _serviceProvider.CreateAsyncScope();
         var context = new SocketInteractionContext(_client, interaction);
         await _interaction.ExecuteCommandAsync(context, scope.ServiceProvider);
     }
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
-        await _client.LoginAsync(TokenType.Bot, _config.Token);
-        await _client.StartAsync();
+        var consecutiveFailures = 0;
+        var delay = InitialDelay;
+
+        while (!stoppingToken.IsCancellationRequested)
+        {
+            try
+            {
+                _disconnectedTcs = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+
+                await _client.LoginAsync(TokenType.Bot, _config.Token);
+                await _client.StartAsync();
+
+                _logger.LogInformation("Discord bot started successfully");
+                consecutiveFailures = 0;
+                delay = InitialDelay;
+
+                // Wait until either disconnected or cancellation requested
+                await Task.WhenAny(
+                    _disconnectedTcs.Task,
+                    Task.Delay(Timeout.Infinite, stoppingToken)
+                );
+
+                if (stoppingToken.IsCancellationRequested)
+                    break;
+
+                _logger.LogWarning("Discord bot disconnected, will retry in {Delay}", delay);
+            }
+            catch (OperationCanceledException)
+            {
+                break;
+            }
+            catch (Exception ex)
+            {
+                consecutiveFailures++;
+                if (consecutiveFailures >= MaxConsecutiveFailures)
+                {
+                    _logger.LogCritical(ex, "Discord bot failed {Count} consecutive times, giving up",
+                        consecutiveFailures);
+                    break;
+                }
+
+                _logger.LogError(ex, "Discord bot failed to connect (attempt {Count}/{Max}), retrying in {Delay}",
+                    consecutiveFailures, MaxConsecutiveFailures, delay);
+            }
+
+            try
+            {
+                await Task.Delay(delay, stoppingToken);
+            }
+            catch (OperationCanceledException)
+            {
+                break;
+            }
+
+            delay = TimeSpan.FromTicks(Math.Min(delay.Ticks * 2, MaxDelay.Ticks));
+        }
+
+        _logger.LogInformation("Discord bot ExecuteAsync loop exited");
     }
 
     public override async Task StopAsync(CancellationToken cancellationToken)
     {
-        _logger.LogInformation("Discord bot disconnected. Attempting to re-connect...");
+        _logger.LogInformation("Discord bot service stopping");
+        _disconnectedTcs.TrySetResult();
         await _client.StopAsync();
-
-        // Lets attempt to restart this
-        _logger.LogInformation("Restarting bot");
-        await _client.LoginAsync(TokenType.Bot, _config.Token);
-        await _client.StartAsync();
-
-        _logger.LogInformation("Discord bot is re-started.");
-        // _lifeTime.StopApplication();
+        await base.StopAsync(cancellationToken);
     }
 }

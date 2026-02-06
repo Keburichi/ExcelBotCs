@@ -199,8 +199,10 @@ public class HomeControllerIntegrationTests : IntegrationTestBase
         DateTimeOffset timestamp,
         IReadOnlyCollection<IAttachment> attachments)
     {
-        var mockAuthor = new Mock<IUser>();
+        var mockAuthor = new Mock<IGuildUser>();
         mockAuthor.Setup(x => x.Username).Returns(authorUsername);
+        mockAuthor.Setup(x => x.DisplayName).Returns(authorUsername);
+        mockAuthor.Setup(x => x.GetDisplayAvatarUrl(ImageFormat.WebP, 128)).Returns("https://example.com/image1.png");
 
         var mockMessage = new Mock<IMessage>();
         mockMessage.Setup(x => x.Id).Returns(id);
