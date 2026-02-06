@@ -23,7 +23,18 @@ onMounted(announcements.load)
       class="announcement-card"
     >
       <div class="announcement-header">
-        <span class="announcement-author">{{ announcement.Author }}</span>
+        <div class="announcement-author">
+          <img
+            v-if="announcement.AuthorAvatarUrl"
+            :alt="announcement.Author"
+            :src="announcement.AuthorAvatarUrl"
+            class="announcement-avatar"
+          >
+          <div v-else class="announcement-avatar announcement-avatar--fallback">
+            {{ announcement.Author.charAt(0) }}
+          </div>
+          <span class="announcement-author-name">{{ announcement.Author }}</span>
+        </div>
         <span class="announcement-timestamp">{{ new Date(announcement.Timestamp).toLocaleString() }}</span>
       </div>
 
@@ -99,9 +110,33 @@ onMounted(announcements.load)
 }
 
 .announcement-author {
-  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+}
+
+.announcement-avatar {
+  width: 2.25rem;
+  height: 2.25rem;
+  border-radius: 50%;
+  object-fit: cover;
+  flex-shrink: 0;
+}
+
+.announcement-avatar--fallback {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(59, 130, 246, 0.2);
+  color: rgb(59, 130, 246);
+  font-weight: 700;
+  font-size: 1rem;
+}
+
+.announcement-author-name {
+  font-weight: 700;
   color: var(--fg);
-  font-size: 0.95rem;
+  font-size: 1.1rem;
 }
 
 .announcement-timestamp {
