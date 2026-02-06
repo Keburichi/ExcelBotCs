@@ -25,6 +25,7 @@
   - [x] Start new lottery
 - [ ] Events
     - [ ] Calendar view of upcoming events
+  - [ ] Allow multiple parties for one event with enough sign-ups
   - [x] Add option to select which type of event this is and which fight is being done (statistics/tracking of
     min-ilvl/downsynced/academy/BLU/etc)
   - [ ] Add option to have event be reoccurring (Daily, weekly, bi-weekly, for x weeks)
@@ -43,4 +44,8 @@
 - [ ] Add discord command so users can trigger a sync of their character manually
 - [ ] Add discord command to get resources of a specific fight
 - [ ] Add option/settings to automatically run the lottery on a set schedule
+
+
+- [ ] Remove 'on-click' closing on Create Raidplan dialog
+- [ ] Add description text for pages to let people know what there can be done. Add a tutorial thingy?
 - 
