@@ -27,7 +27,7 @@ public class WorkerService : BackgroundService
         await RunImportAsync(stoppingToken);
 
         // Then run periodically every 5 minutes
-        using var timer = new PeriodicTimer(TimeSpan.FromMinutes(2));
+        using var timer = new PeriodicTimer(TimeSpan.FromMinutes(5));
 
         try
         {

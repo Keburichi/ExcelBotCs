@@ -30,6 +30,7 @@ onMounted(announcements.load)
       <DiscordMessageRenderer
         :attachments="announcement.Attachments"
         :content="announcement.Content"
+        :mentions="announcement.Mentions"
       />
     </div>
   </section>

@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import type { MentionData } from '@/app/announcements.types'
 import { computed, ref } from 'vue'
 
 interface MessageAttachment {
@@ -9,8 +10,10 @@ interface MessageAttachment {
 const props = withDefaults(defineProps<{
   content: string
   attachments?: MessageAttachment[]
+  mentions?: MentionData
 }>(), {
   attachments: () => [],
+  mentions: () => ({ Users: {}, Roles: {}, Channels: {} }),
 })
 
 // Track which spoilers are revealed
@@ -217,6 +220,97 @@ function parseInlineFormatting(text: string, startSpoilerIndex: number) {
       }
     }
 
+    // Custom emotes <:name:id> or <a:name:id>
+    if (text[i] === '<' && (text[i + 1] === ':' || (text[i + 1] === 'a' && text[i + 2] === ':'))) {
+      const emoteMatch = text.substring(i).match(/^<(a?):(\w+):(\d+)>/)
+      if (emoteMatch) {
+        pushText()
+        tokens.push({
+          type: 'emote',
+          name: emoteMatch[2],
+          id: emoteMatch[3],
+          animated: emoteMatch[1] === 'a',
+        })
+        i += emoteMatch[0].length
+        continue
+      }
+    }
+
+    // Role mentions <@&roleid>
+    if (text[i] === '<' && text[i + 1] === '@' && text[i + 2] === '&') {
+      const roleMatch = text.substring(i).match(/^<@&(\d+)>/)
+      if (roleMatch) {
+        pushText()
+        tokens.push({
+          type: 'roleMention',
+          id: roleMatch[1],
+          name: props.mentions.Roles[roleMatch[1]] ?? null,
+        })
+        i += roleMatch[0].length
+        continue
+      }
+    }
+
+    // User mentions <@userid> or <@!userid>
+    if (text[i] === '<' && text[i + 1] === '@') {
+      const userMatch = text.substring(i).match(/^<@!?(\d+)>/)
+      if (userMatch) {
+        pushText()
+        tokens.push({
+          type: 'userMention',
+          id: userMatch[1],
+          name: props.mentions.Users[userMatch[1]] ?? null,
+        })
+        i += userMatch[0].length
+        continue
+      }
+    }
+
+    // Channel mentions <#channelid>
+    if (text[i] === '<' && text[i + 1] === '#') {
+      const channelMatch = text.substring(i).match(/^<#(\d+)>/)
+      if (channelMatch) {
+        pushText()
+        tokens.push({
+          type: 'channelMention',
+          id: channelMatch[1],
+          name: props.mentions.Channels[channelMatch[1]] ?? null,
+        })
+        i += channelMatch[0].length
+        continue
+      }
+    }
+
+    // Masked links [text](url)
+    if (text[i] === '[') {
+      const maskedMatch = text.substring(i).match(/^\[([^\]]+)\]\((https?:\/\/[^\s)]+)\)/)
+      if (maskedMatch) {
+        pushText()
+        tokens.push({
+          type: 'link',
+          url: maskedMatch[2],
+          display: maskedMatch[1],
+        })
+        i += maskedMatch[0].length
+        continue
+      }
+    }
+
+    // URLs (https:// or http://)
+    if (text.substring(i, i + 8) === 'https://' || text.substring(i, i + 7) === 'http://') {
+      const urlMatch = text.substring(i).match(/^https?:\/\/[^\s<>)]+/)
+      if (urlMatch) {
+        pushText()
+        tokens.push({
+          type: 'link',
+          url: urlMatch[0],
+          display: urlMatch[0],
+        })
+        i += urlMatch[0].length
+        continue
+      }
+    }
+
     // Spoiler ||text||
     if (text.substr(i, 2) === '||') {
       pushText()
@@ -306,6 +400,27 @@ function isImage(filename: string): boolean {
             >
               {{ token.content }}
             </span>
+            <span
+              v-else-if="token.type === 'userMention'"
+              class="discord-mention discord-mention--user"
+            >@{{ token.name ?? 'Unknown User' }}</span>
+            <span
+              v-else-if="token.type === 'roleMention'"
+              class="discord-mention discord-mention--role"
+            >@{{ token.name ?? 'Unknown Role' }}</span>
+            <span
+              v-else-if="token.type === 'channelMention'"
+              class="discord-mention discord-mention--channel"
+            >#{{ token.name ?? 'Unknown Channel' }}</span>
+            <img
+              v-else-if="token.type === 'emote'" :alt="token.name"
+              :src="`https://cdn.discordapp.com/emojis/${token.id}.${token.animated ? 'gif' : 'webp'}`"
+              class="discord-emote"
+            >
+            <a
+              v-else-if="token.type === 'link'" :href="token.url" class="discord-link" rel="noopener noreferrer"
+              target="_blank"
+            >{{ token.display }}</a>
           </template>
         </h2>
 
@@ -328,6 +443,27 @@ function isImage(filename: string): boolean {
             >
               {{ token.content }}
             </span>
+            <span
+              v-else-if="token.type === 'userMention'"
+              class="discord-mention discord-mention--user"
+            >@{{ token.name ?? 'Unknown User' }}</span>
+            <span
+              v-else-if="token.type === 'roleMention'"
+              class="discord-mention discord-mention--role"
+            >@{{ token.name ?? 'Unknown Role' }}</span>
+            <span
+              v-else-if="token.type === 'channelMention'"
+              class="discord-mention discord-mention--channel"
+            >#{{ token.name ?? 'Unknown Channel' }}</span>
+            <img
+              v-else-if="token.type === 'emote'" :alt="token.name"
+              :src="`https://cdn.discordapp.com/emojis/${token.id}.${token.animated ? 'gif' : 'webp'}`"
+              class="discord-emote"
+            >
+            <a
+              v-else-if="token.type === 'link'" :href="token.url" class="discord-link" rel="noopener noreferrer"
+              target="_blank"
+            >{{ token.display }}</a>
           </template>
         </div>
 
@@ -350,6 +486,27 @@ function isImage(filename: string): boolean {
             >
               {{ token.content }}
             </span>
+            <span
+              v-else-if="token.type === 'userMention'"
+              class="discord-mention discord-mention--user"
+            >@{{ token.name ?? 'Unknown User' }}</span>
+            <span
+              v-else-if="token.type === 'roleMention'"
+              class="discord-mention discord-mention--role"
+            >@{{ token.name ?? 'Unknown Role' }}</span>
+            <span
+              v-else-if="token.type === 'channelMention'"
+              class="discord-mention discord-mention--channel"
+            >#{{ token.name ?? 'Unknown Channel' }}</span>
+            <img
+              v-else-if="token.type === 'emote'" :alt="token.name"
+              :src="`https://cdn.discordapp.com/emojis/${token.id}.${token.animated ? 'gif' : 'webp'}`"
+              class="discord-emote"
+            >
+            <a
+              v-else-if="token.type === 'link'" :href="token.url" class="discord-link" rel="noopener noreferrer"
+              target="_blank"
+            >{{ token.display }}</a>
           </template>
         </div>
 
@@ -376,6 +533,27 @@ function isImage(filename: string): boolean {
               >
                 {{ token.content }}
               </span>
+              <span
+                v-else-if="token.type === 'userMention'"
+                class="discord-mention discord-mention--user"
+              >@{{ token.name ?? 'Unknown User' }}</span>
+              <span
+                v-else-if="token.type === 'roleMention'"
+                class="discord-mention discord-mention--role"
+              >@{{ token.name ?? 'Unknown Role' }}</span>
+              <span
+                v-else-if="token.type === 'channelMention'"
+                class="discord-mention discord-mention--channel"
+              >#{{ token.name ?? 'Unknown Channel' }}</span>
+              <img
+                v-else-if="token.type === 'emote'" :alt="token.name"
+                :src="`https://cdn.discordapp.com/emojis/${token.id}.${token.animated ? 'gif' : 'webp'}`"
+                class="discord-emote"
+              >
+              <a
+                v-else-if="token.type === 'link'" :href="token.url" class="discord-link" rel="noopener noreferrer"
+                target="_blank"
+              >{{ token.display }}</a>
             </template>
           </li>
         </ul>
@@ -400,6 +578,27 @@ function isImage(filename: string): boolean {
               >
                 {{ token.content }}
               </span>
+              <span
+                v-else-if="token.type === 'userMention'"
+                class="discord-mention discord-mention--user"
+              >@{{ token.name ?? 'Unknown User' }}</span>
+              <span
+                v-else-if="token.type === 'roleMention'"
+                class="discord-mention discord-mention--role"
+              >@{{ token.name ?? 'Unknown Role' }}</span>
+              <span
+                v-else-if="token.type === 'channelMention'"
+                class="discord-mention discord-mention--channel"
+              >#{{ token.name ?? 'Unknown Channel' }}</span>
+              <img
+                v-else-if="token.type === 'emote'" :alt="token.name"
+                :src="`https://cdn.discordapp.com/emojis/${token.id}.${token.animated ? 'gif' : 'webp'}`"
+                class="discord-emote"
+              >
+              <a
+                v-else-if="token.type === 'link'" :href="token.url" class="discord-link" rel="noopener noreferrer"
+                target="_blank"
+              >{{ token.display }}</a>
             </template>
           </li>
         </ol>
@@ -592,16 +791,76 @@ function isImage(filename: string): boolean {
   text-decoration: underline;
 }
 
+/* Mentions */
+.discord-mention {
+  padding: 0 0.25rem;
+  border-radius: 4px;
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.discord-mention--user,
+.discord-mention--channel {
+  background: rgba(59, 130, 246, 0.15);
+  color: rgb(59, 130, 246);
+}
+
+.discord-mention--role {
+  background: rgba(139, 92, 246, 0.15);
+  color: rgb(139, 92, 246);
+}
+
+/* Custom emotes */
+.discord-emote {
+  display: inline;
+  height: 1.375em;
+  width: 1.375em;
+  object-fit: contain;
+  vertical-align: bottom;
+}
+
+/* Links */
+.discord-link {
+  color: var(--link);
+  text-decoration: none;
+}
+
+.discord-link:hover {
+  text-decoration: underline;
+}
+
 /* Dark theme adjustments */
 :root[data-theme='dark'] .discord-inline-code,
 :root[data-theme='dark'] .discord-codeblock {
   background: rgba(0, 0, 0, 0.3);
 }
 
+:root[data-theme='dark'] .discord-mention--user,
+:root[data-theme='dark'] .discord-mention--channel {
+  background: rgba(59, 130, 246, 0.2);
+  color: rgb(96, 165, 250);
+}
+
+:root[data-theme='dark'] .discord-mention--role {
+  background: rgba(139, 92, 246, 0.2);
+  color: rgb(167, 139, 250);
+}
+
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme='light']) .discord-inline-code,
   :root:not([data-theme='light']) .discord-codeblock {
     background: rgba(0, 0, 0, 0.3);
+  }
+
+  :root:not([data-theme='light']) .discord-mention--user,
+  :root:not([data-theme='light']) .discord-mention--channel {
+    background: rgba(59, 130, 246, 0.2);
+    color: rgb(96, 165, 250);
+  }
+
+  :root:not([data-theme='light']) .discord-mention--role {
+    background: rgba(139, 92, 246, 0.2);
+    color: rgb(167, 139, 250);
   }
 }
 
