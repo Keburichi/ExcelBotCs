@@ -20,22 +20,56 @@ A `compose.yaml` is included in the repository and starts the application, Mongo
 Create a `.env` file:
 
 ```bash
-# MongoDB
+# ── MongoDB ────────────────────────────────────────────────────────────────────
 MONGODB_CONNECTION_STRING=mongodb://root:secret@mongo:27017/
 MONGO_INITDB_ROOT_USERNAME=root
 MONGO_INITDB_ROOT_PASSWORD=secret
 
-# mongo-express (database UI at :8081)
+# ── mongo-express (database UI at :8081) ──────────────────────────────────────
 ME_CONFIG_MONGODB_URL=mongodb://root:secret@mongo:27017/
 ME_CONFIG_BASICAUTH_USERNAME=admin
 ME_CONFIG_BASICAUTH_PASSWORD=secret
 
-# Application
-DATABASE_NAME=ExcelFC
-DISCORD_TOKEN=your_bot_token
-LOTTERY_CHANNEL=channel_id
-ANNOUNCEMENT_CHANNEL=channel_id
+# ── Database ───────────────────────────────────────────────────────────────────
+DATABASE__CONNECTIONSTRING=mongodb://root:secret@mongo:27017/
+DATABASE__DATABASENAME=ExcelFC
+
+# ── Discord OAuth ──────────────────────────────────────────────────────────────
+OAUTHPROVIDERS__PROVIDERS__DISCORD__CLIENTID=your_discord_client_id
+OAUTHPROVIDERS__PROVIDERS__DISCORD__CLIENTSECRET=your_discord_client_secret
+OAUTHPROVIDERS__PROVIDERS__DISCORD__CALLBACK=/callback
+
+# ── JWT (set to your public-facing URL) ───────────────────────────────────────
+JWT__ISSUER=https://your-domain.com
+JWT__AUDIENCE=https://your-domain.com
+
+# ── Discord Bot ────────────────────────────────────────────────────────────────
+DISCORDBOT__TOKEN=your_bot_token
+DISCORDBOT__GUILDID=your_guild_id
+DISCORDBOT__LOTTERYCHANNEL=channel_id
+DISCORDBOT__ANNOUNCEMENTCHANNEL=channel_id
+DISCORDBOT__EVENTSCHANNEL=channel_id
+DISCORDBOT__UPCOMINGROSTERECHANNEL=channel_id
+DISCORDBOT__HALLOFCLEARCHANNEL=channel_id
+DISCORDBOT__LOGCHANNEL=0
+DISCORDBOT__ADMINROLEIDS__0=admin_role_id
+DISCORDBOT__MEMBERROLEIDS__0=member_role_id
+
+# ── Lodestone ──────────────────────────────────────────────────────────────────
+LODESTONE__FCID=your_fc_lodestone_id
+# LODESTONE__BASEURL=https://na.finalfantasyxiv.com  # default
+# LODESTONE__REQUESTDELAYMS=1000                      # default
+
+# ── FFLogs ─────────────────────────────────────────────────────────────────────
+FFLOGS__CLIENTID=your_fflogs_client_id
+FFLOGS__CLIENTSECRET=your_fflogs_client_secret
+# FFLOGS__TOKENURL=https://www.fflogs.com/oauth/token  # default
+# FFLOGS__APIURL=https://www.fflogs.com/api/v2/client  # default
+# FFLOGS__MEMBERSPERWAVE=10                             # default
+# FFLOGS__DELAYBETWEENREQUESTSMS=500                   # default
 ```
+
+All `SECTION__KEY` variables are loaded directly into the container via `env_file` and are picked up automatically by ASP.NET Core's configuration system (`__` maps to `:` as the section separator).
 
 Then start the stack:
 
@@ -55,29 +89,65 @@ image: ghcr.io/your-org/excelbotcs:master
 
 ## Configuration Reference
 
-All settings can be provided via environment variables using `__` as the section separator (e.g. `Database__ConnectionString`), or via `appsettings.json`.
+All settings can be provided via environment variables using `__` as the section separator (e.g. `Database__ConnectionString`), or via `appsettings.json`. Values marked as optional have sensible defaults and can be omitted.
 
-| Variable | Description |
-|---|---|
-| `Database__ConnectionString` | MongoDB connection string |
-| `Database__DatabaseName` | MongoDB database name |
-| `OAuthProviders__Providers__Discord__ClientId` | Discord OAuth application client ID |
-| `OAuthProviders__Providers__Discord__ClientSecret` | Discord OAuth application client secret |
-| `OAuthProviders__Providers__Discord__Callback` | OAuth redirect path (use `/callback`) |
-| `Jwt__Issuer` | Public base URL of the application |
-| `Jwt__Audience` | Public base URL of the application |
-| `DiscordBot__Token` | Discord bot token |
-| `DiscordBot__GuildId` | Discord server (guild) ID |
-| `DiscordBot__LotteryChannel` | Channel ID for lottery announcements |
-| `DiscordBot__AnnouncementChannel` | Channel ID for general announcements |
-| `DiscordBot__EventsChannel` | Channel ID for event posts |
-| `DiscordBot__UpcomingRosterChannel` | Channel ID for roster posts |
-| `DiscordBot__HallOfClearsChannel` | Channel ID for clear announcements |
-| `DiscordBot__AdminRoleIds__0` | Discord role ID(s) granted admin access |
-| `DiscordBot__MemberRoleIds__0` | Discord role ID(s) granted member access |
-| `Lodestone__FCId` | Lodestone Free Company ID for roster sync |
+**Database**
+
+| Variable | Required | Description |
+|---|---|---|
+| `Database__ConnectionString` | Yes | MongoDB connection string |
+| `Database__DatabaseName` | Yes | MongoDB database name |
+
+**Discord OAuth**
+
+| Variable | Required | Description |
+|---|---|---|
+| `OAuthProviders__Providers__Discord__ClientId` | Yes | Discord OAuth application client ID |
+| `OAuthProviders__Providers__Discord__ClientSecret` | Yes | Discord OAuth application client secret |
+| `OAuthProviders__Providers__Discord__Callback` | Yes | OAuth redirect path — use `/callback` |
+
+**JWT**
+
+| Variable | Required | Description |
+|---|---|---|
+| `Jwt__Issuer` | Yes | Public base URL of the application (must match the Discord redirect URI host) |
+| `Jwt__Audience` | Yes | Public base URL of the application |
 
 RSA keys for JWT signing are generated automatically on first start and stored in MongoDB. No manual key management is needed.
+
+**Discord Bot**
+
+| Variable | Required | Description |
+|---|---|---|
+| `DiscordBot__Token` | Yes | Discord bot token |
+| `DiscordBot__GuildId` | Yes | Discord server (guild) ID |
+| `DiscordBot__LotteryChannel` | Yes | Channel ID for lottery announcements |
+| `DiscordBot__AnnouncementChannel` | Yes | Channel ID for general announcements |
+| `DiscordBot__EventsChannel` | Yes | Channel ID for event posts |
+| `DiscordBot__UpcomingRosterChannel` | Yes | Channel ID for roster posts |
+| `DiscordBot__HallOfClearsChannel` | Yes | Channel ID for clear announcements |
+| `DiscordBot__LogChannel` | Yes | Channel ID for bot log messages (set to `0` to disable) |
+| `DiscordBot__AdminRoleIds__0` | No | Discord role ID(s) granted admin access |
+| `DiscordBot__MemberRoleIds__0` | No | Discord role ID(s) granted member access |
+
+**Lodestone**
+
+| Variable | Required | Default | Description |
+|---|---|---|---|
+| `Lodestone__FCId` | Yes | — | Lodestone Free Company ID for roster sync |
+| `Lodestone__BaseUrl` | No | `https://na.finalfantasyxiv.com` | Lodestone base URL (change for other regions) |
+| `Lodestone__RequestDelayMs` | No | `1000` | Delay between Lodestone HTTP requests in ms |
+
+**FFLogs**
+
+| Variable | Required | Default | Description |
+|---|---|---|---|
+| `FFLogs__ClientId` | Yes | — | FFLogs OAuth client ID |
+| `FFLogs__ClientSecret` | Yes | — | FFLogs OAuth client secret |
+| `FFLogs__TokenUrl` | No | `https://www.fflogs.com/oauth/token` | FFLogs token endpoint |
+| `FFLogs__ApiUrl` | No | `https://www.fflogs.com/api/v2/client` | FFLogs GraphQL API endpoint |
+| `FFLogs__MembersPerWave` | No | `10` | Members to sync per batch |
+| `FFLogs__DelayBetweenRequestsMs` | No | `500` | Delay between FFLogs requests in ms |
 
 ---
 
