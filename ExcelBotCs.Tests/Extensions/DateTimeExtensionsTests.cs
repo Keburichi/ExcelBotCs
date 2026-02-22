@@ -79,13 +79,18 @@ public class DateTimeExtensionsTests
     }
 
     [Test]
-    public void MinDateTime_ShouldThrowArgumentOutOfRangeException()
+    public void MinDateTime_ShouldHandleMinValue()
     {
         // Arrange
-        var minDateTime = DateTime.MinValue;
+        // DateTime.MinValue with Kind=Unspecified is valid in UTC (equals DateTimeOffset.MinValue)
+        var minDateTime = DateTime.SpecifyKind(DateTime.MinValue, DateTimeKind.Utc);
 
-        // Act & Assert - Should throw ArgumentOutOfRangeException as DateTimeOffset cannot represent DateTime.MinValue
-        Assert.Throws<ArgumentOutOfRangeException>(() => minDateTime.ToShortDiscordTime());
+        // Act
+        var result = minDateTime.ToShortDiscordTime();
+
+        // Assert
+        Assert.That(result, Does.StartWith("<t:"));
+        Assert.That(result, Does.EndWith(":t>"));
     }
 
     [Test]
