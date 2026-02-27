@@ -1,5 +1,4 @@
 using System.Globalization;
-using System.Security.Claims;
 using System.Text;
 using AspNet.Security.OAuth.Discord;
 using ExcelBotCs.Models.Config;
@@ -7,7 +6,6 @@ using ExcelBotCs.Models.Discord;
 using ExcelBotCs.Services;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
-using Microsoft.AspNetCore.Authentication.OAuth;
 using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
 
@@ -49,16 +47,6 @@ public static class AuthenticationExtensions
             options.Scope.Add("guilds");
             options.Scope.Add("guilds.members.read");
 
-            options.Events = new OAuthEvents
-            {
-                OnTicketReceived = context =>
-                {
-                    Console.WriteLine("Ticket received from Discord");
-                    var claims = context.Principal?.Claims ?? Array.Empty<Claim>();
-                    foreach (var claim in claims) Console.WriteLine($"Claim: {claim.Type} = {claim.Value}");
-                    return Task.CompletedTask;
-                }
-            };
         });
 
         auth.AddCookie(options =>

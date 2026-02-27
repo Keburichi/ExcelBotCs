@@ -24,13 +24,13 @@ public class Database
 		try
 		{
 			var result = client.GetDatabase("admin").RunCommand<BsonDocument>(new BsonDocument("ping", 1));
-			Console.WriteLine("Successfully connected to Mongodb");
+			logger.LogInformation("Successfully connected to MongoDB");
 
 			_database = client.GetDatabase(options.Value.DatabaseName);
 		}
 		catch (Exception ex)
 		{
-			Console.WriteLine(ex.Message);
+			logger.LogError(ex, "Failed to connect to MongoDB");
 			throw;
 		}
 	}

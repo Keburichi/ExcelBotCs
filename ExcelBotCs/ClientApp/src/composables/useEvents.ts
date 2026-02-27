@@ -52,8 +52,8 @@ export function useEvents() {
     try {
       events.value = await EventsApi.list()
     }
-    catch (e: any) {
-      error.value = e.message || 'Failed'
+    catch (e: unknown) {
+      error.value = e instanceof Error ? e.message : 'Failed'
     }
     finally {
       loading.value = false
@@ -66,8 +66,8 @@ export function useEvents() {
       events.value.unshift(created)
       Object.assign(newEvent, { Name: '', PlayerName: '', Subbed: false, LodestoneId: '' })
     }
-    catch (e: any) {
-      error.value = e.message || 'Failed to create event'
+    catch (e: unknown) {
+      error.value = e instanceof Error ? e.message : 'Failed to create event'
     }
   }
 
@@ -84,8 +84,8 @@ export function useEvents() {
     try {
       return await EventsApi.get(id)
     }
-    catch (e: any) {
-      error.value = e.message || 'Failed to get event'
+    catch (e: unknown) {
+      error.value = e instanceof Error ? e.message : 'Failed to get event'
       return null
     }
   }
@@ -100,8 +100,8 @@ export function useEvents() {
         events.value[i] = { ...editBuffer, Id: editId.value }
       editId.value = null
     }
-    catch (e: any) {
-      error.value = e.message || 'Failed to save event'
+    catch (e: unknown) {
+      error.value = e instanceof Error ? e.message : 'Failed to save event'
     }
   }
 
@@ -113,8 +113,8 @@ export function useEvents() {
       await EventsApi.delete(event.Id)
       events.value = events.value.filter(x => x.Id !== event.Id)
     }
-    catch (e: any) {
-      error.value = e.message || 'Failed to delete event'
+    catch (e: unknown) {
+      error.value = e instanceof Error ? e.message : 'Failed to delete event'
     }
   }
 
@@ -125,8 +125,8 @@ export function useEvents() {
     try {
       await EventsApi.signUp(event, role)
     }
-    catch (e: any) {
-      error.value = e.message || 'Failed to signup'
+    catch (e: unknown) {
+      error.value = e instanceof Error ? e.message : 'Failed to signup'
     }
   }
 
@@ -136,8 +136,8 @@ export function useEvents() {
       await EventsApi.signUpForOccurrence(eventId, occurrenceId, roles)
       await load() // Reload events to get updated data
     }
-    catch (e: any) {
-      error.value = e.message || 'Failed to sign up for occurrence'
+    catch (e: unknown) {
+      error.value = e instanceof Error ? e.message : 'Failed to sign up for occurrence'
     }
   }
 
@@ -146,8 +146,8 @@ export function useEvents() {
       await EventsApi.cancelSignup(eventId, occurrenceId)
       await load()
     }
-    catch (e: any) {
-      error.value = e.message || 'Failed to cancel signup'
+    catch (e: unknown) {
+      error.value = e instanceof Error ? e.message : 'Failed to cancel signup'
     }
   }
 
@@ -156,8 +156,8 @@ export function useEvents() {
       await EventsApi.selectParticipants(eventId, occurrenceId, participants)
       await load()
     }
-    catch (e: any) {
-      error.value = e.message || 'Failed to select participants'
+    catch (e: unknown) {
+      error.value = e instanceof Error ? e.message : 'Failed to select participants'
     }
   }
 
@@ -166,8 +166,8 @@ export function useEvents() {
       await EventsApi.removeParticipant(eventId, occurrenceId, userId)
       await load()
     }
-    catch (e: any) {
-      error.value = e.message || 'Failed to remove participant'
+    catch (e: unknown) {
+      error.value = e instanceof Error ? e.message : 'Failed to remove participant'
     }
   }
 
@@ -176,8 +176,8 @@ export function useEvents() {
       await EventsApi.updateOccurrenceStatus(eventId, occurrenceId, status)
       await load()
     }
-    catch (e: any) {
-      error.value = e.message || 'Failed to update occurrence status'
+    catch (e: unknown) {
+      error.value = e instanceof Error ? e.message : 'Failed to update occurrence status'
       throw e // Re-throw so callers can handle it
     }
   }
@@ -187,8 +187,8 @@ export function useEvents() {
       await EventsApi.cancelOccurrence(eventId, occurrenceId)
       await load()
     }
-    catch (e: any) {
-      error.value = e.message || 'Failed to cancel occurrence'
+    catch (e: unknown) {
+      error.value = e instanceof Error ? e.message : 'Failed to cancel occurrence'
     }
   }
 
@@ -238,8 +238,8 @@ export function useEvents() {
     try {
       archivedEvents.value = await EventsApi.listArchived(searchParams)
     }
-    catch (e: any) {
-      error.value = e.message || 'Failed to load archived events'
+    catch (e: unknown) {
+      error.value = e instanceof Error ? e.message : 'Failed to load archived events'
     }
     finally {
       archiveLoading.value = false
@@ -253,8 +253,8 @@ export function useEvents() {
       events.value = events.value.filter(e => e.Id !== eventId)
       return true
     }
-    catch (e: any) {
-      error.value = e.message || 'Failed to archive event'
+    catch (e: unknown) {
+      error.value = e instanceof Error ? e.message : 'Failed to archive event'
       return false
     }
   }
@@ -268,8 +268,8 @@ export function useEvents() {
       await load()
       return true
     }
-    catch (e: any) {
-      error.value = e.message || 'Failed to restore event'
+    catch (e: unknown) {
+      error.value = e instanceof Error ? e.message : 'Failed to restore event'
       return false
     }
   }
@@ -284,8 +284,8 @@ export function useEvents() {
       }
       return updatedEvent
     }
-    catch (e: any) {
-      error.value = e.message || 'Failed to extend event'
+    catch (e: unknown) {
+      error.value = e instanceof Error ? e.message : 'Failed to extend event'
       return null
     }
   }

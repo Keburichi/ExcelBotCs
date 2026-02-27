@@ -80,20 +80,4 @@ public class DiscordController : ControllerBase
         return Results.Redirect("/");
     }
 
-    [Route("callback")]
-    [HttpPost]
-    public IActionResult AuthCallback()
-    {
-        return Ok("Hello wold");
-    }
-
-    [Route("callback")]
-    [HttpGet]
-    public IActionResult GetCallback()
-    {
-        // Excract code from query string
-        Request.Query.TryGetValue("code", out var code);
-
-        return Ok("Hello wold");
-    }
 }

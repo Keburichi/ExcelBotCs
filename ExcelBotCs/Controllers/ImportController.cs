@@ -13,21 +13,20 @@ namespace ExcelBotCs.Controllers;
 [ApiController]
 [AdminAuth]
 [Route("api/[controller]")]
-public class ImportController : ControllerBase
+public class ImportController : AuthorizedController
 {
     private readonly IWebHostEnvironment _env;
     private readonly IFightService _fightService;
-    private readonly ILogger<ImportController> _logger;
     private readonly ImportService _importService;
     private readonly LodestoneService _lodestoneService;
     private readonly IOptions<DiscordBotOptions> _discordBotOptions;
 
     public ImportController(IWebHostEnvironment env, IFightService fightService, ILogger<ImportController> logger,
         ImportService importService, LodestoneService lodestoneService, IOptions<DiscordBotOptions> discordBotOptions)
+        : base(logger)
     {
         _env = env;
         _fightService = fightService;
-        _logger = logger;
         _importService = importService;
         _lodestoneService = lodestoneService;
         _discordBotOptions = discordBotOptions;
@@ -57,7 +56,7 @@ public class ImportController : ControllerBase
             {
                 if (!System.IO.File.Exists(file))
                 {
-                    _logger.LogWarning("Import file not found: {File}", file);
+                    Logger.LogWarning("Import file not found: {File}", file);
                     continue;
                 }
 
@@ -75,7 +74,7 @@ public class ImportController : ControllerBase
 
                     if (!Enum.TryParse<FightType>(item.type, true, out var type))
                     {
-                        _logger.LogWarning("Unknown fight type '{Type}' in file {File} for name {Name}", item.type,
+                        Logger.LogWarning("Unknown fight type '{Type}' in file {File} for name {Name}", item.type,
                             file, item.name);
                         continue;
                     }
@@ -101,7 +100,7 @@ public class ImportController : ControllerBase
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Failed to import fights");
+            Logger.LogError(ex, "Failed to import fights");
             return Problem(title: "Failed to import fights", detail: ex.Message);
         }
     }

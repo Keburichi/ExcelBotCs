@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import type { MentionData } from '@/app/announcements.types'
 import { computed, ref } from 'vue'
+import TokenRenderer from '@/components/TokenRenderer.vue'
 
 interface MessageAttachment {
   Name: string
@@ -90,7 +91,7 @@ const parsedContent = computed(() => {
   let codeBlockLang = ''
   let listItems: any[] = []
   let listType: 'ul' | 'ol' | null = null
-  const spoilerIndex = 0
+  let spoilerIndex = 0
 
   const flushList = () => {
     if (listItems.length > 0) {
@@ -139,6 +140,7 @@ const parsedContent = computed(() => {
     if (headlineMatch) {
       flushList()
       const parsed = parseInlineFormatting(headlineMatch[1], spoilerIndex)
+      spoilerIndex += parsed.filter((t: any) => t.type === 'spoiler').length
       elements.push({ type: 'headline', content: parsed })
       continue
     }
@@ -148,6 +150,7 @@ const parsedContent = computed(() => {
     if (smallTextMatch) {
       flushList()
       const parsed = parseInlineFormatting(smallTextMatch[1], spoilerIndex)
+      spoilerIndex += parsed.filter((t: any) => t.type === 'spoiler').length
       elements.push({ type: 'small', content: parsed })
       continue
     }
@@ -159,7 +162,9 @@ const parsedContent = computed(() => {
         flushList()
         listType = 'ul'
       }
-      listItems.push(parseInlineFormatting(unorderedMatch[1], spoilerIndex))
+      const parsed = parseInlineFormatting(unorderedMatch[1], spoilerIndex)
+      spoilerIndex += parsed.filter((t: any) => t.type === 'spoiler').length
+      listItems.push(parsed)
       continue
     }
 
@@ -170,7 +175,9 @@ const parsedContent = computed(() => {
         flushList()
         listType = 'ol'
       }
-      listItems.push(parseInlineFormatting(orderedMatch[1], spoilerIndex))
+      const parsed = parseInlineFormatting(orderedMatch[1], spoilerIndex)
+      spoilerIndex += parsed.filter((t: any) => t.type === 'spoiler').length
+      listItems.push(parsed)
       continue
     }
 
@@ -179,6 +186,7 @@ const parsedContent = computed(() => {
 
     // Parse line with inline formatting
     const parsed = parseInlineFormatting(line, spoilerIndex)
+    spoilerIndex += parsed.filter((t: any) => t.type === 'spoiler').length
     elements.push({ type: 'line', content: parsed })
   }
 
@@ -383,131 +391,26 @@ function isImage(filename: string): boolean {
       <template v-for="(element, idx) in parsedContent" :key="idx">
         <!-- Headline -->
         <h2 v-if="element.type === 'headline'" class="discord-headline">
-          <template v-for="(token, tokenIdx) in element.content" :key="tokenIdx">
-            <span v-if="token.type === 'text'">{{ token.content }}</span>
-            <strong v-else-if="token.type === 'bold'">{{ token.content }}</strong>
-            <em v-else-if="token.type === 'italic'">{{ token.content }}</em>
-            <code v-else-if="token.type === 'code'" class="discord-inline-code">{{ token.content }}</code>
-            <span v-else-if="token.type === 'timestamp'" class="discord-timestamp">{{ formatTimestamp(token.timestamp, token.format) }}</span>
-            <span
-              v-else-if="token.type === 'spoiler'"
-              class="discord-spoiler"
-              :class="{ revealed: revealedSpoilers.has(token.index) }"
-              role="button"
-              tabindex="0"
-              @click="toggleSpoiler(token.index)"
-              @keydown.enter.space.prevent="toggleSpoiler(token.index)"
-            >
-              {{ token.content }}
-            </span>
-            <span
-              v-else-if="token.type === 'userMention'"
-              class="discord-mention discord-mention--user"
-            >@{{ token.name ?? 'Unknown User' }}</span>
-            <span
-              v-else-if="token.type === 'roleMention'"
-              class="discord-mention discord-mention--role"
-            >@{{ token.name ?? 'Unknown Role' }}</span>
-            <span
-              v-else-if="token.type === 'channelMention'"
-              class="discord-mention discord-mention--channel"
-            >#{{ token.name ?? 'Unknown Channel' }}</span>
-            <img
-              v-else-if="token.type === 'emote'" :alt="token.name"
-              :src="`https://cdn.discordapp.com/emojis/${token.id}.${token.animated ? 'gif' : 'webp'}`"
-              class="discord-emote"
-            >
-            <a
-              v-else-if="token.type === 'link'" :href="token.url" class="discord-link" rel="noopener noreferrer"
-              target="_blank"
-            >{{ token.display }}</a>
-          </template>
+          <TokenRenderer
+            :format-timestamp="formatTimestamp" :revealed-spoilers="revealedSpoilers"
+            :toggle-spoiler="toggleSpoiler" :tokens="element.content"
+          />
         </h2>
 
         <!-- Small text -->
         <div v-else-if="element.type === 'small'" class="discord-small">
-          <template v-for="(token, tokenIdx) in element.content" :key="tokenIdx">
-            <span v-if="token.type === 'text'">{{ token.content }}</span>
-            <strong v-else-if="token.type === 'bold'">{{ token.content }}</strong>
-            <em v-else-if="token.type === 'italic'">{{ token.content }}</em>
-            <code v-else-if="token.type === 'code'" class="discord-inline-code">{{ token.content }}</code>
-            <span v-else-if="token.type === 'timestamp'" class="discord-timestamp">{{ formatTimestamp(token.timestamp, token.format) }}</span>
-            <span
-              v-else-if="token.type === 'spoiler'"
-              class="discord-spoiler"
-              :class="{ revealed: revealedSpoilers.has(token.index) }"
-              role="button"
-              tabindex="0"
-              @click="toggleSpoiler(token.index)"
-              @keydown.enter.space.prevent="toggleSpoiler(token.index)"
-            >
-              {{ token.content }}
-            </span>
-            <span
-              v-else-if="token.type === 'userMention'"
-              class="discord-mention discord-mention--user"
-            >@{{ token.name ?? 'Unknown User' }}</span>
-            <span
-              v-else-if="token.type === 'roleMention'"
-              class="discord-mention discord-mention--role"
-            >@{{ token.name ?? 'Unknown Role' }}</span>
-            <span
-              v-else-if="token.type === 'channelMention'"
-              class="discord-mention discord-mention--channel"
-            >#{{ token.name ?? 'Unknown Channel' }}</span>
-            <img
-              v-else-if="token.type === 'emote'" :alt="token.name"
-              :src="`https://cdn.discordapp.com/emojis/${token.id}.${token.animated ? 'gif' : 'webp'}`"
-              class="discord-emote"
-            >
-            <a
-              v-else-if="token.type === 'link'" :href="token.url" class="discord-link" rel="noopener noreferrer"
-              target="_blank"
-            >{{ token.display }}</a>
-          </template>
+          <TokenRenderer
+            :format-timestamp="formatTimestamp" :revealed-spoilers="revealedSpoilers"
+            :toggle-spoiler="toggleSpoiler" :tokens="element.content"
+          />
         </div>
 
         <!-- Line with inline formatting -->
         <div v-else-if="element.type === 'line'" class="discord-line">
-          <template v-for="(token, tokenIdx) in element.content" :key="tokenIdx">
-            <span v-if="token.type === 'text'">{{ token.content }}</span>
-            <strong v-else-if="token.type === 'bold'">{{ token.content }}</strong>
-            <em v-else-if="token.type === 'italic'">{{ token.content }}</em>
-            <code v-else-if="token.type === 'code'" class="discord-inline-code">{{ token.content }}</code>
-            <span v-else-if="token.type === 'timestamp'" class="discord-timestamp">{{ formatTimestamp(token.timestamp, token.format) }}</span>
-            <span
-              v-else-if="token.type === 'spoiler'"
-              class="discord-spoiler"
-              :class="{ revealed: revealedSpoilers.has(token.index) }"
-              role="button"
-              tabindex="0"
-              @click="toggleSpoiler(token.index)"
-              @keydown.enter.space.prevent="toggleSpoiler(token.index)"
-            >
-              {{ token.content }}
-            </span>
-            <span
-              v-else-if="token.type === 'userMention'"
-              class="discord-mention discord-mention--user"
-            >@{{ token.name ?? 'Unknown User' }}</span>
-            <span
-              v-else-if="token.type === 'roleMention'"
-              class="discord-mention discord-mention--role"
-            >@{{ token.name ?? 'Unknown Role' }}</span>
-            <span
-              v-else-if="token.type === 'channelMention'"
-              class="discord-mention discord-mention--channel"
-            >#{{ token.name ?? 'Unknown Channel' }}</span>
-            <img
-              v-else-if="token.type === 'emote'" :alt="token.name"
-              :src="`https://cdn.discordapp.com/emojis/${token.id}.${token.animated ? 'gif' : 'webp'}`"
-              class="discord-emote"
-            >
-            <a
-              v-else-if="token.type === 'link'" :href="token.url" class="discord-link" rel="noopener noreferrer"
-              target="_blank"
-            >{{ token.display }}</a>
-          </template>
+          <TokenRenderer
+            :format-timestamp="formatTimestamp" :revealed-spoilers="revealedSpoilers"
+            :toggle-spoiler="toggleSpoiler" :tokens="element.content"
+          />
         </div>
 
         <!-- Code block -->
@@ -516,90 +419,20 @@ function isImage(filename: string): boolean {
         <!-- Unordered list -->
         <ul v-else-if="element.type === 'ul'" class="discord-list">
           <li v-for="(item, itemIdx) in element.items" :key="itemIdx">
-            <template v-for="(token, tokenIdx) in item" :key="tokenIdx">
-              <span v-if="token.type === 'text'">{{ token.content }}</span>
-              <strong v-else-if="token.type === 'bold'">{{ token.content }}</strong>
-              <em v-else-if="token.type === 'italic'">{{ token.content }}</em>
-              <code v-else-if="token.type === 'code'" class="discord-inline-code">{{ token.content }}</code>
-              <span v-else-if="token.type === 'timestamp'" class="discord-timestamp">{{ formatTimestamp(token.timestamp, token.format) }}</span>
-              <span
-                v-else-if="token.type === 'spoiler'"
-                class="discord-spoiler"
-                :class="{ revealed: revealedSpoilers.has(token.index) }"
-                role="button"
-                tabindex="0"
-                @click="toggleSpoiler(token.index)"
-                @keydown.enter.space.prevent="toggleSpoiler(token.index)"
-              >
-                {{ token.content }}
-              </span>
-              <span
-                v-else-if="token.type === 'userMention'"
-                class="discord-mention discord-mention--user"
-              >@{{ token.name ?? 'Unknown User' }}</span>
-              <span
-                v-else-if="token.type === 'roleMention'"
-                class="discord-mention discord-mention--role"
-              >@{{ token.name ?? 'Unknown Role' }}</span>
-              <span
-                v-else-if="token.type === 'channelMention'"
-                class="discord-mention discord-mention--channel"
-              >#{{ token.name ?? 'Unknown Channel' }}</span>
-              <img
-                v-else-if="token.type === 'emote'" :alt="token.name"
-                :src="`https://cdn.discordapp.com/emojis/${token.id}.${token.animated ? 'gif' : 'webp'}`"
-                class="discord-emote"
-              >
-              <a
-                v-else-if="token.type === 'link'" :href="token.url" class="discord-link" rel="noopener noreferrer"
-                target="_blank"
-              >{{ token.display }}</a>
-            </template>
+            <TokenRenderer
+              :format-timestamp="formatTimestamp" :revealed-spoilers="revealedSpoilers" :toggle-spoiler="toggleSpoiler"
+              :tokens="item"
+            />
           </li>
         </ul>
 
         <!-- Ordered list -->
         <ol v-else-if="element.type === 'ol'" class="discord-list">
           <li v-for="(item, itemIdx) in element.items" :key="itemIdx">
-            <template v-for="(token, tokenIdx) in item" :key="tokenIdx">
-              <span v-if="token.type === 'text'">{{ token.content }}</span>
-              <strong v-else-if="token.type === 'bold'">{{ token.content }}</strong>
-              <em v-else-if="token.type === 'italic'">{{ token.content }}</em>
-              <code v-else-if="token.type === 'code'" class="discord-inline-code">{{ token.content }}</code>
-              <span v-else-if="token.type === 'timestamp'" class="discord-timestamp">{{ formatTimestamp(token.timestamp, token.format) }}</span>
-              <span
-                v-else-if="token.type === 'spoiler'"
-                class="discord-spoiler"
-                :class="{ revealed: revealedSpoilers.has(token.index) }"
-                role="button"
-                tabindex="0"
-                @click="toggleSpoiler(token.index)"
-                @keydown.enter.space.prevent="toggleSpoiler(token.index)"
-              >
-                {{ token.content }}
-              </span>
-              <span
-                v-else-if="token.type === 'userMention'"
-                class="discord-mention discord-mention--user"
-              >@{{ token.name ?? 'Unknown User' }}</span>
-              <span
-                v-else-if="token.type === 'roleMention'"
-                class="discord-mention discord-mention--role"
-              >@{{ token.name ?? 'Unknown Role' }}</span>
-              <span
-                v-else-if="token.type === 'channelMention'"
-                class="discord-mention discord-mention--channel"
-              >#{{ token.name ?? 'Unknown Channel' }}</span>
-              <img
-                v-else-if="token.type === 'emote'" :alt="token.name"
-                :src="`https://cdn.discordapp.com/emojis/${token.id}.${token.animated ? 'gif' : 'webp'}`"
-                class="discord-emote"
-              >
-              <a
-                v-else-if="token.type === 'link'" :href="token.url" class="discord-link" rel="noopener noreferrer"
-                target="_blank"
-              >{{ token.display }}</a>
-            </template>
+            <TokenRenderer
+              :format-timestamp="formatTimestamp" :revealed-spoilers="revealedSpoilers" :toggle-spoiler="toggleSpoiler"
+              :tokens="item"
+            />
           </li>
         </ol>
       </template>

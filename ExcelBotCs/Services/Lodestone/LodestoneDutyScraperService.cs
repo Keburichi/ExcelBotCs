@@ -85,7 +85,7 @@ public class LodestoneDutyScraperService
         {
             var config = Configuration.Default;
             var context = BrowsingContext.New(config);
-            var document = context.OpenAsync(req => req.Content(html)).Result;
+            var document = Task.Run(() => context.OpenAsync(req => req.Content(html))).GetAwaiter().GetResult();
 
             // Find all duty links - they're in anchors with specific class or pattern
             var dutyLinks = document.QuerySelectorAll("a[href*='/lodestone/playguide/db/duty/']");

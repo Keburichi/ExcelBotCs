@@ -13,6 +13,7 @@ using Ical.Net;
 using Ical.Net.CalendarComponents;
 using Ical.Net.DataTypes;
 using Ical.Net.Serialization;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using DbEventSignup = ExcelBotCs.Models.Database.EventSignup;
 
@@ -69,13 +70,6 @@ public class EventsController : AuthorizedController, IBaseCrudController<EventD
     public async Task<ActionResult<List<EventDto>>> GetArchivedEvents(
         [FromQuery] ArchiveSearchParams? searchParams = null)
     {
-        var user = await _currentMemberAccessor.GetCurrentAsync();
-        if (user is null)
-            return BadRequest("User not found for the current user");
-
-        if (!user.IsAdmin.GetValueOrDefault())
-            return Forbid();
-
         var entities = await _eventService.GetArchivedAsync(searchParams);
         var dtos = entities.Select(EventMapper.ToDto).ToList();
 
@@ -90,9 +84,6 @@ public class EventsController : AuthorizedController, IBaseCrudController<EventD
         if (user is null)
             return BadRequest("User not found for the current user");
 
-        if (!user.IsAdmin.GetValueOrDefault())
-            return Forbid();
-
         var (success, errorMessage) = await _eventService.ArchiveAsync(id, user.DiscordId);
 
         if (!success)
@@ -105,13 +96,6 @@ public class EventsController : AuthorizedController, IBaseCrudController<EventD
     [AdminAuth]
     public async Task<IActionResult> RestoreEvent(string id)
     {
-        var user = await _currentMemberAccessor.GetCurrentAsync();
-        if (user is null)
-            return BadRequest("User not found for the current user");
-
-        if (!user.IsAdmin.GetValueOrDefault())
-            return Forbid();
-
         var (success, errorMessage) = await _eventService.RestoreAsync(id);
 
         if (!success)
@@ -124,13 +108,6 @@ public class EventsController : AuthorizedController, IBaseCrudController<EventD
     [AdminAuth]
     public async Task<ActionResult<EventDto>> ExtendEvent(string id, [FromBody] ExtendEventRequest request)
     {
-        var user = await _currentMemberAccessor.GetCurrentAsync();
-        if (user is null)
-            return BadRequest("User not found for the current user");
-
-        if (!user.IsAdmin.GetValueOrDefault())
-            return Forbid();
-
         var (updatedEvent, errorMessage) = await _eventService.ExtendEventAsync(id, request.Count);
 
         if (updatedEvent == null)
@@ -348,13 +325,6 @@ public class EventsController : AuthorizedController, IBaseCrudController<EventD
     public async Task<IActionResult> SelectParticipants(string eventId, string occurrenceId,
         [FromBody] List<EventParticipant> participants)
     {
-        var user = await _currentMemberAccessor.GetCurrentAsync();
-        if (user is null)
-            return BadRequest("User not found for the current user");
-
-        if (!user.IsAdmin.GetValueOrDefault())
-            return Forbid();
-
         var fcEvent = await _eventService.GetAsync(eventId);
         if (fcEvent is null)
             return NotFound("Event not found");
@@ -392,13 +362,6 @@ public class EventsController : AuthorizedController, IBaseCrudController<EventD
     [AdminAuth]
     public async Task<IActionResult> RemoveParticipant(string eventId, string occurrenceId, string userId)
     {
-        var user = await _currentMemberAccessor.GetCurrentAsync();
-        if (user is null)
-            return BadRequest("User not found for the current user");
-
-        if (!user.IsAdmin.GetValueOrDefault())
-            return Forbid();
-
         var fcEvent = await _eventService.GetAsync(eventId);
         if (fcEvent is null)
             return NotFound("Event not found");
@@ -429,9 +392,6 @@ public class EventsController : AuthorizedController, IBaseCrudController<EventD
         if (user is null)
             return BadRequest("User not found for the current user");
 
-        if (!user.IsAdmin.GetValueOrDefault())
-            return Forbid();
-
         var fcEvent = await _eventService.GetAsync(eventId);
         if (fcEvent is null)
             return NotFound("Event not found");
@@ -455,9 +415,6 @@ public class EventsController : AuthorizedController, IBaseCrudController<EventD
 
             // Filter out the current occurrence
             occurences.RemoveAll(x => x.Period.StartTime.AsUtc == occurrence.OccurrenceDate.ToUniversalTime());
-
-            if (!occurences.Any())
-                Console.WriteLine("test");
         }
 
         await _eventService.UpdateAsync(fcEvent.Id, fcEvent);
@@ -477,9 +434,6 @@ public class EventsController : AuthorizedController, IBaseCrudController<EventD
         var user = await _currentMemberAccessor.GetCurrentAsync();
         if (user is null)
             return BadRequest("User not found for the current user");
-
-        if (!user.IsAdmin.GetValueOrDefault())
-            return Forbid();
 
         var fcEvent = await _eventService.GetAsync(eventId);
         if (fcEvent is null)
@@ -505,16 +459,9 @@ public class EventsController : AuthorizedController, IBaseCrudController<EventD
     [AdminAuth]
     public async Task<IActionResult> PlanEvent(string id, Event eventDto)
     {
-        var user = await _currentMemberAccessor.GetCurrentAsync();
-        if (user is null)
-            return BadRequest("User not found for the current user");
-
         var fcEvent = await _eventService.GetAsync(id);
         if (fcEvent is null)
             return NotFound();
-
-        if (!user.IsAdmin.GetValueOrDefault())
-            return Forbid();
 
         // Save the list of participants and post the message to the upcoming roster channel
         await _eventService.UpdateAsync(fcEvent.Id, eventDto);
@@ -525,6 +472,7 @@ public class EventsController : AuthorizedController, IBaseCrudController<EventD
 
     [HttpGet]
     [Route("retrieve/{id}.ics")]
+    [AllowAnonymous]
     public async Task<IActionResult> GetEventIcal(string id)
     {
         try

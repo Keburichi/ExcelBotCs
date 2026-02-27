@@ -23,7 +23,7 @@ const routes: RouteRecordRaw[] = [
   { path: '/login', name: 'login', component: LoginView },
   { path: '/', redirect: '/home' },
   { path: '/home', name: 'home', component: HomeView, meta: { requiresAuth: true } },
-  { path: '/button-showcase', name: 'button-showcase', component: ButtonShowcaseView },
+  { path: '/button-showcase', name: 'button-showcase', component: ButtonShowcaseView, meta: { requiresAuth: true, requiresAdmin: true } },
 
   // Member routes
   { path: '/members', name: 'members', component: FcMembersListView, meta: { requiresAuth: true } },
@@ -58,7 +58,6 @@ const routes: RouteRecordRaw[] = [
 
   // Lottery routes
   { path: '/lottery', name: 'lottery', component: LotteryView, meta: { requiresAuth: true } },
-  { path: '/lottery/new', name: 'lottery-create', component: ProfileView, meta: { requiresAuth: true } },
 
   // Admin routes - nested under AdminLayout
   {

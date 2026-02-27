@@ -44,6 +44,7 @@ public class FightsController : AuthorizedController, IBaseCrudController<FightD
     }
 
     [HttpPost]
+    [AdminAuth]
     public async Task<ActionResult<FightDto>> CreateEntity(FightDto entity)
     {
         var fight = FightMapper.ToEntity(entity);
@@ -52,6 +53,7 @@ public class FightsController : AuthorizedController, IBaseCrudController<FightD
     }
 
     [HttpPut("{id:length(24)}")]
+    [AdminAuth]
     public async Task<ActionResult<FightDto>> UpdateEntity(string id, FightDto updatedEntity)
     {
         Logger.LogInformation("Updating entity with id: {id}", id);
@@ -62,6 +64,7 @@ public class FightsController : AuthorizedController, IBaseCrudController<FightD
     }
 
     [HttpDelete("{id:length(24)}")]
+    [AdminAuth]
     public async Task<ActionResult<FightDto>> DeleteEntity(string id)
     {
         var entity = await _fightService.GetAsync(id);

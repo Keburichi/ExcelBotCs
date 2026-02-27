@@ -47,6 +47,7 @@ public class FcMembersController : AuthorizedController, IBaseCrudController<FcM
     }
 
     [HttpPost]
+    [AdminAuth]
     public async Task<ActionResult<FcMemberDto>> CreateEntity(FcMemberDto entity)
     {
         var fcMember = FcMemberMapper.ToEntity(entity);
@@ -55,6 +56,7 @@ public class FcMembersController : AuthorizedController, IBaseCrudController<FcM
     }
 
     [HttpPut("{id:length(24)}")]
+    [AdminAuth]
     public async Task<ActionResult<FcMemberDto>> UpdateEntity(string id, FcMemberDto updatedEntity)
     {
         Logger.LogInformation("Updating entity with id: {id}", id);
@@ -65,6 +67,7 @@ public class FcMembersController : AuthorizedController, IBaseCrudController<FcM
     }
 
     [HttpDelete("{id:length(24)}")]
+    [AdminAuth]
     public async Task<ActionResult<FcMemberDto>> DeleteEntity(string id)
     {
         var entity = await _fcMemberService.GetAsync(id);

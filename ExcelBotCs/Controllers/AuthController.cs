@@ -1,6 +1,9 @@
 ﻿using ExcelBotCs.Attributes;
 using ExcelBotCs.Models.Database;
 using ExcelBotCs.Services;
+using Microsoft.AspNetCore.Authentication;
+using Microsoft.AspNetCore.Authentication.Cookies;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace ExcelBotCs.Controllers;
@@ -34,5 +37,13 @@ public class AuthController : AuthorizedController
         }
 
         return Unauthorized();
+    }
+
+    [HttpPost("logout")]
+    [AllowAnonymous]
+    public async Task<IActionResult> Logout()
+    {
+        await HttpContext.SignOutAsync(CookieAuthenticationDefaults.AuthenticationScheme);
+        return Ok();
     }
 }

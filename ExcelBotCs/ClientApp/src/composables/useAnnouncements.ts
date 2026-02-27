@@ -13,8 +13,8 @@ export function useAnnouncements() {
     try {
       announcements.value = await AnnouncementsApi.list()
     }
-    catch (e: any) {
-      error.value = e.message || 'Failed to load announcements'
+    catch (e: unknown) {
+      error.value = e instanceof Error ? e.message : 'Failed to load announcements'
     }
     finally {
       loading.value = false

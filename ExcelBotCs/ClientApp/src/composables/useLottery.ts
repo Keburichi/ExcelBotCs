@@ -19,8 +19,8 @@ export function useLottery() {
       allGuesses.value = await LotteryApi.allGuesses()
       parseMyGuesses()
     }
-    catch (e: any) {
-      error.value = e.message || 'Failed to load lottery'
+    catch (e: unknown) {
+      error.value = e instanceof Error ? e.message : 'Failed to load lottery'
       console.error('Failed to load lottery:', e)
     }
     finally {
@@ -63,8 +63,8 @@ export function useLottery() {
       response.value = await LotteryApi.guess(guessNumber)
       await load()
     }
-    catch (e: any) {
-      error.value = e.message || 'Failed to guess number'
+    catch (e: unknown) {
+      error.value = e instanceof Error ? e.message : 'Failed to guess number'
       response.value = ''
     }
   }
@@ -75,8 +75,8 @@ export function useLottery() {
       selectedNumber.value = null
       await load()
     }
-    catch (e: any) {
-      error.value = e.message || 'Failed to change guess'
+    catch (e: unknown) {
+      error.value = e instanceof Error ? e.message : 'Failed to change guess'
       response.value = ''
     }
   }

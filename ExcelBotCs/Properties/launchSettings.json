@@ -9,6 +9,21 @@
     }
   },
   "profiles": {
+    "ExcelDiscord": {
+      "commandName": "Project",
+      "dotnetRunMessages": true,
+      "launchBrowser": false,
+      "applicationUrl": "https://localhost:5032",
+      "environmentVariables": {
+        "ASPNETCORE_ENVIRONMENT": "fc-server",
+        "DISCORDBOT__TOKEN": "",
+        "FFLogs__ClientId": "a02eeba9-e06c-46bc-857f-cdce7ff1f9b8",
+        "FFLogs__ClientSecret": "",
+        "FFLogs__TokenUrl": "https://www.fflogs.com/oauth/token",
+        "FFlogs__ApiUrl": "https://www.fflogs.com/api/v2/client",
+        "EVENT_ENDPOINT_URL": "localhost:5032"
+      }
+    },
     "http": {
       "commandName": "Project",
       "dotnetRunMessages": true,
