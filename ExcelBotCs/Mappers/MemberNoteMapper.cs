@@ -10,20 +10,20 @@ public static class MemberNoteMapper
         return new MemberNoteDto()
         {
             Id = note.Id,
-            CreateDate = note.CreateDate,
-            EditDate = note.EditDate,
+            DateCreated = note.DateCreated,
+            DateModified = note.DateModified,
             Note = note.Note,
             Author = note.Author,
         };
     }
-    
+
     public static MemberNote ToEntity(MemberNoteDto note)
     {
         return new MemberNote()
         {
             Id = note.Id,
-            CreateDate = note.CreateDate,
-            EditDate = note.EditDate,
+            DateCreated = note.DateCreated,
+            DateModified = note.DateModified,
             Note = note.Note,
             Author = note.Author,
         };

@@ -443,7 +443,7 @@ public class LodestoneServiceTests : IntegrationTestBase
     [Test]
     public async Task ImportMembers_StaleFcMember_DeletesFromDatabase()
     {
-        // Arrange - Create a stale FcMember whose EditDate is more than 1 day old
+        // Arrange - Create a stale FcMember whose DateModified is more than 1 day old
         var fcMemberService = Factory.Services.GetRequiredService<IFcMemberService>();
         var mongoClient = Factory.Services.GetRequiredService<IMongoClient>();
 
@@ -459,11 +459,11 @@ public class LodestoneServiceTests : IntegrationTestBase
         };
         await fcMemberService.CreateAsync(staleMember);
 
-        // Directly set EditDate to 2 days ago via MongoDB (bypassing BaseRepository auto-update)
+        // Directly set DateModified to 2 days ago via MongoDB (bypassing BaseRepository auto-update)
         var database = mongoClient.GetDatabase("TestDatabase");
         var collection = database.GetCollection<FcMember>("FcMember");
         var filter = Builders<FcMember>.Filter.Eq(x => x.Id, staleMember.Id);
-        var update = Builders<FcMember>.Update.Set(x => x.EditDate, DateTime.UtcNow.AddDays(-2));
+        var update = Builders<FcMember>.Update.Set(x => x.DateModified, DateTime.UtcNow.AddDays(-2));
         await collection.UpdateOneAsync(filter, update);
 
         // Mock Lodestone to return empty - no current FC members
@@ -481,7 +481,7 @@ public class LodestoneServiceTests : IntegrationTestBase
     [Test]
     public async Task ImportMembers_RecentFcMember_NotDeleted()
     {
-        // Arrange - Create a recent FcMember (EditDate = now, set by CreateAsync)
+        // Arrange - Create a recent FcMember (DateModified = now, set by CreateAsync)
         var fcMemberService = Factory.Services.GetRequiredService<IFcMemberService>();
 
         var recentMember = new FcMember
@@ -503,7 +503,7 @@ public class LodestoneServiceTests : IntegrationTestBase
         // Act
         await _lodestoneService.ImportMembers();
 
-        // Assert - Recent member should NOT be deleted (EditDate within 1 day)
+        // Assert - Recent member should NOT be deleted (DateModified within 1 day)
         var existingMember = await fcMemberService.GetByCharacterId("recent-char");
         Assert.That(existingMember, Is.Not.Null);
     }

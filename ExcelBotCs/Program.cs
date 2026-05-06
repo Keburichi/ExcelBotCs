@@ -34,6 +34,7 @@ public class Program
         Env.Load();
 
         var builder = WebApplication.CreateBuilder(args);
+        builder.Configuration.AddJsonFile("appsettings.Local.json", true, true);
 
         void AddHostedService<T>() where T : class, IHostedService
         {
@@ -59,7 +60,6 @@ public class Program
         }
 
         AddHostedService<DiscordBotService>();
-        AddService<Data.Database>();
         AddService<DiscordLogger>();
         AddInstance(new Prng());
 

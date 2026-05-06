@@ -208,7 +208,7 @@ public class ObjectPopulatorTests
     }
 
     [Test]
-    public void PopulateWithRandomData_ShouldSetCreateDateAndEditDateButNotId()
+    public void PopulateWithRandomData_ShouldSetDateCreatedAndDateModifiedButNotId()
     {
         // Arrange
         var entity = new Event
@@ -221,7 +221,7 @@ public class ObjectPopulatorTests
 
         // Assert
         Assert.That(entity.Id, Is.EqualTo("test-id-000"), "Id should not be modified");
-        Assert.That(entity.CreateDate, Is.Not.EqualTo(default(DateTime)), "CreateDate should be populated");
-        Assert.That(entity.EditDate, Is.Not.EqualTo(default(DateTime)), "EditDate should be populated");
+        Assert.That(entity.DateCreated, Is.Not.EqualTo(default(DateTime)), "DateCreated should be populated");
+        Assert.That(entity.DateModified, Is.Not.EqualTo(default(DateTime)), "DateModified should be populated");
     }
 }

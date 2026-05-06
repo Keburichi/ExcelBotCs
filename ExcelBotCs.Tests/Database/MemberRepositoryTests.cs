@@ -354,8 +354,8 @@ public class MemberRepositoryTests : MongoDbTest
         // Assert
         Assert.That(member.Id, Is.Not.Null);
         Assert.That(member.Id, Is.Not.Empty);
-        Assert.That(member.CreateDate, Is.EqualTo(DateTime.UtcNow).Within(TimeSpan.FromSeconds(1)));
-        Assert.That(member.EditDate, Is.EqualTo(DateTime.UtcNow).Within(TimeSpan.FromSeconds(1)));
+        Assert.That(member.DateCreated, Is.EqualTo(DateTime.UtcNow).Within(TimeSpan.FromSeconds(1)));
+        Assert.That(member.DateModified, Is.EqualTo(DateTime.UtcNow).Within(TimeSpan.FromSeconds(1)));
     }
 
     [Test]
@@ -382,7 +382,7 @@ public class MemberRepositoryTests : MongoDbTest
         var updated = await _memberRepository.GetAsync(member.Id!);
         Assert.That(updated, Is.Not.Null);
         Assert.That(updated!.DiscordName, Is.EqualTo(member.DiscordName));
-        Assert.That(updated.EditDate, Is.GreaterThan(updated.CreateDate));
+        Assert.That(updated.DateModified, Is.GreaterThan(updated.DateCreated));
     }
 
     [Test]

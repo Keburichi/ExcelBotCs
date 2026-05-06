@@ -6,7 +6,7 @@ EXPOSE 8080
 EXPOSE 8081
 
 # UI build stage (builds the Vue app into ExcelBotCs/wwwroot)
-FROM node:20-alpine AS ui-build
+FROM node:24-alpine AS ui-build
 WORKDIR /ui
 # Copy only package manifest first for better Docker caching
 COPY ExcelBotCs/ClientApp/package.json ExcelBotCs/ClientApp/

@@ -1,4 +1,4 @@
-﻿using System.Text.Json.Serialization;
+using System.Text.Json.Serialization;
 using MongoDB.Bson;
 using MongoDB.Bson.Serialization.Attributes;
 
@@ -12,9 +12,15 @@ public abstract class BaseEntity
 
     [BsonRepresentation(BsonType.DateTime)]
     [JsonIgnore]
-    public DateTime CreateDate { get; set; }
+    public DateTime DateCreated { get; set; }
 
     [JsonIgnore]
     [BsonRepresentation(BsonType.DateTime)]
-    public DateTime EditDate { get; set; }
+    public DateTime DateModified { get; set; }
+
+    protected BaseEntity()
+    {
+        Id = ObjectId.GenerateNewId().ToString();
+        DateCreated = DateModified = DateTime.UtcNow;
+    }
 }

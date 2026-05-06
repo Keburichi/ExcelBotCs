@@ -1,4 +1,4 @@
-﻿using ExcelBotCs.Database.Interfaces;
+using ExcelBotCs.Database.Interfaces;
 using ExcelBotCs.Models.Database;
 using ExcelBotCs.Models.DTO;
 using ExcelBotCs.Services.API.Interfaces;
@@ -6,21 +6,19 @@ using DbEventSignup = ExcelBotCs.Models.Database.EventSignup;
 
 namespace ExcelBotCs.Services.API;
 
-public class EventService : IEventService
+public class EventService : BaseEntityService<Event, IEventRepository>, IEventService
 {
     // Tolerance for DateTime comparisons (accounts for MongoDB storage precision)
     private const double DateTimeToleranceSeconds = 1.0;
 
-    private readonly IEventRepository _eventRepository;
     private readonly IICalService _iCalService;
 
-    public EventService(IEventRepository eventRepository, IICalService iCalService)
+    public EventService(IEventRepository eventRepository, IICalService iCalService) : base(eventRepository)
     {
-        _eventRepository = eventRepository;
         _iCalService = iCalService;
     }
 
-    public async Task<List<Event>> GetAsync()
+    public override async Task<List<Event>> GetAsync()
     {
         // Default: exclude archived events
         return await GetAsync(false);
@@ -28,7 +26,7 @@ public class EventService : IEventService
 
     public async Task<List<Event>> GetAsync(bool includeArchived)
     {
-        var events = await _eventRepository.GetAsync();
+        var events = await Repository.GetAsync();
 
         if (events is null)
             return new List<Event>();
@@ -44,7 +42,7 @@ public class EventService : IEventService
 
     public async Task<List<Event>> GetArchivedAsync(ArchiveSearchParams? searchParams = null)
     {
-        var events = await _eventRepository.GetAsync();
+        var events = await Repository.GetAsync();
 
         if (events is null)
             return new List<Event>();
@@ -79,7 +77,7 @@ public class EventService : IEventService
 
     public async Task<(bool Success, string? ErrorMessage)> ArchiveAsync(string eventId, string archivedByUserId)
     {
-        var existingEvent = await _eventRepository.GetAsync(eventId);
+        var existingEvent = await Repository.GetAsync(eventId);
         if (existingEvent == null)
             return (false, "Event not found");
 
@@ -93,13 +91,13 @@ public class EventService : IEventService
         existingEvent.ArchivedDate = DateTime.UtcNow;
         existingEvent.ArchivedByUserId = archivedByUserId;
 
-        await _eventRepository.UpdateAsync(eventId, existingEvent);
+        await Repository.UpdateAsync(eventId, existingEvent);
         return (true, null);
     }
 
     public async Task<bool> TryAutoArchiveAsync(string eventId, string archivedByUserId)
     {
-        var existingEvent = await _eventRepository.GetAsync(eventId);
+        var existingEvent = await Repository.GetAsync(eventId);
         if (existingEvent == null || existingEvent.IsArchived)
             return false;
 
@@ -110,13 +108,13 @@ public class EventService : IEventService
         existingEvent.ArchivedDate = DateTime.UtcNow;
         existingEvent.ArchivedByUserId = archivedByUserId;
 
-        await _eventRepository.UpdateAsync(eventId, existingEvent);
+        await Repository.UpdateAsync(eventId, existingEvent);
         return true;
     }
 
     public async Task<(bool Success, string? ErrorMessage)> RestoreAsync(string eventId)
     {
-        var existingEvent = await _eventRepository.GetAsync(eventId);
+        var existingEvent = await Repository.GetAsync(eventId);
         if (existingEvent == null)
             return (false, "Event not found");
 
@@ -127,7 +125,7 @@ public class EventService : IEventService
         existingEvent.ArchivedDate = null;
         existingEvent.ArchivedByUserId = null;
 
-        await _eventRepository.UpdateAsync(eventId, existingEvent);
+        await Repository.UpdateAsync(eventId, existingEvent);
         return (true, null);
     }
 
@@ -136,7 +134,7 @@ public class EventService : IEventService
         if (count <= 0)
             return (null, "Count must be greater than 0");
 
-        var existingEvent = await _eventRepository.GetAsync(eventId);
+        var existingEvent = await Repository.GetAsync(eventId);
         if (existingEvent == null)
             return (null, "Event not found");
 
@@ -165,17 +163,12 @@ public class EventService : IEventService
             return (null, "Could not generate new occurrences. The recurrence pattern may have ended.");
 
         existingEvent.Occurrences.AddRange(newOccurrences);
-        await _eventRepository.UpdateAsync(eventId, existingEvent);
+        await Repository.UpdateAsync(eventId, existingEvent);
 
         return (existingEvent, null);
     }
 
-    public async Task<Event> GetAsync(string id)
-    {
-        return await _eventRepository.GetAsync(id);
-    }
-
-    public async Task CreateAsync(Event entity)
+    public override async Task CreateAsync(Event entity)
     {
         // Create occurrences from iCal string or single occurrence for non-recurring events
         var rangeStart = entity.StartDate;
@@ -188,13 +181,13 @@ public class EventService : IEventService
 
         entity.Occurrences = _iCalService.CreateOccurrences(entity.ICalString, rangeStart, rangeEnd);
 
-        await _eventRepository.CreateAsync(entity);
+        await Repository.CreateAsync(entity);
     }
 
-    public async Task UpdateAsync(string id, Event updatedEntity)
+    public override async Task UpdateAsync(string id, Event updatedEntity)
     {
         // Get existing event to check if iCal changed
-        var existingEvent = await _eventRepository.GetAsync(id);
+        var existingEvent = await Repository.GetAsync(id);
 
         // Check if regeneration is actually needed
         var needsRegeneration = ShouldRegenerateOccurrences(existingEvent, updatedEntity);
@@ -215,12 +208,7 @@ public class EventService : IEventService
             updatedEntity.Occurrences = newOccurrences;
         }
 
-        await _eventRepository.UpdateAsync(id, updatedEntity);
-    }
-
-    public async Task DeleteAsync(string id)
-    {
-        await _eventRepository.DeleteAsync(id);
+        await Repository.UpdateAsync(id, updatedEntity);
     }
 
     /// <summary>
@@ -229,7 +217,7 @@ public class EventService : IEventService
     /// </summary>
     public async Task AppendNextOccurrencesAsync(string eventId, int count = 1)
     {
-        var existingEvent = await _eventRepository.GetAsync(eventId);
+        var existingEvent = await Repository.GetAsync(eventId);
         if (existingEvent == null)
             return;
 
@@ -252,7 +240,7 @@ public class EventService : IEventService
             count);
 
         existingEvent.Occurrences.AddRange(newOccurrences);
-        await _eventRepository.UpdateAsync(eventId, existingEvent);
+        await Repository.UpdateAsync(eventId, existingEvent);
     }
 
     /// <summary>

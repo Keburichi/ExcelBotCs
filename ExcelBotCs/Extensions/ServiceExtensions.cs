@@ -21,6 +21,10 @@ public static class ServiceExtensions
         services.AddSingleton<IFFLogsImportLogRepository, FFLogsImportLogRepository>();
         services.AddSingleton<ILodestoneDutyRepository, LodestoneDutyRepository>();
         services.AddSingleton<IRaidplanRepository, RaidplanRepository>();
+        services.AddSingleton<ILotteryGuessRepository, LotteryGuessRepository>();
+        services.AddSingleton<IExtraLotteryGuessRepository, ExtraLotteryGuessRepository>();
+        services.AddSingleton<ILotteryResultRepository, LotteryResultRepository>();
+        services.AddSingleton<IEventDetailsRepository, EventDetailsRepository>();
     }
 
     public static void AddApiServices(this IServiceCollection services)

@@ -1,7 +1,6 @@
-﻿using System.Text;
-using ExcelBotCs.Data;
+using System.Text;
+using ExcelBotCs.Database.Interfaces;
 using Microsoft.AspNetCore.Mvc;
-using MongoDB.Driver.Linq;
 
 namespace ExcelBotCs.Modules.TeamFormation;
 
@@ -9,12 +8,12 @@ namespace ExcelBotCs.Modules.TeamFormation;
 [Route("event")]
 public class EventController : ControllerBase
 {
-	private readonly Repository<EventDetails> _eventDetails;
+	private readonly IEventDetailsRepository _eventDetails;
 	private readonly string _rootUrl;
 
-	public EventController(Data.Database database)
+	public EventController(IEventDetailsRepository eventDetailsRepository)
 	{
-		_eventDetails = database.GetCollection<EventDetails>("event_details");
+		_eventDetails = eventDetailsRepository;
 		_rootUrl = Utils.GetEnvVar("EVENT_ENDPOINT_URL", nameof(TeamFormationInteraction));
 	}
 
@@ -33,9 +32,7 @@ public class EventController : ControllerBase
 		try
 		{
 			var discordId = ulong.Parse(id);
-			var joinedEvents = await _eventDetails
-				.Where(e => e.EndTime > DateTime.UtcNow && e.Participants.Any(p => p.DiscordId == discordId))
-				.ToListAsync();
+			var joinedEvents = await _eventDetails.GetFutureByParticipantAsync(discordId);
 
 			var ics =
 				"BEGIN:VCALENDAR\n" +

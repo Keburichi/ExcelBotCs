@@ -1,4 +1,4 @@
-using ExcelBotCs.Data;
+using ExcelBotCs.Database.Interfaces;
 using ExcelBotCs.Extensions;
 using ExcelBotCs.Modules.Lottery;
 using ExcelBotCs.Services.API.Interfaces;
@@ -6,28 +6,30 @@ using ExcelBotCs.Services.Discord.Interfaces;
 using ExcelBotCs.Services.Lottery.Enums;
 using ExcelBotCs.Services.Lottery.Interfaces;
 using ExcelBotCs.Services.Lottery.Records;
-using MongoDB.Driver.Linq;
 
 namespace ExcelBotCs.Services.Lottery;
 
 public class LotteryService : ILotteryService
 {
     private readonly IDiscordMessageService _discordMessageService;
-    private readonly Repository<ExtraLotteryGuess> _extraLotteryGuesses;
-    private readonly Repository<LotteryGuess> _lotteryGuesses;
-    private readonly Repository<LotteryResult> _lotteryResults;
+    private readonly IExtraLotteryGuessRepository _extraLotteryGuesses;
+    private readonly ILotteryGuessRepository _lotteryGuesses;
+    private readonly ILotteryResultRepository _lotteryResults;
     private readonly IMemberService _memberService;
     private readonly Prng _rng;
 
-    public LotteryService(Prng rng, Data.Database database,
+    public LotteryService(Prng rng,
+        ILotteryGuessRepository lotteryGuessRepository,
+        IExtraLotteryGuessRepository extraLotteryGuessRepository,
+        ILotteryResultRepository lotteryResultRepository,
         IMemberService memberService, IDiscordMessageService discordMessageService)
     {
         _rng = rng;
         _memberService = memberService;
         _discordMessageService = discordMessageService;
-        _extraLotteryGuesses = database.GetCollection<ExtraLotteryGuess>("extra_lottery_guesses");
-        _lotteryGuesses = database.GetCollection<LotteryGuess>("lottery_guesses");
-        _lotteryResults = database.GetCollection<LotteryResult>("lottery_results");
+        _lotteryGuesses = lotteryGuessRepository;
+        _extraLotteryGuesses = extraLotteryGuessRepository;
+        _lotteryResults = lotteryResultRepository;
     }
 
     public async Task<IGuessResponse> GuessAsync(ulong discordUserId, int number)
@@ -91,9 +93,7 @@ public class LotteryService : ILotteryService
 
     public async Task<List<WhoGuessedResponse>> GetAllGuessesAsync()
     {
-        var currentGuesses = await _lotteryGuesses
-            .Where(x => x.DiscordId != 0)
-            .ToListAsync();
+        var currentGuesses = await _lotteryGuesses.GetAsync();
 
         var discordUserIds = currentGuesses.Select(guess => guess.DiscordId).Distinct().ToList();
         var members = await _memberService.GetByDiscordIds(discordUserIds);
@@ -115,9 +115,8 @@ public class LotteryService : ILotteryService
 
     public async Task<WhoGuessedResponse> WhoGuessedAsync(int number)
     {
-        var currentGuesses = await _lotteryGuesses
-            .Where(guess => guess.Number == number)
-            .ToListAsync();
+        var allGuesses = await _lotteryGuesses.GetAsync();
+        var currentGuesses = allGuesses.Where(g => g.Number == number).ToList();
 
         var discordUserIds = currentGuesses.Select(guess => guess.DiscordId).ToList();
         var members = await _memberService.GetByDiscordIds(discordUserIds);
@@ -138,9 +137,7 @@ public class LotteryService : ILotteryService
 
         var (currentGuesses, displayAmount) = await GetRemainingGuessesAsync(discordUserId);
 
-        var extraAwardedGuesses = await _extraLotteryGuesses
-            .Where(guess => guess.DiscordId == discordUserId)
-            .ToListAsync();
+        var extraAwardedGuesses = await _extraLotteryGuesses.GetByDiscordIdAsync(discordUserId);
 
         var guesses = currentGuesses.Select(guess => guess.Number).ToList();
         guesses.Sort();
@@ -161,7 +158,7 @@ public class LotteryService : ILotteryService
         var randomNumber = _rng.NextInt(0, 99);
         var randomNumberDisplay = $"# The winning number is {randomNumber}";
 
-        var allResults = await _lotteryGuesses.Where(_ => true).ToListAsync();
+        var allResults = await _lotteryGuesses.GetAsync();
         var winners = allResults.Where(guess => guess.Number == randomNumber).ToList();
 
         await SaveGuesses(randomNumber, allResults);
@@ -188,10 +185,10 @@ public class LotteryService : ILotteryService
     public async Task RemindAsync(ulong discordUserId)
     {
         var fcMembers = await _memberService.GetFcMembers();
-        var currentGuesses = (await _lotteryGuesses.Where(_ => true).ToListAsync()).Select(guess => guess.DiscordId)
+        var currentGuesses = (await _lotteryGuesses.GetAsync()).Select(guess => guess.DiscordId)
             .GroupBy(x => x)
             .ToDictionary(x => x.Key, x => x.Count());
-        var awardedGuesses = (await _extraLotteryGuesses.Where(_ => true).ToListAsync())
+        var awardedGuesses = (await _extraLotteryGuesses.GetAsync())
             .Select(award => award.DiscordId)
             .GroupBy(x => x)
             .ToDictionary(x => x.Key, x => x.Count());
@@ -225,7 +222,7 @@ public class LotteryService : ILotteryService
         // TODO: Figure out what exactly this is being used for
         // await FollowupAsync(output, ephemeral: true);
 
-        var previousParticipants = (await _lotteryResults.Where(_ => true).ToListAsync())
+        var previousParticipants = (await _lotteryResults.GetAsync())
             .OrderBy(result => result.DateCreated)
             .Take(3)
             .SelectMany(result => result.Guesses)
@@ -252,19 +249,18 @@ public class LotteryService : ILotteryService
             Guesses = allResults
         };
 
-        await _lotteryResults.Insert(result);
+        await _lotteryResults.CreateAsync(result);
     }
 
     private async Task Flush()
     {
-        await _lotteryGuesses.DeleteAll();
-        await _extraLotteryGuesses.DeleteAll();
+        await _lotteryGuesses.DeleteAllAsync();
+        await _extraLotteryGuesses.DeleteAllAsync();
     }
 
     private async Task<List<int>> GetGuessedNumbersAsync()
     {
-        return (await _lotteryGuesses.Where(_ => true)
-                .ToListAsync())
+        return (await _lotteryGuesses.GetAsync())
             .Select(guess => guess.Number)
             .Distinct()
             .ToList();
@@ -278,13 +274,8 @@ public class LotteryService : ILotteryService
     private async Task<(List<LotteryGuess>? CurrentGuesses, string Output)> GetRemainingGuessesAsync(
         ulong discordUserId)
     {
-        var currentGuesses = await _lotteryGuesses
-            .Where(guess => guess.DiscordId == discordUserId)
-            .ToListAsync();
-
-        var extraAwardedGuesses = await _extraLotteryGuesses
-            .Where(guess => guess.DiscordId == discordUserId)
-            .ToListAsync();
+        var currentGuesses = await _lotteryGuesses.GetByDiscordIdAsync(discordUserId);
+        var extraAwardedGuesses = await _extraLotteryGuesses.GetByDiscordIdAsync(discordUserId);
 
         var currentGuessAmount = currentGuesses.Count;
         var allowedGuessAmount = 1 + extraAwardedGuesses.Count;
@@ -299,7 +290,7 @@ public class LotteryService : ILotteryService
 
     private async Task InsertGuessAsync(ulong discordUserId, int number)
     {
-        await _lotteryGuesses.Insert(new LotteryGuess
+        await _lotteryGuesses.CreateAsync(new LotteryGuess
         {
             DiscordId = discordUserId, Number = number
         });
@@ -348,16 +339,12 @@ public class LotteryService : ILotteryService
         if (number is <= 0 or >= 100)
             return new OutOfRangeGuessResponse();
 
-        var currentGuesses = await _lotteryGuesses
-            .Where(guess => guess.DiscordId == discordUserId)
-            .ToListAsync();
+        var currentGuesses = await _lotteryGuesses.GetByDiscordIdAsync(discordUserId);
 
         if (currentGuesses.Any(guess => guess.Number == number))
             return new AlreadyGuessedNumberGuessResponse(number);
 
-        var extraAwardedGuesses = await _extraLotteryGuesses
-            .Where(guess => guess.DiscordId == discordUserId)
-            .ToListAsync();
+        var extraAwardedGuesses = await _extraLotteryGuesses.GetByDiscordIdAsync(discordUserId);
 
         var currentGuessAmount = currentGuesses.Count;
         var allowedGuessAmount = 1 + extraAwardedGuesses.Count;
@@ -388,9 +375,7 @@ public class LotteryService : ILotteryService
         if (newNumber is <= 0 or >= 100)
             return new OutOfRangeGuessResponse();
 
-        var currentGuesses = await _lotteryGuesses
-            .Where(guess => guess.DiscordId == discordUserId)
-            .ToListAsync();
+        var currentGuesses = await _lotteryGuesses.GetByDiscordIdAsync(discordUserId);
 
         if (currentGuesses.All(guess => guess.Number != oldNumber))
             return new NotCurrentGuessedNumberGuessResponse(oldNumber);
@@ -409,8 +394,8 @@ public class LotteryService : ILotteryService
 
     private async Task ChangeGuess(ulong discordUserId, int oldNumber, int newNumber)
     {
-        await _lotteryGuesses.Delete(guess => guess.DiscordId == discordUserId && guess.Number == oldNumber);
-        await _lotteryGuesses.Insert(new LotteryGuess { DiscordId = discordUserId, Number = newNumber });
+        await _lotteryGuesses.DeleteByDiscordIdAndNumberAsync(discordUserId, oldNumber);
+        await _lotteryGuesses.CreateAsync(new LotteryGuess { DiscordId = discordUserId, Number = newNumber });
     }
 
     #endregion
@@ -429,7 +414,7 @@ public class LotteryService : ILotteryService
     public async Task AwardUsersAsync(SuccessAwardResponse success)
     {
         foreach (var userId in success.DiscordUserIds)
-            await _extraLotteryGuesses.Insert(new ExtraLotteryGuess
+            await _extraLotteryGuesses.CreateAsync(new ExtraLotteryGuess
                 { DiscordId = userId, Reason = success.Reason });
 
         if (success.DiscordUserIds.Count() == 1)

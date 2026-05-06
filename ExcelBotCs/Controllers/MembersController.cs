@@ -199,8 +199,8 @@ public class MembersController : AuthorizedController, IBaseCrudController<Membe
             Id = ObjectId.GenerateNewId().ToString(),
             Note = request.Note,
             Author = currentUser.DiscordName,
-            CreateDate = DateTime.UtcNow,
-            EditDate = DateTime.UtcNow
+            DateCreated = DateTime.UtcNow,
+            DateModified = DateTime.UtcNow
         };
 
         member.Notes ??= new List<MemberNote>();
@@ -231,7 +231,7 @@ public class MembersController : AuthorizedController, IBaseCrudController<Membe
             return NotFound("Note not found");
 
         note.Note = request.Note;
-        note.EditDate = DateTime.UtcNow;
+        note.DateModified = DateTime.UtcNow;
 
         await _memberService.UpdateAsync(memberId, member);
 

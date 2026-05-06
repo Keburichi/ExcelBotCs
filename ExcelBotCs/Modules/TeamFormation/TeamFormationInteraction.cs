@@ -1,8 +1,8 @@
-﻿using System.Globalization;
+using System.Globalization;
 using System.Text.RegularExpressions;
 using Discord;
 using Discord.Interactions;
-using ExcelBotCs.Data;
+using ExcelBotCs.Database.Interfaces;
 using ExcelBotCs.Extensions;
 
 namespace ExcelBotCs.Modules.TeamFormation;
@@ -18,13 +18,13 @@ public class TeamFormationInteraction : InteractionModuleBase<SocketInteractionC
     private const string CasterRoleEmote = "<:RoleCaster:873621778566635540>";
     private const string RangedRoleEmote = "<:RoleRanged:873621778453368895>";
 
-    private readonly Repository<EventDetails> _eventDetails;
+    private readonly IEventDetailsRepository _eventDetails;
     private readonly string _rootUrl;
 
-    public TeamFormationInteraction(Prng rng, Data.Database database)
+    public TeamFormationInteraction(Prng rng, IEventDetailsRepository eventDetailsRepository)
     {
         _rng = rng;
-        _eventDetails = database.GetCollection<EventDetails>("event_details");
+        _eventDetails = eventDetailsRepository;
         _rootUrl = Utils.GetEnvVar("EVENT_ENDPOINT_URL", nameof(TeamFormationInteraction));
     }
 
@@ -205,7 +205,7 @@ public class TeamFormationInteraction : InteractionModuleBase<SocketInteractionC
         var rosterChannel = Context.Guild.GetTextChannel(1411293182133665792);
         await rosterChannel.SendMessageAsync(output);
 
-        await _eventDetails.Insert(new EventDetails
+        await _eventDetails.CreateAsync(new EventDetails
         {
             StartTime = startTime,
             EndTime = endTime,

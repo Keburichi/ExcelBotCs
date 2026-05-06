@@ -20,8 +20,8 @@ public class MemberNoteMapperTests
         // Assert
         Assert.That(entityDto, Is.Not.Null);
         Assert.That(entityDto.Id, Is.EqualTo(entity.Id));
-        Assert.That(entityDto.CreateDate, Is.EqualTo(entity.CreateDate));
-        Assert.That(entityDto.EditDate, Is.EqualTo(entity.EditDate));
+        Assert.That(entityDto.DateCreated, Is.EqualTo(entity.DateCreated));
+        Assert.That(entityDto.DateModified, Is.EqualTo(entity.DateModified));
         Assert.That(entityDto.Note, Is.EqualTo(entity.Note));
         Assert.That(entityDto.Author, Is.EqualTo(entity.Author));
     }
@@ -38,8 +38,8 @@ public class MemberNoteMapperTests
         // Assert
         Assert.That(entity, Is.Not.Null);
         Assert.That(entity.Id, Is.EqualTo(entityDto.Id));
-        Assert.That(entity.CreateDate, Is.EqualTo(entityDto.CreateDate));
-        Assert.That(entity.EditDate, Is.EqualTo(entityDto.EditDate));
+        Assert.That(entity.DateCreated, Is.EqualTo(entityDto.DateCreated));
+        Assert.That(entity.DateModified, Is.EqualTo(entityDto.DateModified));
         Assert.That(entity.Note, Is.EqualTo(entityDto.Note));
         Assert.That(entity.Author, Is.EqualTo(entityDto.Author));
     }

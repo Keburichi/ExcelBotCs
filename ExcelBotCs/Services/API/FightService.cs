@@ -1,21 +1,18 @@
-﻿using ExcelBotCs.Database.Interfaces;
+using ExcelBotCs.Database.Interfaces;
 using ExcelBotCs.Models.Database;
 using ExcelBotCs.Services.API.Interfaces;
 
 namespace ExcelBotCs.Services.API;
 
-public class FightService : IFightService
+public class FightService : BaseEntityService<Fight, IFightRepository>, IFightService
 {
-    private readonly IFightRepository _fightRepository;
-
-    public FightService(IFightRepository fightRepository)
+    public FightService(IFightRepository fightRepository) : base(fightRepository)
     {
-        _fightRepository = fightRepository;
     }
 
-    public async Task<List<Fight>> GetAsync()
+    public override async Task<List<Fight>> GetAsync()
     {
-        var fights = await _fightRepository.GetAsync();
+        var fights = await Repository.GetAsync();
 
         if (fights is null)
             return new List<Fight>();
@@ -55,29 +52,9 @@ public class FightService : IFightService
             fight.Name = "The Weapon's Refrain";
     }
 
-    public async Task<Fight> GetAsync(string id)
-    {
-        return await _fightRepository.GetAsync(id);
-    }
-
-    public async Task CreateAsync(Fight entity)
-    {
-        await _fightRepository.CreateAsync(entity);
-    }
-
-    public async Task UpdateAsync(string id, Fight updatedEntity)
-    {
-        await _fightRepository.UpdateAsync(id, updatedEntity);
-    }
-
-    public async Task DeleteAsync(string id)
-    {
-        await _fightRepository.DeleteAsync(id);
-    }
-
     public async Task<Fight?> GetByNameAndTypeAsync(string name, FightType type)
     {
-        return await _fightRepository.GetByNameAndTypeAsync(name, type);
+        return await Repository.GetByNameAndTypeAsync(name, type);
     }
 
     public async Task<bool> UpsertAsync(Fight fight)
@@ -92,7 +69,7 @@ public class FightService : IFightService
 
         // preserve immutable fields
         fight.Id = existing.Id;
-        fight.CreateDate = existing.CreateDate;
+        fight.DateCreated = existing.DateCreated;
         await UpdateAsync(existing.Id, fight);
         return false; // updated
     }

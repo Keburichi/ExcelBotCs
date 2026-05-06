@@ -84,7 +84,7 @@ public class LodestoneService
         // Fetch all fc members from database to check for people who have left
         var dbFcMembers = await _fcMemberService.GetAsync();
 
-        foreach (var dbFcMember in dbFcMembers.Where(x => x.EditDate < DateTime.UtcNow.AddDays(-1)))
+        foreach (var dbFcMember in dbFcMembers.Where(x => x.DateModified < DateTime.UtcNow.AddDays(-1)))
         {
             _logger.LogInformation($"Found {dbFcMember.Name} who left fc. Removing member");
             await _fcMemberService.DeleteAsync(dbFcMember.Id);

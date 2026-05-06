@@ -48,4 +48,5 @@
 
 - [ ] Remove 'on-click' closing on Create Raidplan dialog
 - [ ] Add description text for pages to let people know what there can be done. Add a tutorial thingy?
-- 
+- [ ] Add admin panel to set and modify images for fights since auto-mapping doesn't always works
+- [ ] Add admin panel to add new event types and modify pictures there

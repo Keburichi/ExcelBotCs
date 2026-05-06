@@ -39,8 +39,8 @@ public class RaidplanRepository : IRaidplanRepository
         var fight = await _fightRepository.GetAsync(fightId);
         if (fight == null) return;
 
-        entity.CreateDate = DateTime.UtcNow;
-        entity.EditDate = DateTime.UtcNow;
+        entity.DateCreated = DateTime.UtcNow;
+        entity.DateModified = DateTime.UtcNow;
         entity.Id = ObjectId.GenerateNewId().ToString();
 
         fight.Raidplans ??= new List<Raidplan>();
@@ -57,9 +57,9 @@ public class RaidplanRepository : IRaidplanRepository
         var index = fight.Raidplans.FindIndex(r => r.Id == id);
         if (index == -1) return;
 
-        updatedEntity.EditDate = DateTime.UtcNow;
+        updatedEntity.DateModified = DateTime.UtcNow;
         updatedEntity.Id = id; // Preserve the ID
-        updatedEntity.CreateDate = fight.Raidplans[index].CreateDate; // Preserve CreateDate
+        updatedEntity.DateCreated = fight.Raidplans[index].DateCreated; // Preserve DateCreated
 
         fight.Raidplans[index] = updatedEntity;
         await _fightRepository.UpdateAsync(fightId, fight);

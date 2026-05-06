@@ -36,6 +36,8 @@ bld/
 # --- Node / Vite / Frontend ---
 node_modules/
 **/node_modules/
+**/.vite/
+ExcelBotCs/wwwroot
 
 # Visual Studio 2015/2017 cache/options directory
 .vs/
@@ -371,3 +373,4 @@ FodyWeavers.xsd
 
 .env
 *.pem
+appsettings.Local.json

@@ -259,7 +259,7 @@ public class FightServiceTests
             Id = Guid.NewGuid().ToString(),
             Name = "Existing Fight",
             Type = FightType.Savage,
-            CreateDate = DateTime.UtcNow.AddDays(-7)
+            DateCreated = DateTime.UtcNow.AddDays(-7)
         }.PopulateWithRandomData();
 
         var updatedFight = new Fight
@@ -278,7 +278,7 @@ public class FightServiceTests
         // Assert
         Assert.That(result, Is.False); // false means updated
         Assert.That(updatedFight.Id, Is.EqualTo(existingFight.Id));
-        Assert.That(updatedFight.CreateDate, Is.EqualTo(existingFight.CreateDate));
+        Assert.That(updatedFight.DateCreated, Is.EqualTo(existingFight.DateCreated));
 
         _fightRepositoryMock.Verify(x => x.GetByNameAndTypeAsync(updatedFight.Name, updatedFight.Type), Times.Once());
         _fightRepositoryMock.Verify(x => x.UpdateAsync(existingFight.Id, updatedFight), Times.Once());
@@ -294,7 +294,7 @@ public class FightServiceTests
             Id = Guid.NewGuid().ToString(),
             Name = "Existing Fight",
             Type = FightType.Savage,
-            CreateDate = DateTime.UtcNow.AddDays(-7)
+            DateCreated = DateTime.UtcNow.AddDays(-7)
         }.PopulateWithRandomData();
 
         var fights = new List<Fight>

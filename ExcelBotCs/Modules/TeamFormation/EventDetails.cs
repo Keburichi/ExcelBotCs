@@ -1,8 +1,8 @@
-﻿using ExcelBotCs.Data;
+using ExcelBotCs.Models.Database;
 
 namespace ExcelBotCs.Modules.TeamFormation;
 
-public class EventDetails : DatabaseObject
+public class EventDetails : BaseEntity
 {
 	public string Name { get; set; }
 	public DateTime StartTime { get; set; }

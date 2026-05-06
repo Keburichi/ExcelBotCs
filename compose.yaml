@@ -28,6 +28,7 @@
     environment:
       MONGO_INITDB_ROOT_USERNAME: ${MONGO_INITDB_ROOT_USERNAME}
       MONGO_INITDB_ROOT_PASSWORD: ${MONGO_INITDB_ROOT_PASSWORD}
+    command: --setParameter diagnosticDataCollectionEnabled=false
 
   mongo-express:
     image: mongo-express

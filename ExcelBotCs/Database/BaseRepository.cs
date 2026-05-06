@@ -1,4 +1,4 @@
-﻿using ExcelBotCs.Database.Interfaces;
+using ExcelBotCs.Database.Interfaces;
 using ExcelBotCs.Models.Config;
 using ExcelBotCs.Models.Database;
 using Microsoft.Extensions.Options;
@@ -34,20 +34,26 @@ public abstract class BaseRepository<T> : IBaseRepository<T> where T : BaseEntit
 
     public async Task CreateAsync(T entity)
     {
-        entity.CreateDate = DateTime.UtcNow;
-        entity.EditDate = DateTime.UtcNow;
+        entity.DateCreated = DateTime.UtcNow;
+        entity.DateModified = DateTime.UtcNow;
         await Collection.InsertOneAsync(entity);
     }
 
     public async Task UpdateAsync(string id, T updatedEntity)
     {
-        updatedEntity.EditDate = DateTime.UtcNow;
+        updatedEntity.DateModified = DateTime.UtcNow;
         await Collection.ReplaceOneAsync(entity => entity.Id == id, updatedEntity);
     }
 
     public async Task DeleteAsync(string id)
     {
         await Collection.DeleteOneAsync(entity => entity.Id == id);
+    }
+
+    public async Task UpsertAsync(T entity)
+    {
+        entity.DateModified = DateTime.UtcNow;
+        await Collection.ReplaceOneAsync(e => e.Id == entity.Id, entity, new ReplaceOptions { IsUpsert = true });
     }
 
     private void EnsureDatabaseExists(IMongoClient client, string databaseName, string collectionName)
@@ -68,7 +74,7 @@ public abstract class BaseRepository<T> : IBaseRepository<T> where T : BaseEntit
         if (!existingCollections.Contains(collectionName)) db.CreateCollection(collectionName);
     }
 
-    private string GetCollectionName()
+    protected virtual string GetCollectionName()
     {
         return typeof(T).Name;
     }

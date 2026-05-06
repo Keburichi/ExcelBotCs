@@ -1,3 +1,5 @@
+using ExcelBotCs.Database;
+using ExcelBotCs.Database.Interfaces;
 using ExcelBotCs.Models.Config;
 using ExcelBotCs.Models.Database;
 using ExcelBotCs.Services.API.Interfaces;
@@ -7,7 +9,6 @@ using ExcelBotCs.Services.Lottery.Enums;
 using ExcelBotCs.Services.Lottery.Interfaces;
 using ExcelBotCs.Services.Lottery.Records;
 using ExcelBotCs.TestFramework.Database;
-using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using MongoDB.Driver;
 using Moq;
@@ -17,14 +18,18 @@ namespace ExcelBotCs.Tests.Services.Lottery;
 [TestFixture]
 public class LotteryServiceTests : MongoDbTest
 {
-    private Data.Database _database = null!;
+    private ILotteryGuessRepository _lotteryGuessRepository = null!;
+    private IExtraLotteryGuessRepository _extraLotteryGuessRepository = null!;
+    private ILotteryResultRepository _lotteryResultRepository = null!;
     private ILotteryService _lotteryService = null!;
     private Mock<IMemberService> _memberService = null!;
     private Mock<IDiscordMessageService> _discordMessageService = null!;
 
     protected override void InitializeRepository(IMongoClient mongoClient, IOptions<DatabaseOptions> databaseOptions)
     {
-        _database = new Data.Database(databaseOptions, new Logger<Data.Database>(new LoggerFactory()));
+        _lotteryGuessRepository = new LotteryGuessRepository(mongoClient, databaseOptions);
+        _extraLotteryGuessRepository = new ExtraLotteryGuessRepository(mongoClient, databaseOptions);
+        _lotteryResultRepository = new LotteryResultRepository(mongoClient, databaseOptions);
     }
 
     [SetUp]
@@ -34,7 +39,8 @@ public class LotteryServiceTests : MongoDbTest
         _memberService = new Mock<IMemberService>();
         _discordMessageService = new Mock<IDiscordMessageService>();
 
-        _lotteryService = new LotteryService(rng, _database, _memberService.Object, _discordMessageService.Object);
+        _lotteryService = new LotteryService(rng, _lotteryGuessRepository, _extraLotteryGuessRepository,
+            _lotteryResultRepository, _memberService.Object, _discordMessageService.Object);
     }
 
     [TearDown]

@@ -81,8 +81,8 @@ public class BaseRepositoryTests : MongoDbTest
         var allEntries = await _testRepository.GetAsync();
         Assert.That(allEntries, Has.Count.EqualTo(1));
         Assert.That(allEntries.First().Name, Is.EqualTo(entity.Name));
-        Assert.That(allEntries.First().CreateDate, Is.EqualTo(DateTime.UtcNow).Within(TimeSpan.FromSeconds(1)));
-        Assert.That(allEntries.First().EditDate, Is.EqualTo(DateTime.UtcNow).Within(TimeSpan.FromSeconds(1)));
+        Assert.That(allEntries.First().DateCreated, Is.EqualTo(DateTime.UtcNow).Within(TimeSpan.FromSeconds(1)));
+        Assert.That(allEntries.First().DateModified, Is.EqualTo(DateTime.UtcNow).Within(TimeSpan.FromSeconds(1)));
     }
 
     [Test]
@@ -98,7 +98,7 @@ public class BaseRepositoryTests : MongoDbTest
         var dbEntity = _testRepository.GetAsync().Result.FirstOrDefault(x => x.Name.Equals(entity.Name));
         dbEntity.Name = "Updated Name";
         dbEntity.Description = "Updated Description";
-        var originalEditDate = dbEntity.EditDate;
+        var originalEditDate = dbEntity.DateModified;
 
         await _testRepository.UpdateAsync(dbEntity.Id, dbEntity);
 
@@ -106,7 +106,7 @@ public class BaseRepositoryTests : MongoDbTest
 
         Assert.That(updatedEntity.Name, Is.EqualTo(dbEntity.Name));
         Assert.That(updatedEntity.Description, Is.EqualTo(dbEntity.Description));
-        Assert.That(updatedEntity.EditDate, Is.GreaterThan(originalEditDate));
+        Assert.That(updatedEntity.DateModified, Is.GreaterThan(originalEditDate));
     }
 
     [Test]
