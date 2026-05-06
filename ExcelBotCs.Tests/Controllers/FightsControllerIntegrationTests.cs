@@ -147,7 +147,7 @@ public class FightsControllerIntegrationTests : IntegrationTestBase
     public async Task CreateEntity_ValidData_CreatesFight()
     {
         // Arrange
-        await AuthenticateAsMember();
+        await AuthenticateAsAdmin();
         var fightDto = new FightDto
         {
             Name = "New Fight",
@@ -172,7 +172,7 @@ public class FightsControllerIntegrationTests : IntegrationTestBase
     public async Task CreateEntity_PersistsToDatabase()
     {
         // Arrange
-        await AuthenticateAsMember();
+        await AuthenticateAsAdmin();
         var fightDto = new FightDto
         {
             Name = "Persistent Fight",
@@ -205,7 +205,7 @@ public class FightsControllerIntegrationTests : IntegrationTestBase
     public async Task UpdateEntity_ValidData_UpdatesFight()
     {
         // Arrange
-        await AuthenticateAsMember();
+        await AuthenticateAsAdmin();
         var fightDto = new FightDto
         {
             Name = "Original Name",
@@ -242,7 +242,7 @@ public class FightsControllerIntegrationTests : IntegrationTestBase
     public async Task UpdateEntity_WhenNotExists_ReturnsNoContent()
     {
         // Arrange
-        await AuthenticateAsMember();
+        await AuthenticateAsAdmin();
         var nonExistentId = "507f1f77bcf86cd799439011";
         var fightDto = new FightDto
         {
@@ -271,7 +271,7 @@ public class FightsControllerIntegrationTests : IntegrationTestBase
     public async Task DeleteEntity_WhenExists_DeletesFight()
     {
         // Arrange
-        await AuthenticateAsMember();
+        await AuthenticateAsAdmin();
         var fightDto = new FightDto
         {
             Name = "To Delete",
@@ -299,7 +299,7 @@ public class FightsControllerIntegrationTests : IntegrationTestBase
     public async Task DeleteEntity_WhenNotExists_ReturnsNotFound()
     {
         // Arrange
-        await AuthenticateAsMember();
+        await AuthenticateAsAdmin();
         var nonExistentId = "507f1f77bcf86cd799439011";
 
         // Act

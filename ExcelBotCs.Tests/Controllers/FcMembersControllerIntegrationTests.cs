@@ -150,7 +150,7 @@ public class FcMembersControllerIntegrationTests : IntegrationTestBase
     public async Task CreateEntity_ValidData_CreatesFcMember()
     {
         // Arrange
-        await AuthenticateAsMember();
+        await AuthenticateAsAdmin();
         var fcMemberDto = new FcMemberDto
         {
             Name = "New FC Member",
@@ -176,7 +176,7 @@ public class FcMembersControllerIntegrationTests : IntegrationTestBase
     public async Task CreateEntity_PersistsToDatabase()
     {
         // Arrange
-        await AuthenticateAsMember();
+        await AuthenticateAsAdmin();
         var fcMemberDto = new FcMemberDto
         {
             Name = "Persistent FC Member",
@@ -210,7 +210,7 @@ public class FcMembersControllerIntegrationTests : IntegrationTestBase
     public async Task UpdateEntity_ValidData_UpdatesFcMember()
     {
         // Arrange
-        await AuthenticateAsMember();
+        await AuthenticateAsAdmin();
         var fcMemberDto = new FcMemberDto
         {
             Name = "Original Name",
@@ -248,7 +248,7 @@ public class FcMembersControllerIntegrationTests : IntegrationTestBase
     public async Task UpdateEntity_WhenNotExists_ReturnsNoContent()
     {
         // Arrange
-        await AuthenticateAsMember();
+        await AuthenticateAsAdmin();
         var nonExistentId = "507f1f77bcf86cd799439011";
         var fcMemberDto = new FcMemberDto
         {
@@ -278,7 +278,7 @@ public class FcMembersControllerIntegrationTests : IntegrationTestBase
     public async Task DeleteEntity_WhenExists_DeletesFcMember()
     {
         // Arrange
-        await AuthenticateAsMember();
+        await AuthenticateAsAdmin();
         var fcMemberDto = new FcMemberDto
         {
             Name = "To Delete",
@@ -307,7 +307,7 @@ public class FcMembersControllerIntegrationTests : IntegrationTestBase
     public async Task DeleteEntity_WhenNotExists_ReturnsNotFound()
     {
         // Arrange
-        await AuthenticateAsMember();
+        await AuthenticateAsAdmin();
         var nonExistentId = "507f1f77bcf86cd799439011";
 
         // Act
