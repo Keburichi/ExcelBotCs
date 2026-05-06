@@ -1,0 +1,214 @@
+﻿{
+  "fights": [
+    {
+      "name": "The Minstrel's Ballad: Ultima's Bane",
+      "description": "Enhanced version of the Ultima Weapon fight. Unlocked by completing 'The Ultimate Ballad' quest from the Wandering Minstrel in Mor Dhona.",
+      "type": "Extreme",
+      "image_url": "https://finalfantasy.fandom.com/wiki/Ultima_Weapon_(Final_Fantasy_XIV)?file=FFXIV_Ultima_Weapon.png"
+    },
+    {
+      "name": "The Howling Eye (Extreme)",
+      "description": "Extreme version of the Garuda primal fight. Unlocked through 'Gale-force Warning' quest from Urianger in The Waking Sands.",
+      "type": "Extreme",
+      "image_url": "https://finalfantasy.fandom.com/wiki/Garuda_(Final_Fantasy_XIV)?file=Garuda_from_FFXIV_battle_render.png"
+    },
+    {
+      "name": "The Navel (Extreme)",
+      "description": "Extreme version of the Titan primal fight. Unlocked through 'Quake Me Up Before You O-Gho' quest from Urianger in The Waking Sands.",
+      "type": "Extreme",
+      "image_url": "https://finalfantasy.fandom.com/wiki/Titan_(Final_Fantasy_XIV)?file=FFXIV_Titan_Art.png"
+    },
+    {
+      "name": "The Bowl of Embers (Extreme)",
+      "description": "Extreme version of the Ifrit primal fight. Unlocked through 'Ifrit Bleeds, We Can Kill It' quest from Urianger in The Waking Sands.",
+      "type": "Extreme",
+      "image_url": "https://finalfantasy.fandom.com/wiki/Ifrit_(Final_Fantasy_XIV)?file=Ifrit_from_FFXIV_battle_render.png"
+    },
+    {
+      "name": "Thornmarch (Extreme)",
+      "description": "Extreme version of Good King Moggle Mog XII. Unlocked through 'You Have Selected Regicide' quest from Urianger in The Waking Sands.",
+      "type": "Extreme",
+      "image_url": "https://finalfantasy.fandom.com/wiki/Good_King_Moggle_Mog_XII?file=FFXIV_Good_King_Moggle_Mog_XII.png"
+    },
+    {
+      "name": "The Whorleater (Extreme)",
+      "description": "Extreme version of Leviathan. Unlocked through 'Whorl of a Time' quest from Urianger in The Waking Sands.",
+      "type": "Extreme",
+      "image_url": "https://finalfantasy.fandom.com/wiki/Leviathan_(Final_Fantasy_XIV)?file=FFXIV_Leviathan_Art.png"
+    },
+    {
+      "name": "The Striking Tree (Extreme)",
+      "description": "Extreme version of Ramuh. Unlocked through 'Judgment Bolts and Lightning' quest from Urianger in The Waking Sands.",
+      "type": "Extreme",
+      "image_url": "https://finalfantasy.fandom.com/wiki/Ramuh_(Final_Fantasy_XIV)?file=FFXIV_Ramuh_Art.png"
+    },
+    {
+      "name": "Akh Afah Amphitheatre (Extreme)",
+      "description": "Extreme version of Shiva. Unlocked through 'The Iceheart Cometh' quest from Urianger in The Waking Sands.",
+      "type": "Extreme",
+      "image_url": "https://finalfantasy.fandom.com/wiki/Shiva_(Final_Fantasy_XIV)?file=FFXIV_Shiva_Art.png"
+    },
+    {
+      "name": "Thok ast Thok (Extreme)",
+      "description": "Extreme version of Ravana from Heavensward. Unlocked through 'Thok Around the Clock' quest from Torsefers in The Pillars.",
+      "type": "Extreme",
+      "image_url": "https://finalfantasy.fandom.com/wiki/Ravana_(Final_Fantasy_XIV)?file=FFXIV_Ravana_Art.png"
+    },
+    {
+      "name": "The Limitless Blue (Extreme)",
+      "description": "Extreme version of Bismarck from Heavensward. Unlocked through 'God of the Land, God of the Sea' quest from Torsefers in The Pillars.",
+      "type": "Extreme",
+      "image_url": "https://finalfantasy.fandom.com/wiki/Bismarck_(Final_Fantasy_XIV)?file=FFXIV_Bismarck_Art.png"
+    },
+    {
+      "name": "Containment Bay S1T7 (Extreme)",
+      "description": "Extreme version of Sephirot from Heavensward. Unlocked through 'When the Bough Wakes' quest from Torsefers in The Pillars.",
+      "type": "Extreme",
+      "image_url": "https://finalfantasy.fandom.com/wiki/Sephirot_(Final_Fantasy_XIV)?file=FFXIV_Sephirot_Art.png"
+    },
+    {
+      "name": "Containment Bay P1T6 (Extreme)",
+      "description": "Extreme version of Sophia from Heavensward. Unlocked through 'Balance Unto All' quest from Torsefers in The Pillars.",
+      "type": "Extreme",
+      "image_url": "https://finalfantasy.fandom.com/wiki/Sophia_(Final_Fantasy_XIV)?file=FFXIV_Sophia_Art.png"
+    },
+    {
+      "name": "Containment Bay Z1T9 (Extreme)",
+      "description": "Extreme version of Zurvan from Heavensward. Unlocked through 'Containment Bay Z1T9 (Extreme)' quest from Torsefers in The Pillars.",
+      "type": "Extreme",
+      "image_url": "https://finalfantasy.fandom.com/wiki/Zurvan_(Final_Fantasy_XIV)?file=FFXIV_Zurvan_Art.png"
+    },
+    {
+      "name": "The Pool of Tribute (Extreme)",
+      "description": "Extreme version of Susano from Stormblood. Unlocked through 'The Lord of the Revel' quest from the Wandering Minstrel in Kugane.",
+      "type": "Extreme",
+      "image_url": "https://finalfantasy.fandom.com/wiki/Susano_(Final_Fantasy_XIV)?file=FFXIV_Susano_Art.png"
+    },
+    {
+      "name": "Emanation (Extreme)",
+      "description": "Extreme version of Lakshmi from Stormblood. Unlocked through 'The Lady of Bliss' quest from the Wandering Minstrel in Kugane.",
+      "type": "Extreme",
+      "image_url": "https://finalfantasy.fandom.com/wiki/Lakshmi_(Final_Fantasy_XIV)?file=FFXIV_Lakshmi_Art.png"
+    },
+    {
+      "name": "The Minstrel's Ballad: Shinryu's Domain",
+      "description": "Extreme version of Shinryu from Stormblood. Unlocked through 'The Minstrel's Ballad: Shinryu's Domain' quest from the Wandering Minstrel in Kugane.",
+      "type": "Extreme",
+      "image_url": "https://finalfantasy.fandom.com/wiki/Shinryu_(Final_Fantasy_XIV)?file=FFXIV_Shinryu_Art.png"
+    },
+    {
+      "name": "The Jade Stoa (Extreme)",
+      "description": "Extreme version of Byakko from Stormblood. Unlocked through 'The Jade Stoa (Extreme)' quest from the Wandering Minstrel in Kugane.",
+      "type": "Extreme",
+      "image_url": "https://finalfantasy.fandom.com/wiki/Byakko_(Final_Fantasy_XIV)?file=FFXIV_Byakko_Art.png"
+    },
+    {
+      "name": "Hells' Kier (Extreme)",
+      "description": "Extreme version of Suzaku from Stormblood. Unlocked through 'Hells' Kier (Extreme)' quest from the Wandering Minstrel in Kugane.",
+      "type": "Extreme",
+      "image_url": "https://finalfantasy.fandom.com/wiki/Suzaku_(Final_Fantasy_XIV)?file=FFXIV_Suzaku_Art.png"
+    },
+    {
+      "name": "The Wreath of Snakes (Extreme)",
+      "description": "Extreme version of Seiryu from Stormblood. Unlocked through 'The Wreath of Snakes (Extreme)' quest from the Wandering Minstrel in Kugane.",
+      "type": "Extreme",
+      "image_url": "https://finalfantasy.fandom.com/wiki/Seiryu_(Final_Fantasy_XIV)?file=FFXIV_Seiryu_Art.png"
+    },
+    {
+      "name": "The Dancing Plague (Extreme)",
+      "description": "Extreme version of Titania from Shadowbringers. Unlocked through 'The Dancing Plague (Extreme)' quest from the Wandering Minstrel in the Crystarium.",
+      "type": "Extreme",
+      "image_url": "https://finalfantasy.fandom.com/wiki/Titania_(Final_Fantasy_XIV)?file=FFXIV_Titania_Art.png"
+    },
+    {
+      "name": "The Crown of the Immaculate (Extreme)",
+      "description": "Extreme version of Innocence from Shadowbringers. Unlocked through 'The Crown of the Immaculate (Extreme)' quest from the Wandering Minstrel in the Crystarium.",
+      "type": "Extreme",
+      "image_url": "https://finalfantasy.fandom.com/wiki/Innocence_(Final_Fantasy_XIV)?file=FFXIV_Innocence_Art.png"
+    },
+    {
+      "name": "The Minstrel's Ballad: Hades's Elegy",
+      "description": "Extreme version of Hades from Shadowbringers. Unlocked through 'The Minstrel's Ballad: Hades's Elegy' quest from the Wandering Minstrel in the Crystarium.",
+      "type": "Extreme",
+      "image_url": "https://finalfantasy.fandom.com/wiki/Hades_(Final_Fantasy_XIV)?file=FFXIV_Hades_Art.png"
+    },
+    {
+      "name": "Cinder Drift (Extreme)",
+      "description": "Extreme version of the Ruby Weapon from Shadowbringers. Unlocked through 'Cinder Drift (Extreme)' quest from the Ironworks Engineer in Kugane.",
+      "type": "Extreme",
+      "image_url": "https://finalfantasy.fandom.com/wiki/Ruby_Weapon_(Final_Fantasy_XIV)?file=FFXIV_Ruby_Weapon_Art.png"
+    },
+    {
+      "name": "The Seat of Sacrifice (Extreme)",
+      "description": "Extreme version of the Warrior of Light from Shadowbringers. Unlocked through 'The Seat of Sacrifice (Extreme)' quest from the Wandering Minstrel in the Crystarium.",
+      "type": "Extreme",
+      "image_url": "https://finalfantasy.fandom.com/wiki/Warrior_of_Light_(Enemy)?file=FFXIV_Warrior_of_Light_Boss_Art.png"
+    },
+    {
+      "name": "Castrum Marinum (Extreme)",
+      "description": "Extreme version of the Emerald Weapon from Shadowbringers. Unlocked through 'Castrum Marinum (Extreme)' quest from the Ironworks Engineer in Kugane.",
+      "type": "Extreme",
+      "image_url": "https://finalfantasy.fandom.com/wiki/Emerald_Weapon_(Final_Fantasy_XIV)?file=FFXIV_Emerald_Weapon_Art.png"
+    },
+    {
+      "name": "The Cloud Deck (Extreme)",
+      "description": "Extreme version of the Diamond Weapon from Shadowbringers. Unlocked through 'The Cloud Deck (Extreme)' quest from the Ironworks Engineer in Kugane.",
+      "type": "Extreme",
+      "image_url": "https://finalfantasy.fandom.com/wiki/Diamond_Weapon_(Final_Fantasy_XIV)?file=FFXIV_Diamond_Weapon_Art.png"
+    },
+    {
+      "name": "The Minstrel's Ballad: Zodiark's Fall",
+      "description": "Extreme version of Zodiark from Endwalker. Unlocked through 'The Minstrel's Ballad: Zodiark's Fall' quest from the Wandering Minstrel in Old Sharlayan.",
+      "type": "Extreme",
+      "image_url": "https://finalfantasy.fandom.com/wiki/Zodiark_(Final_Fantasy_XIV)?file=FFXIV_Zodiark_Art.png"
+    },
+    {
+      "name": "The Minstrel's Ballad: Hydaelyn's Call",
+      "description": "Extreme version of Hydaelyn from Endwalker. Unlocked through 'The Minstrel's Ballad: Hydaelyn's Call' quest from the Wandering Minstrel in Old Sharlayan.",
+      "type": "Extreme",
+      "image_url": "https://finalfantasy.fandom.com/wiki/Hydaelyn_(Final_Fantasy_XIV)?file=FFXIV_Hydaelyn_Art.png"
+    },
+    {
+      "name": "The Minstrel's Ballad: Endsinger's Aria",
+      "description": "Extreme version of the Endsinger from Endwalker. Unlocked through 'The Minstrel's Ballad: Endsinger's Aria' quest from the Wandering Minstrel in Old Sharlayan.",
+      "type": "Extreme",
+      "image_url": "https://finalfantasy.fandom.com/wiki/Endsinger?file=FFXIV_Endsinger_Art.png"
+    },
+    {
+      "name": "Storm's Crown (Extreme)",
+      "description": "Extreme version of Barbariccia from Endwalker. Unlocked through 'Storm's Crown (Extreme)' quest from the Wandering Minstrel in Old Sharlayan.",
+      "type": "Extreme",
+      "image_url": "https://finalfantasy.fandom.com/wiki/Barbariccia_(Final_Fantasy_XIV)?file=FFXIV_Barbariccia_Art.png"
+    },
+    {
+      "name": "Mount Ordeals (Extreme)",
+      "description": "Extreme version of Rubicante from Endwalker. Unlocked through 'Mount Ordeals (Extreme)' quest from the Wandering Minstrel in Old Sharlayan.",
+      "type": "Extreme",
+      "image_url": "https://finalfantasy.fandom.com/wiki/Rubicante_(Final_Fantasy_XIV)?file=FFXIV_Rubicante_Art.png"
+    },
+    {
+      "name": "The Voidcast Dais (Extreme)",
+      "description": "Extreme version of Golbez from Endwalker. Unlocked through 'The Voidcast Dais (Extreme)' quest from the Wandering Minstrel in Old Sharlayan.",
+      "type": "Extreme",
+      "image_url": "https://finalfantasy.fandom.com/wiki/Golbez_(Final_Fantasy_XIV)?file=FFXIV_Golbez_Art.png"
+    },
+    {
+      "name": "The Abyssal Fracture (Extreme)",
+      "description": "Extreme version of Zeromus from Endwalker. Unlocked through 'The Abyssal Fracture (Extreme)' quest from the Wandering Minstrel in Old Sharlayan.",
+      "type": "Extreme",
+      "image_url": "https://finalfantasy.fandom.com/wiki/Zeromus_(Final_Fantasy_XIV)?file=FFXIV_Zeromus_Art.png"
+    },
+    {
+      "name": "Everkeep (Extreme)",
+      "description": "Extreme version of Sphene from Dawntrail. Unlocked through 'Everkeep (Extreme)' quest from the Wandering Minstrel in Solution Nine.",
+      "type": "Extreme",
+      "image_url": "https://finalfantasy.fandom.com/wiki/Queen_Sphene?file=FFXIV_Sphene_Art.png"
+    },
+    {
+      "name": "Worqor Lar Dor (Extreme)",
+      "description": "Extreme version of Valigarmanda from Dawntrail. Unlocked through 'Worqor Lar Dor (Extreme)' quest from the Wandering Minstrel in Solution Nine.",
+      "type": "Extreme",
+      "image_url": "https://finalfantasy.fandom.com/wiki/Valigarmanda?file=FFXIV_Valigarmanda_Art.png"
+    }
+  ]
+}

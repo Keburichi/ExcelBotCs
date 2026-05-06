@@ -1,0 +1,91 @@
+using ExcelBotCs.Database.Interfaces;
+using ExcelBotCs.Models.Database;
+using ExcelBotCs.Services.API.Interfaces;
+
+namespace ExcelBotCs.Services.API;
+
+public class FightService : BaseEntityService<Fight, IFightRepository>, IFightService
+{
+    public FightService(IFightRepository fightRepository) : base(fightRepository)
+    {
+    }
+
+    public override async Task<List<Fight>> GetAsync()
+    {
+        var fights = await Repository.GetAsync();
+
+        if (fights is null)
+            return new List<Fight>();
+
+        // Since we are importing the fights from FFLogs and the FFLogs API is doing a horrible job
+        // of properly classifying fights we need to filter out duplicates manually.
+        // We do not restrict the import side since we need all the individual fight ids,
+        // to check if someone cleared something new and sync progress
+        var filteredFights = new List<Fight>();
+
+        foreach (var fight in fights.OrderBy(x => x.FFLogsExpansionId))
+        {
+            HandleSpecialFights(fight);
+
+            // On the website we do not differentiate between savage and legacy savage
+            if (fight.Type == FightType.LegacySavage)
+                fight.Type = FightType.Savage;
+
+            if (filteredFights.Any(x => x.Name.Equals(fight.Name)))
+                continue;
+
+            filteredFights.Add(fight);
+        }
+
+        return filteredFights
+            .OrderByDescending(x => x.FFLogsZoneId)
+            .ThenBy(x => x.FFLogsEncounterId).ToList();
+    }
+
+    private void HandleSpecialFights(Fight fight)
+    {
+        // Since some fights have inconsistent naming across expansions we need to fix them manually
+        if (fight.Name.Equals("Bahamut Prime"))
+            fight.Name = "The Unending Coil of Bahamut";
+
+        if (fight.Name.Equals("The Ultima Weapon"))
+            fight.Name = "The Weapon's Refrain";
+    }
+
+    public async Task<Fight?> GetByNameAndTypeAsync(string name, FightType type)
+    {
+        return await Repository.GetByNameAndTypeAsync(name, type);
+    }
+
+    public async Task<bool> UpsertAsync(Fight fight)
+    {
+        // try find existing by unique key (Name + Type)
+        var existing = await GetByNameAndTypeAsync(fight.Name, fight.Type);
+        if (existing == null)
+        {
+            await CreateAsync(fight);
+            return true; // inserted
+        }
+
+        // preserve immutable fields
+        fight.Id = existing.Id;
+        fight.DateCreated = existing.DateCreated;
+        await UpdateAsync(existing.Id, fight);
+        return false; // updated
+    }
+
+    public async Task<(int inserted, int updated)> BulkUpsertAsync(IEnumerable<Fight> fights)
+    {
+        int inserted = 0, updated = 0;
+        foreach (var fight in fights)
+        {
+            var wasInserted = await UpsertAsync(fight);
+            if (wasInserted)
+                inserted++;
+            else
+                updated++;
+        }
+
+        return (inserted, updated);
+    }
+}

@@ -1,0 +1,696 @@
+<script setup lang="ts">
+import type { EventOccurrence, EventParticipant, FCEvent, Role } from '@/features/events/events.types'
+import { computed, onMounted, ref, watch } from 'vue'
+import BaseButton from '@/components/BaseButton.vue'
+import BaseModal from '@/components/BaseModal.vue'
+import { useMembers } from '@/composables/useMembers'
+import { EventsApi } from '@/features/events/events.api'
+import { ROLE, SignupType } from '@/features/events/events.types'
+
+const props = defineProps<{
+  occurrence: EventOccurrence | null
+}>()
+
+const emit = defineEmits<{
+  eventPlanned: []
+}>()
+
+const modelValue = defineModel<boolean>('isOpen', { required: true })
+const eventValue = defineModel<FCEvent>('fcEvent', { required: true })
+
+const { members, load: memberLoad } = useMembers()
+const participants = ref<EventParticipant[]>([])
+const saving = ref(false)
+const selectionMode = ref<'simple' | 'role'>('role') // Toggle between simple and role-based selection
+
+// Local modal state (avoid browser alert/confirm)
+const isConfirmOpen = ref(false)
+const confirmMessage = ref('')
+const pendingMode = ref<'simple' | 'role' | null>(null)
+
+const isInfoOpen = ref(false)
+const infoMessage = ref('')
+
+// Confirmation for saving with fewer participants
+const isInsufficientParticipantsOpen = ref(false)
+
+function openInfo(message: string) {
+  infoMessage.value = message
+  isInfoOpen.value = true
+}
+
+function closeInfo() {
+  isInfoOpen.value = false
+  infoMessage.value = ''
+}
+
+function requestModeSwitch(newMode: 'simple' | 'role') {
+  confirmMessage.value = `Switching to ${newMode} mode will clear current selections. Continue?`
+  pendingMode.value = newMode
+  isConfirmOpen.value = true
+}
+
+function cancelModeSwitch() {
+  isConfirmOpen.value = false
+  confirmMessage.value = ''
+  pendingMode.value = null
+}
+
+function confirmModeSwitch() {
+  if (pendingMode.value) {
+    participants.value = []
+    selectionMode.value = pendingMode.value
+  }
+  cancelModeSwitch()
+}
+
+// Load members when component mounts
+onMounted(() => {
+  if (members.value.length === 0) {
+    memberLoad()
+  }
+  // Initialize participants from occurrence
+  if (props.occurrence) {
+    participants.value = [...(props.occurrence.Participants || [])]
+  }
+})
+
+// Watch for occurrence changes (when dialog opens with different occurrence)
+watch(() => props.occurrence, (newOccurrence) => {
+  if (newOccurrence) {
+    participants.value = [...(newOccurrence.Participants || [])]
+  }
+}, { immediate: true })
+
+// Format occurrence date for display
+const occurrenceDateFormatted = computed(() => {
+  if (!props.occurrence)
+    return ''
+  return new Date(props.occurrence.OccurrenceDate).toLocaleDateString(undefined, {
+    weekday: 'short',
+    year: 'numeric',
+    month: 'short',
+    day: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+  })
+})
+
+// Check if this is a LockedGroup event
+const isLockedGroup = computed(() => eventValue.value.SignupType === SignupType.LockedGroup)
+
+// Get the role assigned to a member, or null if not assigned
+function getMemberRole(discordId: string): Role | null {
+  const participant = participants.value.find(p => p.DiscordUserId === discordId)
+  return participant?.Role ?? null
+}
+
+// Check if a member is selected (has any role assigned)
+function isMemberSelected(discordId: string): boolean {
+  return participants.value.some(p => p.DiscordUserId === discordId)
+}
+
+// Toggle selection mode
+function toggleSelectionMode() {
+  const newMode = selectionMode.value === 'simple' ? 'role' : 'simple'
+  // Ask for confirmation using modal
+  requestModeSwitch(newMode)
+}
+
+// Toggle simple selection (for simple mode)
+function toggleSimpleSelection(discordId: string) {
+  const existingIndex = participants.value.findIndex(p => p.DiscordUserId === discordId)
+
+  if (existingIndex >= 0) {
+    // Remove the participant
+    participants.value.splice(existingIndex, 1)
+  }
+  else {
+    // Check if we've reached the limit
+    if (participants.value.length >= eventValue.value.MaxNumberOfParticipants) {
+      openInfo(`You can only select up to ${eventValue.value.MaxNumberOfParticipants} members.`)
+      return
+    }
+    // Add new participant without a specific role (use Tank as default/placeholder)
+    participants.value.push({
+      DiscordUserId: discordId,
+      Role: ROLE.Tank, // Placeholder role for simple mode
+    })
+  }
+}
+
+// Toggle role for a member (for role-based mode)
+function toggleRole(discordId: string, role: Role) {
+  const existingIndex = participants.value.findIndex(p => p.DiscordUserId === discordId)
+
+  if (existingIndex >= 0) {
+    const currentRole = participants.value[existingIndex].Role
+    if (currentRole === role) {
+      // If clicking the same role, remove the participant
+      participants.value.splice(existingIndex, 1)
+    }
+    else {
+      // If clicking a different role, update it
+      participants.value[existingIndex].Role = role
+    }
+  }
+  else {
+    // Check if we've reached the limit
+    if (participants.value.length >= eventValue.value.MaxNumberOfParticipants) {
+      openInfo(`You can only select up to ${eventValue.value.MaxNumberOfParticipants} members.`)
+      return
+    }
+    // Add new participant with this role
+    participants.value.push({
+      DiscordUserId: discordId,
+      Role: role,
+    })
+  }
+}
+
+// Get the roles a member signed up for (from occurrence)
+function getMemberSignupRoles(discordId: string): Role[] {
+  const signup = props.occurrence?.Signups?.find(s => s.DiscordUserId === discordId)
+  return signup?.Roles ?? []
+}
+
+// Check if a member signed up for a specific role
+function hasSignedUpForRole(discordId: string, role: Role): boolean {
+  const signupRoles = getMemberSignupRoles(discordId)
+  return signupRoles.includes(role)
+}
+
+// Filter members to only show those who signed up (from occurrence)
+const signedUpMembers = computed(() => {
+  if (!props.occurrence?.Signups || props.occurrence.Signups.length === 0) {
+    return []
+  }
+
+  return members.value.filter(member =>
+    props.occurrence!.Signups.some(signup => signup.DiscordUserId === member.DiscordId),
+  )
+})
+
+// Count participants by role
+const roleCount = computed(() => {
+  return {
+    [ROLE.Tank]: participants.value.filter(p => p.Role === ROLE.Tank).length,
+    [ROLE.Healer]: participants.value.filter(p => p.Role === ROLE.Healer).length,
+    [ROLE.Melee]: participants.value.filter(p => p.Role === ROLE.Melee).length,
+    [ROLE.Caster]: participants.value.filter(p => p.Role === ROLE.Caster).length,
+    [ROLE.Ranged]: participants.value.filter(p => p.Role === ROLE.Ranged).length,
+  }
+})
+
+// Check if we have enough participants and prompt if not
+function handleSave() {
+  if (!props.occurrence) {
+    console.error('No occurrence to save participants to')
+    return
+  }
+
+  // Check if we have fewer participants than required
+  if (participants.value.length < eventValue.value.MaxNumberOfParticipants) {
+    isInsufficientParticipantsOpen.value = true
+    return
+  }
+
+  // If we have enough, save directly
+  doSave()
+}
+
+// Actually save participants to occurrence
+async function doSave() {
+  if (!props.occurrence) {
+    console.error('No occurrence to save participants to')
+    return
+  }
+
+  isInsufficientParticipantsOpen.value = false
+  saving.value = true
+  try {
+    await EventsApi.selectParticipants(eventValue.value.Id, props.occurrence.Id, participants.value)
+    modelValue.value = false
+    emit('eventPlanned')
+  }
+  catch (error) {
+    console.error('Error saving participants:', error)
+  }
+  finally {
+    saving.value = false
+  }
+}
+
+function cancelInsufficientParticipants() {
+  isInsufficientParticipantsOpen.value = false
+}
+</script>
+
+<template>
+  <BaseModal v-model="modelValue" title="Organize Event" :close-on-outside-click="false">
+    <template #image>
+      <img v-if="eventValue.PictureUrl" :src="eventValue.PictureUrl" alt="avatar" class="card__image">
+    </template>
+    <template #body>
+      <!-- Occurrence info -->
+      <div v-if="occurrence" class="occurrence-info">
+        <span class="occurrence-label">Managing occurrence:</span>
+        <span class="occurrence-date">{{ occurrenceDateFormatted }}</span>
+      </div>
+
+      <!-- LockedGroup notice -->
+      <div v-if="isLockedGroup" class="locked-group-notice">
+        Participants will apply to <b>all occurrences</b> of this recurring event.
+      </div>
+
+      <!-- Mode Toggle Button -->
+      <div class="mode-toggle-container">
+        <BaseButton
+          :title="selectionMode === 'role' ? 'Switch to Simple Mode' : 'Switch to Role-Based Mode'"
+          :tooltip="selectionMode === 'role' ? 'Switch to Role-Unrestricted Mode' : 'Switch to Role-Based Mode'"
+          size="small"
+          @click="toggleSelectionMode"
+        />
+      </div>
+
+      <p v-if="selectionMode === 'role'">
+        Select up to <b>{{ eventValue.MaxNumberOfParticipants }}</b> members who should participate in the Event
+        '<b>{{ eventValue.Name }}</b>' and assign roles. Click '<b>Save</b>' once you are done.
+      </p>
+      <p v-else>
+        Select up to <b>{{ eventValue.MaxNumberOfParticipants }}</b> members who should participate in the Event
+        '<b>{{ eventValue.Name }}</b>'. Click '<b>Save</b>' once you are done.
+      </p>
+      <p class="muted" style="font-size: 0.9rem; margin-bottom: 1rem;">
+        The bot will automatically post a new message in <b>#upcoming-roster</b>.
+      </p>
+
+      <!-- Summary of selected participants -->
+      <div v-if="participants.length > 0" class="participants-summary">
+        <h4>Selected Participants ({{ participants.length }} / {{ eventValue.MaxNumberOfParticipants }})</h4>
+        <div v-if="selectionMode === 'role'" class="role-counts">
+          <span class="role-badge">Tank: {{ roleCount[ROLE.Tank] }}</span>
+          <span class="role-badge">Healer: {{ roleCount[ROLE.Healer] }}</span>
+          <span class="role-badge">Melee: {{ roleCount[ROLE.Melee] }}</span>
+          <span class="role-badge">Caster: {{ roleCount[ROLE.Caster] }}</span>
+          <span class="role-badge">Ranged: {{ roleCount[ROLE.Ranged] }}</span>
+        </div>
+      </div>
+
+      <!-- Member selection list -->
+      <div class="member-list">
+        <div v-for="member in signedUpMembers" :key="member.DiscordId" class="member-item">
+          <div class="member-info">
+            <img v-if="member.DiscordAvatar" :src="member.DiscordAvatar" alt="avatar" class="avatar">
+            <div v-else class="avatar placeholder">
+              {{ (member.PlayerName || member.DiscordName).charAt(0).toUpperCase() }}
+            </div>
+            <span class="member-name">{{ member.PlayerName || member.DiscordName }}</span>
+          </div>
+
+          <!-- Simple Mode: Single Select Button -->
+          <div v-if="selectionMode === 'simple'" class="simple-selection">
+            <button
+              :class="{ selected: isMemberSelected(member.DiscordId) }"
+              :disabled="!isMemberSelected(member.DiscordId) && participants.length >= eventValue.MaxNumberOfParticipants"
+              class="btn-select"
+              @click="toggleSimpleSelection(member.DiscordId)"
+            >
+              <span v-if="isMemberSelected(member.DiscordId)">✓ Selected</span>
+              <span v-else>Select</span>
+            </button>
+          </div>
+
+          <!-- Role Mode: Role Buttons -->
+          <div v-else class="role-buttons">
+            <button
+              :class="{ active: getMemberRole(member.DiscordId) === ROLE.Tank }"
+              :disabled="!hasSignedUpForRole(member.DiscordId, ROLE.Tank) || (!isMemberSelected(member.DiscordId) && participants.length >= eventValue.MaxNumberOfParticipants)"
+              class="btn-role"
+              title="Tank"
+              @click="toggleRole(member.DiscordId, ROLE.Tank)"
+            >
+              T
+            </button>
+            <button
+              :class="{ active: getMemberRole(member.DiscordId) === ROLE.Healer }"
+              :disabled="!hasSignedUpForRole(member.DiscordId, ROLE.Healer) || (!isMemberSelected(member.DiscordId) && participants.length >= eventValue.MaxNumberOfParticipants)"
+              class="btn-role"
+              title="Healer"
+              @click="toggleRole(member.DiscordId, ROLE.Healer)"
+            >
+              H
+            </button>
+            <button
+              :class="{ active: getMemberRole(member.DiscordId) === ROLE.Melee }"
+              :disabled="!hasSignedUpForRole(member.DiscordId, ROLE.Melee) || (!isMemberSelected(member.DiscordId) && participants.length >= eventValue.MaxNumberOfParticipants)"
+              class="btn-role"
+              title="Melee"
+              @click="toggleRole(member.DiscordId, ROLE.Melee)"
+            >
+              M
+            </button>
+            <button
+              :class="{ active: getMemberRole(member.DiscordId) === ROLE.Caster }"
+              :disabled="!hasSignedUpForRole(member.DiscordId, ROLE.Caster) || (!isMemberSelected(member.DiscordId) && participants.length >= eventValue.MaxNumberOfParticipants)"
+              class="btn-role"
+              title="Caster"
+              @click="toggleRole(member.DiscordId, ROLE.Caster)"
+            >
+              C
+            </button>
+            <button
+              :class="{ active: getMemberRole(member.DiscordId) === ROLE.Ranged }"
+              :disabled="!hasSignedUpForRole(member.DiscordId, ROLE.Ranged) || (!isMemberSelected(member.DiscordId) && participants.length >= eventValue.MaxNumberOfParticipants)"
+              class="btn-role"
+              title="Ranged"
+              @click="toggleRole(member.DiscordId, ROLE.Ranged)"
+            >
+              R
+            </button>
+          </div>
+        </div>
+      </div>
+    </template>
+    <template #actions>
+      <BaseButton :disabled="saving" state="secondary" title="Cancel" @clicked="modelValue = false" />
+      <BaseButton :disabled="saving" :title="saving ? 'Saving...' : 'Save'" state="primary" @click="handleSave" />
+    </template>
+  </BaseModal>
+
+  <!-- Confirm switch mode modal -->
+  <BaseModal
+    v-model="isConfirmOpen"
+    :close-on-outside-click="false"
+    size="small"
+    title="Switch Mode"
+  >
+    <template #body>
+      <p>{{ confirmMessage }}</p>
+    </template>
+    <template #actions>
+      <BaseButton state="secondary" title="Cancel" @clicked="cancelModeSwitch" />
+      <BaseButton state="primary" title="Confirm" @clicked="confirmModeSwitch" />
+    </template>
+  </BaseModal>
+
+  <!-- Info modal -->
+  <BaseModal
+    v-model="isInfoOpen"
+    :close-on-outside-click="true"
+    size="small"
+    title="Notice"
+  >
+    <template #body>
+      <p>{{ infoMessage }}</p>
+    </template>
+    <template #actions>
+      <BaseButton state="primary" title="OK" @clicked="closeInfo" />
+    </template>
+  </BaseModal>
+
+  <!-- Insufficient participants confirmation modal -->
+  <BaseModal
+    v-model="isInsufficientParticipantsOpen"
+    :close-on-outside-click="false"
+    size="small"
+    title="Not Enough Participants"
+  >
+    <template #body>
+      <div class="insufficient-warning">
+        <p>
+          You have selected <strong>{{ participants.length }}</strong>
+          participant{{ participants.length === 1 ? '' : 's' }},
+          but this event requires <strong>{{ eventValue.MaxNumberOfParticipants }}</strong>.
+        </p>
+        <p class="warning-question">
+          Do you want to continue anyway?
+        </p>
+      </div>
+    </template>
+    <template #actions>
+      <BaseButton state="secondary" title="Go Back" @clicked="cancelInsufficientParticipants" />
+      <BaseButton state="warning" title="Save Anyway" @clicked="doSave" />
+    </template>
+  </BaseModal>
+</template>
+
+<style scoped>
+.card__image {
+  /* zoom in on the image since the fight images have a small white gradient */
+  transform: scale(1.1);
+}
+
+.occurrence-info {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+  padding: 0.75rem 1rem;
+  background: var(--muted-bg);
+  border-radius: 8px;
+  border: 1px solid var(--border);
+}
+
+.occurrence-label {
+  font-weight: 500;
+  color: var(--muted);
+}
+
+.occurrence-date {
+  font-weight: 600;
+  color: var(--fg);
+}
+
+.locked-group-notice {
+  margin-bottom: 1rem;
+  padding: 0.75rem 1rem;
+  background: #fff3e0;
+  border: 1px solid #ffb74d;
+  border-radius: 8px;
+  color: #e65100;
+  font-size: 0.9rem;
+}
+
+[data-theme="dark"] .locked-group-notice {
+  background: #3d2f1e;
+  border-color: #8d6e4d;
+  color: #ffcc80;
+}
+
+.participants-summary {
+  background: var(--muted-bg);
+  padding: 1rem;
+  border-radius: 8px;
+  margin-bottom: 1rem;
+}
+
+.participants-summary h4 {
+  margin: 0 0 0.5rem 0;
+  font-size: 0.95rem;
+  color: var(--fg);
+}
+
+.role-counts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.role-badge {
+  background: var(--card);
+  border: 1px solid var(--border);
+  padding: 0.25rem 0.5rem;
+  border-radius: 6px;
+  font-size: 0.85rem;
+  color: var(--fg);
+}
+
+.member-list {
+  max-height: 400px;
+  overflow-y: auto;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--card);
+}
+
+.member-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.75rem;
+  border-bottom: 1px solid var(--border);
+  transition: background 0.2s;
+}
+
+.member-item:last-child {
+  border-bottom: none;
+}
+
+.member-item:hover {
+  background: var(--muted-bg);
+}
+
+.member-info {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex: 1;
+}
+
+.member-name {
+  font-weight: 500;
+  color: var(--fg);
+}
+
+.role-buttons {
+  display: flex;
+  gap: 0.25rem;
+}
+
+.btn-role {
+  width: 32px;
+  height: 32px;
+  border-radius: 6px;
+  border: 1px solid var(--border);
+  background: var(--card);
+  color: var(--muted);
+  cursor: pointer;
+  font-weight: 600;
+  font-size: 0.85rem;
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.btn-role:hover {
+  background: var(--muted-bg);
+  border-color: var(--link);
+  color: var(--link);
+}
+
+.btn-role.active {
+  background: var(--btn-primary-bg, #3b82f6);
+  color: var(--btn-primary-fg, #fff);
+  border-color: var(--btn-primary-bg, #3b82f6);
+  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.3);
+}
+
+.btn-role:focus {
+  outline: none;
+  box-shadow: 0 0 0 3px var(--ring);
+}
+
+.btn-role:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+  background: var(--muted-bg);
+  color: var(--muted);
+  border-color: var(--border);
+}
+
+.btn-role:disabled:hover {
+  background: var(--muted-bg);
+  border-color: var(--border);
+  color: var(--muted);
+  transform: none;
+}
+
+/* Scrollbar styling */
+.member-list::-webkit-scrollbar {
+  width: 8px;
+}
+
+.member-list::-webkit-scrollbar-track {
+  background: var(--muted-bg);
+  border-radius: 4px;
+}
+
+.member-list::-webkit-scrollbar-thumb {
+  background: var(--border);
+  border-radius: 4px;
+}
+
+.member-list::-webkit-scrollbar-thumb:hover {
+  background: var(--muted);
+}
+
+/* Mode Toggle Styles */
+.mode-toggle-container {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 1rem;
+}
+
+.mode-toggle-btn {
+  font-size: 0.9rem;
+  padding: 0.5rem 1rem;
+}
+
+/* Simple Selection Styles */
+.simple-selection {
+  display: flex;
+  align-items: center;
+}
+
+.btn-select {
+  padding: 0.5rem 1rem;
+  border-radius: 6px;
+  border: 1px solid var(--border);
+  background: var(--card);
+  color: var(--fg);
+  cursor: pointer;
+  font-weight: 600;
+  font-size: 0.85rem;
+  transition: all 0.2s;
+  min-width: 100px;
+}
+
+.btn-select:hover:not(:disabled) {
+  background: var(--muted-bg);
+  border-color: var(--link);
+  color: var(--link);
+}
+
+.btn-select.selected {
+  background: var(--btn-primary-bg, #3b82f6);
+  color: var(--btn-primary-fg, #fff);
+  border-color: var(--btn-primary-bg, #3b82f6);
+  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.3);
+}
+
+.btn-select:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+  background: var(--muted-bg);
+  color: var(--muted);
+  border-color: var(--border);
+}
+
+.btn-select:focus {
+  outline: none;
+  box-shadow: 0 0 0 3px var(--ring);
+}
+
+/* Insufficient participants warning */
+.insufficient-warning {
+  text-align: center;
+}
+
+.insufficient-warning p {
+  margin: 0 0 1rem 0;
+  color: var(--fg);
+  font-size: 1rem;
+  line-height: 1.5;
+}
+
+.insufficient-warning p:last-child {
+  margin-bottom: 0;
+}
+
+.insufficient-warning .warning-question {
+  color: var(--muted);
+  font-size: 0.95rem;
+}
+</style>
