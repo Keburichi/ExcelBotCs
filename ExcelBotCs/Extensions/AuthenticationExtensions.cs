@@ -46,7 +46,6 @@ public static class AuthenticationExtensions
             options.Scope.Add("identify");
             options.Scope.Add("guilds");
             options.Scope.Add("guilds.members.read");
-
         });
 
         auth.AddCookie(options =>
@@ -54,6 +53,9 @@ public static class AuthenticationExtensions
             options.Cookie.Name = "DiscordAuth";
             options.LoginPath = "/login";
             options.LogoutPath = "/logout";
+
+            // Set the cookie expiration time to something long
+            // so members don't have to re-authenticate every time they visit the website
             options.ExpireTimeSpan = TimeSpan.FromDays(24);
 
             // Keep the user logged in as long as they are active

@@ -202,7 +202,7 @@ public class LodestoneDutyScraperServiceTests
     #region ParseDutyListingHtml Tests
 
     [Test]
-    public void ParseDutyListingHtml_ValidHtml_ExtractsAllDuties()
+    public async Task ParseDutyListingHtml_ValidHtml_ExtractsAllDuties()
     {
         // Arrange
         var html = CreateListingPageHtml(
@@ -212,7 +212,7 @@ public class LodestoneDutyScraperServiceTests
         );
 
         // Act
-        var result = _service.ParseDutyListingHtml(html, 5, 4, FightType.Extreme);
+        var result = await _service.ParseDutyListingHtmlAsync(html, 5, 4, FightType.Extreme);
 
         // Assert
         Assert.That(result, Has.Count.EqualTo(3));
@@ -223,26 +223,26 @@ public class LodestoneDutyScraperServiceTests
     }
 
     [Test]
-    public void ParseDutyListingHtml_EmptyHtml_ReturnsEmptyList()
+    public async Task ParseDutyListingHtml_EmptyHtml_ReturnsEmptyList()
     {
         // Arrange
         var html = "<html><body></body></html>";
 
         // Act
-        var result = _service.ParseDutyListingHtml(html, 5, 4, FightType.Extreme);
+        var result = await _service.ParseDutyListingHtmlAsync(html, 5, 4, FightType.Extreme);
 
         // Assert
         Assert.That(result, Is.Empty);
     }
 
     [Test]
-    public void ParseDutyListingHtml_MalformedHtml_ReturnsEmptyList()
+    public async Task ParseDutyListingHtml_MalformedHtml_ReturnsEmptyList()
     {
         // Arrange
         var html = "<html><body>Invalid HTML without proper structure";
 
         // Act
-        var result = _service.ParseDutyListingHtml(html, 5, 4, FightType.Extreme);
+        var result = await _service.ParseDutyListingHtmlAsync(html, 5, 4, FightType.Extreme);
 
         // Assert
         Assert.That(result, Is.Empty);

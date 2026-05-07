@@ -108,7 +108,7 @@ public class Program
         // Register underlying NetStone client and our abstraction
         builder.Services.AddSingleton<ILodestoneClient>(sp =>
         {
-            var lodestoneClient = Task.Run(() => LodestoneClient.GetClientAsync()).GetAwaiter().GetResult();
+            var lodestoneClient = LodestoneClient.GetClientAsync().GetAwaiter().GetResult();
             return new NetStoneLodestoneClient(lodestoneClient);
         });
 

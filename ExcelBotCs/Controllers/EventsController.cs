@@ -86,10 +86,7 @@ public class EventsController : AuthorizedController, IBaseCrudController<EventD
 
         var (success, errorMessage) = await _eventService.ArchiveAsync(id, user.DiscordId);
 
-        if (!success)
-            return BadRequest(errorMessage);
-
-        return Ok();
+        return success ? Ok() : BadRequest(errorMessage);
     }
 
     [HttpPost("{id:length(24)}/restore")]
@@ -98,10 +95,7 @@ public class EventsController : AuthorizedController, IBaseCrudController<EventD
     {
         var (success, errorMessage) = await _eventService.RestoreAsync(id);
 
-        if (!success)
-            return BadRequest(errorMessage);
-
-        return Ok();
+        return success ? Ok() : BadRequest(errorMessage);
     }
 
     [HttpPost("{id:length(24)}/extend")]
@@ -489,7 +483,6 @@ public class EventsController : AuthorizedController, IBaseCrudController<EventD
             ).ToList();
 
             // It's okay to return an empty but valid calendar if there are no events
-
             var calendar = new Calendar
             {
                 Name = "Excelsior Events Calendar",

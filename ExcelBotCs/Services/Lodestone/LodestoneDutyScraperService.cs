@@ -63,7 +63,7 @@ public class LodestoneDutyScraperService
             response.EnsureSuccessStatusCode();
 
             var html = await response.Content.ReadAsStringAsync();
-            duties = ParseDutyListingHtml(html, expansionId, categoryId, fightType);
+            duties = await ParseDutyListingHtmlAsync(html, expansionId, categoryId, fightType);
         }
         catch (Exception ex)
         {
@@ -76,7 +76,7 @@ public class LodestoneDutyScraperService
     /// <summary>
     ///     Parses HTML from a Lodestone listing page to extract duty information.
     /// </summary>
-    public List<LodestoneDuty> ParseDutyListingHtml(string html, int expansionId, int categoryId,
+    public async Task<List<LodestoneDuty>> ParseDutyListingHtmlAsync(string html, int expansionId, int categoryId,
         FightType fightType)
     {
         var duties = new List<LodestoneDuty>();
@@ -85,7 +85,7 @@ public class LodestoneDutyScraperService
         {
             var config = Configuration.Default;
             var context = BrowsingContext.New(config);
-            var document = Task.Run(() => context.OpenAsync(req => req.Content(html))).GetAwaiter().GetResult();
+            var document = await context.OpenAsync(req => req.Content(html));
 
             // Find all duty links - they're in anchors with specific class or pattern
             var dutyLinks = document.QuerySelectorAll("a[href*='/lodestone/playguide/db/duty/']");

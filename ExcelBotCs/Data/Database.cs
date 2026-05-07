@@ -6,37 +6,38 @@ using MongoDB.Bson.Serialization.Serializers;
 using MongoDB.Driver;
 
 namespace ExcelBotCs.Data;
+
 public class Database
 {
-	private readonly IMongoDatabase _database;
+    private readonly IMongoDatabase _database;
 
-	public Database(IOptions<DatabaseOptions> options, ILogger<Database> logger)
-	{
-		var settings = MongoClientSettings.FromConnectionString(options.Value.ConnectionString);
-		settings.ServerApi = new ServerApi(ServerApiVersion.V1);
+    public Database(IOptions<DatabaseOptions> options, ILogger<Database> logger)
+    {
+        var settings = MongoClientSettings.FromConnectionString(options.Value.ConnectionString);
+        settings.ServerApi = new ServerApi(ServerApiVersion.V1);
 
-		var objectSerializer = new ObjectSerializer(ObjectSerializer.AllAllowedTypes);
+        var objectSerializer = new ObjectSerializer(ObjectSerializer.AllAllowedTypes);
 
-		if (!BsonSerializer.TryRegisterSerializer(objectSerializer))
-			logger.LogWarning("Serializer was already registered");
+        if (!BsonSerializer.TryRegisterSerializer(objectSerializer))
+            logger.LogWarning("Serializer was already registered");
 
-		var client = new MongoClient(settings);
-		try
-		{
-			var result = client.GetDatabase("admin").RunCommand<BsonDocument>(new BsonDocument("ping", 1));
-			Console.WriteLine("Successfully connected to Mongodb");
+        var client = new MongoClient(settings);
+        try
+        {
+            var result = client.GetDatabase("admin").RunCommand<BsonDocument>(new BsonDocument("ping", 1));
+            logger.LogInformation("Successfully connected to MongoDB");
 
-			_database = client.GetDatabase(options.Value.DatabaseName);
-		}
-		catch (Exception ex)
-		{
-			Console.WriteLine(ex.Message);
-			throw;
-		}
-	}
+            _database = client.GetDatabase(options.Value.DatabaseName);
+        }
+        catch (Exception ex)
+        {
+            logger.LogCritical(ex, "Error while connecting to MongoDB");
+            throw;
+        }
+    }
 
-	public Repository<T> GetCollection<T>(string collection) where T : DatabaseObject
-	{
-		return new Repository<T>(_database.GetCollection<T>(collection));
-	}
+    public Repository<T> GetCollection<T>(string collection) where T : DatabaseObject
+    {
+        return new Repository<T>(_database.GetCollection<T>(collection));
+    }
 }
