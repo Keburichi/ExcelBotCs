@@ -245,7 +245,7 @@ public class LotteryServiceTests : MongoDbTest
         _memberService.Setup(x => x.GetByDiscordId(userId)).ReturnsAsync(user);
 
         var cts = new CancellationTokenSource();
-        cts.CancelAfter(TimeSpan.FromMilliseconds(1)); // Cancel immediately to trigger timeout
+        cts.Cancel(); // Pre-cancel so Task.Delay(cts.Token) is already done, making WhenAny deterministic
 
         var result = await _lotteryService.RandomGuessAsync(userId, cts);
 
