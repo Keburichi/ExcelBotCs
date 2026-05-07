@@ -8,11 +8,15 @@ using MongoDB.Driver;
 
 namespace ExcelBotCs.Tests.Database;
 
-[TestFixture]
+[Collection("MongoDB")]
 public class MemberRepositoryTests : MongoDbTest
 {
     private IMemberRepository _memberRepository = null!;
     private IMemberRoleRepository _memberRoleRepository = null!;
+
+    public MemberRepositoryTests(MongoDbFixture fixture) : base(fixture)
+    {
+    }
 
     protected override void InitializeRepository(IMongoClient mongoClient, IOptions<DatabaseOptions> databaseOptions)
     {
@@ -20,15 +24,15 @@ public class MemberRepositoryTests : MongoDbTest
         _memberRoleRepository = new MemberRoleRepository(mongoClient, databaseOptions);
     }
 
-    [Test]
+    [Fact]
     public async Task GetAsync_ReturnsEmptyList_WhenNoMembersExist()
     {
         var result = await _memberRepository.GetAsync();
 
-        Assert.That(result, Is.Empty);
+        result.ShouldBeEmpty();
     }
 
-    [Test]
+    [Fact]
     public async Task GetAsync_ReturnsMember_WhenMemberExists()
     {
         // Arrange
@@ -46,12 +50,12 @@ public class MemberRepositoryTests : MongoDbTest
         var result = await _memberRepository.GetAsync();
 
         // Assert
-        Assert.That(result, Is.Not.Empty);
-        Assert.That(result.Count, Is.EqualTo(1));
-        Assert.That(result[0].DiscordName, Is.EqualTo(member.DiscordName));
+        result.ShouldNotBeEmpty();
+        result.Count.ShouldBe(1);
+        result[0].DiscordName.ShouldBe(member.DiscordName);
     }
 
-    [Test]
+    [Fact]
     public async Task GetAsync_LoadsRoles_WhenMemberHasRoles()
     {
         // Arrange - Create MemberRole
@@ -80,16 +84,16 @@ public class MemberRepositoryTests : MongoDbTest
         var result = await _memberRepository.GetAsync();
 
         // Assert
-        Assert.That(result, Is.Not.Empty);
+        result.ShouldNotBeEmpty();
         var loadedMember = result[0];
-        Assert.That(loadedMember.Roles, Is.Not.Null);
-        Assert.That(loadedMember.Roles, Is.Not.Empty);
-        Assert.That(loadedMember.Roles.Count, Is.EqualTo(1));
-        Assert.That(loadedMember.Roles[0].Name, Is.EqualTo("Test Role"));
-        Assert.That(loadedMember.Roles[0].IsAdmin, Is.True);
+        loadedMember.Roles.ShouldNotBeNull();
+        loadedMember.Roles.ShouldNotBeEmpty();
+        loadedMember.Roles.Count.ShouldBe(1);
+        loadedMember.Roles[0].Name.ShouldBe("Test Role");
+        loadedMember.Roles[0].IsAdmin.ShouldBe(true);
     }
 
-    [Test]
+    [Fact]
     public async Task GetAsync_LoadsMultipleRoles_WhenMemberHasMultipleRoles()
     {
         // Arrange - Create multiple MemberRoles
@@ -128,17 +132,17 @@ public class MemberRepositoryTests : MongoDbTest
         var result = await _memberRepository.GetAsync();
 
         // Assert
-        Assert.That(result, Is.Not.Empty);
+        result.ShouldNotBeEmpty();
         var loadedMember = result[0];
-        Assert.That(loadedMember.Roles, Is.Not.Null);
-        Assert.That(loadedMember.Roles, Has.Count.EqualTo(2));
-        Assert.That(loadedMember.Roles.Any(r => r.Name == "Admin Role"), Is.True);
-        Assert.That(loadedMember.Roles.Any(r => r.Name == "Developer Role"), Is.True);
-        Assert.That(loadedMember.IsAdmin, Is.True);
-        Assert.That(loadedMember.IsDeveloper, Is.True);
+        loadedMember.Roles.ShouldNotBeNull();
+        loadedMember.Roles.Count.ShouldBe(2);
+        loadedMember.Roles.Any(r => r.Name == "Admin Role").ShouldBe(true);
+        loadedMember.Roles.Any(r => r.Name == "Developer Role").ShouldBe(true);
+        loadedMember.IsAdmin.ShouldBe(true);
+        loadedMember.IsDeveloper.ShouldBe(true);
     }
 
-    [Test]
+    [Fact]
     public async Task GetAsync_ReturnsEmptyRoles_WhenMemberHasNoRoles()
     {
         // Arrange
@@ -156,15 +160,15 @@ public class MemberRepositoryTests : MongoDbTest
         var result = await _memberRepository.GetAsync();
 
         // Assert
-        Assert.That(result, Is.Not.Empty);
+        result.ShouldNotBeEmpty();
         var loadedMember = result[0];
-        Assert.That(loadedMember.Roles, Is.Not.Null);
-        Assert.That(loadedMember.Roles, Is.Empty);
-        Assert.That(loadedMember.IsAdmin, Is.False.Or.Null);
-        Assert.That(loadedMember.IsMember, Is.False.Or.Null);
+        loadedMember.Roles.ShouldNotBeNull();
+        loadedMember.Roles.ShouldBeEmpty();
+        (loadedMember.IsAdmin ?? false).ShouldBe(false);
+        (loadedMember.IsMember ?? false).ShouldBe(false);
     }
 
-    [Test]
+    [Fact]
     public async Task GetAsyncById_LoadsRoles_WhenMemberHasRoles()
     {
         // Arrange
@@ -192,23 +196,23 @@ public class MemberRepositoryTests : MongoDbTest
         var result = await _memberRepository.GetAsync(member.Id!);
 
         // Assert
-        Assert.That(result, Is.Not.Null);
-        Assert.That(result!.Roles, Is.Not.Null);
-        Assert.That(result.Roles, Is.Not.Empty);
-        Assert.That(result.Roles[0].Name, Is.EqualTo("Test Role"));
+        result.ShouldNotBeNull();
+        result!.Roles.ShouldNotBeNull();
+        result.Roles.ShouldNotBeEmpty();
+        result.Roles[0].Name.ShouldBe("Test Role");
     }
 
-    [Test]
+    [Fact]
     public async Task GetByDiscordId_ReturnsNull_WhenMemberDoesNotExist()
     {
         // Act
         var result = await _memberRepository.GetByDiscordId(GenerateRandomDiscordId());
 
         // Assert
-        Assert.That(result, Is.Null);
+        result.ShouldBeNull();
     }
 
-    [Test]
+    [Fact]
     public async Task GetByDiscordId_ReturnsMember_WhenMemberExists()
     {
         // Arrange
@@ -226,11 +230,11 @@ public class MemberRepositoryTests : MongoDbTest
         var result = await _memberRepository.GetByDiscordId(member.DiscordId);
 
         // Assert
-        Assert.That(result, Is.Not.Null);
-        Assert.That(result.DiscordName, Is.EqualTo(member.DiscordName));
+        result.ShouldNotBeNull();
+        result.DiscordName.ShouldBe(member.DiscordName);
     }
 
-    [Test]
+    [Fact]
     public async Task GetByDiscordId_LoadsRoles_WhenMemberHasRoles()
     {
         // Arrange
@@ -258,24 +262,24 @@ public class MemberRepositoryTests : MongoDbTest
         var result = await _memberRepository.GetByDiscordId(member.DiscordId);
 
         // Assert
-        Assert.That(result, Is.Not.Null);
-        Assert.That(result.Roles, Is.Not.Null);
-        Assert.That(result.Roles, Is.Not.Empty);
-        Assert.That(result.Roles[0].Name, Is.EqualTo(memberRole.Name));
-        Assert.That(result.IsMember, Is.True);
+        result.ShouldNotBeNull();
+        result.Roles.ShouldNotBeNull();
+        result.Roles.ShouldNotBeEmpty();
+        result.Roles[0].Name.ShouldBe(memberRole.Name);
+        result.IsMember.ShouldBe(true);
     }
 
-    [Test]
+    [Fact]
     public async Task GetByLodestoneId_ReturnsNull_WhenMemberDoesNotExist()
     {
         // Act
         var result = await _memberRepository.GetByLodestoneId("12345678");
 
         // Assert
-        Assert.That(result, Is.Null);
+        result.ShouldBeNull();
     }
 
-    [Test]
+    [Fact]
     public async Task GetByLodestoneId_ReturnsMember_WhenMemberExists()
     {
         // Arrange
@@ -294,12 +298,12 @@ public class MemberRepositoryTests : MongoDbTest
         var result = await _memberRepository.GetByLodestoneId(member.LodestoneId);
 
         // Assert
-        Assert.That(result, Is.Not.Null);
-        Assert.That(result.DiscordName, Is.EqualTo(member.DiscordName));
-        Assert.That(result.LodestoneId, Is.EqualTo(member.LodestoneId));
+        result.ShouldNotBeNull();
+        result.DiscordName.ShouldBe(member.DiscordName);
+        result.LodestoneId.ShouldBe(member.LodestoneId);
     }
 
-    [Test]
+    [Fact]
     public async Task GetByLodestoneId_LoadsRoles_WhenMemberHasRoles()
     {
         // Arrange
@@ -328,14 +332,14 @@ public class MemberRepositoryTests : MongoDbTest
         var result = await _memberRepository.GetByLodestoneId(member.LodestoneId);
 
         // Assert
-        Assert.That(result, Is.Not.Null);
-        Assert.That(result.Roles, Is.Not.Null);
-        Assert.That(result.Roles, Is.Not.Empty);
-        Assert.That(result.Roles[0].Name, Is.EqualTo(memberRole.Name));
-        Assert.That(result.IsMember, Is.True);
+        result.ShouldNotBeNull();
+        result.Roles.ShouldNotBeNull();
+        result.Roles.ShouldNotBeEmpty();
+        result.Roles[0].Name.ShouldBe(memberRole.Name);
+        result.IsMember.ShouldBe(true);
     }
 
-    [Test]
+    [Fact]
     public async Task CreateAsync_CreatesPopulatesIdAndTimestamps()
     {
         // Arrange
@@ -352,13 +356,13 @@ public class MemberRepositoryTests : MongoDbTest
         await _memberRepository.CreateAsync(member);
 
         // Assert
-        Assert.That(member.Id, Is.Not.Null);
-        Assert.That(member.Id, Is.Not.Empty);
-        Assert.That(member.DateCreated, Is.EqualTo(DateTime.UtcNow).Within(TimeSpan.FromSeconds(1)));
-        Assert.That(member.DateModified, Is.EqualTo(DateTime.UtcNow).Within(TimeSpan.FromSeconds(1)));
+        member.Id.ShouldNotBeNull();
+        member.Id.ShouldNotBeEmpty();
+        member.DateCreated.ShouldBe(DateTime.UtcNow, TimeSpan.FromSeconds(1));
+        member.DateModified.ShouldBe(DateTime.UtcNow, TimeSpan.FromSeconds(1));
     }
 
-    [Test]
+    [Fact]
     public async Task UpdateAsync_UpdatesEditDate()
     {
         // Arrange
@@ -380,12 +384,12 @@ public class MemberRepositoryTests : MongoDbTest
 
         // Assert
         var updated = await _memberRepository.GetAsync(member.Id!);
-        Assert.That(updated, Is.Not.Null);
-        Assert.That(updated!.DiscordName, Is.EqualTo(member.DiscordName));
-        Assert.That(updated.DateModified, Is.GreaterThan(updated.DateCreated));
+        updated.ShouldNotBeNull();
+        updated!.DiscordName.ShouldBe(member.DiscordName);
+        updated.DateModified.ShouldBeGreaterThan(updated.DateCreated);
     }
 
-    [Test]
+    [Fact]
     public async Task DeleteAsync_RemovesMember()
     {
         // Arrange
@@ -400,13 +404,13 @@ public class MemberRepositoryTests : MongoDbTest
         await _memberRepository.CreateAsync(member);
 
         var before = await _memberRepository.GetAsync();
-        Assert.That(before, Has.Count.EqualTo(1));
+        before.Count.ShouldBe(1);
 
         // Act
         await _memberRepository.DeleteAsync(member.Id!);
 
         // Assert
         var after = await _memberRepository.GetAsync();
-        Assert.That(after, Is.Empty);
+        after.ShouldBeEmpty();
     }
 }

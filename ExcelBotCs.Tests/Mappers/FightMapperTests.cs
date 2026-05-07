@@ -5,10 +5,9 @@ using ExcelBotCs.TestFramework.Utils;
 
 namespace ExcelBotCs.Tests.Mappers;
 
-[TestFixture]
 public class FightMapperTests
 {
-    [Test]
+    [Fact]
     public void ToDto()
     {
         // Arrange
@@ -18,19 +17,19 @@ public class FightMapperTests
         var entityDto = FightMapper.ToDto(entity);
 
         // Assert
-        Assert.That(entityDto, Is.Not.Null);
-        Assert.That(entityDto.Id, Is.EqualTo(entity.Id));
-        Assert.That(entityDto.Name, Is.EqualTo(entity.Name));
-        Assert.That(entityDto.Description, Is.EqualTo(entity.Description));
-        Assert.That(entityDto.ImageUrl, Is.EqualTo(entity.ImageUrl));
-        Assert.That(entityDto.Type, Is.EqualTo(entity.Type));
-        Assert.That(entityDto.FFLogsExpansionName, Is.EqualTo(entity.FFLogsExpansionName));
-        Assert.That(entityDto.FFLogsZoneName, Is.EqualTo(entity.FFLogsZoneName));
-        Assert.That(entityDto.IsFrozen, Is.EqualTo(entity.IsFrozen));
-        Assert.That(entityDto.Raidplans?.Count, Is.EqualTo(entity.Raidplans?.Count));
+        entityDto.ShouldNotBeNull();
+        entityDto.Id.ShouldBe(entity.Id);
+        entityDto.Name.ShouldBe(entity.Name);
+        entityDto.Description.ShouldBe(entity.Description);
+        entityDto.ImageUrl.ShouldBe(entity.ImageUrl);
+        entityDto.Type.ShouldBe(entity.Type);
+        entityDto.FFLogsExpansionName.ShouldBe(entity.FFLogsExpansionName);
+        entityDto.FFLogsZoneName.ShouldBe(entity.FFLogsZoneName);
+        entityDto.IsFrozen.ShouldBe(entity.IsFrozen);
+        (entityDto.Raidplans?.Count ?? 0).ShouldBe(entity.Raidplans?.Count ?? 0);
     }
 
-    [Test]
+    [Fact]
     public void ToEntity()
     {
         // Arrange
@@ -40,15 +39,15 @@ public class FightMapperTests
         var entity = FightMapper.ToEntity(entityDto);
 
         // Assert
-        Assert.That(entity, Is.Not.Null);
-        Assert.That(entity.Id, Is.EqualTo(entityDto.Id));
-        Assert.That(entity.Name, Is.EqualTo(entityDto.Name));
-        Assert.That(entity.Description, Is.EqualTo(entityDto.Description));
-        Assert.That(entity.ImageUrl, Is.EqualTo(entityDto.ImageUrl));
-        Assert.That(entity.Type, Is.EqualTo(entityDto.Type));
-        Assert.That(entity.FFLogsExpansionName, Is.EqualTo(entityDto.FFLogsExpansionName));
-        Assert.That(entity.FFLogsZoneName, Is.EqualTo(entityDto.FFLogsZoneName));
-        Assert.That(entity.IsFrozen, Is.EqualTo(entityDto.IsFrozen));
-        Assert.That(entity.Raidplans?.Count, Is.EqualTo(entityDto.Raidplans?.Count));
+        entity.ShouldNotBeNull();
+        entity.Id.ShouldBe(entityDto.Id);
+        entity.Name.ShouldBe(entityDto.Name);
+        entity.Description.ShouldBe(entityDto.Description);
+        entity.ImageUrl.ShouldBe(entityDto.ImageUrl);
+        entity.Type.ShouldBe(entityDto.Type);
+        entity.FFLogsExpansionName.ShouldBe(entityDto.FFLogsExpansionName);
+        entity.FFLogsZoneName.ShouldBe(entityDto.FFLogsZoneName);
+        entity.IsFrozen.ShouldBe(entityDto.IsFrozen);
+        (entity.Raidplans?.Count ?? 0).ShouldBe(entityDto.Raidplans?.Count ?? 0);
     }
 }

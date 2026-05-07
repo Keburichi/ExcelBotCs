@@ -1,33 +1,30 @@
-using NUnit.Framework.Legacy;
-
 namespace ExcelBotCs.Tests;
 
-[TestFixture]
 public class PrngTests
 {
     private readonly Prng _prng = new();
 
-    [Test]
+    [Fact]
     public void NextByte_ReturnsAByte()
     {
         // Act
         var result = _prng.NextByte();
 
         // Assert
-        Assert.That(result, Is.TypeOf<byte>());
+        result.ShouldBeOfType<byte>();
     }
 
-    [Test]
+    [Fact]
     public void NextInt_ReturnsAnInt()
     {
         // Act
         var result = _prng.NextInt();
 
         // Assert
-        Assert.That(result, Is.TypeOf<int>());
+        result.ShouldBeOfType<int>();
     }
 
-    [Test]
+    [Fact]
     public void NextInt_CalledMultipleTimes_ReturnsDifferentValues()
     {
         // Arrange
@@ -38,49 +35,49 @@ public class PrngTests
         for (var i = 0; i < sampleSize; i++) results.Add(_prng.NextInt());
 
         // Assert
-        Assert.That(results.Count, Is.GreaterThan(1),
+        results.Count.ShouldBeGreaterThan(1,
             "because over a sample of 10, we expect more than one unique value");
     }
 
-    [Test]
-    [Repeat(1000)]
+    [Fact]
     public void NextInt_WithMinAndMax_ReturnsValueWithinInclusiveRange()
     {
         // Arrange
         const int min = 10;
         const int max = 20;
 
-        // Act
-        var result = _prng.NextInt(min, max);
-
-        // Assert
-        Assert.That(result, Is.GreaterThanOrEqualTo(min).And.LessThanOrEqualTo(max));
-    }
-
-    [Test]
-    public void NextFloat_ReturnsValueBetweenZeroAndOne()
-    {
-        // Act
+        // Act & Assert
         for (var i = 0; i < 1000; i++)
         {
-            var result = _prng.NextFloat();
-
-            // Assert
-            Assert.That(result, Is.GreaterThanOrEqualTo(0.0f).And.LessThanOrEqualTo(1.0f));
+            var result = _prng.NextInt(min, max);
+            result.ShouldBeGreaterThanOrEqualTo(min);
+            result.ShouldBeLessThanOrEqualTo(max);
         }
     }
 
-    [Test]
+    [Fact]
+    public void NextFloat_ReturnsValueBetweenZeroAndOne()
+    {
+        // Act & Assert
+        for (var i = 0; i < 1000; i++)
+        {
+            var result = _prng.NextFloat();
+            result.ShouldBeGreaterThanOrEqualTo(0.0f);
+            result.ShouldBeLessThanOrEqualTo(1.0f);
+        }
+    }
+
+    [Fact]
     public void NextBool_ReturnsABool()
     {
         // Act
         var result = _prng.NextBool();
 
         // Assert
-        Assert.That(result, Is.TypeOf<bool>());
+        result.ShouldBeOfType<bool>();
     }
 
-    [Test]
+    [Fact]
     public void NextBool_ReturnsBothTrueAndFalse()
     {
         // Arrange
@@ -91,13 +88,13 @@ public class PrngTests
         for (var i = 0; i < sampleSize; i++) results.Add(_prng.NextBool());
 
         // Assert
-        Assert.That(results, Contains.Item(true), "because a random boolean generator should produce true");
-        Assert.That(results, Contains.Item(false), "because a random boolean generator should produce false");
-        Assert.That(results.Count, Is.EqualTo(2),
+        results.ShouldContain(true, "because a random boolean generator should produce true");
+        results.ShouldContain(false, "because a random boolean generator should produce false");
+        results.Count.ShouldBe(2,
             "because both true and false should be generated over a large sample");
     }
 
-    [Test]
+    [Fact]
     public void Pick_ReturnsCorrectNumberOfItems()
     {
         // Arrange
@@ -108,10 +105,10 @@ public class PrngTests
         var result = _prng.Pick(source, count).ToList();
 
         // Assert
-        Assert.That(result, Has.Count.EqualTo(count));
+        result.Count.ShouldBe(count);
     }
 
-    [Test]
+    [Fact]
     public void Pick_ReturnsItemsFromSource()
     {
         // Arrange
@@ -122,10 +119,10 @@ public class PrngTests
         var result = _prng.Pick(source, count).ToList();
 
         // Assert
-        Assert.That(source, Is.SupersetOf(result));
+        result.All(item => source.Contains(item)).ShouldBeTrue();
     }
 
-    [Test]
+    [Fact]
     public void Pick_ReturnsEmptyWhenSourceIsEmpty()
     {
         // Arrange
@@ -135,10 +132,10 @@ public class PrngTests
         var result = _prng.Pick(source).ToList();
 
         // Assert
-        Assert.That(result, Is.Empty);
+        result.ShouldBeEmpty();
     }
 
-    [Test]
+    [Fact]
     public void Pick_MoreItemsThanInSource_ReturnsAllItemsShuffled()
     {
         // Arrange
@@ -149,11 +146,11 @@ public class PrngTests
         var result = _prng.Pick(source, count).ToList();
 
         // Assert
-        Assert.That(result, Has.Count.EqualTo(source.Length));
-        CollectionAssert.AreEquivalent(source, result);
+        result.Count.ShouldBe(source.Length);
+        result.ShouldBe(source, ignoreOrder: true);
     }
 
-    [Test]
+    [Fact]
     public void Pick_SingleItem_ReturnsOneItemFromSource()
     {
         // Arrange
@@ -163,11 +160,11 @@ public class PrngTests
         var result = _prng.Pick(source).ToList();
 
         // Assert
-        Assert.That(result, Has.Count.EqualTo(1));
-        Assert.That(source, Contains.Item(result.Single()));
+        result.Count.ShouldBe(1);
+        source.ShouldContain(result.Single());
     }
 
-    [Test]
+    [Fact]
     public void Shuffle_ReturnsSameItems()
     {
         // Arrange
@@ -177,10 +174,10 @@ public class PrngTests
         var result = _prng.Shuffle(source).ToList();
 
         // Assert
-        CollectionAssert.AreEquivalent(source, result);
+        result.ShouldBe(source, ignoreOrder: true);
     }
 
-    [Test]
+    [Fact]
     public void Shuffle_DoesNotReturnSameOrder_Usually()
     {
         // Arrange
@@ -194,10 +191,10 @@ public class PrngTests
         // This test is probabilistic. There's a tiny chance it could fail
         // if the shuffled list happens to be the same as the original.
         // For a 50-element list, this is astronomically unlikely.
-        CollectionAssert.AreNotEqual(source, result, "because shuffling should change the order");
+        source.SequenceEqual(result).ShouldBeFalse("because shuffling should change the order");
     }
 
-    [Test]
+    [Fact]
     public void Shuffle_WithEmptyList_ReturnsEmptyList()
     {
         // Arrange
@@ -207,6 +204,6 @@ public class PrngTests
         var result = _prng.Shuffle(source).ToList();
 
         // Assert
-        Assert.That(result, Is.Empty);
+        result.ShouldBeEmpty();
     }
 }

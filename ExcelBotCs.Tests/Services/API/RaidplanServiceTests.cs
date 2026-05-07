@@ -7,20 +7,18 @@ using Moq;
 
 namespace ExcelBotCs.Tests.Services.API;
 
-[TestFixture]
 public class RaidplanServiceTests
 {
-    private IRaidplanService _raidplanService;
-    private Mock<IRaidplanRepository> _raidplanRepositoryMock;
+    private readonly IRaidplanService _raidplanService;
+    private readonly Mock<IRaidplanRepository> _raidplanRepositoryMock;
 
-    [SetUp]
-    public void SetUp()
+    public RaidplanServiceTests()
     {
         _raidplanRepositoryMock = new Mock<IRaidplanRepository>();
         _raidplanService = new RaidplanService(_raidplanRepositoryMock.Object);
     }
 
-    [Test]
+    [Fact]
     public async Task GetAsync_ReturnsNull()
     {
         // Arrange
@@ -30,12 +28,12 @@ public class RaidplanServiceTests
         var result = await _raidplanService.GetAsync();
 
         // Assert
-        Assert.That(result, Is.Null);
+        result.ShouldBeNull();
 
         _raidplanRepositoryMock.Verify(x => x.GetAsync(), Times.Once());
     }
 
-    [Test]
+    [Fact]
     public async Task GetAsync_ReturnsList()
     {
         // Arrange
@@ -46,13 +44,13 @@ public class RaidplanServiceTests
         var result = await _raidplanService.GetAsync();
 
         // Assert
-        Assert.That(result, Is.Not.Null);
-        Assert.That(result, Is.EquivalentTo(raidplans));
+        result.ShouldNotBeNull();
+        result.ShouldBe(raidplans);
 
         _raidplanRepositoryMock.Verify(x => x.GetAsync(), Times.Once());
     }
 
-    [Test]
+    [Fact]
     public async Task GetAsync_ById_ReturnsNull()
     {
         // Arrange
@@ -63,12 +61,12 @@ public class RaidplanServiceTests
         var result = await _raidplanService.GetAsync(id);
 
         // Assert
-        Assert.That(result, Is.Null);
+        result.ShouldBeNull();
 
         _raidplanRepositoryMock.Verify(x => x.GetAsync(id), Times.Once());
     }
 
-    [Test]
+    [Fact]
     public async Task GetAsync_ById_ReturnsItem()
     {
         // Arrange
@@ -80,13 +78,13 @@ public class RaidplanServiceTests
         var result = await _raidplanService.GetAsync(id);
 
         // Assert
-        Assert.That(result, Is.Not.Null);
-        Assert.That(result, Is.EqualTo(raidplan));
+        result.ShouldNotBeNull();
+        result.ShouldBe(raidplan);
 
         _raidplanRepositoryMock.Verify(x => x.GetAsync(id), Times.Once());
     }
 
-    [Test]
+    [Fact]
     public async Task GetByFightIdAsync_ReturnsNull()
     {
         // Arrange
@@ -97,12 +95,12 @@ public class RaidplanServiceTests
         var result = await _raidplanService.GetByFightIdAsync(id);
 
         // Assert
-        Assert.That(result, Is.Null);
+        result.ShouldBeNull();
 
         _raidplanRepositoryMock.Verify(x => x.GetByFightIdAsync(id), Times.Once());
     }
 
-    [Test]
+    [Fact]
     public async Task GetByFightIdAsync_ReturnsItem()
     {
         // Arrange
@@ -114,13 +112,13 @@ public class RaidplanServiceTests
         var result = await _raidplanService.GetByFightIdAsync(id);
 
         // Assert
-        Assert.That(result, Is.Not.Null);
-        Assert.That(result, Is.EquivalentTo(raidplans));
+        result.ShouldNotBeNull();
+        result.ShouldBe(raidplans);
 
         _raidplanRepositoryMock.Verify(x => x.GetByFightIdAsync(id), Times.Once());
     }
 
-    [Test]
+    [Fact]
     public async Task CreateAsync_CallsRepository()
     {
         // Arrange
@@ -135,7 +133,7 @@ public class RaidplanServiceTests
         _raidplanRepositoryMock.Verify(x => x.CreateAsync(fightId, raidplan), Times.Once());
     }
 
-    [Test]
+    [Fact]
     public async Task UpdateAsync_CallsRepository()
     {
         // Arrange
@@ -151,7 +149,7 @@ public class RaidplanServiceTests
         _raidplanRepositoryMock.Verify(x => x.UpdateAsync(fightId, id, raidplan), Times.Once());
     }
 
-    [Test]
+    [Fact]
     public async Task DeleteAsync_CallsRepository()
     {
         // Arrange

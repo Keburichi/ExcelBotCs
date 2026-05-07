@@ -5,6 +5,7 @@ using ExcelBotCs.Models.Database;
 using ExcelBotCs.Models.LodestoneClient;
 using ExcelBotCs.Services.API.Interfaces;
 using ExcelBotCs.Services.Lodestone;
+using ExcelBotCs.TestFramework.Database;
 using ExcelBotCs.Tests.Utils;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
@@ -17,7 +18,7 @@ namespace ExcelBotCs.Tests.Services.Lodestone;
 /// <summary>
 ///     Integration tests for LodestoneService with actual repository calls and mocked HTTP responses.
 /// </summary>
-[TestFixture]
+[Collection("MongoDB")]
 public class LodestoneServiceTests : IntegrationTestBase
 {
     private LodestoneService _lodestoneService = null!;
@@ -29,11 +30,12 @@ public class LodestoneServiceTests : IntegrationTestBase
     private Mock<ILodestoneClient> _lodestoneClient;
     private IOptions<LodestoneOptions> _options;
 
-    [SetUp]
-    public new void SetUp()
+    public LodestoneServiceTests(MongoDbFixture fixture) : base(fixture)
     {
-        base.SetUp();
+    }
 
+    protected override Task OnAfterIntegrationSetupAsync()
+    {
         // Get real repositories from the test container
         _lodestoneDutyRepository = Factory.Services.GetRequiredService<ILodestoneDutyRepository>();
         _fightRepository = Factory.Services.GetRequiredService<IFightRepository>();
@@ -74,18 +76,19 @@ public class LodestoneServiceTests : IntegrationTestBase
             lodestoneDutyService,
             dutyMatchingService,
             scraperService, _lodestoneClient.Object);
+
+        return Task.CompletedTask;
     }
 
-    [TearDown]
-    public new async Task TearDown()
+    protected override Task BeforeTearDownAsync()
     {
         _httpClient?.Dispose();
-        await base.TearDown();
+        return Task.CompletedTask;
     }
 
     #region GetCharactersBioById Tests
 
-    [Test]
+    [Fact]
     public async Task GetCharactersBioById_ClientNotInitialized()
     {
         _lodestoneClient = null;
@@ -93,11 +96,10 @@ public class LodestoneServiceTests : IntegrationTestBase
         var field = typeof(LodestoneService).GetField("_lodestoneClient",
             BindingFlags.Instance | BindingFlags.NonPublic);
         field!.SetValue(_lodestoneService, null);
-        Assert.That(() => _lodestoneService.GetCharacterBioById(Guid.NewGuid().ToString()),
-            Throws.InvalidOperationException);
+        Should.Throw<InvalidOperationException>(() => _lodestoneService.GetCharacterBioById(Guid.NewGuid().ToString()));
     }
 
-    [Test]
+    [Fact]
     public async Task GetCharacterBioById_CharacterNotFound()
     {
         var id = Guid.NewGuid().ToString();
@@ -105,10 +107,10 @@ public class LodestoneServiceTests : IntegrationTestBase
         _lodestoneClient.Setup(x => x.GetCharacter(id)).ReturnsAsync((LodestoneCharacter?)null);
         var result = await _lodestoneService.GetCharacterBioById(id);
 
-        Assert.That(result, Is.EqualTo(string.Empty));
+        result.ShouldBe(string.Empty);
     }
 
-    [Test]
+    [Fact]
     public async Task GetCharacterBioById_CharacterFound()
     {
         // Arrange
@@ -128,14 +130,14 @@ public class LodestoneServiceTests : IntegrationTestBase
         var result = await _lodestoneService.GetCharacterBioById(id);
 
         // Assert
-        Assert.That(result, Is.EqualTo(expectedBio));
+        result.ShouldBe(expectedBio);
     }
 
     #endregion
 
     #region ImportMembers Tests
 
-    [Test]
+    [Fact]
     public async Task ImportMembers_LodestoneClientNotInitialized()
     {
         _lodestoneClient = null;
@@ -143,10 +145,10 @@ public class LodestoneServiceTests : IntegrationTestBase
         var field = typeof(LodestoneService).GetField("_lodestoneClient",
             BindingFlags.Instance | BindingFlags.NonPublic);
         field!.SetValue(_lodestoneService, null);
-        Assert.That(() => _lodestoneService.ImportMembers(), Is.EqualTo(new List<FcMemberEntry>()));
+        _lodestoneService.ImportMembers().Result.ShouldBe(new List<FcMemberEntry>());
     }
 
-    [Test]
+    [Fact]
     public async Task ImportMembers_NoFcMembers()
     {
         _lodestoneClient.Setup(x => x.GetFreeCompanyMembers(_options.Value.FCId))
@@ -154,10 +156,10 @@ public class LodestoneServiceTests : IntegrationTestBase
 
         var result = await _lodestoneService.ImportMembers();
 
-        Assert.That(result, Is.Empty);
+        result.ShouldBeEmpty();
     }
 
-    [Test]
+    [Fact]
     public async Task ImportMembers_NewMember_CreatesInDatabase()
     {
         // Arrange
@@ -185,20 +187,20 @@ public class LodestoneServiceTests : IntegrationTestBase
         var result = await _lodestoneService.ImportMembers();
 
         // Assert
-        Assert.That(result, Has.Count.EqualTo(1));
+        result.Count.ShouldBe(1);
 
         var fcMemberService = Factory.Services.GetRequiredService<IFcMemberService>();
         var dbMember = await fcMemberService.GetByCharacterId(characterId);
-        Assert.That(dbMember, Is.Not.Null);
-        Assert.That(dbMember.Name, Is.EqualTo("Test Player"));
-        Assert.That(dbMember.CharacterId, Is.EqualTo(characterId));
-        Assert.That(dbMember.FcRank, Is.EqualTo("Member"));
-        Assert.That(dbMember.Title, Is.EqualTo("Warrior of Light"));
-        Assert.That(dbMember.Bio, Is.EqualTo("A test bio"));
-        Assert.That(dbMember.Avatar, Is.EqualTo("https://example.com/avatar.png"));
+        dbMember.ShouldNotBeNull();
+        dbMember.Name.ShouldBe("Test Player");
+        dbMember.CharacterId.ShouldBe(characterId);
+        dbMember.FcRank.ShouldBe("Member");
+        dbMember.Title.ShouldBe("Warrior of Light");
+        dbMember.Bio.ShouldBe("A test bio");
+        dbMember.Avatar.ShouldBe("https://example.com/avatar.png");
     }
 
-    [Test]
+    [Fact]
     public async Task ImportMembers_NewMember_NullAvatar_UsesEmptyString()
     {
         // Arrange
@@ -222,11 +224,11 @@ public class LodestoneServiceTests : IntegrationTestBase
         // Assert
         var fcMemberService = Factory.Services.GetRequiredService<IFcMemberService>();
         var dbMember = await fcMemberService.GetByCharacterId(characterId);
-        Assert.That(dbMember, Is.Not.Null);
-        Assert.That(dbMember.Avatar, Is.EqualTo(string.Empty));
+        dbMember.ShouldNotBeNull();
+        dbMember.Avatar.ShouldBe(string.Empty);
     }
 
-    [Test]
+    [Fact]
     public async Task ImportMembers_NewMember_NullCharacterTitle_UsesEmptyString()
     {
         // Arrange
@@ -250,11 +252,11 @@ public class LodestoneServiceTests : IntegrationTestBase
         // Assert
         var fcMemberService = Factory.Services.GetRequiredService<IFcMemberService>();
         var dbMember = await fcMemberService.GetByCharacterId(characterId);
-        Assert.That(dbMember, Is.Not.Null);
-        Assert.That(dbMember.Title, Is.EqualTo(string.Empty));
+        dbMember.ShouldNotBeNull();
+        dbMember.Title.ShouldBe(string.Empty);
     }
 
-    [Test]
+    [Fact]
     public async Task ImportMembers_NewMember_NullCharacter_CreatesWithNullBioAndEmptyTitle()
     {
         // Arrange - GetCharacter returns null (character not found on Lodestone)
@@ -276,15 +278,15 @@ public class LodestoneServiceTests : IntegrationTestBase
         var result = await _lodestoneService.ImportMembers();
 
         // Assert - FcMember created with null Bio and empty Title via null-conditional access
-        Assert.That(result, Has.Count.EqualTo(1));
+        result.Count.ShouldBe(1);
         var fcMemberService = Factory.Services.GetRequiredService<IFcMemberService>();
         var dbMember = await fcMemberService.GetByCharacterId(characterId);
-        Assert.That(dbMember, Is.Not.Null);
-        Assert.That(dbMember.Title, Is.EqualTo(string.Empty));
-        Assert.That(dbMember.Bio, Is.Null);
+        dbMember.ShouldNotBeNull();
+        dbMember.Title.ShouldBe(string.Empty);
+        dbMember.Bio.ShouldBeNull();
     }
 
-    [Test]
+    [Fact]
     public async Task ImportMembers_ExistingMember_UpdatesInDatabase()
     {
         // Arrange - Pre-seed DB with existing FcMember
@@ -327,18 +329,18 @@ public class LodestoneServiceTests : IntegrationTestBase
         var result = await _lodestoneService.ImportMembers();
 
         // Assert
-        Assert.That(result, Has.Count.EqualTo(1));
+        result.Count.ShouldBe(1);
 
         var dbMember = await fcMemberService.GetByCharacterId(characterId);
-        Assert.That(dbMember, Is.Not.Null);
-        Assert.That(dbMember.Name, Is.EqualTo("New Name"));
-        Assert.That(dbMember.FcRank, Is.EqualTo("Officer"));
-        Assert.That(dbMember.Title, Is.EqualTo("New Title"));
-        Assert.That(dbMember.Bio, Is.EqualTo("New bio"));
-        Assert.That(dbMember.Avatar, Is.EqualTo("https://example.com/new-avatar.png"));
+        dbMember.ShouldNotBeNull();
+        dbMember.Name.ShouldBe("New Name");
+        dbMember.FcRank.ShouldBe("Officer");
+        dbMember.Title.ShouldBe("New Title");
+        dbMember.Bio.ShouldBe("New bio");
+        dbMember.Avatar.ShouldBe("https://example.com/new-avatar.png");
     }
 
-    [Test]
+    [Fact]
     public async Task ImportMembers_ExistingMemberWithNoLinkedMember_SkipsPlayerNameUpdate()
     {
         // Arrange - Existing FcMember in DB, but no linked Member entity
@@ -374,17 +376,17 @@ public class LodestoneServiceTests : IntegrationTestBase
         var result = await _lodestoneService.ImportMembers();
 
         // Assert - FcMember updated, no member exists for this LodestoneId
-        Assert.That(result, Has.Count.EqualTo(1));
+        result.Count.ShouldBe(1);
 
         var dbFcMember = await fcMemberService.GetByCharacterId(characterId);
-        Assert.That(dbFcMember, Is.Not.Null);
-        Assert.That(dbFcMember.Name, Is.EqualTo("New Name"));
+        dbFcMember.ShouldNotBeNull();
+        dbFcMember.Name.ShouldBe("New Name");
 
         var member = await memberService.GetByLodestoneId(characterId);
-        Assert.That(member, Is.Null);
+        member.ShouldBeNull();
     }
 
-    [Test]
+    [Fact]
     public async Task ImportMembers_ExistingMemberWithLinkedMember_UpdatesPlayerName()
     {
         // Arrange
@@ -436,11 +438,11 @@ public class LodestoneServiceTests : IntegrationTestBase
 
         // Assert - Member.PlayerName should be updated
         var updatedMember = await memberService.GetByLodestoneId(characterId);
-        Assert.That(updatedMember, Is.Not.Null);
-        Assert.That(updatedMember.PlayerName, Is.EqualTo("Updated Player Name"));
+        updatedMember.ShouldNotBeNull();
+        updatedMember.PlayerName.ShouldBe("Updated Player Name");
     }
 
-    [Test]
+    [Fact]
     public async Task ImportMembers_StaleFcMember_DeletesFromDatabase()
     {
         // Arrange - Create a stale FcMember whose DateModified is more than 1 day old
@@ -475,10 +477,10 @@ public class LodestoneServiceTests : IntegrationTestBase
 
         // Assert - Stale member should be deleted
         var deletedMember = await fcMemberService.GetByCharacterId("stale-char");
-        Assert.That(deletedMember, Is.Null);
+        deletedMember.ShouldBeNull();
     }
 
-    [Test]
+    [Fact]
     public async Task ImportMembers_RecentFcMember_NotDeleted()
     {
         // Arrange - Create a recent FcMember (DateModified = now, set by CreateAsync)
@@ -505,10 +507,10 @@ public class LodestoneServiceTests : IntegrationTestBase
 
         // Assert - Recent member should NOT be deleted (DateModified within 1 day)
         var existingMember = await fcMemberService.GetByCharacterId("recent-char");
-        Assert.That(existingMember, Is.Not.Null);
+        existingMember.ShouldNotBeNull();
     }
 
-    [Test]
+    [Fact]
     public async Task ImportMembers_MixOfNewAndExisting_HandlesAllCorrectly()
     {
         // Arrange
@@ -551,19 +553,19 @@ public class LodestoneServiceTests : IntegrationTestBase
         var result = await _lodestoneService.ImportMembers();
 
         // Assert
-        Assert.That(result, Has.Count.EqualTo(2));
+        result.Count.ShouldBe(2);
 
         var existing = await fcMemberService.GetByCharacterId(existingCharacterId);
-        Assert.That(existing, Is.Not.Null);
-        Assert.That(existing.Name, Is.EqualTo("Updated Name"));
-        Assert.That(existing.FcRank, Is.EqualTo("Officer"));
+        existing.ShouldNotBeNull();
+        existing.Name.ShouldBe("Updated Name");
+        existing.FcRank.ShouldBe("Officer");
 
         var newMember = await fcMemberService.GetByCharacterId(newCharacterId);
-        Assert.That(newMember, Is.Not.Null);
-        Assert.That(newMember.Name, Is.EqualTo("Brand New Player"));
+        newMember.ShouldNotBeNull();
+        newMember.Name.ShouldBe("Brand New Player");
     }
 
-    [Test]
+    [Fact]
     public async Task ImportMembers_ReturnsFcMemberEntriesFromLodestone()
     {
         // Arrange - Verify the method returns the original Lodestone data, not DB state
@@ -582,17 +584,17 @@ public class LodestoneServiceTests : IntegrationTestBase
         var result = await _lodestoneService.ImportMembers();
 
         // Assert - Returns the same list object from Lodestone
-        Assert.That(result, Is.SameAs(entries));
-        Assert.That(result, Has.Count.EqualTo(2));
-        Assert.That(result[0].Name, Is.EqualTo("Player One"));
-        Assert.That(result[1].Name, Is.EqualTo("Player Two"));
+        result.ShouldBeSameAs(entries);
+        result.Count.ShouldBe(2);
+        result[0].Name.ShouldBe("Player One");
+        result[1].Name.ShouldBe("Player Two");
     }
 
     #endregion
 
     #region Database Integration Tests
 
-    [Test]
+    [Fact]
     public async Task LodestoneDuty_WithDescriptionAndImageUrl_SavesCorrectly()
     {
         // Arrange
@@ -613,14 +615,14 @@ public class LodestoneServiceTests : IntegrationTestBase
 
         // Assert
         var retrieved = await _lodestoneDutyRepository.GetAsync(duty.Id);
-        Assert.That(retrieved, Is.Not.Null);
-        Assert.That(retrieved.Description, Is.EqualTo("This is a test description for the duty."));
-        Assert.That(retrieved.ImageUrl, Is.EqualTo("https://example.com/test-image.png"));
-        Assert.That(retrieved.BossNames, Has.Count.EqualTo(1));
-        Assert.That(retrieved.BossNames[0], Is.EqualTo("Test Boss"));
+        retrieved.ShouldNotBeNull();
+        retrieved.Description.ShouldBe("This is a test description for the duty.");
+        retrieved.ImageUrl.ShouldBe("https://example.com/test-image.png");
+        retrieved.BossNames.Count.ShouldBe(1);
+        retrieved.BossNames[0].ShouldBe("Test Boss");
     }
 
-    [Test]
+    [Fact]
     public async Task LodestoneDuty_GetByExpansionAndCategory_FiltersCorrectly()
     {
         // Arrange
@@ -659,11 +661,11 @@ public class LodestoneServiceTests : IntegrationTestBase
         var ewExtremes = await _lodestoneDutyRepository.GetByExpansionAndCategoryAsync(4, 4);
 
         // Assert
-        Assert.That(ewExtremes, Has.Count.EqualTo(1));
-        Assert.That(ewExtremes[0].Name, Is.EqualTo("EW Extreme 1"));
+        ewExtremes.Count.ShouldBe(1);
+        ewExtremes[0].Name.ShouldBe("EW Extreme 1");
     }
 
-    [Test]
+    [Fact]
     public async Task Fight_UpdateWithDescriptionAndImageUrl_SavesCorrectly()
     {
         // Arrange
@@ -685,16 +687,16 @@ public class LodestoneServiceTests : IntegrationTestBase
 
         // Assert
         var retrieved = await _fightRepository.GetAsync(fight.Id);
-        Assert.That(retrieved, Is.Not.Null);
-        Assert.That(retrieved.Description, Is.EqualTo("Updated description from Lodestone"));
-        Assert.That(retrieved.ImageUrl, Is.EqualTo("https://example.com/updated-image.png"));
+        retrieved.ShouldNotBeNull();
+        retrieved.Description.ShouldBe("Updated description from Lodestone");
+        retrieved.ImageUrl.ShouldBe("https://example.com/updated-image.png");
     }
 
     #endregion
 
     #region Edge Cases
 
-    [Test]
+    [Fact]
     public async Task LodestoneDuty_NullDescription_HandlesGracefully()
     {
         // Arrange
@@ -714,11 +716,11 @@ public class LodestoneServiceTests : IntegrationTestBase
 
         // Assert
         var retrieved = await _lodestoneDutyRepository.GetAsync(duty.Id);
-        Assert.That(retrieved, Is.Not.Null);
-        Assert.That(retrieved.Description, Is.Null);
+        retrieved.ShouldNotBeNull();
+        retrieved.Description.ShouldBeNull();
     }
 
-    [Test]
+    [Fact]
     public async Task LodestoneDuty_LongDescription_Truncates()
     {
         // Arrange
@@ -738,8 +740,8 @@ public class LodestoneServiceTests : IntegrationTestBase
 
         // Assert
         var retrieved = await _lodestoneDutyRepository.GetAsync(duty.Id);
-        Assert.That(retrieved, Is.Not.Null);
-        Assert.That(retrieved.Description, Has.Length.EqualTo(2000));
+        retrieved.ShouldNotBeNull();
+        retrieved.Description.Length.ShouldBe(2000);
     }
 
     #endregion
@@ -747,7 +749,7 @@ public class LodestoneServiceTests : IntegrationTestBase
 
     #region SyncFightImagesAsync Integration Tests
 
-    [Test]
+    [Fact]
     public async Task SyncFightImages_WithMatchedDuty_UpdatesFightMetadata()
     {
         // Arrange - Create a duty with metadata
@@ -781,12 +783,12 @@ public class LodestoneServiceTests : IntegrationTestBase
 
         // The test verifies setup - actual sync would be done by calling SyncFightImagesAsync
         var retrievedFight = await _fightRepository.GetAsync(fight.Id);
-        Assert.That(retrievedFight, Is.Not.Null);
-        Assert.That(retrievedFight.ImageUrl, Is.Null);
-        Assert.That(retrievedFight.Description, Is.Null);
+        retrievedFight.ShouldNotBeNull();
+        retrievedFight.ImageUrl.ShouldBeNull();
+        retrievedFight.Description.ShouldBeNull();
     }
 
-    [Test]
+    [Fact]
     public async Task SyncFightImages_NoMatchingDuty_LeavesFieldsUnchanged()
     {
         // Arrange - Create fight with no matching duty
@@ -805,8 +807,8 @@ public class LodestoneServiceTests : IntegrationTestBase
 
         // No matching duty exists
         var retrievedFight = await _fightRepository.GetAsync(fight.Id);
-        Assert.That(retrievedFight, Is.Not.Null);
-        Assert.That(retrievedFight.Description, Is.EqualTo("Original description"));
+        retrievedFight.ShouldNotBeNull();
+        retrievedFight.Description.ShouldBe("Original description");
     }
 
     #endregion
@@ -814,7 +816,7 @@ public class LodestoneServiceTests : IntegrationTestBase
 
     #region Multiple Expansions Tests
 
-    [Test]
+    [Fact]
     public async Task GetByExpansionAndCategory_MultipleExpansions_FiltersCorrectly()
     {
         // Arrange - Create duties across multiple expansions
@@ -855,14 +857,14 @@ public class LodestoneServiceTests : IntegrationTestBase
         var shbSavages = await _lodestoneDutyRepository.GetByExpansionAndCategoryAsync(3, 5);
 
         // Assert
-        Assert.That(arrExtremes, Has.Count.EqualTo(1));
-        Assert.That(arrExtremes[0].Name, Is.EqualTo("ARR Extreme 1"));
+        arrExtremes.Count.ShouldBe(1);
+        arrExtremes[0].Name.ShouldBe("ARR Extreme 1");
 
-        Assert.That(hwExtremes, Has.Count.EqualTo(1));
-        Assert.That(hwExtremes[0].Name, Is.EqualTo("HW Extreme 1"));
+        hwExtremes.Count.ShouldBe(1);
+        hwExtremes[0].Name.ShouldBe("HW Extreme 1");
 
-        Assert.That(shbSavages, Has.Count.EqualTo(1));
-        Assert.That(shbSavages[0].Name, Is.EqualTo("ShB Savage 1"));
+        shbSavages.Count.ShouldBe(1);
+        shbSavages[0].Name.ShouldBe("ShB Savage 1");
     }
 
     #endregion

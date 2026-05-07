@@ -5,10 +5,9 @@ using ExcelBotCs.TestFramework.Utils;
 
 namespace ExcelBotCs.Tests.Mappers;
 
-[TestFixture]
 public class MemberNoteMapperTests
 {
-    [Test]
+    [Fact]
     public void ToDto()
     {
         // Arrange
@@ -18,15 +17,15 @@ public class MemberNoteMapperTests
         var entityDto = MemberNoteMapper.ToDto(entity);
 
         // Assert
-        Assert.That(entityDto, Is.Not.Null);
-        Assert.That(entityDto.Id, Is.EqualTo(entity.Id));
-        Assert.That(entityDto.DateCreated, Is.EqualTo(entity.DateCreated));
-        Assert.That(entityDto.DateModified, Is.EqualTo(entity.DateModified));
-        Assert.That(entityDto.Note, Is.EqualTo(entity.Note));
-        Assert.That(entityDto.Author, Is.EqualTo(entity.Author));
+        entityDto.ShouldNotBeNull();
+        entityDto.Id.ShouldBe(entity.Id);
+        entityDto.DateCreated.ShouldBe(entity.DateCreated);
+        entityDto.DateModified.ShouldBe(entity.DateModified);
+        entityDto.Note.ShouldBe(entity.Note);
+        entityDto.Author.ShouldBe(entity.Author);
     }
 
-    [Test]
+    [Fact]
     public void ToEntity()
     {
         // Arrange
@@ -36,11 +35,11 @@ public class MemberNoteMapperTests
         var entity = MemberNoteMapper.ToEntity(entityDto);
 
         // Assert
-        Assert.That(entity, Is.Not.Null);
-        Assert.That(entity.Id, Is.EqualTo(entityDto.Id));
-        Assert.That(entity.DateCreated, Is.EqualTo(entityDto.DateCreated));
-        Assert.That(entity.DateModified, Is.EqualTo(entityDto.DateModified));
-        Assert.That(entity.Note, Is.EqualTo(entityDto.Note));
-        Assert.That(entity.Author, Is.EqualTo(entityDto.Author));
+        entity.ShouldNotBeNull();
+        entity.Id.ShouldBe(entityDto.Id);
+        entity.DateCreated.ShouldBe(entityDto.DateCreated);
+        entity.DateModified.ShouldBe(entityDto.DateModified);
+        entity.Note.ShouldBe(entityDto.Note);
+        entity.Author.ShouldBe(entityDto.Author);
     }
 }

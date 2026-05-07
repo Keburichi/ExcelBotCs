@@ -5,10 +5,9 @@ using ExcelBotCs.TestFramework.Utils;
 
 namespace ExcelBotCs.Tests.Mappers;
 
-[TestFixture]
 public class MemberMapperTests
 {
-    [Test]
+    [Fact]
     public void ToDto()
     {
         // Arrange
@@ -18,21 +17,21 @@ public class MemberMapperTests
         var entityDto = MemberMapper.ToDto(entity);
 
         // Assert
-        Assert.That(entityDto, Is.Not.Null);
-        Assert.That(entityDto.Id, Is.EqualTo(entity.Id));
-        Assert.That(entityDto.DiscordId, Is.EqualTo(entity.DiscordId));
-        Assert.That(entityDto.DiscordAvatar, Is.EqualTo(entity.DiscordAvatar));
-        Assert.That(entityDto.DiscordName, Is.EqualTo(entity.DiscordName));
-        Assert.That(entityDto.LodestoneId, Is.EqualTo(entity.LodestoneId));
-        Assert.That(entityDto.LodestoneVerificationToken, Is.EqualTo(entity.LodestoneVerificationToken));
-        Assert.That(entityDto.PlayerName, Is.EqualTo(entity.PlayerName));
-        Assert.That(entityDto.Subbed, Is.EqualTo(entity.Subbed));
-        Assert.That(entityDto.Experience?.Count, Is.EqualTo(entity.Experience?.Count));
-        Assert.That(entityDto.Notes?.Count, Is.EqualTo(entity.Notes?.Count));
-        Assert.That(entityDto.Roles.Count, Is.EqualTo(entity.Roles.Count));
+        entityDto.ShouldNotBeNull();
+        entityDto.Id.ShouldBe(entity.Id);
+        entityDto.DiscordId.ShouldBe(entity.DiscordId);
+        entityDto.DiscordAvatar.ShouldBe(entity.DiscordAvatar);
+        entityDto.DiscordName.ShouldBe(entity.DiscordName);
+        entityDto.LodestoneId.ShouldBe(entity.LodestoneId);
+        entityDto.LodestoneVerificationToken.ShouldBe(entity.LodestoneVerificationToken);
+        entityDto.PlayerName.ShouldBe(entity.PlayerName);
+        (entityDto.Subbed ?? false).ShouldBe(entity.Subbed ?? false);
+        (entityDto.Experience?.Count ?? 0).ShouldBe(entity.Experience?.Count ?? 0);
+        (entityDto.Notes?.Count ?? 0).ShouldBe(entity.Notes?.Count ?? 0);
+        entityDto.Roles.Count.ShouldBe(entity.Roles.Count);
     }
 
-    [Test]
+    [Fact]
     public void ToEntity()
     {
         // Arrange
@@ -42,17 +41,17 @@ public class MemberMapperTests
         var entity = MemberMapper.ToEntity(entityDto);
 
         // Assert
-        Assert.That(entity, Is.Not.Null);
-        Assert.That(entity.Id, Is.EqualTo(entityDto.Id));
-        Assert.That(entity.DiscordId, Is.EqualTo(entityDto.DiscordId));
-        Assert.That(entity.DiscordAvatar, Is.EqualTo(entityDto.DiscordAvatar));
-        Assert.That(entity.DiscordName, Is.EqualTo(entityDto.DiscordName));
-        Assert.That(entity.LodestoneId, Is.EqualTo(entityDto.LodestoneId));
-        Assert.That(entity.LodestoneVerificationToken, Is.EqualTo(entityDto.LodestoneVerificationToken));
-        Assert.That(entity.PlayerName, Is.EqualTo(entityDto.PlayerName));
-        Assert.That(entity.Subbed, Is.EqualTo(entityDto.Subbed));
-        Assert.That(entity.Experience?.Count, Is.EqualTo(entityDto.Experience?.Count));
-        Assert.That(entity.Notes?.Count, Is.EqualTo(entityDto.Notes?.Count));
-        Assert.That(entity.Roles.Count, Is.EqualTo(entityDto.Roles.Count));
+        entity.ShouldNotBeNull();
+        entity.Id.ShouldBe(entityDto.Id);
+        entity.DiscordId.ShouldBe(entityDto.DiscordId);
+        entity.DiscordAvatar.ShouldBe(entityDto.DiscordAvatar);
+        entity.DiscordName.ShouldBe(entityDto.DiscordName);
+        entity.LodestoneId.ShouldBe(entityDto.LodestoneId);
+        entity.LodestoneVerificationToken.ShouldBe(entityDto.LodestoneVerificationToken);
+        entity.PlayerName.ShouldBe(entityDto.PlayerName);
+        (entity.Subbed ?? false).ShouldBe(entityDto.Subbed ?? false);
+        (entity.Experience?.Count ?? 0).ShouldBe(entityDto.Experience?.Count ?? 0);
+        (entity.Notes?.Count ?? 0).ShouldBe(entityDto.Notes?.Count ?? 0);
+        entity.Roles.Count.ShouldBe(entityDto.Roles.Count);
     }
 }

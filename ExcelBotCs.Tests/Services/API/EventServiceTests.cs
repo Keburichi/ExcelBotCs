@@ -9,23 +9,21 @@ using Moq;
 
 namespace ExcelBotCs.Tests.Services.API;
 
-[TestFixture]
 public class EventServiceTests
 {
-    private IEventService _eventService;
-    private Mock<IEventRepository> _eventRepositoryMock;
-    private IICalService _iCalService;
+    private readonly IEventService _eventService;
+    private readonly Mock<IEventRepository> _eventRepositoryMock;
+    private readonly IICalService _iCalService;
 
-    [SetUp]
-    public void SetUp()
+    public EventServiceTests()
     {
         _eventRepositoryMock = new Mock<IEventRepository>();
         _iCalService = new ICalService();
         _eventService = new EventService(_eventRepositoryMock.Object, _iCalService);
     }
 
-    [Test]
-    public async Task GetAsync_ReturnsNull()
+    [Fact]
+    public async Task GetAsync_ReturnsEmptyList_WhenRepositoryReturnsNull()
     {
         // Arrange
         _eventRepositoryMock.Setup(x => x.GetAsync()).ReturnsAsync((List<Event>)null);
@@ -34,12 +32,12 @@ public class EventServiceTests
         var result = await _eventService.GetAsync();
 
         // Assert
-        Assert.That(result, Is.Empty);
+        result.ShouldBeEmpty();
 
         _eventRepositoryMock.Verify(x => x.GetAsync(), Times.Once());
     }
 
-    [Test]
+    [Fact]
     public async Task GetAsync_ReturnsList_OrderedByStartDate()
     {
         // Arrange
@@ -51,22 +49,22 @@ public class EventServiceTests
         };
 
         events.ForEach(x => x.IsArchived = false);
-        
+
         _eventRepositoryMock.Setup(x => x.GetAsync()).ReturnsAsync(events);
 
         // Act
         var result = await _eventService.GetAsync();
 
         // Assert
-        Assert.That(result, Is.Not.Null);
-        Assert.That(result.Count, Is.EqualTo(3));
-        Assert.That(result[0].StartDate, Is.LessThan(result[1].StartDate));
-        Assert.That(result[1].StartDate, Is.LessThan(result[2].StartDate));
+        result.ShouldNotBeNull();
+        result.Count.ShouldBe(3);
+        result[0].StartDate.ShouldBeLessThan(result[1].StartDate);
+        result[1].StartDate.ShouldBeLessThan(result[2].StartDate);
 
         _eventRepositoryMock.Verify(x => x.GetAsync(), Times.Once());
     }
 
-    [Test]
+    [Fact]
     public async Task GetAsync_ById_ReturnsNull()
     {
         // Arrange
@@ -77,12 +75,12 @@ public class EventServiceTests
         var result = await _eventService.GetAsync(id);
 
         // Assert
-        Assert.That(result, Is.Null);
+        result.ShouldBeNull();
 
         _eventRepositoryMock.Verify(x => x.GetAsync(id), Times.Once());
     }
 
-    [Test]
+    [Fact]
     public async Task GetAsync_ById_ReturnsItem()
     {
         // Arrange
@@ -94,13 +92,13 @@ public class EventServiceTests
         var result = await _eventService.GetAsync(id);
 
         // Assert
-        Assert.That(result, Is.Not.Null);
-        Assert.That(result, Is.EqualTo(eventItem));
+        result.ShouldNotBeNull();
+        result.ShouldBe(eventItem);
 
         _eventRepositoryMock.Verify(x => x.GetAsync(id), Times.Once());
     }
 
-    [Test]
+    [Fact]
     public async Task CreateAsync_WithICalString_UpdatesDatesAndCreatesOccurrences()
     {
         // Arrange
@@ -118,16 +116,15 @@ public class EventServiceTests
         await _eventService.CreateAsync(eventItem);
 
         // Assert
-        Assert.That(eventItem.Occurrences, Has.Count.EqualTo(3));
+        eventItem.Occurrences.Count.ShouldBe(3);
 
         for (var i = 0; i < eventItem.Occurrences.Count; i++)
-            Assert.That(eventItem.Occurrences[i].OccurrenceDate,
-                Is.EqualTo(eventItem.StartDate.AddDays(i * 7)).Within(TimeSpan.FromMinutes(1)));
+            eventItem.Occurrences[i].OccurrenceDate.ShouldBe(eventItem.StartDate.AddDays(i * 7), TimeSpan.FromMinutes(1));
 
         _eventRepositoryMock.Verify(x => x.CreateAsync(eventItem), Times.Once());
     }
 
-    [Test]
+    [Fact]
     public async Task CreateAsync_WithoutICalString_CalculatesEndDateAndCreatesSingleOccurrence()
     {
         // Arrange
@@ -152,14 +149,14 @@ public class EventServiceTests
         await _eventService.CreateAsync(eventItem);
 
         // Assert
-        Assert.That(eventItem.EndDate, Is.EqualTo(startDate.AddMinutes(120)).Within(TimeSpan.FromSeconds(1)));
-        Assert.That(eventItem.Occurrences.Count, Is.EqualTo(occurrences.Count));
-        Assert.That(eventItem.Occurrences.First().OccurrenceDate, Is.EqualTo(occurrences.First().OccurrenceDate));
+        eventItem.EndDate.ShouldBe(startDate.AddMinutes(120), TimeSpan.FromSeconds(1));
+        eventItem.Occurrences.Count.ShouldBe(occurrences.Count);
+        eventItem.Occurrences.First().OccurrenceDate.ShouldBe(occurrences.First().OccurrenceDate);
 
         _eventRepositoryMock.Verify(x => x.CreateAsync(eventItem), Times.Once());
     }
 
-    [Test]
+    [Fact]
     public async Task UpdateAsync_WithICalString_UpdatesDatesAndRegeneratesOccurrences()
     {
         // Arrange
@@ -186,13 +183,13 @@ public class EventServiceTests
         await _eventService.UpdateAsync(id, updatedEvent);
 
         // Assert
-        Assert.That(updatedEvent.Occurrences, Has.Count.EqualTo(3));
+        updatedEvent.Occurrences.Count.ShouldBe(3);
 
         _eventRepositoryMock.Verify(x => x.GetAsync(id), Times.Once());
         _eventRepositoryMock.Verify(x => x.UpdateAsync(id, updatedEvent), Times.Once());
     }
 
-    [Test]
+    [Fact]
     public async Task UpdateAsync_WithoutICalString_CalculatesEndDate()
     {
         // Arrange
@@ -223,13 +220,13 @@ public class EventServiceTests
         await _eventService.UpdateAsync(id, updatedEvent);
 
         // Assert
-        Assert.That(updatedEvent.EndDate, Is.EqualTo(startDate.AddMinutes(90)).Within(TimeSpan.FromSeconds(1)));
+        updatedEvent.EndDate.ShouldBe(startDate.AddMinutes(90), TimeSpan.FromSeconds(1));
 
         _eventRepositoryMock.Verify(x => x.GetAsync(id), Times.Once());
         _eventRepositoryMock.Verify(x => x.UpdateAsync(id, updatedEvent), Times.Once());
     }
 
-    [Test]
+    [Fact]
     public async Task UpdateAsync_PreservesExistingOccurrenceData()
     {
         // Arrange
@@ -268,20 +265,19 @@ public class EventServiceTests
         await _eventService.UpdateAsync(id, updatedEvent);
 
         // Assert
-        Assert.That(updatedEvent.Occurrences, Has.Count.EqualTo(3));
+        updatedEvent.Occurrences.Count.ShouldBe(3);
 
         var preservedOccurrence = updatedEvent.Occurrences.OrderBy(x => x.OccurrenceDate).First();
-        Assert.That(preservedOccurrence.Id, Is.EqualTo(existingEvent.Occurrences.First().Id));
-        Assert.That(preservedOccurrence.Status, Is.EqualTo(existingEvent.Occurrences.First().Status));
-        Assert.That(preservedOccurrence.DiscordMessageId,
-            Is.EqualTo(existingEvent.Occurrences.First().DiscordMessageId));
-        Assert.That(preservedOccurrence.Signups, Is.Not.Null);
-        Assert.That(preservedOccurrence.Participants, Is.Not.Null);
+        preservedOccurrence.Id.ShouldBe(existingEvent.Occurrences.First().Id);
+        preservedOccurrence.Status.ShouldBe(existingEvent.Occurrences.First().Status);
+        preservedOccurrence.DiscordMessageId.ShouldBe(existingEvent.Occurrences.First().DiscordMessageId);
+        preservedOccurrence.Signups.ShouldNotBeNull();
+        preservedOccurrence.Participants.ShouldNotBeNull();
 
         _eventRepositoryMock.Verify(x => x.UpdateAsync(id, updatedEvent), Times.Once());
     }
 
-    [Test]
+    [Fact]
     public async Task DeleteAsync_CallsRepository()
     {
         // Arrange

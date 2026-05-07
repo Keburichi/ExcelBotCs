@@ -10,20 +10,23 @@ using MongoDB.Driver;
 
 namespace ExcelBotCs.Tests.Services;
 
-[TestFixture]
+[Collection("MongoDB")]
 public class RsaKeyServiceTests : MongoDbTest
 {
     private RsaKeyService _rsaKeyService = null!;
     private IOptions<DatabaseOptions> _databaseOptions = null!;
     private JwtOptions _jwtOptions = null!;
 
+    public RsaKeyServiceTests(MongoDbFixture fixture) : base(fixture)
+    {
+    }
+
     protected override void InitializeRepository(IMongoClient mongoClient, IOptions<DatabaseOptions> databaseOptions)
     {
         _databaseOptions = databaseOptions;
     }
 
-    [SetUp]
-    public void Setup()
+    protected override Task OnAfterInitializeAsync()
     {
         _rsaKeyService = new RsaKeyService(_databaseOptions);
         _jwtOptions = new JwtOptions
@@ -33,49 +36,44 @@ public class RsaKeyServiceTests : MongoDbTest
             Issuer = "TestIssuer",
             Audience = "TestAudience"
         };
+        return Task.CompletedTask;
     }
 
     #region EnsureRsaKeysPresent Tests
 
-    [Test]
+    [Fact]
     public void EnsureRsaKeysPresent_CreatesKeysWhenNoneExist()
     {
-        // Act
         _rsaKeyService.EnsureRsaKeysPresent(_jwtOptions, "/fake/path");
 
-        // Assert - Should be able to retrieve keys
         using var publicRsa = _rsaKeyService.GetPublicRsa();
         using var privateRsa = _rsaKeyService.GetPrivateRsa();
 
-        Assert.That(publicRsa, Is.Not.Null);
-        Assert.That(privateRsa, Is.Not.Null);
+        publicRsa.ShouldNotBeNull();
+        privateRsa.ShouldNotBeNull();
     }
 
-    [Test]
+    [Fact]
     public void EnsureRsaKeysPresent_DoesNotDuplicateExistingKeys()
     {
-        // Arrange - Create initial keys
         _rsaKeyService.EnsureRsaKeysPresent(_jwtOptions, "/fake/path");
         using (var initialPublicRsa = _rsaKeyService.GetPublicRsa())
         {
             var initialPublicKey = initialPublicRsa.ExportSubjectPublicKeyInfo();
 
-            // Act - Call again
             _rsaKeyService.EnsureRsaKeysPresent(_jwtOptions, "/fake/path");
 
-            // Assert - Should return same keys
             using var secondPublicRsa = _rsaKeyService.GetPublicRsa();
             var secondPublicKey = secondPublicRsa.ExportSubjectPublicKeyInfo();
 
-            Assert.That(secondPublicKey, Is.EqualTo(initialPublicKey));
+            secondPublicKey.ShouldBe(initialPublicKey);
         }
     }
 
-    [Test]
+    [Fact]
     public void EnsureRsaKeysPresent_CanBeCalledMultipleTimes()
     {
-        // Act & Assert - Should not throw
-        Assert.DoesNotThrow(() =>
+        Should.NotThrow(() =>
         {
             _rsaKeyService.EnsureRsaKeysPresent(_jwtOptions, "/fake/path");
             _rsaKeyService.EnsureRsaKeysPresent(_jwtOptions, "/fake/path");
@@ -87,40 +85,33 @@ public class RsaKeyServiceTests : MongoDbTest
 
     #region GetPublicRsa Tests
 
-    [Test]
+    [Fact]
     public void GetPublicRsa_ThrowsWhenNoKeysExist()
     {
-        // Act & Assert
-        Assert.Throws<InvalidOperationException>(() =>
+        Should.Throw<InvalidOperationException>(() =>
         {
             using var rsa = _rsaKeyService.GetPublicRsa();
         });
     }
 
-    [Test]
+    [Fact]
     public void GetPublicRsa_ReturnsValidRsaKey()
     {
-        // Arrange
         _rsaKeyService.EnsureRsaKeysPresent(_jwtOptions, "/fake/path");
 
-        // Act
         using var rsa = _rsaKeyService.GetPublicRsa();
 
-        // Assert
-        Assert.That(rsa, Is.Not.Null);
-        Assert.That(rsa.KeySize, Is.EqualTo(2048));
+        rsa.ShouldNotBeNull();
+        rsa.KeySize.ShouldBe(2048);
 
-        // Verify it's a valid public key by checking it can export public key info
-        Assert.DoesNotThrow(() => rsa.ExportSubjectPublicKeyInfo());
+        Should.NotThrow(() => rsa.ExportSubjectPublicKeyInfo());
     }
 
-    [Test]
+    [Fact]
     public void GetPublicRsa_ReturnsConsistentKey()
     {
-        // Arrange
         _rsaKeyService.EnsureRsaKeysPresent(_jwtOptions, "/fake/path");
 
-        // Act
         byte[] firstKey;
         byte[] secondKey;
 
@@ -134,48 +125,40 @@ public class RsaKeyServiceTests : MongoDbTest
             secondKey = rsa2.ExportSubjectPublicKeyInfo();
         }
 
-        // Assert
-        Assert.That(secondKey, Is.EqualTo(firstKey));
+        secondKey.ShouldBe(firstKey);
     }
 
     #endregion
 
     #region GetPrivateRsa Tests
 
-    [Test]
+    [Fact]
     public void GetPrivateRsa_ThrowsWhenNoKeysExist()
     {
-        // Act & Assert
-        Assert.Throws<InvalidOperationException>(() =>
+        Should.Throw<InvalidOperationException>(() =>
         {
             using var rsa = _rsaKeyService.GetPrivateRsa();
         });
     }
 
-    [Test]
+    [Fact]
     public void GetPrivateRsa_ReturnsValidRsaKey()
     {
-        // Arrange
         _rsaKeyService.EnsureRsaKeysPresent(_jwtOptions, "/fake/path");
 
-        // Act
         using var rsa = _rsaKeyService.GetPrivateRsa();
 
-        // Assert
-        Assert.That(rsa, Is.Not.Null);
-        Assert.That(rsa.KeySize, Is.EqualTo(2048));
+        rsa.ShouldNotBeNull();
+        rsa.KeySize.ShouldBe(2048);
 
-        // Verify it's a valid private key by checking it can export private key
-        Assert.DoesNotThrow(() => rsa.ExportPkcs8PrivateKey());
+        Should.NotThrow(() => rsa.ExportPkcs8PrivateKey());
     }
 
-    [Test]
+    [Fact]
     public void GetPrivateRsa_ReturnsConsistentKey()
     {
-        // Arrange
         _rsaKeyService.EnsureRsaKeysPresent(_jwtOptions, "/fake/path");
 
-        // Act
         byte[] firstKey;
         byte[] secondKey;
 
@@ -189,37 +172,31 @@ public class RsaKeyServiceTests : MongoDbTest
             secondKey = rsa2.ExportPkcs8PrivateKey();
         }
 
-        // Assert
-        Assert.That(secondKey, Is.EqualTo(firstKey));
+        secondKey.ShouldBe(firstKey);
     }
 
-    [Test]
+    [Fact]
     public void GetPrivateAndPublicRsa_AreKeyPair()
     {
-        // Arrange
         _rsaKeyService.EnsureRsaKeysPresent(_jwtOptions, "/fake/path");
 
-        // Act
         using var privateRsa = _rsaKeyService.GetPrivateRsa();
         using var publicRsa = _rsaKeyService.GetPublicRsa();
 
-        // Test encryption/decryption to verify they're a pair
         var testData = "Test data for RSA encryption"u8.ToArray();
         var encrypted = publicRsa.Encrypt(testData, RSAEncryptionPadding.OaepSHA256);
         var decrypted = privateRsa.Decrypt(encrypted, RSAEncryptionPadding.OaepSHA256);
 
-        // Assert
-        Assert.That(decrypted, Is.EqualTo(testData));
+        decrypted.ShouldBe(testData);
     }
 
     #endregion
 
     #region GenerateJwt Tests
 
-    [Test]
+    [Fact]
     public void GenerateJwt_CreatesValidToken()
     {
-        // Arrange
         _rsaKeyService.EnsureRsaKeysPresent(_jwtOptions, "/fake/path");
         var claims = new List<Claim>
         {
@@ -227,19 +204,16 @@ public class RsaKeyServiceTests : MongoDbTest
             new(ClaimTypes.Name, "TestUser")
         };
 
-        // Act
         var token = _rsaKeyService.GenerateJwt(_jwtOptions, claims);
 
-        // Assert
-        Assert.That(token, Is.Not.Null);
-        Assert.That(token, Is.Not.Empty);
-        Assert.That(token.Split('.').Length, Is.EqualTo(3)); // JWT has 3 parts
+        token.ShouldNotBeNull();
+        token.ShouldNotBeEmpty();
+        token.Split('.').Length.ShouldBe(3);
     }
 
-    [Test]
+    [Fact]
     public void GenerateJwt_TokenCanBeValidated()
     {
-        // Arrange
         _rsaKeyService.EnsureRsaKeysPresent(_jwtOptions, "/fake/path");
         var claims = new List<Claim>
         {
@@ -247,10 +221,8 @@ public class RsaKeyServiceTests : MongoDbTest
             new(ClaimTypes.Name, "TestUser")
         };
 
-        // Act
         var token = _rsaKeyService.GenerateJwt(_jwtOptions, claims);
 
-        // Assert - Validate the token
         var tokenHandler = new JwtSecurityTokenHandler();
         using var publicRsa = _rsaKeyService.GetPublicRsa();
 
@@ -267,14 +239,13 @@ public class RsaKeyServiceTests : MongoDbTest
         };
 
         var principal = tokenHandler.ValidateToken(token, validationParameters, out var validatedToken);
-        Assert.That(principal, Is.Not.Null);
-        Assert.That(validatedToken, Is.Not.Null);
+        principal.ShouldNotBeNull();
+        validatedToken.ShouldNotBeNull();
     }
 
-    [Test]
+    [Fact]
     public void GenerateJwt_TokenContainsExpectedClaims()
     {
-        // Arrange
         _rsaKeyService.EnsureRsaKeysPresent(_jwtOptions, "/fake/path");
         var claims = new List<Claim>
         {
@@ -283,44 +254,37 @@ public class RsaKeyServiceTests : MongoDbTest
             new(ClaimTypes.Email, "test@example.com")
         };
 
-        // Act
         var token = _rsaKeyService.GenerateJwt(_jwtOptions, claims);
 
-        // Assert - Decode and verify claims
         var handler = new JwtSecurityTokenHandler();
         var jwtToken = handler.ReadJwtToken(token);
 
-        // JWT serializes claims - check if any claim has the expected value
-        Assert.That(jwtToken.Claims.Any(c => c.Value == "123456"), Is.True, "NameIdentifier claim not found");
-        Assert.That(jwtToken.Claims.Any(c => c.Value == "TestUser"), Is.True, "Name claim not found");
-        Assert.That(jwtToken.Claims.Any(c => c.Value == "test@example.com"), Is.True, "Email claim not found");
+        jwtToken.Claims.Any(c => c.Value == "123456").ShouldBeTrue();
+        jwtToken.Claims.Any(c => c.Value == "TestUser").ShouldBeTrue();
+        jwtToken.Claims.Any(c => c.Value == "test@example.com").ShouldBeTrue();
     }
 
-    [Test]
+    [Fact]
     public void GenerateJwt_TokenHasCorrectIssuerAndAudience()
     {
-        // Arrange
         _rsaKeyService.EnsureRsaKeysPresent(_jwtOptions, "/fake/path");
         var claims = new List<Claim>
         {
             new(ClaimTypes.NameIdentifier, "123456")
         };
 
-        // Act
         var token = _rsaKeyService.GenerateJwt(_jwtOptions, claims);
 
-        // Assert
         var handler = new JwtSecurityTokenHandler();
         var jwtToken = handler.ReadJwtToken(token);
 
-        Assert.That(jwtToken.Issuer, Is.EqualTo(_jwtOptions.Issuer));
-        Assert.That(jwtToken.Audiences.First(), Is.EqualTo(_jwtOptions.Audience));
+        jwtToken.Issuer.ShouldBe(_jwtOptions.Issuer);
+        jwtToken.Audiences.First().ShouldBe(_jwtOptions.Audience);
     }
 
-    [Test]
+    [Fact]
     public void GenerateJwt_TokenHasExpiration()
     {
-        // Arrange
         _rsaKeyService.EnsureRsaKeysPresent(_jwtOptions, "/fake/path");
         var claims = new List<Claim>
         {
@@ -328,46 +292,40 @@ public class RsaKeyServiceTests : MongoDbTest
         };
         var beforeGeneration = DateTime.UtcNow;
 
-        // Act
         var token = _rsaKeyService.GenerateJwt(_jwtOptions, claims);
         var afterGeneration = DateTime.UtcNow;
 
-        // Assert
         var handler = new JwtSecurityTokenHandler();
         var jwtToken = handler.ReadJwtToken(token);
 
-        Assert.That(jwtToken.ValidTo, Is.Not.EqualTo(default(DateTime)));
-        Assert.That(jwtToken.ValidTo, Is.GreaterThan(beforeGeneration.AddDays(6))); // Should be ~7 days
-        Assert.That(jwtToken.ValidTo, Is.LessThan(afterGeneration.AddDays(8))); // Allow some buffer
+        jwtToken.ValidTo.ShouldNotBe(default(DateTime));
+        jwtToken.ValidTo.ShouldBeGreaterThan(beforeGeneration.AddDays(6));
+        jwtToken.ValidTo.ShouldBeLessThan(afterGeneration.AddDays(8));
     }
 
-    [Test]
+    [Fact]
     public void GenerateJwt_WithEmptyClaims()
     {
-        // Arrange
         _rsaKeyService.EnsureRsaKeysPresent(_jwtOptions, "/fake/path");
         var claims = new List<Claim>();
 
-        // Act
         var token = _rsaKeyService.GenerateJwt(_jwtOptions, claims);
 
-        // Assert
-        Assert.That(token, Is.Not.Null);
-        Assert.That(token, Is.Not.Empty);
+        token.ShouldNotBeNull();
+        token.ShouldNotBeEmpty();
 
         var handler = new JwtSecurityTokenHandler();
         var jwtToken = handler.ReadJwtToken(token);
-        Assert.That(jwtToken, Is.Not.Null);
+        jwtToken.ShouldNotBeNull();
     }
 
     #endregion
 
     #region Integration Tests
 
-    [Test]
+    [Fact]
     public void FullWorkflow_CreateKeysGenerateAndValidateToken()
     {
-        // Arrange & Act - Full workflow
         _rsaKeyService.EnsureRsaKeysPresent(_jwtOptions, "/fake/path");
 
         var claims = new List<Claim>
@@ -379,7 +337,6 @@ public class RsaKeyServiceTests : MongoDbTest
 
         var token = _rsaKeyService.GenerateJwt(_jwtOptions, claims);
 
-        // Assert - Validate token with public key
         var tokenHandler = new JwtSecurityTokenHandler();
         using var publicRsa = _rsaKeyService.GetPublicRsa();
 
@@ -397,9 +354,9 @@ public class RsaKeyServiceTests : MongoDbTest
 
         var principal = tokenHandler.ValidateToken(token, validationParameters, out _);
 
-        Assert.That(principal.FindFirst(ClaimTypes.NameIdentifier)?.Value, Is.EqualTo("999"));
-        Assert.That(principal.FindFirst(ClaimTypes.Name)?.Value, Is.EqualTo("IntegrationTestUser"));
-        Assert.That(principal.FindFirst(ClaimTypes.Role)?.Value, Is.EqualTo("Admin"));
+        principal.FindFirst(ClaimTypes.NameIdentifier)?.Value.ShouldBe("999");
+        principal.FindFirst(ClaimTypes.Name)?.Value.ShouldBe("IntegrationTestUser");
+        principal.FindFirst(ClaimTypes.Role)?.Value.ShouldBe("Admin");
     }
 
     #endregion

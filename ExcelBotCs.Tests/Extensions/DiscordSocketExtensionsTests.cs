@@ -1,12 +1,11 @@
 using ExcelBotCs.Extensions;
-using ExcelBotCs.TestFramework.Attributes;
+using ExcelBotCs.TestFramework.TestData;
 
 namespace ExcelBotCs.Tests.Extensions;
 
-[TestFixture]
 public class DiscordSocketExtensionsTests
 {
-    [Test]
+    [Fact]
     public void PrettyJoin_WithSingleElement_ShouldReturnElement()
     {
         // Arrange
@@ -16,10 +15,10 @@ public class DiscordSocketExtensionsTests
         var result = list.PrettyJoin();
 
         // Assert
-        Assert.That(result, Is.EqualTo("Item1"));
+        result.ShouldBe("Item1");
     }
 
-    [Test]
+    [Fact]
     public void PrettyJoin_WithTwoElements_ShouldReturnElementsWithAnd()
     {
         // Arrange
@@ -29,10 +28,10 @@ public class DiscordSocketExtensionsTests
         var result = list.PrettyJoin();
 
         // Assert
-        Assert.That(result, Is.EqualTo("Item1 and Item2"));
+        result.ShouldBe("Item1 and Item2");
     }
 
-    [Test]
+    [Fact]
     public void PrettyJoin_WithThreeElements_ShouldReturnCommaSeparatedWithAnd()
     {
         // Arrange
@@ -42,10 +41,10 @@ public class DiscordSocketExtensionsTests
         var result = list.PrettyJoin();
 
         // Assert
-        Assert.That(result, Is.EqualTo("Item1, Item2 and Item3"));
+        result.ShouldBe("Item1, Item2 and Item3");
     }
 
-    [Test]
+    [Fact]
     public void PrettyJoin_WithMultipleElements_ShouldReturnCommaSeparatedWithAnd()
     {
         // Arrange
@@ -55,10 +54,10 @@ public class DiscordSocketExtensionsTests
         var result = list.PrettyJoin();
 
         // Assert
-        Assert.That(result, Is.EqualTo("Apple, Banana, Cherry, Date and Elderberry"));
+        result.ShouldBe("Apple, Banana, Cherry, Date and Elderberry");
     }
 
-    [Test]
+    [Fact]
     public void PrettyJoin_WithEmptyList_ShouldReturnEmptyString()
     {
         // Arrange
@@ -68,12 +67,12 @@ public class DiscordSocketExtensionsTests
         var result = list.PrettyJoin();
 
         // Assert
-        Assert.That(result, Is.EqualTo(string.Empty));
+        result.ShouldBe(string.Empty);
     }
 
-    [Test]
-    [TestIsNullOrEmptyString]
-    public void PrettyJoin_WithEmptyStringElements_ShouldHandleCorrectly(string emptyString)
+    [Theory]
+    [MemberData(nameof(NullOrEmptyStringData.Values), MemberType = typeof(NullOrEmptyStringData))]
+    public void PrettyJoin_WithEmptyStringElements_ShouldHandleCorrectly(string? emptyString)
     {
         // Arrange
         var list = new List<string> { "Item1", emptyString, "Item3" };
@@ -82,11 +81,11 @@ public class DiscordSocketExtensionsTests
         var result = list.PrettyJoin();
 
         // Assert
-        Assert.That(result, Does.Contain("Item1"));
-        Assert.That(result, Does.Contain("Item3"));
+        result.ShouldContain("Item1");
+        result.ShouldContain("Item3");
     }
 
-    [Test]
+    [Fact]
     public void PrettyJoin_WithSpecialCharacters_ShouldHandleCorrectly()
     {
         // Arrange
@@ -96,10 +95,10 @@ public class DiscordSocketExtensionsTests
         var result = list.PrettyJoin();
 
         // Assert
-        Assert.That(result, Is.EqualTo("Item@1, Item#2 and Item$3"));
+        result.ShouldBe("Item@1, Item#2 and Item$3");
     }
 
-    [Test]
+    [Fact]
     public void PrettyJoin_WithLongStrings_ShouldHandleCorrectly()
     {
         // Arrange
@@ -114,12 +113,12 @@ public class DiscordSocketExtensionsTests
         var result = list.PrettyJoin();
 
         // Assert
-        Assert.That(result, Does.StartWith("This is a very long string"));
-        Assert.That(result, Does.EndWith("Yet another lengthy string"));
-        Assert.That(result, Does.Contain(" and "));
+        result.ShouldStartWith("This is a very long string");
+        result.ShouldEndWith("Yet another lengthy string");
+        result.ShouldContain(" and ");
     }
 
-    [Test]
+    [Fact]
     public void PrettyJoin_WithWhitespaceStrings_ShouldHandleCorrectly()
     {
         // Arrange
@@ -129,11 +128,11 @@ public class DiscordSocketExtensionsTests
         var result = list.PrettyJoin();
 
         // Assert
-        Assert.That(result, Does.Contain("Item1"));
-        Assert.That(result, Does.Contain("Item3"));
+        result.ShouldContain("Item1");
+        result.ShouldContain("Item3");
     }
 
-    [Test]
+    [Fact]
     public void PrettyJoin_WithNumberStrings_ShouldJoinCorrectly()
     {
         // Arrange
@@ -143,10 +142,10 @@ public class DiscordSocketExtensionsTests
         var result = list.PrettyJoin();
 
         // Assert
-        Assert.That(result, Is.EqualTo("1, 2, 3 and 4"));
+        result.ShouldBe("1, 2, 3 and 4");
     }
 
-    [Test]
+    [Fact]
     public void PrettyJoin_WithMixedContent_ShouldJoinCorrectly()
     {
         // Arrange
@@ -156,36 +155,36 @@ public class DiscordSocketExtensionsTests
         var result = list.PrettyJoin();
 
         // Assert
-        Assert.That(result, Is.EqualTo("Tank, Healer, DPS and Support"));
+        result.ShouldBe("Tank, Healer, DPS and Support");
     }
 
-    [Test]
+    [Fact]
     public void IsMember_MessageResponse_NotValidUrlType_ShouldExist()
     {
         // This test verifies the enum and response types exist
         var notValidResponse = new DiscordSocketExtensions.NotValidUrlMessageResponse();
-        Assert.That(notValidResponse, Is.Not.Null);
-        Assert.That(notValidResponse, Is.InstanceOf<DiscordSocketExtensions.IMessageResponse>());
+        notValidResponse.ShouldNotBeNull();
+        notValidResponse.ShouldBeAssignableTo<DiscordSocketExtensions.IMessageResponse>();
     }
 
-    [Test]
+    [Fact]
     public void IsMember_MessageResponse_NotFoundUrlType_ShouldExist()
     {
         // This test verifies the enum and response types exist
         var notFoundResponse = new DiscordSocketExtensions.NotFoundUrlMessageResponse();
-        Assert.That(notFoundResponse, Is.Not.Null);
-        Assert.That(notFoundResponse, Is.InstanceOf<DiscordSocketExtensions.IMessageResponse>());
+        notFoundResponse.ShouldNotBeNull();
+        notFoundResponse.ShouldBeAssignableTo<DiscordSocketExtensions.IMessageResponse>();
     }
 
-    [Test]
+    [Fact]
     public void MessageResponse_Enum_ShouldHaveExpectedValues()
     {
         // Assert enum values exist
-        Assert.That(DiscordSocketExtensions.MessageResponse.NotValidUrl,
-            Is.EqualTo(DiscordSocketExtensions.MessageResponse.NotValidUrl));
-        Assert.That(DiscordSocketExtensions.MessageResponse.NotFoundUrl,
-            Is.EqualTo(DiscordSocketExtensions.MessageResponse.NotFoundUrl));
-        Assert.That(DiscordSocketExtensions.MessageResponse.Success,
-            Is.EqualTo(DiscordSocketExtensions.MessageResponse.Success));
+        DiscordSocketExtensions.MessageResponse.NotValidUrl
+            .ShouldBe(DiscordSocketExtensions.MessageResponse.NotValidUrl);
+        DiscordSocketExtensions.MessageResponse.NotFoundUrl
+            .ShouldBe(DiscordSocketExtensions.MessageResponse.NotFoundUrl);
+        DiscordSocketExtensions.MessageResponse.Success
+            .ShouldBe(DiscordSocketExtensions.MessageResponse.Success);
     }
 }

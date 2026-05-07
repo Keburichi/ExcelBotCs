@@ -8,27 +8,31 @@ using MongoDB.Driver;
 
 namespace ExcelBotCs.Tests.Database;
 
-[TestFixture]
+[Collection("MongoDB")]
 public class LotteryGuessRepositoryTests : MongoDbTest
 {
     private ILotteryGuessRepository _repository = null!;
+
+    public LotteryGuessRepositoryTests(MongoDbFixture fixture) : base(fixture)
+    {
+    }
 
     protected override void InitializeRepository(IMongoClient mongoClient, IOptions<DatabaseOptions> databaseOptions)
     {
         _repository = new LotteryGuessRepository(mongoClient, databaseOptions);
     }
 
-    [Test]
+    [Fact]
     public async Task GetByDiscordIdAsync_ReturnsEmpty_WhenNoGuessesExist()
     {
         var discordId = ulong.Parse(GenerateRandomDiscordId());
 
         var result = await _repository.GetByDiscordIdAsync(discordId);
 
-        Assert.That(result, Is.Empty);
+        result.ShouldBeEmpty();
     }
 
-    [Test]
+    [Fact]
     public async Task GetByDiscordIdAsync_ReturnsGuesses_WhenGuessesExist()
     {
         var discordId = ulong.Parse(GenerateRandomDiscordId());
@@ -40,12 +44,12 @@ public class LotteryGuessRepositoryTests : MongoDbTest
 
         var result = await _repository.GetByDiscordIdAsync(discordId);
 
-        Assert.That(result, Has.Count.EqualTo(2));
-        Assert.That(result.All(g => g.DiscordId == discordId), Is.True);
-        Assert.That(result.Select(g => g.Number), Is.EquivalentTo(new[] { 10, 20 }));
+        result.Count.ShouldBe(2);
+        result.All(g => g.DiscordId == discordId).ShouldBeTrue();
+        result.Select(g => g.Number).ShouldBe(new[] { 10, 20 }, ignoreOrder: true);
     }
 
-    [Test]
+    [Fact]
     public async Task GetByDiscordIdAsync_DoesNotReturnOtherUsersGuesses()
     {
         var discordId = ulong.Parse(GenerateRandomDiscordId());
@@ -55,10 +59,10 @@ public class LotteryGuessRepositoryTests : MongoDbTest
 
         var result = await _repository.GetByDiscordIdAsync(discordId);
 
-        Assert.That(result, Is.Empty);
+        result.ShouldBeEmpty();
     }
 
-    [Test]
+    [Fact]
     public async Task DeleteByDiscordIdAndNumberAsync_DeletesMatchingGuess()
     {
         var discordId = ulong.Parse(GenerateRandomDiscordId());
@@ -69,11 +73,11 @@ public class LotteryGuessRepositoryTests : MongoDbTest
         await _repository.DeleteByDiscordIdAndNumberAsync(discordId, 7);
 
         var remaining = await _repository.GetByDiscordIdAsync(discordId);
-        Assert.That(remaining, Has.Count.EqualTo(1));
-        Assert.That(remaining[0].Number, Is.EqualTo(13));
+        remaining.Count.ShouldBe(1);
+        remaining[0].Number.ShouldBe(13);
     }
 
-    [Test]
+    [Fact]
     public async Task DeleteByDiscordIdAndNumberAsync_DoesNotDeleteOtherUsersGuess()
     {
         var discordId = ulong.Parse(GenerateRandomDiscordId());
@@ -85,10 +89,10 @@ public class LotteryGuessRepositoryTests : MongoDbTest
         await _repository.DeleteByDiscordIdAndNumberAsync(discordId, 5);
 
         var otherRemaining = await _repository.GetByDiscordIdAsync(otherDiscordId);
-        Assert.That(otherRemaining, Has.Count.EqualTo(1));
+        otherRemaining.Count.ShouldBe(1);
     }
 
-    [Test]
+    [Fact]
     public async Task DeleteByDiscordIdAndNumberAsync_DoesNotDeleteDifferentNumberForSameUser()
     {
         var discordId = ulong.Parse(GenerateRandomDiscordId());
@@ -99,11 +103,11 @@ public class LotteryGuessRepositoryTests : MongoDbTest
         await _repository.DeleteByDiscordIdAndNumberAsync(discordId, 1);
 
         var remaining = await _repository.GetByDiscordIdAsync(discordId);
-        Assert.That(remaining, Has.Count.EqualTo(1));
-        Assert.That(remaining[0].Number, Is.EqualTo(2));
+        remaining.Count.ShouldBe(1);
+        remaining[0].Number.ShouldBe(2);
     }
 
-    [Test]
+    [Fact]
     public async Task DeleteAllAsync_RemovesAllGuesses()
     {
         var discordId1 = ulong.Parse(GenerateRandomDiscordId());
@@ -114,20 +118,20 @@ public class LotteryGuessRepositoryTests : MongoDbTest
         await _repository.CreateAsync(new LotteryGuess { DiscordId = discordId2, Number = 30 });
 
         var before = await _repository.GetAsync();
-        Assert.That(before, Has.Count.EqualTo(3));
+        before.Count.ShouldBe(3);
 
         await _repository.DeleteAllAsync();
 
         var after = await _repository.GetAsync();
-        Assert.That(after, Is.Empty);
+        after.ShouldBeEmpty();
     }
 
-    [Test]
+    [Fact]
     public async Task DeleteAllAsync_IsIdempotent_WhenCollectionIsAlreadyEmpty()
     {
         await _repository.DeleteAllAsync();
 
         var result = await _repository.GetAsync();
-        Assert.That(result, Is.Empty);
+        result.ShouldBeEmpty();
     }
 }

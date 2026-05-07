@@ -7,20 +7,18 @@ using Moq;
 
 namespace ExcelBotCs.Tests.Services.API;
 
-[TestFixture]
 public class LodestoneDutyServiceTests
 {
-    private ILodestoneDutyService _lodestoneDutyService;
-    private Mock<ILodestoneDutyRepository> _lodestoneDutyRepositoryMock;
+    private readonly ILodestoneDutyService _lodestoneDutyService;
+    private readonly Mock<ILodestoneDutyRepository> _lodestoneDutyRepositoryMock;
 
-    [SetUp]
-    public void SetUp()
+    public LodestoneDutyServiceTests()
     {
         _lodestoneDutyRepositoryMock = new Mock<ILodestoneDutyRepository>();
         _lodestoneDutyService = new LodestoneDutyService(_lodestoneDutyRepositoryMock.Object);
     }
 
-    [Test]
+    [Fact]
     public async Task GetAsync_ReturnsNull()
     {
         // Arrange
@@ -30,12 +28,12 @@ public class LodestoneDutyServiceTests
         var result = await _lodestoneDutyService.GetAsync();
 
         // Assert
-        Assert.That(result, Is.Null);
+        result.ShouldBeNull();
 
         _lodestoneDutyRepositoryMock.Verify(x => x.GetAsync(), Times.Once());
     }
 
-    [Test]
+    [Fact]
     public async Task GetAsync_ReturnsList()
     {
         // Arrange
@@ -46,13 +44,13 @@ public class LodestoneDutyServiceTests
         var result = await _lodestoneDutyService.GetAsync();
 
         // Assert
-        Assert.That(result, Is.Not.Null);
-        Assert.That(result, Is.EquivalentTo(duties));
+        result.ShouldNotBeNull();
+        result.ShouldBe(duties);
 
         _lodestoneDutyRepositoryMock.Verify(x => x.GetAsync(), Times.Once());
     }
 
-    [Test]
+    [Fact]
     public async Task GetAsync_ById_ReturnsNull()
     {
         // Arrange
@@ -63,12 +61,12 @@ public class LodestoneDutyServiceTests
         var result = await _lodestoneDutyService.GetAsync(id);
 
         // Assert
-        Assert.That(result, Is.Null);
+        result.ShouldBeNull();
 
         _lodestoneDutyRepositoryMock.Verify(x => x.GetAsync(id), Times.Once());
     }
 
-    [Test]
+    [Fact]
     public async Task GetAsync_ById_ReturnsItem()
     {
         // Arrange
@@ -80,13 +78,13 @@ public class LodestoneDutyServiceTests
         var result = await _lodestoneDutyService.GetAsync(id);
 
         // Assert
-        Assert.That(result, Is.Not.Null);
-        Assert.That(result, Is.EqualTo(duty));
+        result.ShouldNotBeNull();
+        result.ShouldBe(duty);
 
         _lodestoneDutyRepositoryMock.Verify(x => x.GetAsync(id), Times.Once());
     }
 
-    [Test]
+    [Fact]
     public async Task CreateAsync_SetsLastSyncTimeAndCallsRepository()
     {
         // Arrange
@@ -99,13 +97,13 @@ public class LodestoneDutyServiceTests
         var afterCreate = DateTime.UtcNow;
 
         // Assert
-        Assert.That(duty.LastSyncTime, Is.GreaterThanOrEqualTo(beforeCreate));
-        Assert.That(duty.LastSyncTime, Is.LessThanOrEqualTo(afterCreate));
+        duty.LastSyncTime.ShouldBeGreaterThanOrEqualTo(beforeCreate);
+        duty.LastSyncTime.ShouldBeLessThanOrEqualTo(afterCreate);
 
         _lodestoneDutyRepositoryMock.Verify(x => x.CreateAsync(duty), Times.Once());
     }
 
-    [Test]
+    [Fact]
     public async Task UpdateAsync_SetsLastSyncTimeAndCallsRepository()
     {
         // Arrange
@@ -120,13 +118,13 @@ public class LodestoneDutyServiceTests
         var afterUpdate = DateTime.UtcNow;
 
         // Assert
-        Assert.That(duty.LastSyncTime, Is.GreaterThanOrEqualTo(beforeUpdate));
-        Assert.That(duty.LastSyncTime, Is.LessThanOrEqualTo(afterUpdate));
+        duty.LastSyncTime.ShouldBeGreaterThanOrEqualTo(beforeUpdate);
+        duty.LastSyncTime.ShouldBeLessThanOrEqualTo(afterUpdate);
 
         _lodestoneDutyRepositoryMock.Verify(x => x.UpdateAsync(id, duty), Times.Once());
     }
 
-    [Test]
+    [Fact]
     public async Task DeleteAsync_CallsRepository()
     {
         // Arrange
@@ -140,7 +138,7 @@ public class LodestoneDutyServiceTests
         _lodestoneDutyRepositoryMock.Verify(x => x.DeleteAsync(id), Times.Once());
     }
 
-    [Test]
+    [Fact]
     public async Task GetByExpansionAndCategoryAsync_ReturnsNull()
     {
         // Arrange
@@ -153,13 +151,13 @@ public class LodestoneDutyServiceTests
         var result = await _lodestoneDutyService.GetByExpansionAndCategoryAsync(expansionId, categoryId);
 
         // Assert
-        Assert.That(result, Is.Null);
+        result.ShouldBeNull();
 
         _lodestoneDutyRepositoryMock.Verify(x => x.GetByExpansionAndCategoryAsync(expansionId, categoryId),
             Times.Once());
     }
 
-    [Test]
+    [Fact]
     public async Task GetByExpansionAndCategoryAsync_ReturnsList()
     {
         // Arrange
@@ -173,14 +171,14 @@ public class LodestoneDutyServiceTests
         var result = await _lodestoneDutyService.GetByExpansionAndCategoryAsync(expansionId, categoryId);
 
         // Assert
-        Assert.That(result, Is.Not.Null);
-        Assert.That(result, Is.EquivalentTo(duties));
+        result.ShouldNotBeNull();
+        result.ShouldBe(duties);
 
         _lodestoneDutyRepositoryMock.Verify(x => x.GetByExpansionAndCategoryAsync(expansionId, categoryId),
             Times.Once());
     }
 
-    [Test]
+    [Fact]
     public async Task GetByLodestoneIdAsync_ReturnsNull()
     {
         // Arrange
@@ -191,12 +189,12 @@ public class LodestoneDutyServiceTests
         var result = await _lodestoneDutyService.GetByLodestoneIdAsync(lodestoneId);
 
         // Assert
-        Assert.That(result, Is.Null);
+        result.ShouldBeNull();
 
         _lodestoneDutyRepositoryMock.Verify(x => x.GetByLodestoneIdAsync(lodestoneId), Times.Once());
     }
 
-    [Test]
+    [Fact]
     public async Task GetByLodestoneIdAsync_ReturnsItem()
     {
         // Arrange
@@ -208,13 +206,13 @@ public class LodestoneDutyServiceTests
         var result = await _lodestoneDutyService.GetByLodestoneIdAsync(lodestoneId);
 
         // Assert
-        Assert.That(result, Is.Not.Null);
-        Assert.That(result, Is.EqualTo(duty));
+        result.ShouldNotBeNull();
+        result.ShouldBe(duty);
 
         _lodestoneDutyRepositoryMock.Verify(x => x.GetByLodestoneIdAsync(lodestoneId), Times.Once());
     }
 
-    [Test]
+    [Fact]
     public async Task HasDataAsync_ReturnsFalse_WhenCountIsZero()
     {
         // Arrange
@@ -224,12 +222,12 @@ public class LodestoneDutyServiceTests
         var result = await _lodestoneDutyService.HasDataAsync();
 
         // Assert
-        Assert.That(result, Is.False);
+        result.ShouldBeFalse();
 
         _lodestoneDutyRepositoryMock.Verify(x => x.CountAsync(), Times.Once());
     }
 
-    [Test]
+    [Fact]
     public async Task HasDataAsync_ReturnsTrue_WhenCountIsGreaterThanZero()
     {
         // Arrange
@@ -239,12 +237,12 @@ public class LodestoneDutyServiceTests
         var result = await _lodestoneDutyService.HasDataAsync();
 
         // Assert
-        Assert.That(result, Is.True);
+        result.ShouldBeTrue();
 
         _lodestoneDutyRepositoryMock.Verify(x => x.CountAsync(), Times.Once());
     }
 
-    [Test]
+    [Fact]
     public async Task HasDataForExpansionAndCategoryAsync_ReturnsFalse()
     {
         // Arrange
@@ -257,13 +255,13 @@ public class LodestoneDutyServiceTests
         var result = await _lodestoneDutyService.HasDataForExpansionAndCategoryAsync(expansionId, categoryId);
 
         // Assert
-        Assert.That(result, Is.False);
+        result.ShouldBeFalse();
 
         _lodestoneDutyRepositoryMock.Verify(x => x.HasDataForExpansionAndCategoryAsync(expansionId, categoryId),
             Times.Once());
     }
 
-    [Test]
+    [Fact]
     public async Task HasDataForExpansionAndCategoryAsync_ReturnsTrue()
     {
         // Arrange
@@ -276,13 +274,13 @@ public class LodestoneDutyServiceTests
         var result = await _lodestoneDutyService.HasDataForExpansionAndCategoryAsync(expansionId, categoryId);
 
         // Assert
-        Assert.That(result, Is.True);
+        result.ShouldBeTrue();
 
         _lodestoneDutyRepositoryMock.Verify(x => x.HasDataForExpansionAndCategoryAsync(expansionId, categoryId),
             Times.Once());
     }
 
-    [Test]
+    [Fact]
     public async Task BulkCreateAsync_SetsLastSyncTimeAndCallsRepositoryForEachDuty()
     {
         // Arrange
@@ -302,8 +300,8 @@ public class LodestoneDutyServiceTests
         // Assert
         foreach (var duty in duties)
         {
-            Assert.That(duty.LastSyncTime, Is.GreaterThanOrEqualTo(beforeCreate));
-            Assert.That(duty.LastSyncTime, Is.LessThanOrEqualTo(afterCreate));
+            duty.LastSyncTime.ShouldBeGreaterThanOrEqualTo(beforeCreate);
+            duty.LastSyncTime.ShouldBeLessThanOrEqualTo(afterCreate);
         }
 
         _lodestoneDutyRepositoryMock.Verify(x => x.CreateAsync(It.IsAny<LodestoneDuty>()), Times.Exactly(3));

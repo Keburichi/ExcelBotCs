@@ -13,17 +13,15 @@ namespace ExcelBotCs.Tests.Services.Lodestone;
 /// <summary>
 ///     Unit tests for LodestoneDutyScraperService - tests HTML scraping and parsing logic with mocked HTTP responses.
 /// </summary>
-[TestFixture]
-public class LodestoneDutyScraperServiceTests
+public class LodestoneDutyScraperServiceTests : IDisposable
 {
-    private LodestoneDutyScraperService _service = null!;
-    private Mock<ILogger<LodestoneDutyScraperService>> _loggerMock = null!;
-    private Mock<HttpMessageHandler> _httpMessageHandlerMock = null!;
-    private HttpClient _httpClient = null!;
-    private IOptions<LodestoneOptions> _options = null!;
+    private readonly LodestoneDutyScraperService _service;
+    private readonly Mock<ILogger<LodestoneDutyScraperService>> _loggerMock;
+    private readonly Mock<HttpMessageHandler> _httpMessageHandlerMock;
+    private readonly HttpClient _httpClient;
+    private readonly IOptions<LodestoneOptions> _options;
 
-    [SetUp]
-    public void SetUp()
+    public LodestoneDutyScraperServiceTests()
     {
         _loggerMock = new Mock<ILogger<LodestoneDutyScraperService>>();
         _httpMessageHandlerMock = new Mock<HttpMessageHandler>();
@@ -38,8 +36,7 @@ public class LodestoneDutyScraperServiceTests
         _service = new LodestoneDutyScraperService(_loggerMock.Object, _httpClient, _options);
     }
 
-    [TearDown]
-    public void TearDown()
+    public void Dispose()
     {
         _httpClient?.Dispose();
     }
@@ -119,7 +116,7 @@ public class LodestoneDutyScraperServiceTests
 
     #region ClearCache Tests
 
-    [Test]
+    [Fact]
     public void ClearCache_ClearsInternalCache()
     {
         // Act
@@ -140,7 +137,7 @@ public class LodestoneDutyScraperServiceTests
 
     #region ScrapeListingPageAsync Tests
 
-    [Test]
+    [Fact]
     public async Task ScrapeListingPageAsync_ValidPage_ReturnsDuties()
     {
         // Arrange
@@ -156,17 +153,17 @@ public class LodestoneDutyScraperServiceTests
         var result = await _service.ScrapeListingPageAsync(4, 4, FightType.Extreme);
 
         // Assert
-        Assert.That(result, Is.Not.Null);
-        Assert.That(result, Has.Count.EqualTo(2));
-        Assert.That(result[0].Name, Is.EqualTo("The Minstrel's Ballad: Zodiark's Reign"));
-        Assert.That(result[0].LodestoneId, Is.EqualTo("zodiark"));
-        Assert.That(result[0].ExpansionId, Is.EqualTo(4));
-        Assert.That(result[0].CategoryId, Is.EqualTo(4));
-        Assert.That(result[0].FightType, Is.EqualTo(FightType.Extreme));
-        Assert.That(result[1].Name, Is.EqualTo("The Minstrel's Ballad: Hydaelyn's Call"));
+        result.ShouldNotBeNull();
+        result.Count.ShouldBe(2);
+        result[0].Name.ShouldBe("The Minstrel's Ballad: Zodiark's Reign");
+        result[0].LodestoneId.ShouldBe("zodiark");
+        result[0].ExpansionId.ShouldBe(4);
+        result[0].CategoryId.ShouldBe(4);
+        result[0].FightType.ShouldBe(FightType.Extreme);
+        result[1].Name.ShouldBe("The Minstrel's Ballad: Hydaelyn's Call");
     }
 
-    [Test]
+    [Fact]
     public async Task ScrapeListingPageAsync_EmptyPage_ReturnsEmptyList()
     {
         // Arrange
@@ -178,11 +175,11 @@ public class LodestoneDutyScraperServiceTests
         var result = await _service.ScrapeListingPageAsync(0, 4, FightType.Extreme);
 
         // Assert
-        Assert.That(result, Is.Not.Null);
-        Assert.That(result, Is.Empty);
+        result.ShouldNotBeNull();
+        result.ShouldBeEmpty();
     }
 
-    [Test]
+    [Fact]
     public async Task ScrapeListingPageAsync_HttpError_ReturnsEmptyList()
     {
         // Arrange
@@ -193,15 +190,15 @@ public class LodestoneDutyScraperServiceTests
         var result = await _service.ScrapeListingPageAsync(5, 4, FightType.Extreme);
 
         // Assert
-        Assert.That(result, Is.Not.Null);
-        Assert.That(result, Is.Empty);
+        result.ShouldNotBeNull();
+        result.ShouldBeEmpty();
     }
 
     #endregion
 
     #region ParseDutyListingHtml Tests
 
-    [Test]
+    [Fact]
     public async Task ParseDutyListingHtml_ValidHtml_ExtractsAllDuties()
     {
         // Arrange
@@ -215,14 +212,14 @@ public class LodestoneDutyScraperServiceTests
         var result = await _service.ParseDutyListingHtmlAsync(html, 5, 4, FightType.Extreme);
 
         // Assert
-        Assert.That(result, Has.Count.EqualTo(3));
-        Assert.That(result[0].Name, Is.EqualTo("Duty One"));
-        Assert.That(result[0].LodestoneId, Is.EqualTo("duty1"));
-        Assert.That(result[1].Name, Is.EqualTo("Duty Two"));
-        Assert.That(result[2].Name, Is.EqualTo("Duty Three"));
+        result.Count.ShouldBe(3);
+        result[0].Name.ShouldBe("Duty One");
+        result[0].LodestoneId.ShouldBe("duty1");
+        result[1].Name.ShouldBe("Duty Two");
+        result[2].Name.ShouldBe("Duty Three");
     }
 
-    [Test]
+    [Fact]
     public async Task ParseDutyListingHtml_EmptyHtml_ReturnsEmptyList()
     {
         // Arrange
@@ -232,10 +229,10 @@ public class LodestoneDutyScraperServiceTests
         var result = await _service.ParseDutyListingHtmlAsync(html, 5, 4, FightType.Extreme);
 
         // Assert
-        Assert.That(result, Is.Empty);
+        result.ShouldBeEmpty();
     }
 
-    [Test]
+    [Fact]
     public async Task ParseDutyListingHtml_MalformedHtml_ReturnsEmptyList()
     {
         // Arrange
@@ -245,14 +242,14 @@ public class LodestoneDutyScraperServiceTests
         var result = await _service.ParseDutyListingHtmlAsync(html, 5, 4, FightType.Extreme);
 
         // Assert
-        Assert.That(result, Is.Empty);
+        result.ShouldBeEmpty();
     }
 
     #endregion
 
     #region PopulateDutyMetadataAsync Tests
 
-    [Test]
+    [Fact]
     public async Task PopulateDutyMetadataAsync_EmptyDuty_PopulatesMetadata()
     {
         // Arrange
@@ -279,13 +276,13 @@ public class LodestoneDutyScraperServiceTests
         await _service.PopulateDutyMetadataAsync(duty);
 
         // Assert
-        Assert.That(duty.BossNames, Has.Count.EqualTo(1));
-        Assert.That(duty.BossNames[0], Is.EqualTo("Test Boss"));
-        Assert.That(duty.Description, Is.EqualTo("This is a test description."));
-        Assert.That(duty.ImageUrl, Is.EqualTo("https://lds-img.finalfantasyxiv.com/test.png"));
+        duty.BossNames.Count.ShouldBe(1);
+        duty.BossNames[0].ShouldBe("Test Boss");
+        duty.Description.ShouldBe("This is a test description.");
+        duty.ImageUrl.ShouldBe("https://lds-img.finalfantasyxiv.com/test.png");
     }
 
-    [Test]
+    [Fact]
     public async Task PopulateDutyMetadataAsync_AlreadyPopulated_SkipsRequest()
     {
         // Arrange
@@ -307,13 +304,13 @@ public class LodestoneDutyScraperServiceTests
         await _service.PopulateDutyMetadataAsync(duty);
 
         // Assert - Should not have made HTTP request, data unchanged
-        Assert.That(duty.BossNames, Has.Count.EqualTo(1));
-        Assert.That(duty.BossNames[0], Is.EqualTo("Existing Boss"));
-        Assert.That(duty.Description, Is.EqualTo("Existing description"));
-        Assert.That(duty.ImageUrl, Is.EqualTo("https://existing.com/image.png"));
+        duty.BossNames.Count.ShouldBe(1);
+        duty.BossNames[0].ShouldBe("Existing Boss");
+        duty.Description.ShouldBe("Existing description");
+        duty.ImageUrl.ShouldBe("https://existing.com/image.png");
     }
 
-    [Test]
+    [Fact]
     public async Task PopulateDutyMetadataAsync_MultipleBosses_ExtractsAll()
     {
         // Arrange
@@ -340,17 +337,17 @@ public class LodestoneDutyScraperServiceTests
         await _service.PopulateDutyMetadataAsync(duty);
 
         // Assert
-        Assert.That(duty.BossNames, Has.Count.EqualTo(3));
-        Assert.That(duty.BossNames, Does.Contain("Twintania"));
-        Assert.That(duty.BossNames, Does.Contain("Nael deus Darnus"));
-        Assert.That(duty.BossNames, Does.Contain("Bahamut Prime"));
+        duty.BossNames.Count.ShouldBe(3);
+        duty.BossNames.ShouldContain("Twintania");
+        duty.BossNames.ShouldContain("Nael deus Darnus");
+        duty.BossNames.ShouldContain("Bahamut Prime");
     }
 
     #endregion
 
     #region ExtractBossNamesFromDocument Tests
 
-    [Test]
+    [Fact]
     public async Task ExtractBossNamesFromDocument_ValidDocument_ExtractsBosses()
     {
         // Arrange
@@ -369,13 +366,13 @@ public class LodestoneDutyScraperServiceTests
         var result = _service.ExtractBossNamesFromDocument(document);
 
         // Assert
-        Assert.That(result, Has.Count.EqualTo(3));
-        Assert.That(result, Does.Contain("Boss One"));
-        Assert.That(result, Does.Contain("Boss Two"));
-        Assert.That(result, Does.Contain("Boss Three"));
+        result.Count.ShouldBe(3);
+        result.ShouldContain("Boss One");
+        result.ShouldContain("Boss Two");
+        result.ShouldContain("Boss Three");
     }
 
-    [Test]
+    [Fact]
     public async Task ExtractBossNamesFromDocument_NoBosses_ReturnsEmptyList()
     {
         // Arrange
@@ -389,14 +386,14 @@ public class LodestoneDutyScraperServiceTests
         var result = _service.ExtractBossNamesFromDocument(document);
 
         // Assert
-        Assert.That(result, Is.Empty);
+        result.ShouldBeEmpty();
     }
 
     #endregion
 
     #region ExtractImageUrlFromDocument Tests
 
-    [Test]
+    [Fact]
     public async Task ExtractImageUrlFromDocument_AbsoluteUrl_ReturnsUrl()
     {
         // Arrange
@@ -411,10 +408,10 @@ public class LodestoneDutyScraperServiceTests
         var result = _service.ExtractImageUrlFromDocument(document);
 
         // Assert
-        Assert.That(result, Is.EqualTo(imageUrl));
+        result.ShouldBe(imageUrl);
     }
 
-    [Test]
+    [Fact]
     public async Task ExtractImageUrlFromDocument_ProtocolRelativeUrl_AddsHttps()
     {
         // Arrange
@@ -435,10 +432,10 @@ public class LodestoneDutyScraperServiceTests
         var result = _service.ExtractImageUrlFromDocument(document);
 
         // Assert
-        Assert.That(result, Is.EqualTo("https://lds-img.finalfantasyxiv.com/test.png"));
+        result.ShouldBe("https://lds-img.finalfantasyxiv.com/test.png");
     }
 
-    [Test]
+    [Fact]
     public async Task ExtractImageUrlFromDocument_RelativeUrl_MakesAbsolute()
     {
         // Arrange
@@ -459,10 +456,10 @@ public class LodestoneDutyScraperServiceTests
         var result = _service.ExtractImageUrlFromDocument(document);
 
         // Assert
-        Assert.That(result, Is.EqualTo("https://na.finalfantasyxiv.com/img/test.png"));
+        result.ShouldBe("https://na.finalfantasyxiv.com/img/test.png");
     }
 
-    [Test]
+    [Fact]
     public async Task ExtractImageUrlFromDocument_NoImage_ReturnsNull()
     {
         // Arrange
@@ -476,14 +473,14 @@ public class LodestoneDutyScraperServiceTests
         var result = _service.ExtractImageUrlFromDocument(document);
 
         // Assert
-        Assert.That(result, Is.Null);
+        result.ShouldBeNull();
     }
 
     #endregion
 
     #region ExtractDescriptionFromDocument Tests
 
-    [Test]
+    [Fact]
     public async Task ExtractDescriptionFromDocument_ValidDescription_ExtractsCorrectly()
     {
         // Arrange
@@ -498,10 +495,10 @@ public class LodestoneDutyScraperServiceTests
         var result = _service.ExtractDescriptionFromDocument(document);
 
         // Assert
-        Assert.That(result, Is.EqualTo(description));
+        result.ShouldBe(description);
     }
 
-    [Test]
+    [Fact]
     public async Task ExtractDescriptionFromDocument_LongDescription_Truncates()
     {
         // Arrange
@@ -516,11 +513,11 @@ public class LodestoneDutyScraperServiceTests
         var result = _service.ExtractDescriptionFromDocument(document);
 
         // Assert
-        Assert.That(result, Is.Not.Null);
-        Assert.That(result!.Length, Is.EqualTo(2000));
+        result.ShouldNotBeNull();
+        result!.Length.ShouldBe(2000);
     }
 
-    [Test]
+    [Fact]
     public async Task ExtractDescriptionFromDocument_ShortDescription_Ignored()
     {
         // Arrange - Description too short (less than 10 chars)
@@ -534,10 +531,10 @@ public class LodestoneDutyScraperServiceTests
         var result = _service.ExtractDescriptionFromDocument(document);
 
         // Assert
-        Assert.That(result, Is.Null);
+        result.ShouldBeNull();
     }
 
-    [Test]
+    [Fact]
     public async Task ExtractDescriptionFromDocument_NoDescription_ReturnsNull()
     {
         // Arrange
@@ -559,10 +556,10 @@ public class LodestoneDutyScraperServiceTests
         var result = _service.ExtractDescriptionFromDocument(document);
 
         // Assert
-        Assert.That(result, Is.Null);
+        result.ShouldBeNull();
     }
 
-    [Test]
+    [Fact]
     public async Task ExtractDescriptionFromDocument_DescriptionHeadingWithoutParagraph_ReturnsNull()
     {
         // Arrange - Has "Description" heading but no following paragraph
@@ -584,14 +581,14 @@ public class LodestoneDutyScraperServiceTests
         var result = _service.ExtractDescriptionFromDocument(document);
 
         // Assert
-        Assert.That(result, Is.Null);
+        result.ShouldBeNull();
     }
 
     #endregion
 
     #region Caching Tests
 
-    [Test]
+    [Fact]
     public async Task FetchAndParseDutyPage_CalledTwice_UsesCacheOnSecondCall()
     {
         // Arrange
@@ -647,12 +644,12 @@ public class LodestoneDutyScraperServiceTests
         await _service.PopulateDutyMetadataAsync(duty2);
 
         // Assert - Should only have called HTTP once
-        Assert.That(callCount, Is.EqualTo(1));
-        Assert.That(duty1.BossNames, Has.Count.EqualTo(1));
-        Assert.That(duty2.BossNames, Has.Count.EqualTo(1));
+        callCount.ShouldBe(1);
+        duty1.BossNames.Count.ShouldBe(1);
+        duty2.BossNames.Count.ShouldBe(1);
     }
 
-    [Test]
+    [Fact]
     public async Task ClearCache_ClearedBetweenCalls_MakesNewRequest()
     {
         // Arrange
@@ -711,7 +708,7 @@ public class LodestoneDutyScraperServiceTests
         await _service.PopulateDutyMetadataAsync(duty2);
 
         // Assert - Should have called HTTP twice (cache was cleared)
-        Assert.That(callCount, Is.EqualTo(2));
+        callCount.ShouldBe(2);
     }
 
     #endregion

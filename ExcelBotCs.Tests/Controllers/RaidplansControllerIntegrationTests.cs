@@ -3,20 +3,23 @@ using System.Net.Http.Json;
 using ExcelBotCs.Models.Database;
 using ExcelBotCs.Models.DTO;
 using ExcelBotCs.Services.API.Interfaces;
+using ExcelBotCs.TestFramework.Database;
 using ExcelBotCs.Tests.Utils;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace ExcelBotCs.Tests.Controllers;
 
-[TestFixture]
 public class RaidplansControllerIntegrationTests : IntegrationTestBase
 {
     private string _testFightId = null!;
 
-    [SetUp]
-    public new async Task SetUp()
+    public RaidplansControllerIntegrationTests(MongoDbFixture fixture) : base(fixture)
     {
-        base.SetUp();
+    }
+
+    protected override async Task OnAfterIntegrationSetupAsync()
+    {
+        await base.OnAfterIntegrationSetupAsync();
 
         // Create a test fight for raidplans to be associated with
         var fightService = Factory.Services.GetRequiredService<IFightService>();
@@ -33,31 +36,31 @@ public class RaidplansControllerIntegrationTests : IntegrationTestBase
 
     #region Permission Tests
 
-    [Test]
+    [Fact]
     public async Task GetRaidplans_CheckPermissions()
     {
         // No Auth = Unauthorized
         SetUnauthenticated();
         var response = await Client.GetAsync($"api/fights/{_testFightId}/raidplans");
-        Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.Unauthorized));
+        response.StatusCode.ShouldBe(HttpStatusCode.Unauthorized);
 
         // No Member = Forbidden
         SetAuthenticatedUser("12355");
         response = await Client.GetAsync($"api/fights/{_testFightId}/raidplans");
-        Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.Forbidden));
+        response.StatusCode.ShouldBe(HttpStatusCode.Forbidden);
 
         // Member = Ok
         await AuthenticateAsMember();
         response = await Client.GetAsync($"api/fights/{_testFightId}/raidplans");
-        Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.OK));
+        response.StatusCode.ShouldBe(HttpStatusCode.OK);
 
         // Admin = Ok
         await AuthenticateAsAdmin();
         response = await Client.GetAsync($"api/fights/{_testFightId}/raidplans");
-        Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.OK));
+        response.StatusCode.ShouldBe(HttpStatusCode.OK);
     }
 
-    [Test]
+    [Fact]
     public async Task GetRaidplan_CheckPermissions()
     {
         // Create a raidplan first
@@ -75,20 +78,20 @@ public class RaidplansControllerIntegrationTests : IntegrationTestBase
         // No Auth = Unauthorized
         SetUnauthenticated();
         var response = await Client.GetAsync($"api/fights/{_testFightId}/raidplans/{createdRaidplan!.Id}");
-        Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.Unauthorized));
+        response.StatusCode.ShouldBe(HttpStatusCode.Unauthorized);
 
         // No Member = Forbidden
         SetAuthenticatedUser("12355");
         response = await Client.GetAsync($"api/fights/{_testFightId}/raidplans/{createdRaidplan.Id}");
-        Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.Forbidden));
+        response.StatusCode.ShouldBe(HttpStatusCode.Forbidden);
 
         // Member = Ok
         await AuthenticateAsMember();
         response = await Client.GetAsync($"api/fights/{_testFightId}/raidplans/{createdRaidplan.Id}");
-        Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.OK));
+        response.StatusCode.ShouldBe(HttpStatusCode.OK);
     }
 
-    [Test]
+    [Fact]
     public async Task CreateRaidplan_CheckPermissions()
     {
         var raidplanDto = new RaidplanDto
@@ -102,24 +105,24 @@ public class RaidplansControllerIntegrationTests : IntegrationTestBase
         // No Auth = Unauthorized
         SetUnauthenticated();
         var response = await Client.PostAsJsonAsync($"api/fights/{_testFightId}/raidplans", raidplanDto);
-        Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.Unauthorized));
+        response.StatusCode.ShouldBe(HttpStatusCode.Unauthorized);
 
         // No Member = Forbidden
         SetAuthenticatedUser("12355");
         response = await Client.PostAsJsonAsync($"api/fights/{_testFightId}/raidplans", raidplanDto);
-        Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.Forbidden));
+        response.StatusCode.ShouldBe(HttpStatusCode.Forbidden);
 
         // Member = Created
         await AuthenticateAsMember();
         response = await Client.PostAsJsonAsync($"api/fights/{_testFightId}/raidplans", raidplanDto);
-        Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.Created));
+        response.StatusCode.ShouldBe(HttpStatusCode.Created);
     }
 
     #endregion
 
     #region Functional Tests - Get
 
-    [Test]
+    [Fact]
     public async Task GetRaidplans_NoRaidplans_ReturnsEmptyList()
     {
         // Arrange
@@ -131,11 +134,11 @@ public class RaidplansControllerIntegrationTests : IntegrationTestBase
         // Assert
         response.EnsureSuccessStatusCode();
         var raidplans = await response.Content.ReadFromJsonAsync<List<RaidplanDto>>();
-        Assert.That(raidplans, Is.Not.Null);
-        Assert.That(raidplans, Is.Empty);
+        raidplans.ShouldNotBeNull();
+        raidplans.ShouldBeEmpty();
     }
 
-    [Test]
+    [Fact]
     public async Task GetRaidplans_WithRaidplans_ReturnsAll()
     {
         // Arrange
@@ -166,13 +169,13 @@ public class RaidplansControllerIntegrationTests : IntegrationTestBase
         // Assert
         response.EnsureSuccessStatusCode();
         var raidplans = await response.Content.ReadFromJsonAsync<List<RaidplanDto>>();
-        Assert.That(raidplans, Is.Not.Null);
-        Assert.That(raidplans, Has.Count.EqualTo(2));
-        Assert.That(raidplans.Any(r => r.Name == raidplan1.Name), Is.True);
-        Assert.That(raidplans.Any(r => r.Name == raidplan2.Name), Is.True);
+        raidplans.ShouldNotBeNull();
+        raidplans.Count.ShouldBe(2);
+        raidplans.Any(r => r.Name == raidplan1.Name).ShouldBeTrue();
+        raidplans.Any(r => r.Name == raidplan2.Name).ShouldBeTrue();
     }
 
-    [Test]
+    [Fact]
     public async Task GetRaidplan_WhenExists_ReturnsRaidplan()
     {
         // Arrange
@@ -193,13 +196,13 @@ public class RaidplansControllerIntegrationTests : IntegrationTestBase
         // Assert
         response.EnsureSuccessStatusCode();
         var retrievedRaidplan = await response.Content.ReadFromJsonAsync<RaidplanDto>();
-        Assert.That(retrievedRaidplan, Is.Not.Null);
-        Assert.That(retrievedRaidplan.Name, Is.EqualTo(raidplanDto.Name));
-        Assert.That(retrievedRaidplan.Description, Is.EqualTo(raidplanDto.Description));
-        Assert.That(retrievedRaidplan.Url, Is.EqualTo(raidplanDto.Url));
+        retrievedRaidplan.ShouldNotBeNull();
+        retrievedRaidplan.Name.ShouldBe(raidplanDto.Name);
+        retrievedRaidplan.Description.ShouldBe(raidplanDto.Description);
+        retrievedRaidplan.Url.ShouldBe(raidplanDto.Url);
     }
 
-    [Test]
+    [Fact]
     public async Task GetRaidplan_WhenNotExists_ReturnsNotFound()
     {
         // Arrange
@@ -210,14 +213,14 @@ public class RaidplansControllerIntegrationTests : IntegrationTestBase
         var response = await Client.GetAsync($"api/fights/{_testFightId}/raidplans/{nonExistentId}");
 
         // Assert
-        Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.NotFound));
+        response.StatusCode.ShouldBe(HttpStatusCode.NotFound);
     }
 
     #endregion
 
     #region Functional Tests - Create
 
-    [Test]
+    [Fact]
     public async Task CreateRaidplan_ValidData_CreatesRaidplan()
     {
         // Arrange
@@ -234,15 +237,15 @@ public class RaidplansControllerIntegrationTests : IntegrationTestBase
         var response = await Client.PostAsJsonAsync($"api/fights/{_testFightId}/raidplans", raidplanDto);
 
         // Assert
-        Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.Created));
+        response.StatusCode.ShouldBe(HttpStatusCode.Created);
         var createdRaidplan = await response.Content.ReadFromJsonAsync<RaidplanDto>();
-        Assert.That(createdRaidplan, Is.Not.Null);
-        Assert.That(createdRaidplan.Id, Is.Not.Null);
-        Assert.That(createdRaidplan.Name, Is.EqualTo(raidplanDto.Name));
-        Assert.That(createdRaidplan.AuthorId, Is.EqualTo(member.Id));
+        createdRaidplan.ShouldNotBeNull();
+        createdRaidplan.Id.ShouldNotBeNull();
+        createdRaidplan.Name.ShouldBe(raidplanDto.Name);
+        createdRaidplan.AuthorId.ShouldBe(member.Id);
     }
 
-    [Test]
+    [Fact]
     public async Task CreateRaidplan_SetsAuthorToCurrentMember()
     {
         // Arrange
@@ -261,14 +264,14 @@ public class RaidplansControllerIntegrationTests : IntegrationTestBase
         // Assert
         response.EnsureSuccessStatusCode();
         var createdRaidplan = await response.Content.ReadFromJsonAsync<RaidplanDto>();
-        Assert.That(createdRaidplan!.AuthorId, Is.EqualTo(member.Id)); // Should override to current member
+        createdRaidplan!.AuthorId.ShouldBe(member.Id); // Should override to current member
     }
 
     #endregion
 
     #region Functional Tests - Update
 
-    [Test]
+    [Fact]
     public async Task UpdateRaidplan_AsOwner_Succeeds()
     {
         // Arrange - Create a raidplan as owner
@@ -291,16 +294,16 @@ public class RaidplansControllerIntegrationTests : IntegrationTestBase
             createdRaidplan);
 
         // Assert
-        Assert.That(updateResponse.StatusCode, Is.EqualTo(HttpStatusCode.NoContent));
+        updateResponse.StatusCode.ShouldBe(HttpStatusCode.NoContent);
 
         // Verify the update
         var getResponse = await Client.GetAsync($"api/fights/{_testFightId}/raidplans/{createdRaidplan.Id}");
         var updatedRaidplan = await getResponse.Content.ReadFromJsonAsync<RaidplanDto>();
-        Assert.That(updatedRaidplan!.Name, Is.EqualTo(createdRaidplan.Name));
-        Assert.That(updatedRaidplan.Description, Is.EqualTo(createdRaidplan.Description));
+        updatedRaidplan!.Name.ShouldBe(createdRaidplan.Name);
+        updatedRaidplan.Description.ShouldBe(createdRaidplan.Description);
     }
 
-    [Test]
+    [Fact]
     public async Task UpdateRaidplan_AsAdmin_Succeeds()
     {
         // Arrange - Create a raidplan as a regular member
@@ -323,10 +326,10 @@ public class RaidplansControllerIntegrationTests : IntegrationTestBase
             createdRaidplan);
 
         // Assert
-        Assert.That(updateResponse.StatusCode, Is.EqualTo(HttpStatusCode.NoContent));
+        updateResponse.StatusCode.ShouldBe(HttpStatusCode.NoContent);
     }
 
-    [Test]
+    [Fact]
     public async Task UpdateRaidplan_AsNonOwnerNonAdmin_ReturnsForbidden()
     {
         // Arrange - Create a raidplan as one member
@@ -349,10 +352,10 @@ public class RaidplansControllerIntegrationTests : IntegrationTestBase
             createdRaidplan);
 
         // Assert
-        Assert.That(updateResponse.StatusCode, Is.EqualTo(HttpStatusCode.Forbidden));
+        updateResponse.StatusCode.ShouldBe(HttpStatusCode.Forbidden);
     }
 
-    [Test]
+    [Fact]
     public async Task UpdateRaidplan_WhenNotExists_ReturnsNotFound()
     {
         // Arrange
@@ -373,10 +376,10 @@ public class RaidplansControllerIntegrationTests : IntegrationTestBase
             raidplanDto);
 
         // Assert
-        Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.NotFound));
+        response.StatusCode.ShouldBe(HttpStatusCode.NotFound);
     }
 
-    [Test]
+    [Fact]
     public async Task UpdateRaidplan_PreservesOriginalAuthor()
     {
         // Arrange - Create a raidplan as one member
@@ -401,14 +404,14 @@ public class RaidplansControllerIntegrationTests : IntegrationTestBase
         // Assert - Author should remain the original
         var getResponse = await Client.GetAsync($"api/fights/{_testFightId}/raidplans/{createdRaidplan.Id}");
         var updatedRaidplan = await getResponse.Content.ReadFromJsonAsync<RaidplanDto>();
-        Assert.That(updatedRaidplan!.AuthorId, Is.EqualTo(originalOwner.Id));
+        updatedRaidplan!.AuthorId.ShouldBe(originalOwner.Id);
     }
 
     #endregion
 
     #region Functional Tests - Delete
 
-    [Test]
+    [Fact]
     public async Task DeleteRaidplan_AsAdmin_Succeeds()
     {
         // Arrange - Create a raidplan as a regular member
@@ -428,14 +431,14 @@ public class RaidplansControllerIntegrationTests : IntegrationTestBase
         var deleteResponse = await Client.DeleteAsync($"api/fights/{_testFightId}/raidplans/{createdRaidplan!.Id}");
 
         // Assert
-        Assert.That(deleteResponse.StatusCode, Is.EqualTo(HttpStatusCode.NoContent));
+        deleteResponse.StatusCode.ShouldBe(HttpStatusCode.NoContent);
 
         // Verify deletion
         var getResponse = await Client.GetAsync($"api/fights/{_testFightId}/raidplans/{createdRaidplan.Id}");
-        Assert.That(getResponse.StatusCode, Is.EqualTo(HttpStatusCode.NotFound));
+        getResponse.StatusCode.ShouldBe(HttpStatusCode.NotFound);
     }
 
-    [Test]
+    [Fact]
     public async Task DeleteRaidplan_AsOwner_ReturnsForbidden()
     {
         // Arrange - Create a raidplan as owner
@@ -454,10 +457,10 @@ public class RaidplansControllerIntegrationTests : IntegrationTestBase
         var deleteResponse = await Client.DeleteAsync($"api/fights/{_testFightId}/raidplans/{createdRaidplan!.Id}");
 
         // Assert - Only admins can delete
-        Assert.That(deleteResponse.StatusCode, Is.EqualTo(HttpStatusCode.Forbidden));
+        deleteResponse.StatusCode.ShouldBe(HttpStatusCode.Forbidden);
     }
 
-    [Test]
+    [Fact]
     public async Task DeleteRaidplan_AsNonOwnerNonAdmin_ReturnsForbidden()
     {
         // Arrange - Create a raidplan as one member
@@ -477,10 +480,10 @@ public class RaidplansControllerIntegrationTests : IntegrationTestBase
         var deleteResponse = await Client.DeleteAsync($"api/fights/{_testFightId}/raidplans/{createdRaidplan!.Id}");
 
         // Assert
-        Assert.That(deleteResponse.StatusCode, Is.EqualTo(HttpStatusCode.Forbidden));
+        deleteResponse.StatusCode.ShouldBe(HttpStatusCode.Forbidden);
     }
 
-    [Test]
+    [Fact]
     public async Task DeleteRaidplan_WhenNotExists_ReturnsNotFound()
     {
         // Arrange
@@ -491,7 +494,7 @@ public class RaidplansControllerIntegrationTests : IntegrationTestBase
         var response = await Client.DeleteAsync($"api/fights/{_testFightId}/raidplans/{nonExistentId}");
 
         // Assert
-        Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.NotFound));
+        response.StatusCode.ShouldBe(HttpStatusCode.NotFound);
     }
 
     #endregion

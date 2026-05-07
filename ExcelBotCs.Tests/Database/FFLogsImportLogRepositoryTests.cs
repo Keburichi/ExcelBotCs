@@ -7,9 +7,14 @@ using MongoDB.Driver;
 
 namespace ExcelBotCs.Tests.Database;
 
+[Collection("MongoDB")]
 public class FFLogsImportLogRepositoryTests : MongoDbTest
 {
     private IFFLogsImportLogRepository _repository;
+
+    public FFLogsImportLogRepositoryTests(MongoDbFixture fixture) : base(fixture)
+    {
+    }
 
     protected override void InitializeRepository(IMongoClient mongoClient, IOptions<DatabaseOptions> databaseOptions)
     {

@@ -8,27 +8,31 @@ using MongoDB.Driver;
 
 namespace ExcelBotCs.Tests.Database;
 
-[TestFixture]
+[Collection("MongoDB")]
 public class EventDetailsRepositoryTests : MongoDbTest
 {
     private IEventDetailsRepository _repository = null!;
+
+    public EventDetailsRepositoryTests(MongoDbFixture fixture) : base(fixture)
+    {
+    }
 
     protected override void InitializeRepository(IMongoClient mongoClient, IOptions<DatabaseOptions> databaseOptions)
     {
         _repository = new EventDetailsRepository(mongoClient, databaseOptions);
     }
 
-    [Test]
+    [Fact]
     public async Task GetFutureByParticipantAsync_ReturnsEmpty_WhenNoEventsExist()
     {
         var discordId = ulong.Parse(GenerateRandomDiscordId());
 
         var result = await _repository.GetFutureByParticipantAsync(discordId);
 
-        Assert.That(result, Is.Empty);
+        result.ShouldBeEmpty();
     }
 
-    [Test]
+    [Fact]
     public async Task GetFutureByParticipantAsync_ReturnsFutureEvents_WhenParticipantIsRegistered()
     {
         var discordId = ulong.Parse(GenerateRandomDiscordId());
@@ -43,11 +47,11 @@ public class EventDetailsRepositoryTests : MongoDbTest
 
         var result = await _repository.GetFutureByParticipantAsync(discordId);
 
-        Assert.That(result, Has.Count.EqualTo(1));
-        Assert.That(result[0].Name, Is.EqualTo("Future Raid"));
+        result.Count.ShouldBe(1);
+        result[0].Name.ShouldBe("Future Raid");
     }
 
-    [Test]
+    [Fact]
     public async Task GetFutureByParticipantAsync_ExcludesPastEvents()
     {
         var discordId = ulong.Parse(GenerateRandomDiscordId());
@@ -62,10 +66,10 @@ public class EventDetailsRepositoryTests : MongoDbTest
 
         var result = await _repository.GetFutureByParticipantAsync(discordId);
 
-        Assert.That(result, Is.Empty);
+        result.ShouldBeEmpty();
     }
 
-    [Test]
+    [Fact]
     public async Task GetFutureByParticipantAsync_ExcludesEventsWhereParticipantIsNotRegistered()
     {
         var discordId = ulong.Parse(GenerateRandomDiscordId());
@@ -81,10 +85,10 @@ public class EventDetailsRepositoryTests : MongoDbTest
 
         var result = await _repository.GetFutureByParticipantAsync(discordId);
 
-        Assert.That(result, Is.Empty);
+        result.ShouldBeEmpty();
     }
 
-    [Test]
+    [Fact]
     public async Task GetFutureByParticipantAsync_ReturnsOnlyEventsWhereParticipantIsRegistered()
     {
         var discordId = ulong.Parse(GenerateRandomDiscordId());
@@ -107,11 +111,11 @@ public class EventDetailsRepositoryTests : MongoDbTest
 
         var result = await _repository.GetFutureByParticipantAsync(discordId);
 
-        Assert.That(result, Has.Count.EqualTo(1));
-        Assert.That(result[0].Name, Is.EqualTo("My Event"));
+        result.Count.ShouldBe(1);
+        result[0].Name.ShouldBe("My Event");
     }
 
-    [Test]
+    [Fact]
     public async Task GetFutureByParticipantAsync_ReturnsMultipleEvents_WhenParticipantIsInSeveral()
     {
         var discordId = ulong.Parse(GenerateRandomDiscordId());
@@ -127,10 +131,10 @@ public class EventDetailsRepositoryTests : MongoDbTest
 
         var result = await _repository.GetFutureByParticipantAsync(discordId);
 
-        Assert.That(result, Has.Count.EqualTo(3));
+        result.Count.ShouldBe(3);
     }
 
-    [Test]
+    [Fact]
     public async Task GetFutureByParticipantAsync_ExcludesEventWithNoParticipants()
     {
         var discordId = ulong.Parse(GenerateRandomDiscordId());
@@ -144,6 +148,6 @@ public class EventDetailsRepositoryTests : MongoDbTest
 
         var result = await _repository.GetFutureByParticipantAsync(discordId);
 
-        Assert.That(result, Is.Empty);
+        result.ShouldBeEmpty();
     }
 }

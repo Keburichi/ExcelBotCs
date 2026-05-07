@@ -2,83 +2,82 @@ using ExcelBotCs.Extensions;
 
 namespace ExcelBotCs.Tests.Extensions;
 
-[TestFixture]
 public class DateTimeExtensionsTests
 {
     private static readonly DateTime TestDateTime = new(2025, 1, 15, 14, 30, 45, DateTimeKind.Utc);
     private static readonly long TestUnixTimestamp = ((DateTimeOffset)TestDateTime).ToUnixTimeSeconds();
 
-    [Test]
+    [Fact]
     public void ToShortDiscordTime_ShouldReturnCorrectFormat()
     {
         // Act
         var result = TestDateTime.ToShortDiscordTime();
 
         // Assert
-        Assert.That(result, Is.EqualTo($"<t:{TestUnixTimestamp}:t>"));
+        result.ShouldBe($"<t:{TestUnixTimestamp}:t>");
     }
 
-    [Test]
+    [Fact]
     public void ToLongDiscordTime_ShouldReturnCorrectFormat()
     {
         // Act
         var result = TestDateTime.ToLongDiscordTime();
 
         // Assert
-        Assert.That(result, Is.EqualTo($"<t:{TestUnixTimestamp}:T>"));
+        result.ShouldBe($"<t:{TestUnixTimestamp}:T>");
     }
 
-    [Test]
+    [Fact]
     public void ToShortDiscordDate_ShouldReturnCorrectFormat()
     {
         // Act
         var result = TestDateTime.ToShortDiscordDate();
 
         // Assert
-        Assert.That(result, Is.EqualTo($"<t:{TestUnixTimestamp}:d>"));
+        result.ShouldBe($"<t:{TestUnixTimestamp}:d>");
     }
 
-    [Test]
+    [Fact]
     public void ToLongDiscordDate_ShouldReturnCorrectFormat()
     {
         // Act
         var result = TestDateTime.ToLongDiscordDate();
 
         // Assert
-        Assert.That(result, Is.EqualTo($"<t:{TestUnixTimestamp}:D>"));
+        result.ShouldBe($"<t:{TestUnixTimestamp}:D>");
     }
 
-    [Test]
+    [Fact]
     public void ToLongDiscordDateShortTime_ShouldReturnCorrectFormat()
     {
         // Act
         var result = TestDateTime.ToLongDiscordDateShortTime();
 
         // Assert
-        Assert.That(result, Is.EqualTo($"<t:{TestUnixTimestamp}:f>"));
+        result.ShouldBe($"<t:{TestUnixTimestamp}:f>");
     }
 
-    [Test]
+    [Fact]
     public void ToLongDiscordDateLongTime_ShouldReturnCorrectFormat()
     {
         // Act
         var result = TestDateTime.ToLongDiscordDateLongTime();
 
         // Assert
-        Assert.That(result, Is.EqualTo($"<t:{TestUnixTimestamp}:F>"));
+        result.ShouldBe($"<t:{TestUnixTimestamp}:F>");
     }
 
-    [Test]
+    [Fact]
     public void ToRelativeDiscordTime_ShouldReturnCorrectFormat()
     {
         // Act
         var result = TestDateTime.ToRelativeDiscordTime();
 
         // Assert
-        Assert.That(result, Is.EqualTo($"<t:{TestUnixTimestamp}:R>"));
+        result.ShouldBe($"<t:{TestUnixTimestamp}:R>");
     }
 
-    [Test]
+    [Fact]
     public void MinDateTime_ShouldHandleMinValue()
     {
         // Arrange
@@ -89,11 +88,11 @@ public class DateTimeExtensionsTests
         var result = minDateTime.ToShortDiscordTime();
 
         // Assert
-        Assert.That(result, Does.StartWith("<t:"));
-        Assert.That(result, Does.EndWith(":t>"));
+        result.ShouldStartWith("<t:");
+        result.ShouldEndWith(":t>");
     }
 
-    [Test]
+    [Fact]
     public void MaxDateTime_ShouldHandleMaxValue()
     {
         // Arrange
@@ -103,11 +102,11 @@ public class DateTimeExtensionsTests
         var result = maxDateTime.ToShortDiscordTime();
 
         // Assert - Should produce valid format
-        Assert.That(result, Does.StartWith("<t:"));
-        Assert.That(result, Does.EndWith(":t>"));
+        result.ShouldStartWith("<t:");
+        result.ShouldEndWith(":t>");
     }
 
-    [Test]
+    [Fact]
     public void ReasonableDateTime_ShouldHandleCorrectly()
     {
         // Arrange - Use a reasonable date that can be converted to Unix timestamp
@@ -117,33 +116,33 @@ public class DateTimeExtensionsTests
         var result = reasonableDateTime.ToShortDiscordTime();
 
         // Assert - Should produce valid format
-        Assert.That(result, Does.StartWith("<t:"));
-        Assert.That(result, Does.EndWith(":t>"));
+        result.ShouldStartWith("<t:");
+        result.ShouldEndWith(":t>");
     }
 
-    [Test]
+    [Fact]
     public void AllFormats_ShouldStartWithTimestampPrefix()
     {
         // Act & Assert
-        Assert.That(TestDateTime.ToShortDiscordTime(), Does.StartWith("<t:"));
-        Assert.That(TestDateTime.ToLongDiscordTime(), Does.StartWith("<t:"));
-        Assert.That(TestDateTime.ToShortDiscordDate(), Does.StartWith("<t:"));
-        Assert.That(TestDateTime.ToLongDiscordDate(), Does.StartWith("<t:"));
-        Assert.That(TestDateTime.ToLongDiscordDateShortTime(), Does.StartWith("<t:"));
-        Assert.That(TestDateTime.ToLongDiscordDateLongTime(), Does.StartWith("<t:"));
-        Assert.That(TestDateTime.ToRelativeDiscordTime(), Does.StartWith("<t:"));
+        TestDateTime.ToShortDiscordTime().ShouldStartWith("<t:");
+        TestDateTime.ToLongDiscordTime().ShouldStartWith("<t:");
+        TestDateTime.ToShortDiscordDate().ShouldStartWith("<t:");
+        TestDateTime.ToLongDiscordDate().ShouldStartWith("<t:");
+        TestDateTime.ToLongDiscordDateShortTime().ShouldStartWith("<t:");
+        TestDateTime.ToLongDiscordDateLongTime().ShouldStartWith("<t:");
+        TestDateTime.ToRelativeDiscordTime().ShouldStartWith("<t:");
     }
 
-    [Test]
+    [Fact]
     public void AllFormats_ShouldEndWithCorrectSuffix()
     {
         // Assert
-        Assert.That(TestDateTime.ToShortDiscordTime(), Does.EndWith(":t>"));
-        Assert.That(TestDateTime.ToLongDiscordTime(), Does.EndWith(":T>"));
-        Assert.That(TestDateTime.ToShortDiscordDate(), Does.EndWith(":d>"));
-        Assert.That(TestDateTime.ToLongDiscordDate(), Does.EndWith(":D>"));
-        Assert.That(TestDateTime.ToLongDiscordDateShortTime(), Does.EndWith(":f>"));
-        Assert.That(TestDateTime.ToLongDiscordDateLongTime(), Does.EndWith(":F>"));
-        Assert.That(TestDateTime.ToRelativeDiscordTime(), Does.EndWith(":R>"));
+        TestDateTime.ToShortDiscordTime().ShouldEndWith(":t>");
+        TestDateTime.ToLongDiscordTime().ShouldEndWith(":T>");
+        TestDateTime.ToShortDiscordDate().ShouldEndWith(":d>");
+        TestDateTime.ToLongDiscordDate().ShouldEndWith(":D>");
+        TestDateTime.ToLongDiscordDateShortTime().ShouldEndWith(":f>");
+        TestDateTime.ToLongDiscordDateLongTime().ShouldEndWith(":F>");
+        TestDateTime.ToRelativeDiscordTime().ShouldEndWith(":R>");
     }
 }

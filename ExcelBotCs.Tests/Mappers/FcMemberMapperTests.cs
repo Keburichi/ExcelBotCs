@@ -5,10 +5,9 @@ using ExcelBotCs.TestFramework.Utils;
 
 namespace ExcelBotCs.Tests.Mappers;
 
-[TestFixture]
 public class FcMemberMapperTests
 {
-    [Test]
+    [Fact]
     public void ToDto()
     {
         // Arrange
@@ -18,18 +17,18 @@ public class FcMemberMapperTests
         var entityDto = FcMemberMapper.ToDto(entity);
 
         // Assert
-        Assert.That(entityDto, Is.Not.Null);
-        Assert.That(entityDto.Id, Is.EqualTo(entity.Id));
-        Assert.That(entityDto.Name, Is.EqualTo(entity.Name));
-        Assert.That(entityDto.Bio, Is.EqualTo(entity.Bio));
-        Assert.That(entityDto.Avatar, Is.EqualTo(entity.Avatar));
-        Assert.That(entityDto.CharacterId, Is.EqualTo(entity.CharacterId));
-        Assert.That(entityDto.FcRank, Is.EqualTo(entity.FcRank));
-        Assert.That(entityDto.Title, Is.EqualTo(entity.Title));
-        Assert.That(entityDto.LastSynchronisation, Is.EqualTo(entity.LastSynchronisation));
+        entityDto.ShouldNotBeNull();
+        entityDto.Id.ShouldBe(entity.Id);
+        entityDto.Name.ShouldBe(entity.Name);
+        entityDto.Bio.ShouldBe(entity.Bio);
+        entityDto.Avatar.ShouldBe(entity.Avatar);
+        entityDto.CharacterId.ShouldBe(entity.CharacterId);
+        entityDto.FcRank.ShouldBe(entity.FcRank);
+        entityDto.Title.ShouldBe(entity.Title);
+        entityDto.LastSynchronisation.ShouldBe(entity.LastSynchronisation);
     }
 
-    [Test]
+    [Fact]
     public void ToEntity()
     {
         // Arrange
@@ -39,14 +38,14 @@ public class FcMemberMapperTests
         var entity = FcMemberMapper.ToEntity(entityDto);
 
         // Assert
-        Assert.That(entity, Is.Not.Null);
-        Assert.That(entity.Id, Is.EqualTo(entityDto.Id));
-        Assert.That(entity.Name, Is.EqualTo(entityDto.Name));
-        Assert.That(entity.Bio, Is.EqualTo(entityDto.Bio));
-        Assert.That(entity.Avatar, Is.EqualTo(entityDto.Avatar));
-        Assert.That(entity.CharacterId, Is.EqualTo(entityDto.CharacterId));
-        Assert.That(entity.FcRank, Is.EqualTo(entityDto.FcRank));
-        Assert.That(entity.Title, Is.EqualTo(entityDto.Title));
-        Assert.That(entity.LastSynchronisation, Is.EqualTo(entityDto.LastSynchronisation));
+        entity.ShouldNotBeNull();
+        entity.Id.ShouldBe(entityDto.Id);
+        entity.Name.ShouldBe(entityDto.Name);
+        entity.Bio.ShouldBe(entityDto.Bio);
+        entity.Avatar.ShouldBe(entityDto.Avatar);
+        entity.CharacterId.ShouldBe(entityDto.CharacterId);
+        entity.FcRank.ShouldBe(entityDto.FcRank);
+        entity.Title.ShouldBe(entityDto.Title);
+        entity.LastSynchronisation.ShouldBe(entityDto.LastSynchronisation);
     }
 }

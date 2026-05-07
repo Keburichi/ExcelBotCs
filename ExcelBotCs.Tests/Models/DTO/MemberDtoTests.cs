@@ -2,17 +2,16 @@ using ExcelBotCs.Models.DTO;
 
 namespace ExcelBotCs.Tests.Models.DTO;
 
-[TestFixture]
 public class MemberDtoTests
 {
-    [Test]
+    [Fact]
     public void IsAdmin_NoRoles_ReturnsFalse()
     {
         var sut = new MemberDto();
-        Assert.That(sut.IsAdmin, Is.False);
+        sut.IsAdmin.ShouldBe(false);
     }
 
-    [Test]
+    [Fact]
     public void IsAdmin_NoAdminRole_ReturnsFalse()
     {
         var sut = new MemberDto
@@ -36,10 +35,10 @@ public class MemberDtoTests
             }
         };
 
-        Assert.That(sut.IsAdmin, Is.False);
+        sut.IsAdmin.ShouldBe(false);
     }
 
-    [Test]
+    [Fact]
     public void IsAdmin_HasAdminRole_ReturnsTrue()
     {
         var sut = new MemberDto
@@ -68,17 +67,17 @@ public class MemberDtoTests
             }
         };
 
-        Assert.That(sut.IsAdmin, Is.True);
+        sut.IsAdmin.ShouldBe(true);
     }
 
-    [Test]
+    [Fact]
     public void IsMember_NoRoles_ReturnsFalse()
     {
         var sut = new MemberDto();
-        Assert.That(sut.IsMember, Is.False);
+        sut.IsMember.ShouldBe(false);
     }
 
-    [Test]
+    [Fact]
     public void IsMember_NoMemberRole_ReturnsFalse()
     {
         var sut = new MemberDto
@@ -97,10 +96,10 @@ public class MemberDtoTests
             }
         };
 
-        Assert.That(sut.IsMember, Is.False);
+        sut.IsMember.ShouldBe(false);
     }
 
-    [Test]
+    [Fact]
     public void IsMember_HasAdminRole_ReturnsTrue()
     {
         var sut = new MemberDto
@@ -124,10 +123,10 @@ public class MemberDtoTests
             }
         };
 
-        Assert.That(sut.IsMember, Is.True);
+        sut.IsMember.ShouldBe(true);
     }
 
-    [Test]
+    [Fact]
     public void IsMember_HasMemberRole_ReturnsTrue()
     {
         var sut = new MemberDto
@@ -151,17 +150,17 @@ public class MemberDtoTests
             }
         };
 
-        Assert.That(sut.IsMember, Is.True);
+        sut.IsMember.ShouldBe(true);
     }
 
-    [Test]
+    [Fact]
     public void IsDeveloper_NoRoles_ReturnsFalse()
     {
         var sut = new MemberDto();
-        Assert.That(sut.IsDeveloper, Is.False);
+        sut.IsDeveloper.ShouldBe(false);
     }
 
-    [Test]
+    [Fact]
     public void IsDeveloper_NoDeveloperRole_ReturnsFalse()
     {
         var sut = new MemberDto
@@ -185,10 +184,10 @@ public class MemberDtoTests
             }
         };
 
-        Assert.That(sut.IsDeveloper, Is.False);
+        sut.IsDeveloper.ShouldBe(false);
     }
 
-    [Test]
+    [Fact]
     public void IsDeveloper_HasAdminRole_ReturnsTrue()
     {
         var sut = new MemberDto
@@ -217,6 +216,6 @@ public class MemberDtoTests
             }
         };
 
-        Assert.That(sut.IsDeveloper, Is.True);
+        sut.IsDeveloper.ShouldBe(true);
     }
 }

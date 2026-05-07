@@ -4,76 +4,67 @@ using ExcelBotCs.Services.Lottery.Records;
 
 namespace ExcelBotCs.Tests.Services.Lottery;
 
-[TestFixture]
 public class LotteryResponseFormatterTests
 {
     #region FormatGuessResponse Tests
 
-    [Test]
+    [Fact]
     public void FormatGuessResponse_NotFcMember()
     {
-        Assert.That(() => LotteryResponseFormatter.FormatGuessResponse(new NotFcMemberGuessResponse()),
-            Is.EqualTo("Only FC members can participate in the lottery"));
+        LotteryResponseFormatter.FormatGuessResponse(new NotFcMemberGuessResponse()).ShouldBe("Only FC members can participate in the lottery");
     }
 
-    [Test]
+    [Fact]
     public void FormatGuessResponse_OutOfRangeResponse()
     {
-        Assert.That(() => LotteryResponseFormatter.FormatGuessResponse(new OutOfRangeGuessResponse()),
-            Is.EqualTo("You can only pick a number between 1 and 99."));
+        LotteryResponseFormatter.FormatGuessResponse(new OutOfRangeGuessResponse()).ShouldBe("You can only pick a number between 1 and 99.");
     }
 
-    [Test]
+    [Fact]
     public void FormatGuessResponse_AlreadyGuessedNumberResponse()
     {
-        Assert.That(() => LotteryResponseFormatter.FormatGuessResponse(new AlreadyGuessedNumberGuessResponse(3)),
-            Is.EqualTo("You have already guessed 3!"));
+        LotteryResponseFormatter.FormatGuessResponse(new AlreadyGuessedNumberGuessResponse(3)).ShouldBe("You have already guessed 3!");
     }
 
-    [Test]
+    [Fact]
     public void FormatGuessResponse_NotCurrentlyGuessedResponse()
     {
-        Assert.That(() => LotteryResponseFormatter.FormatGuessResponse(new NotCurrentGuessedNumberGuessResponse(3)),
-            Is.EqualTo(
-                "You have not guessed 3. You need to use a number you have already guessed in order to change it."));
+        LotteryResponseFormatter.FormatGuessResponse(new NotCurrentGuessedNumberGuessResponse(3)).ShouldBe(
+                "You have not guessed 3. You need to use a number you have already guessed in order to change it.");
     }
 
-    [Test]
+    [Fact]
     public void FormatGuessResponse_NoMoreGuessesResponse()
     {
-        Assert.That(() => LotteryResponseFormatter.FormatGuessResponse(new NoMoreGuessesGuessResponse([3], "3")),
-            Is.EqualTo(
-                "You don't have any guesses left! Current guesses: 3. You can use `/lottery change` to change an existing guess."));
+        LotteryResponseFormatter.FormatGuessResponse(new NoMoreGuessesGuessResponse([3], "3")).ShouldBe(
+                "You don't have any guesses left! Current guesses: 3. You can use `/lottery change` to change an existing guess.");
     }
 
-    [Test]
+    [Fact]
     public void FormatGuessResponse_SuccessGuessResponse()
     {
-        Assert.That(() => LotteryResponseFormatter.FormatGuessResponse(new SuccessGuessResponse([3], "3", 3)),
-            Is.EqualTo(
-                "Your guess for 3 was recorded! Current guesses: 3. You can use `/lottery change` to change an existing guess."));
+        LotteryResponseFormatter.FormatGuessResponse(new SuccessGuessResponse([3], "3", 3)).ShouldBe(
+                "Your guess for 3 was recorded! Current guesses: 3. You can use `/lottery change` to change an existing guess.");
     }
 
-    [Test]
+    [Fact]
     public void FormatGuessResponse_RandomGuessTimeoutResponse()
     {
-        Assert.That(() => LotteryResponseFormatter.FormatGuessResponse(new RandomGuessTimeoutResponse()),
-            Is.EqualTo(
-                "Picking a number took too long, try again later. If this keeps happening, contact one of the officers"));
+        LotteryResponseFormatter.FormatGuessResponse(new RandomGuessTimeoutResponse()).ShouldBe(
+                "Picking a number took too long, try again later. If this keeps happening, contact one of the officers");
     }
 
-    [Test]
+    [Fact]
     public void FormatGuessResponse_RandomGuessErrorResponse()
     {
-        Assert.That(() => LotteryResponseFormatter.FormatGuessResponse(new RandomGuessErrorResponse()),
-            Is.EqualTo("Something went wrong, try again later. If this keeps happening, let Zahrymm know."));
+        LotteryResponseFormatter.FormatGuessResponse(new RandomGuessErrorResponse()).ShouldBe("Something went wrong, try again later. If this keeps happening, let Zahrymm know.");
     }
 
-    [Test]
+    [Fact]
     public void FormatGuessResponse_ThrowsNotImplementedException()
     {
-        Assert.That(() => LotteryResponseFormatter.FormatGuessResponse(new TestGuessResponse()),
-            Throws.TypeOf<NotImplementedException>());
+        Should.Throw<NotImplementedException>(() =>
+            LotteryResponseFormatter.FormatGuessResponse(new TestGuessResponse()));
     }
 
     private record TestGuessResponse : IGuessResponse;
@@ -82,91 +73,82 @@ public class LotteryResponseFormatterTests
 
     #region FormatChangeGuessResponse Tests
 
-    [Test]
+    [Fact]
     public void FormatChangeGuessResponse_NotFcMember()
     {
-        Assert.That(() => LotteryResponseFormatter.FormatChangeGuessResponse(new NotFcMemberGuessResponse(), 3, 3),
-            Is.EqualTo("Only FC members can participate in the lottery"));
+        LotteryResponseFormatter.FormatChangeGuessResponse(new NotFcMemberGuessResponse(), 3, 3).ShouldBe("Only FC members can participate in the lottery");
     }
 
-    [Test]
+    [Fact]
     public void FormatChangeGuessResponse_OutOfRangeResponse()
     {
-        Assert.That(() => LotteryResponseFormatter.FormatChangeGuessResponse(new OutOfRangeGuessResponse(), 3, 3),
-            Is.EqualTo("You can only pick a number between 1 and 99."));
+        LotteryResponseFormatter.FormatChangeGuessResponse(new OutOfRangeGuessResponse(), 3, 3).ShouldBe("You can only pick a number between 1 and 99.");
     }
 
-    [Test]
+    [Fact]
     public void FormatChangeGuessResponse_AlreadyGuessedNumberResponse()
     {
-        Assert.That(
-            () => LotteryResponseFormatter.FormatChangeGuessResponse(new AlreadyGuessedNumberGuessResponse(3), 3, 3),
-            Is.EqualTo("You have already guessed 3."));
+        LotteryResponseFormatter.FormatChangeGuessResponse(new AlreadyGuessedNumberGuessResponse(3), 3, 3).ShouldBe("You have already guessed 3.");
     }
 
-    [Test]
+    [Fact]
     public void FormatChangeGuessResponse_NotCurrentlyGuessedResponse()
     {
-        Assert.That(
-            () => LotteryResponseFormatter.FormatChangeGuessResponse(new NotCurrentGuessedNumberGuessResponse(3), 3, 3),
-            Is.EqualTo(
-                "You have not guessed 3. You need to use a number you have already guessed in order to change it."));
+        LotteryResponseFormatter.FormatChangeGuessResponse(new NotCurrentGuessedNumberGuessResponse(3), 3, 3).ShouldBe(
+                "You have not guessed 3. You need to use a number you have already guessed in order to change it.");
     }
 
-    [Test]
+    [Fact]
     public void FormatChangeGuessResponse_SuccessGuessResponse()
     {
-        Assert.That(
-            () => LotteryResponseFormatter.FormatChangeGuessResponse(new SuccessGuessResponse([3], "3", 3), 3, 3),
-            Is.EqualTo(
-                "Your guess for 3 was changed to 3! Current guesses: 3. You can use `/lottery change` to change an existing guess."));
+        LotteryResponseFormatter.FormatChangeGuessResponse(new SuccessGuessResponse([3], "3", 3), 3, 3).ShouldBe(
+                "Your guess for 3 was changed to 3! Current guesses: 3. You can use `/lottery change` to change an existing guess.");
     }
 
-    [Test]
+    [Fact]
     public void FormatChangeGuessResponse_ThrowsNotImplementedException()
     {
-        Assert.That(() => LotteryResponseFormatter.FormatChangeGuessResponse(new TestGuessResponse(), 3, 3),
-            Throws.TypeOf<NotImplementedException>());
+        Should.Throw<NotImplementedException>(() =>
+            LotteryResponseFormatter.FormatChangeGuessResponse(new TestGuessResponse(), 3, 3));
     }
 
     #endregion
 
     #region FormatViewResponse Tests
 
-    [Test]
+    [Fact]
     public void FormatViewResponse_NotFcMember()
     {
         var response = new NotFcMemberViewResponse();
         var result = LotteryResponseFormatter.FormatViewResponse(response);
 
-        Assert.That(result, Is.EqualTo("Only FC members can participate in the lottery"));
+        result.ShouldBe("Only FC members can participate in the lottery");
     }
 
-    [Test]
+    [Fact]
     public void FormatViewResponse_NoGuesses()
     {
         var remainingMessage = "You have 1 guess remaining";
         var response = new ViewResponse(new List<int>(), 0, 1, remainingMessage);
         var result = LotteryResponseFormatter.FormatViewResponse(response);
 
-        Assert.That(result, Is.EqualTo(remainingMessage));
+        result.ShouldBe(remainingMessage);
     }
 
-    [Test]
+    [Fact]
     public void FormatViewResponse_WithGuesses()
     {
         var remainingMessage = "You have 1 guess remaining";
         var response = new ViewResponse(new List<int> { 1 }, 1, 2, remainingMessage);
         var result = LotteryResponseFormatter.FormatViewResponse(response);
 
-        Assert.That(result, Is.EqualTo($"Current guesses: 1. {remainingMessage}"));
+        result.ShouldBe($"Current guesses: 1. {remainingMessage}");
     }
 
-    [Test]
+    [Fact]
     public void FormatViewResponse_ThrowsNotImplementedException()
     {
-        Assert.That(() => LotteryResponseFormatter.FormatViewResponse(new TestViewResponse()),
-            Throws.TypeOf<NotImplementedException>());
+        Should.Throw<NotImplementedException>(() => LotteryResponseFormatter.FormatViewResponse(new TestViewResponse()));
     }
 
     private record TestViewResponse : IViewResponse;
@@ -175,17 +157,17 @@ public class LotteryResponseFormatterTests
 
     #region FormatWhoGuessResponse Tests
 
-    [Test]
+    [Fact]
     public void FormatWhoGuessedResponse_NobodyGuessed()
     {
         var randomNumber = Random.Shared.Next(1, 99);
         var response = new WhoGuessedResponse(randomNumber, new List<LotteryUser>());
         var result = LotteryResponseFormatter.FormatWhoGuessedResponse(response);
 
-        Assert.That(result, Is.EqualTo($"Nobody has guessed {randomNumber}."));
+        result.ShouldBe($"Nobody has guessed {randomNumber}.");
     }
 
-    [Test]
+    [Fact]
     public void FormatWhoGuessedResponse_OnUserGuessed()
     {
         var randomNumber = Random.Shared.Next(1, 99);
@@ -195,10 +177,10 @@ public class LotteryResponseFormatterTests
         });
         var result = LotteryResponseFormatter.FormatWhoGuessedResponse(response);
 
-        Assert.That(result, Is.EqualTo($"<@1234> has guessed {randomNumber}."));
+        result.ShouldBe($"<@1234> has guessed {randomNumber}.");
     }
 
-    [Test]
+    [Fact]
     public void FormatWhoGuessedResponse_MultipleUsersGuessed()
     {
         var randomNumber = Random.Shared.Next(1, 99);
@@ -209,14 +191,14 @@ public class LotteryResponseFormatterTests
         });
         var result = LotteryResponseFormatter.FormatWhoGuessedResponse(response);
 
-        Assert.That(result, Is.EqualTo($"<@1234>, <@5678> have all guessed {randomNumber}."));
+        result.ShouldBe($"<@1234>, <@5678> have all guessed {randomNumber}.");
     }
 
     #endregion
 
     #region FormatUnusedNumbersResponse Tests
 
-    [Test]
+    [Fact]
     public void FormatUnusedNumbersResponse_NoUsedNumbers()
     {
         var result =
@@ -225,17 +207,17 @@ public class LotteryResponseFormatterTests
 
         var chunks = result.Split(Environment.NewLine);
 
-        Assert.That(chunks.Length, Is.EqualTo(10));
+        chunks.Length.ShouldBe(10);
 
         foreach (var chunk in chunks)
         {
             var numbers = chunk.Trim().Split(" ");
 
-            Assert.That(numbers.Length, chunk.Contains("01") ? Is.EqualTo(9) : Is.EqualTo(10));
+            numbers.Length.ShouldBe(chunk.Contains("01") ? 9 : 10);
         }
     }
 
-    [Test]
+    [Fact]
     public void FormatUnusedNumbersResponse_WithUsedNumbers()
     {
         var result =
@@ -245,16 +227,16 @@ public class LotteryResponseFormatterTests
                     33
                 }, Enumerable.Range(1, 99).ToList()));
 
-        Assert.That(result, Does.Not.Contain("33"));
+        result.ShouldNotContain("33");
     }
 
-    [Test]
+    [Fact]
     public void FormatUnusedNumbersResponse_NoUnusedNumbers()
     {
         var result =
             LotteryResponseFormatter.FormatUnusedNumbersResponse(
                 new UnusedNumbersResponse(Enumerable.Range(1, 99).ToList(), Enumerable.Range(1, 99).ToList()));
-        Assert.That(result.Select(x => x == '_').Where(x => x).ToList().Count, Is.EqualTo(198));
+        result.Select(x => x == '_').Where(x => x).ToList().Count.ShouldBe(198);
     }
 
     #endregion

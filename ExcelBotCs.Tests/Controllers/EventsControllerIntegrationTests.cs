@@ -5,6 +5,7 @@ using ExcelBotCs.Models.Database;
 using ExcelBotCs.Models.DTO;
 using ExcelBotCs.Modules.TeamFormation;
 using ExcelBotCs.Services.API.Interfaces;
+using ExcelBotCs.TestFramework.Database;
 using ExcelBotCs.TestFramework.Utils;
 using ExcelBotCs.Tests.Utils;
 using Ical.Net;
@@ -13,14 +14,17 @@ using EventSignup = ExcelBotCs.Models.Database.EventSignup;
 
 namespace ExcelBotCs.Tests.Controllers;
 
-[TestFixture]
 public class EventsControllerIntegrationTests : IntegrationTestBase
 {
     private IEventService _eventService = null!;
 
-    [SetUp]
-    public void TestSetup()
+    public EventsControllerIntegrationTests(MongoDbFixture fixture) : base(fixture)
     {
+    }
+
+    protected override async Task OnAfterIntegrationSetupAsync()
+    {
+        await base.OnAfterIntegrationSetupAsync();
         _eventService = Factory.Services.GetRequiredService<IEventService>();
     }
 
@@ -146,7 +150,7 @@ END:VCALENDAR";
 
     #region Authentication Tests
 
-    [Test]
+    [Fact]
     public async Task SignupForOccurrence_Unauthenticated_ReturnsUnauthorized()
     {
         // Arrange
@@ -161,10 +165,10 @@ END:VCALENDAR";
             new EventSignupDto { Roles = new List<Role> { Role.Tank } });
 
         // Assert
-        Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.Unauthorized));
+        response.StatusCode.ShouldBe(HttpStatusCode.Unauthorized);
     }
 
-    [Test]
+    [Fact]
     public async Task SignupForOccurrence_AsMember_ReturnsOk()
     {
         // Arrange
@@ -182,10 +186,10 @@ END:VCALENDAR";
             new EventSignupDto { Roles = new List<Role> { Role.Tank } });
 
         // Assert
-        Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.OK));
+        response.StatusCode.ShouldBe(HttpStatusCode.OK);
     }
 
-    [Test]
+    [Fact]
     public async Task SelectParticipants_AsMember_ReturnsForbidden()
     {
         // Arrange
@@ -205,10 +209,10 @@ END:VCALENDAR";
             participants);
 
         // Assert
-        Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.Forbidden));
+        response.StatusCode.ShouldBe(HttpStatusCode.Forbidden);
     }
 
-    [Test]
+    [Fact]
     public async Task SelectParticipants_AsAdmin_ReturnsOk()
     {
         // Arrange
@@ -228,14 +232,14 @@ END:VCALENDAR";
             participants);
 
         // Assert
-        Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.OK));
+        response.StatusCode.ShouldBe(HttpStatusCode.OK);
     }
 
     #endregion
 
     #region Signup Flow Tests
 
-    [Test]
+    [Fact]
     public async Task SignupForOccurrence_NewSignup_CreatesSignup()
     {
         // Arrange
@@ -257,13 +261,13 @@ END:VCALENDAR";
         var occurrence = updatedEvent!.Occurrences.First(o => o.Id == occurrenceId);
         var signup = occurrence.Signups.FirstOrDefault(s => s.DiscordUserId == member.DiscordId);
 
-        Assert.That(signup, Is.Not.Null);
-        Assert.That(signup!.Roles, Has.Count.EqualTo(2));
-        Assert.That(signup.Roles, Does.Contain(Role.Tank));
-        Assert.That(signup.Roles, Does.Contain(Role.Healer));
+        signup.ShouldNotBeNull();
+        signup.Roles.Count.ShouldBe(2);
+        signup.Roles.ShouldContain(Role.Tank);
+        signup.Roles.ShouldContain(Role.Healer);
     }
 
-    [Test]
+    [Fact]
     public async Task SignupForOccurrence_ExistingSignup_UpdatesRoles()
     {
         // Arrange
@@ -291,13 +295,13 @@ END:VCALENDAR";
         var signups = occurrence.Signups.Where(s => s.DiscordUserId == member.DiscordId).ToList();
 
         // Should only have one signup entry
-        Assert.That(signups, Has.Count.EqualTo(1));
-        Assert.That(signups[0].Roles, Has.Count.EqualTo(2));
-        Assert.That(signups[0].Roles, Does.Contain(Role.Healer));
-        Assert.That(signups[0].Roles, Does.Contain(Role.Caster));
+        signups.Count.ShouldBe(1);
+        signups[0].Roles.Count.ShouldBe(2);
+        signups[0].Roles.ShouldContain(Role.Healer);
+        signups[0].Roles.ShouldContain(Role.Caster);
     }
 
-    [Test]
+    [Fact]
     public async Task SignupForOccurrence_PastOccurrence_ReturnsBadRequest()
     {
         // Arrange
@@ -312,10 +316,10 @@ END:VCALENDAR";
             new EventSignupDto { Roles = new List<Role> { Role.Tank } });
 
         // Assert
-        Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.BadRequest));
+        response.StatusCode.ShouldBe(HttpStatusCode.BadRequest);
     }
 
-    [Test]
+    [Fact]
     public async Task SignupForOccurrence_CancelledOccurrence_ReturnsBadRequest()
     {
         // Arrange - Use admin to cancel the occurrence, then regular member to try signup
@@ -334,7 +338,7 @@ END:VCALENDAR";
 
         // Verify the status was updated
         savedEvent = await _eventService.GetAsync(fcEvent.Id);
-        Assert.That(savedEvent!.Occurrences[0].Status, Is.EqualTo(OccurrenceStatus.Cancelled),
+        savedEvent!.Occurrences[0].Status.ShouldBe(OccurrenceStatus.Cancelled,
             "Occurrence status should be Cancelled after direct update");
 
         // Create a new member to try to sign up
@@ -346,10 +350,10 @@ END:VCALENDAR";
             new EventSignupDto { Roles = new List<Role> { Role.Tank } });
 
         // Assert
-        Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.BadRequest));
+        response.StatusCode.ShouldBe(HttpStatusCode.BadRequest);
     }
 
-    [Test]
+    [Fact]
     public async Task CancelSignup_RemovesSignup()
     {
         // Arrange
@@ -375,14 +379,14 @@ END:VCALENDAR";
         var occurrence = updatedEvent!.Occurrences.First(o => o.Id == occurrenceId);
         var signup = occurrence.Signups.FirstOrDefault(s => s.DiscordUserId == member.DiscordId);
 
-        Assert.That(signup, Is.Null);
+        signup.ShouldBeNull();
     }
 
     #endregion
 
     #region LockedGroup Signup Tests
 
-    [Test]
+    [Fact]
     public async Task SignupForOccurrence_LockedGroup_PropagatesSignupToAllOccurrences()
     {
         // Arrange
@@ -405,14 +409,14 @@ END:VCALENDAR";
         foreach (var occurrence in updatedEvent!.Occurrences)
         {
             var signup = occurrence.Signups.FirstOrDefault(s => s.DiscordUserId == member.DiscordId);
-            Assert.That(signup, Is.Not.Null, $"Occurrence {occurrence.Id} should have the signup");
-            Assert.That(signup!.Roles, Has.Count.EqualTo(2));
-            Assert.That(signup.Roles, Does.Contain(Role.Tank));
-            Assert.That(signup.Roles, Does.Contain(Role.Healer));
+            signup.ShouldNotBeNull($"Occurrence {occurrence.Id} should have the signup");
+            signup.Roles.Count.ShouldBe(2);
+            signup.Roles.ShouldContain(Role.Tank);
+            signup.Roles.ShouldContain(Role.Healer);
         }
     }
 
-    [Test]
+    [Fact]
     public async Task CancelSignup_LockedGroup_RemovesFromAllOccurrences()
     {
         // Arrange
@@ -443,11 +447,11 @@ END:VCALENDAR";
         foreach (var occurrence in updatedEvent!.Occurrences)
         {
             var signup = occurrence.Signups.FirstOrDefault(s => s.DiscordUserId == member.DiscordId);
-            Assert.That(signup, Is.Null, $"Occurrence {occurrence.Id} should not have the signup");
+            signup.ShouldBeNull($"Occurrence {occurrence.Id} should not have the signup");
         }
     }
 
-    [Test]
+    [Fact]
     public async Task SignupForOccurrence_IndependentSignups_OnlyUpdatesTargetOccurrence()
     {
         // Arrange
@@ -468,12 +472,12 @@ END:VCALENDAR";
 
         // Only the first occurrence should have the signup
         var firstOccurrence = updatedEvent!.Occurrences.First(o => o.Id == occurrenceId);
-        Assert.That(firstOccurrence.Signups.Any(s => s.DiscordUserId == member.DiscordId), Is.True);
+        firstOccurrence.Signups.Any(s => s.DiscordUserId == member.DiscordId).ShouldBeTrue();
 
         // Other occurrences should NOT have the signup
         var otherOccurrences = updatedEvent.Occurrences.Where(o => o.Id != occurrenceId);
         foreach (var occurrence in otherOccurrences)
-            Assert.That(occurrence.Signups.Any(s => s.DiscordUserId == member.DiscordId), Is.False,
+            occurrence.Signups.Any(s => s.DiscordUserId == member.DiscordId).ShouldBeFalse(
                 $"Occurrence {occurrence.Id} should not have the signup");
     }
 
@@ -481,7 +485,7 @@ END:VCALENDAR";
 
     #region Participant Selection Tests
 
-    [Test]
+    [Fact]
     public async Task SelectParticipants_SingleEvent_UpdatesOccurrence()
     {
         // Arrange
@@ -511,14 +515,14 @@ END:VCALENDAR";
         var updatedEvent = await _eventService.GetAsync(fcEvent.Id);
         var occurrence = updatedEvent!.Occurrences.First(o => o.Id == occurrenceId);
 
-        Assert.That(occurrence.Participants, Has.Count.EqualTo(2));
-        Assert.That(occurrence.Participants.Any(p => p.DiscordUserId == admin.DiscordId && p.Role == Role.Tank),
-            Is.True);
-        Assert.That(occurrence.Participants.Any(p => p.DiscordUserId == member1.DiscordId && p.Role == Role.Healer),
-            Is.True);
+        occurrence.Participants.Count.ShouldBe(2);
+        occurrence.Participants.Any(p => p.DiscordUserId == admin.DiscordId && p.Role == Role.Tank)
+            .ShouldBeTrue();
+        occurrence.Participants.Any(p => p.DiscordUserId == member1.DiscordId && p.Role == Role.Healer)
+            .ShouldBeTrue();
     }
 
-    [Test]
+    [Fact]
     public async Task SelectParticipants_IndependentSignups_UpdatesOnlyTargetOccurrence()
     {
         // Arrange
@@ -544,16 +548,16 @@ END:VCALENDAR";
 
         // Only the first occurrence should have participants
         var firstOccurrence = updatedEvent!.Occurrences.First(o => o.Id == occurrenceId);
-        Assert.That(firstOccurrence.Participants, Has.Count.EqualTo(1));
+        firstOccurrence.Participants.Count.ShouldBe(1);
 
         // Other occurrences should NOT have participants
         var otherOccurrences = updatedEvent.Occurrences.Where(o => o.Id != occurrenceId);
         foreach (var occurrence in otherOccurrences)
-            Assert.That(occurrence.Participants, Is.Empty,
+            occurrence.Participants.ShouldBeEmpty(
                 $"Occurrence {occurrence.Id} should not have participants");
     }
 
-    [Test]
+    [Fact]
     public async Task SelectParticipants_LockedGroup_PropagatesParticipantsToAllOccurrences()
     {
         // Arrange
@@ -586,16 +590,16 @@ END:VCALENDAR";
         // All occurrences should have the same participants
         foreach (var occurrence in updatedEvent!.Occurrences)
         {
-            Assert.That(occurrence.Participants, Has.Count.EqualTo(2),
+            occurrence.Participants.Count.ShouldBe(2,
                 $"Occurrence {occurrence.Id} should have 2 participants");
-            Assert.That(occurrence.Participants.Any(p => p.DiscordUserId == admin.DiscordId && p.Role == Role.Tank),
-                Is.True, $"Occurrence {occurrence.Id} should have admin as Tank");
-            Assert.That(occurrence.Participants.Any(p => p.DiscordUserId == member1.DiscordId && p.Role == Role.Healer),
-                Is.True, $"Occurrence {occurrence.Id} should have member1 as Healer");
+            occurrence.Participants.Any(p => p.DiscordUserId == admin.DiscordId && p.Role == Role.Tank)
+                .ShouldBeTrue($"Occurrence {occurrence.Id} should have admin as Tank");
+            occurrence.Participants.Any(p => p.DiscordUserId == member1.DiscordId && p.Role == Role.Healer)
+                .ShouldBeTrue($"Occurrence {occurrence.Id} should have member1 as Healer");
         }
     }
 
-    [Test]
+    [Fact]
     public async Task RemoveParticipant_RemovesFromOccurrence()
     {
         // Arrange
@@ -620,14 +624,14 @@ END:VCALENDAR";
         var updatedEvent = await _eventService.GetAsync(fcEvent.Id);
         var occurrence = updatedEvent!.Occurrences.First(o => o.Id == occurrenceId);
 
-        Assert.That(occurrence.Participants, Is.Empty);
+        occurrence.Participants.ShouldBeEmpty();
     }
 
     #endregion
 
     #region Occurrence Management Tests
 
-    [Test]
+    [Fact]
     public async Task UpdateOccurrenceStatus_ValidTransition_UpdatesStatus()
     {
         // Arrange
@@ -647,10 +651,10 @@ END:VCALENDAR";
         var updatedEvent = await _eventService.GetAsync(fcEvent.Id);
         var occurrence = updatedEvent!.Occurrences.First(o => o.Id == occurrenceId);
 
-        Assert.That(occurrence.Status, Is.EqualTo(OccurrenceStatus.Completed));
+        occurrence.Status.ShouldBe(OccurrenceStatus.Completed);
     }
 
-    [Test]
+    [Fact]
     public async Task UpdateOccurrenceStatus_FutureCompleted_ReturnsBadRequest()
     {
         // Arrange
@@ -665,10 +669,10 @@ END:VCALENDAR";
             new OccurrenceStatusUpdateDto { Status = OccurrenceStatus.Completed });
 
         // Assert
-        Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.BadRequest));
+        response.StatusCode.ShouldBe(HttpStatusCode.BadRequest);
     }
 
-    [Test]
+    [Fact]
     public async Task CancelOccurrence_SetsStatusToCancelled()
     {
         // Arrange
@@ -687,10 +691,10 @@ END:VCALENDAR";
         var updatedEvent = await _eventService.GetAsync(fcEvent.Id);
         var occurrence = updatedEvent!.Occurrences.First(o => o.Id == occurrenceId);
 
-        Assert.That(occurrence.Status, Is.EqualTo(OccurrenceStatus.Cancelled));
+        occurrence.Status.ShouldBe(OccurrenceStatus.Cancelled);
     }
 
-    [Test]
+    [Fact]
     public async Task CancelOccurrence_AsMember_ReturnsForbidden()
     {
         // Arrange
@@ -704,14 +708,14 @@ END:VCALENDAR";
             $"api/Events/{fcEvent.Id}/occurrences/{occurrenceId}");
 
         // Assert
-        Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.Forbidden));
+        response.StatusCode.ShouldBe(HttpStatusCode.Forbidden);
     }
 
     #endregion
 
     #region Event CRUD Tests
 
-    [Test]
+    [Fact]
     public async Task GetEvents_ReturnsAllEvents()
     {
         // Arrange
@@ -727,11 +731,11 @@ END:VCALENDAR";
         // Assert
         response.EnsureSuccessStatusCode();
         var events = await response.Content.ReadFromJsonAsync<List<EventDto>>();
-        Assert.That(events, Is.Not.Null);
-        Assert.That(events, Has.Count.AtLeast(2));
+        events.ShouldNotBeNull();
+        events.Count.ShouldBe(2);
     }
 
-    [Test]
+    [Fact]
     public async Task GetEvent_ReturnsEvent()
     {
         // Arrange
@@ -745,12 +749,12 @@ END:VCALENDAR";
         // Assert
         response.EnsureSuccessStatusCode();
         var retrievedEvent = await response.Content.ReadFromJsonAsync<EventDto>();
-        Assert.That(retrievedEvent, Is.Not.Null);
-        Assert.That(retrievedEvent!.Id, Is.EqualTo(fcEvent.Id));
-        Assert.That(retrievedEvent.Name, Is.EqualTo(fcEvent.Name));
+        retrievedEvent.ShouldNotBeNull();
+        retrievedEvent.Id.ShouldBe(fcEvent.Id);
+        retrievedEvent.Name.ShouldBe(fcEvent.Name);
     }
 
-    [Test]
+    [Fact]
     public async Task GetEvent_NotFound_ReturnsNotFound()
     {
         // Arrange
@@ -761,10 +765,10 @@ END:VCALENDAR";
         var response = await Client.GetAsync($"api/Events/{nonExistentId}");
 
         // Assert
-        Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.NotFound));
+        response.StatusCode.ShouldBe(HttpStatusCode.NotFound);
     }
 
-    [Test]
+    [Fact]
     public async Task DeleteEvent_RemovesEvent()
     {
         // Arrange
@@ -779,14 +783,14 @@ END:VCALENDAR";
         response.EnsureSuccessStatusCode();
 
         var getResponse = await Client.GetAsync($"api/Events/{fcEvent.Id}");
-        Assert.That(getResponse.StatusCode, Is.EqualTo(HttpStatusCode.NotFound));
+        getResponse.StatusCode.ShouldBe(HttpStatusCode.NotFound);
     }
 
     #endregion
 
     #region Edge Cases
 
-    [Test]
+    [Fact]
     public async Task SignupForOccurrence_NonExistentEvent_ReturnsNotFound()
     {
         // Arrange
@@ -799,10 +803,10 @@ END:VCALENDAR";
             new EventSignupDto { Roles = new List<Role> { Role.Tank } });
 
         // Assert
-        Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.NotFound));
+        response.StatusCode.ShouldBe(HttpStatusCode.NotFound);
     }
 
-    [Test]
+    [Fact]
     public async Task SignupForOccurrence_NonExistentOccurrence_ReturnsNotFound()
     {
         // Arrange
@@ -816,10 +820,10 @@ END:VCALENDAR";
             new EventSignupDto { Roles = new List<Role> { Role.Tank } });
 
         // Assert
-        Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.NotFound));
+        response.StatusCode.ShouldBe(HttpStatusCode.NotFound);
     }
 
-    [Test]
+    [Fact]
     public async Task SelectParticipants_NonExistentEvent_ReturnsNotFound()
     {
         // Arrange
@@ -832,10 +836,10 @@ END:VCALENDAR";
             new List<EventParticipant>());
 
         // Assert
-        Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.NotFound));
+        response.StatusCode.ShouldBe(HttpStatusCode.NotFound);
     }
 
-    [Test]
+    [Fact]
     public async Task SelectParticipants_NonExistentOccurrence_ReturnsNotFound()
     {
         // Arrange
@@ -849,14 +853,14 @@ END:VCALENDAR";
             new List<EventParticipant>());
 
         // Assert
-        Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.NotFound));
+        response.StatusCode.ShouldBe(HttpStatusCode.NotFound);
     }
 
     #endregion
 
     #region Archive/Restore Tests
 
-    [Test]
+    [Fact]
     public async Task ArchiveEvent_AsAdmin_AllOccurrencesCompleted_Succeeds()
     {
         // Arrange
@@ -876,12 +880,12 @@ END:VCALENDAR";
         response.EnsureSuccessStatusCode();
 
         var archivedEvent = await _eventService.GetAsync(fcEvent.Id);
-        Assert.That(archivedEvent!.IsArchived, Is.True);
-        Assert.That(archivedEvent.ArchivedDate, Is.Not.Null);
-        Assert.That(archivedEvent.ArchivedByUserId, Is.EqualTo(admin.DiscordId));
+        archivedEvent!.IsArchived.ShouldBeTrue();
+        archivedEvent.ArchivedDate.ShouldNotBeNull();
+        archivedEvent.ArchivedByUserId.ShouldBe(admin.DiscordId);
     }
 
-    [Test]
+    [Fact]
     public async Task ArchiveEvent_AsAdmin_HasScheduledOccurrences_ReturnsBadRequest()
     {
         // Arrange
@@ -892,10 +896,10 @@ END:VCALENDAR";
         var response = await Client.PostAsync($"api/Events/{fcEvent.Id}/archive", null);
 
         // Assert
-        Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.BadRequest));
+        response.StatusCode.ShouldBe(HttpStatusCode.BadRequest);
     }
 
-    [Test]
+    [Fact]
     public async Task ArchiveEvent_AsMember_ReturnsForbidden()
     {
         // Arrange
@@ -912,10 +916,10 @@ END:VCALENDAR";
         var response = await Client.PostAsync($"api/Events/{fcEvent.Id}/archive", null);
 
         // Assert
-        Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.Forbidden));
+        response.StatusCode.ShouldBe(HttpStatusCode.Forbidden);
     }
 
-    [Test]
+    [Fact]
     public async Task RestoreEvent_AsAdmin_ArchivedEvent_Succeeds()
     {
         // Arrange
@@ -938,12 +942,12 @@ END:VCALENDAR";
         response.EnsureSuccessStatusCode();
 
         var restoredEvent = await _eventService.GetAsync(fcEvent.Id);
-        Assert.That(restoredEvent!.IsArchived, Is.False);
-        Assert.That(restoredEvent.ArchivedDate, Is.Null);
-        Assert.That(restoredEvent.ArchivedByUserId, Is.Null);
+        restoredEvent!.IsArchived.ShouldBeFalse();
+        restoredEvent.ArchivedDate.ShouldBeNull();
+        restoredEvent.ArchivedByUserId.ShouldBeNull();
     }
 
-    [Test]
+    [Fact]
     public async Task RestoreEvent_AsAdmin_NotArchivedEvent_ReturnsBadRequest()
     {
         // Arrange
@@ -954,10 +958,10 @@ END:VCALENDAR";
         var response = await Client.PostAsync($"api/Events/{fcEvent.Id}/restore", null);
 
         // Assert
-        Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.BadRequest));
+        response.StatusCode.ShouldBe(HttpStatusCode.BadRequest);
     }
 
-    [Test]
+    [Fact]
     public async Task GetEvents_ExcludesArchivedByDefault()
     {
         // Arrange
@@ -981,12 +985,12 @@ END:VCALENDAR";
         // Assert
         response.EnsureSuccessStatusCode();
         var events = await response.Content.ReadFromJsonAsync<List<EventDto>>();
-        Assert.That(events, Is.Not.Null);
-        Assert.That(events!.Any(e => e.Name == "Active Event"), Is.True);
-        Assert.That(events.Any(e => e.Name == "Archived Event"), Is.False);
+        events.ShouldNotBeNull();
+        events!.Any(e => e.Name == "Active Event").ShouldBeTrue();
+        events.Any(e => e.Name == "Archived Event").ShouldBeFalse();
     }
 
-    [Test]
+    [Fact]
     public async Task GetArchivedEvents_ReturnsOnlyArchivedEvents()
     {
         // Arrange
@@ -1010,12 +1014,12 @@ END:VCALENDAR";
         // Assert
         response.EnsureSuccessStatusCode();
         var events = await response.Content.ReadFromJsonAsync<List<EventDto>>();
-        Assert.That(events, Is.Not.Null);
-        Assert.That(events!.Any(e => e.Name == "Archived Event"), Is.True);
-        Assert.That(events.Any(e => e.Name == "Active Event"), Is.False);
+        events.ShouldNotBeNull();
+        events!.Any(e => e.Name == "Archived Event").ShouldBeTrue();
+        events.Any(e => e.Name == "Active Event").ShouldBeFalse();
     }
 
-    [Test]
+    [Fact]
     public async Task GetArchivedEvents_SearchByName_ReturnsMatches()
     {
         // Arrange
@@ -1041,16 +1045,16 @@ END:VCALENDAR";
         // Assert
         response.EnsureSuccessStatusCode();
         var events = await response.Content.ReadFromJsonAsync<List<EventDto>>();
-        Assert.That(events, Is.Not.Null);
-        Assert.That(events!.Count, Is.EqualTo(1));
-        Assert.That(events[0].Name, Is.EqualTo("Weekly Raid Night"));
+        events.ShouldNotBeNull();
+        events!.Count.ShouldBe(1);
+        events[0].Name.ShouldBe("Weekly Raid Night");
     }
 
     #endregion
 
     #region Extend Event Tests
 
-    [Test]
+    [Fact]
     public async Task ExtendEvent_AsAdmin_RecurringEvent_AddsOccurrences()
     {
         // Arrange
@@ -1068,10 +1072,10 @@ END:VCALENDAR";
         response.EnsureSuccessStatusCode();
 
         var updatedEvent = await _eventService.GetAsync(fcEvent.Id);
-        Assert.That(updatedEvent!.Occurrences.Count, Is.EqualTo(originalOccurrenceCount + 2));
+        updatedEvent!.Occurrences.Count.ShouldBe(originalOccurrenceCount + 2);
     }
 
-    [Test]
+    [Fact]
     public async Task ExtendEvent_AsAdmin_NonRecurringEvent_ReturnsBadRequest()
     {
         // Arrange
@@ -1084,10 +1088,10 @@ END:VCALENDAR";
             new ExtendEventRequest { Count = 2 });
 
         // Assert
-        Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.BadRequest));
+        response.StatusCode.ShouldBe(HttpStatusCode.BadRequest);
     }
 
-    [Test]
+    [Fact]
     public async Task ExtendEvent_AsMember_ReturnsForbidden()
     {
         // Arrange
@@ -1100,10 +1104,10 @@ END:VCALENDAR";
             new ExtendEventRequest { Count = 2 });
 
         // Assert
-        Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.Forbidden));
+        response.StatusCode.ShouldBe(HttpStatusCode.Forbidden);
     }
 
-    [Test]
+    [Fact]
     public async Task ExtendEvent_InvalidCount_ReturnsBadRequest()
     {
         // Arrange
@@ -1116,10 +1120,10 @@ END:VCALENDAR";
             new ExtendEventRequest { Count = 0 });
 
         // Assert
-        Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.BadRequest));
+        response.StatusCode.ShouldBe(HttpStatusCode.BadRequest);
     }
 
-    [Test]
+    [Fact]
     public async Task ExtendEvent_NonExistentEvent_ReturnsBadRequest()
     {
         // Arrange
@@ -1132,7 +1136,7 @@ END:VCALENDAR";
             new ExtendEventRequest { Count = 2 });
 
         // Assert
-        Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.BadRequest));
+        response.StatusCode.ShouldBe(HttpStatusCode.BadRequest);
     }
 
     #endregion

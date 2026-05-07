@@ -3,45 +3,48 @@ using System.Net.Http.Json;
 using ExcelBotCs.Models.Database;
 using ExcelBotCs.Models.DTO;
 using ExcelBotCs.Services.API.Interfaces;
+using ExcelBotCs.TestFramework.Database;
 using ExcelBotCs.Tests.Utils;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace ExcelBotCs.Tests.Controllers;
 
-[TestFixture]
 public class FightsControllerIntegrationTests : IntegrationTestBase
 {
+    public FightsControllerIntegrationTests(MongoDbFixture fixture) : base(fixture)
+    {
+    }
     #region Permission Tests
 
-    [Test]
+    [Fact]
     public async Task GetEntities_CheckPermissions()
     {
         // No Auth = Unauthorized
         SetUnauthenticated();
         var response = await Client.GetAsync("api/Fights");
-        Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.Unauthorized));
+        response.StatusCode.ShouldBe(HttpStatusCode.Unauthorized);
 
         // No Member = Forbidden
         SetAuthenticatedUser("12355");
         response = await Client.GetAsync("api/Fights");
-        Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.Forbidden));
+        response.StatusCode.ShouldBe(HttpStatusCode.Forbidden);
 
         // Member = Ok
         await AuthenticateAsMember();
         response = await Client.GetAsync("api/Fights");
-        Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.OK));
+        response.StatusCode.ShouldBe(HttpStatusCode.OK);
 
         // Admin = Ok
         await AuthenticateAsAdmin();
         response = await Client.GetAsync("api/Fights");
-        Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.OK));
+        response.StatusCode.ShouldBe(HttpStatusCode.OK);
     }
 
     #endregion
 
     #region Functional Tests - Get
 
-    [Test]
+    [Fact]
     public async Task GetEntities_NoFights_ReturnsEmptyList()
     {
         // Arrange
@@ -53,11 +56,11 @@ public class FightsControllerIntegrationTests : IntegrationTestBase
         // Assert
         response.EnsureSuccessStatusCode();
         var fights = await response.Content.ReadFromJsonAsync<List<FightDto>>();
-        Assert.That(fights, Is.Not.Null);
-        Assert.That(fights, Is.Empty);
+        fights.ShouldNotBeNull();
+        fights.ShouldBeEmpty();
     }
 
-    [Test]
+    [Fact]
     public async Task GetEntities_WithFights_ReturnsAll()
     {
         // Arrange
@@ -90,13 +93,13 @@ public class FightsControllerIntegrationTests : IntegrationTestBase
         // Assert
         response.EnsureSuccessStatusCode();
         var fights = await response.Content.ReadFromJsonAsync<List<FightDto>>();
-        Assert.That(fights, Is.Not.Null);
-        Assert.That(fights, Has.Count.AtLeast(2));
-        Assert.That(fights.Any(f => f.Name == fight1.Name), Is.True);
-        Assert.That(fights.Any(f => f.Name == fight2.Name), Is.True);
+        fights.ShouldNotBeNull();
+        fights.Count.ShouldBe(2);
+        fights.Any(f => f.Name == fight1.Name).ShouldBeTrue();
+        fights.Any(f => f.Name == fight2.Name).ShouldBeTrue();
     }
 
-    [Test]
+    [Fact]
     public async Task GetEntity_WhenExists_ReturnsFight()
     {
         // Arrange
@@ -119,13 +122,13 @@ public class FightsControllerIntegrationTests : IntegrationTestBase
         // Assert
         response.EnsureSuccessStatusCode();
         var retrievedFight = await response.Content.ReadFromJsonAsync<FightDto>();
-        Assert.That(retrievedFight, Is.Not.Null);
-        Assert.That(retrievedFight.Id, Is.EqualTo(fight.Id));
-        Assert.That(retrievedFight.Name, Is.EqualTo(fight.Name));
-        Assert.That(retrievedFight.Description, Is.EqualTo(fight.Description));
+        retrievedFight.ShouldNotBeNull();
+        retrievedFight.Id.ShouldBe(fight.Id);
+        retrievedFight.Name.ShouldBe(fight.Name);
+        retrievedFight.Description.ShouldBe(fight.Description);
     }
 
-    [Test]
+    [Fact]
     public async Task GetEntity_WhenNotExists_ReturnsNotFound()
     {
         // Arrange
@@ -136,14 +139,14 @@ public class FightsControllerIntegrationTests : IntegrationTestBase
         var response = await Client.GetAsync($"api/Fights/{nonExistentId}");
 
         // Assert
-        Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.NotFound));
+        response.StatusCode.ShouldBe(HttpStatusCode.NotFound);
     }
 
     #endregion
 
     #region Functional Tests - Create
 
-    [Test]
+    [Fact]
     public async Task CreateEntity_ValidData_CreatesFight()
     {
         // Arrange
@@ -161,14 +164,14 @@ public class FightsControllerIntegrationTests : IntegrationTestBase
         var response = await Client.PostAsJsonAsync("api/Fights", fightDto);
 
         // Assert
-        Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.Created));
+        response.StatusCode.ShouldBe(HttpStatusCode.Created);
         var createdFight = await response.Content.ReadFromJsonAsync<FightDto>();
-        Assert.That(createdFight, Is.Not.Null);
-        Assert.That(createdFight.Name, Is.EqualTo(fightDto.Name));
-        Assert.That(createdFight.Description, Is.EqualTo(fightDto.Description));
+        createdFight.ShouldNotBeNull();
+        createdFight.Name.ShouldBe(fightDto.Name);
+        createdFight.Description.ShouldBe(fightDto.Description);
     }
 
-    [Test]
+    [Fact]
     public async Task CreateEntity_PersistsToDatabase()
     {
         // Arrange
@@ -193,15 +196,15 @@ public class FightsControllerIntegrationTests : IntegrationTestBase
         // Assert
         getResponse.EnsureSuccessStatusCode();
         var retrievedFight = await getResponse.Content.ReadFromJsonAsync<FightDto>();
-        Assert.That(retrievedFight, Is.Not.Null);
-        Assert.That(retrievedFight.Name, Is.EqualTo(fightDto.Name));
+        retrievedFight.ShouldNotBeNull();
+        retrievedFight.Name.ShouldBe(fightDto.Name);
     }
 
     #endregion
 
     #region Functional Tests - Update
 
-    [Test]
+    [Fact]
     public async Task UpdateEntity_ValidData_UpdatesFight()
     {
         // Arrange
@@ -227,18 +230,18 @@ public class FightsControllerIntegrationTests : IntegrationTestBase
         var updateResponse = await Client.PutAsJsonAsync($"api/Fights/{createdFight.Id}", createdFight);
 
         // Assert
-        Assert.That(updateResponse.StatusCode, Is.EqualTo(HttpStatusCode.NoContent));
+        updateResponse.StatusCode.ShouldBe(HttpStatusCode.NoContent);
 
         // Verify the update
         var getResponse = await Client.GetAsync($"api/Fights/{createdFight.Id}");
         var updatedFight = await getResponse.Content.ReadFromJsonAsync<FightDto>();
-        Assert.That(updatedFight, Is.Not.Null);
-        Assert.That(updatedFight.Name, Is.EqualTo(createdFight.Name));
-        Assert.That(updatedFight.Description, Is.EqualTo(createdFight.Description));
-        Assert.That(updatedFight.ImageUrl, Is.EqualTo(createdFight.ImageUrl));
+        updatedFight.ShouldNotBeNull();
+        updatedFight.Name.ShouldBe(createdFight.Name);
+        updatedFight.Description.ShouldBe(createdFight.Description);
+        updatedFight.ImageUrl.ShouldBe(createdFight.ImageUrl);
     }
 
-    [Test]
+    [Fact]
     public async Task UpdateEntity_WhenNotExists_ReturnsNoContent()
     {
         // Arrange
@@ -260,14 +263,14 @@ public class FightsControllerIntegrationTests : IntegrationTestBase
         // Assert
         // Note: The controller doesn't check if entity exists before updating,
         // so it returns NoContent even if entity doesn't exist
-        Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.NoContent));
+        response.StatusCode.ShouldBe(HttpStatusCode.NoContent);
     }
 
     #endregion
 
     #region Functional Tests - Delete
 
-    [Test]
+    [Fact]
     public async Task DeleteEntity_WhenExists_DeletesFight()
     {
         // Arrange
@@ -288,14 +291,14 @@ public class FightsControllerIntegrationTests : IntegrationTestBase
         var deleteResponse = await Client.DeleteAsync($"api/Fights/{createdFight!.Id}");
 
         // Assert
-        Assert.That(deleteResponse.StatusCode, Is.EqualTo(HttpStatusCode.NoContent));
+        deleteResponse.StatusCode.ShouldBe(HttpStatusCode.NoContent);
 
         // Verify deletion
         var getResponse = await Client.GetAsync($"api/Fights/{createdFight.Id}");
-        Assert.That(getResponse.StatusCode, Is.EqualTo(HttpStatusCode.NotFound));
+        getResponse.StatusCode.ShouldBe(HttpStatusCode.NotFound);
     }
 
-    [Test]
+    [Fact]
     public async Task DeleteEntity_WhenNotExists_ReturnsNotFound()
     {
         // Arrange
@@ -306,14 +309,14 @@ public class FightsControllerIntegrationTests : IntegrationTestBase
         var response = await Client.DeleteAsync($"api/Fights/{nonExistentId}");
 
         // Assert
-        Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.NotFound));
+        response.StatusCode.ShouldBe(HttpStatusCode.NotFound);
     }
 
     #endregion
 
     #region Integration Tests - Fights with Raidplans
 
-    [Test]
+    [Fact]
     public async Task GetEntity_WithRaidplans_ReturnsRaidplansList()
     {
         // Arrange
@@ -336,9 +339,9 @@ public class FightsControllerIntegrationTests : IntegrationTestBase
         // Assert
         response.EnsureSuccessStatusCode();
         var retrievedFight = await response.Content.ReadFromJsonAsync<FightDto>();
-        Assert.That(retrievedFight, Is.Not.Null);
-        Assert.That(retrievedFight.Raidplans, Is.Not.Null);
-        Assert.That(retrievedFight.Raidplans, Is.Empty); // Initially no raidplans
+        retrievedFight.ShouldNotBeNull();
+        retrievedFight.Raidplans.ShouldNotBeNull();
+        retrievedFight.Raidplans.ShouldBeEmpty(); // Initially no raidplans
     }
 
     #endregion

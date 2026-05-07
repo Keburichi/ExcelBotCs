@@ -8,27 +8,31 @@ using MongoDB.Driver;
 
 namespace ExcelBotCs.Tests.Database;
 
-[TestFixture]
+[Collection("MongoDB")]
 public class ExtraLotteryGuessRepositoryTests : MongoDbTest
 {
     private IExtraLotteryGuessRepository _repository = null!;
+
+    public ExtraLotteryGuessRepositoryTests(MongoDbFixture fixture) : base(fixture)
+    {
+    }
 
     protected override void InitializeRepository(IMongoClient mongoClient, IOptions<DatabaseOptions> databaseOptions)
     {
         _repository = new ExtraLotteryGuessRepository(mongoClient, databaseOptions);
     }
 
-    [Test]
+    [Fact]
     public async Task GetByDiscordIdAsync_ReturnsEmpty_WhenNoGuessesExist()
     {
         var discordId = ulong.Parse(GenerateRandomDiscordId());
 
         var result = await _repository.GetByDiscordIdAsync(discordId);
 
-        Assert.That(result, Is.Empty);
+        result.ShouldBeEmpty();
     }
 
-    [Test]
+    [Fact]
     public async Task GetByDiscordIdAsync_ReturnsGuesses_WhenGuessesExist()
     {
         var discordId = ulong.Parse(GenerateRandomDiscordId());
@@ -40,12 +44,12 @@ public class ExtraLotteryGuessRepositoryTests : MongoDbTest
 
         var result = await _repository.GetByDiscordIdAsync(discordId);
 
-        Assert.That(result, Has.Count.EqualTo(2));
-        Assert.That(result.All(g => g.DiscordId == discordId), Is.True);
-        Assert.That(result.Select(g => g.Reason), Is.EquivalentTo(new[] { "Reason A", "Reason B" }));
+        result.Count.ShouldBe(2);
+        result.All(g => g.DiscordId == discordId).ShouldBeTrue();
+        result.Select(g => g.Reason).ShouldBe(new[] { "Reason A", "Reason B" }, ignoreOrder: true);
     }
 
-    [Test]
+    [Fact]
     public async Task GetByDiscordIdAsync_DoesNotReturnOtherUsersGuesses()
     {
         var discordId = ulong.Parse(GenerateRandomDiscordId());
@@ -55,10 +59,10 @@ public class ExtraLotteryGuessRepositoryTests : MongoDbTest
 
         var result = await _repository.GetByDiscordIdAsync(discordId);
 
-        Assert.That(result, Is.Empty);
+        result.ShouldBeEmpty();
     }
 
-    [Test]
+    [Fact]
     public async Task DeleteAllAsync_RemovesAllGuesses()
     {
         var discordId1 = ulong.Parse(GenerateRandomDiscordId());
@@ -68,20 +72,20 @@ public class ExtraLotteryGuessRepositoryTests : MongoDbTest
         await _repository.CreateAsync(new ExtraLotteryGuess { DiscordId = discordId2, Reason = "Second" });
 
         var before = await _repository.GetAsync();
-        Assert.That(before, Has.Count.EqualTo(2));
+        before.Count.ShouldBe(2);
 
         await _repository.DeleteAllAsync();
 
         var after = await _repository.GetAsync();
-        Assert.That(after, Is.Empty);
+        after.ShouldBeEmpty();
     }
 
-    [Test]
+    [Fact]
     public async Task DeleteAllAsync_IsIdempotent_WhenCollectionIsAlreadyEmpty()
     {
         await _repository.DeleteAllAsync();
 
         var result = await _repository.GetAsync();
-        Assert.That(result, Is.Empty);
+        result.ShouldBeEmpty();
     }
 }

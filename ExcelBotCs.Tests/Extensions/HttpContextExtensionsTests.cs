@@ -5,18 +5,16 @@ using Microsoft.AspNetCore.Http;
 
 namespace ExcelBotCs.Tests.Extensions;
 
-[TestFixture]
 public class HttpContextExtensionsTests
 {
-    [SetUp]
-    public void Setup()
+    private DefaultHttpContext _httpContext = null!;
+
+    public HttpContextExtensionsTests()
     {
         _httpContext = new DefaultHttpContext();
     }
 
-    private DefaultHttpContext _httpContext = null!;
-
-    [Test]
+    [Fact]
     public void GetCurrentMember_WhenMemberExists_ShouldReturnMember()
     {
         // Arrange
@@ -32,23 +30,23 @@ public class HttpContextExtensionsTests
         var result = _httpContext.GetCurrentMember();
 
         // Assert
-        Assert.That(result, Is.Not.Null);
-        Assert.That(result!.Id, Is.EqualTo(member.Id));
-        Assert.That(result.DiscordId, Is.EqualTo(member.DiscordId));
-        Assert.That(result.DiscordName, Is.EqualTo(member.DiscordName));
+        result.ShouldNotBeNull();
+        result!.Id.ShouldBe(member.Id);
+        result.DiscordId.ShouldBe(member.DiscordId);
+        result.DiscordName.ShouldBe(member.DiscordName);
     }
 
-    [Test]
+    [Fact]
     public void GetCurrentMember_WhenMemberDoesNotExist_ShouldReturnNull()
     {
         // Act
         var result = _httpContext.GetCurrentMember();
 
         // Assert
-        Assert.That(result, Is.Null);
+        result.ShouldBeNull();
     }
 
-    [Test]
+    [Fact]
     public void GetCurrentMember_WhenItemIsNotMember_ShouldReturnNull()
     {
         // Arrange
@@ -58,10 +56,10 @@ public class HttpContextExtensionsTests
         var result = _httpContext.GetCurrentMember();
 
         // Assert
-        Assert.That(result, Is.Null);
+        result.ShouldBeNull();
     }
 
-    [Test]
+    [Fact]
     public void GetCurrentMember_WhenItemIsNull_ShouldReturnNull()
     {
         // Arrange
@@ -71,10 +69,10 @@ public class HttpContextExtensionsTests
         var result = _httpContext.GetCurrentMember();
 
         // Assert
-        Assert.That(result, Is.Null);
+        result.ShouldBeNull();
     }
 
-    [Test]
+    [Fact]
     public void GetCurrentMember_WhenMultipleItemsExist_ShouldReturnCorrectMember()
     {
         // Arrange
@@ -92,11 +90,11 @@ public class HttpContextExtensionsTests
         var result = _httpContext.GetCurrentMember();
 
         // Assert
-        Assert.That(result, Is.Not.Null);
-        Assert.That(result!.Id, Is.EqualTo(member.Id));
+        result.ShouldNotBeNull();
+        result!.Id.ShouldBe(member.Id);
     }
 
-    [Test]
+    [Fact]
     public void GetCurrentMember_WithComplexMemberObject_ShouldReturnMemberWithAllProperties()
     {
         // Arrange
@@ -119,12 +117,12 @@ public class HttpContextExtensionsTests
         var result = _httpContext.GetCurrentMember();
 
         // Assert
-        Assert.That(result, Is.Not.Null);
-        Assert.That(result!.Id, Is.EqualTo(member.Id));
-        Assert.That(result.DiscordId, Is.EqualTo(member.DiscordId));
-        Assert.That(result.DiscordName, Is.EqualTo(member.DiscordName));
-        Assert.That(result.LodestoneId, Is.EqualTo(member.LodestoneId));
-        Assert.That(result.Roles, Has.Count.EqualTo(member.Roles.Count));
-        Assert.That(result.Experience, Has.Count.EqualTo(member.Experience.Count));
+        result.ShouldNotBeNull();
+        result!.Id.ShouldBe(member.Id);
+        result.DiscordId.ShouldBe(member.DiscordId);
+        result.DiscordName.ShouldBe(member.DiscordName);
+        result.LodestoneId.ShouldBe(member.LodestoneId);
+        result.Roles.Count.ShouldBe(member.Roles.Count);
+        result.Experience.Count.ShouldBe(member.Experience.Count);
     }
 }
