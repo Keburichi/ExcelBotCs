@@ -184,6 +184,14 @@ public class LotteryService : ILotteryService
 
     public async Task RemindAsync(ulong discordUserId)
     {
+        var executingUser = await _memberService.GetByDiscordId(discordUserId);
+
+        if (executingUser == null)
+            throw new ArgumentException($"The user with the id {discordUserId} was not found.");
+
+        if (!executingUser.IsAdmin.GetValueOrDefault())
+            return;
+
         var fcMembers = await _memberService.GetFcMembers();
         var currentGuesses = (await _lotteryGuesses.GetAsync()).Select(guess => guess.DiscordId)
             .GroupBy(x => x)
@@ -210,17 +218,6 @@ public class LotteryService : ILotteryService
                 if (current == 0)
                     remainingGuesses.Add((id, 1));
             }
-
-        var output = remainingGuesses
-            .GroupBy(x => x.Remaining)
-            .OrderBy(x => x.Key)
-            .Aggregate(string.Empty,
-                (current, guesses)
-                    => current +
-                       $"{guesses.Key} guess{(guesses.Key == 1 ? "" : "es")} remaining: {guesses.Select(user => $"<@{user.Id}>").ToList().PrettyJoin()}\n");
-
-        // TODO: Figure out what exactly this is being used for
-        // await FollowupAsync(output, ephemeral: true);
 
         var previousParticipants = (await _lotteryResults.GetAsync())
             .OrderBy(result => result.DateCreated)

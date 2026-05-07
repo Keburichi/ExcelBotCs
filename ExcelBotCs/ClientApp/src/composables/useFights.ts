@@ -24,8 +24,8 @@ export function useFights() {
     try {
       fights.value = await FightsApi.list()
     }
-    catch (e: any) {
-      error.value = e.message || 'Failed'
+    catch (e: unknown) {
+      error.value = e instanceof Error ? e.message : 'Failed'
     }
     finally {
       loading.value = false
@@ -38,8 +38,8 @@ export function useFights() {
       fights.value.unshift(created)
       Object.assign(newFight, { Name: '', Description: '', Raidplans: [], ImageUrl: '' })
     }
-    catch (e: any) {
-      error.value = e.message || 'Failed to create fight'
+    catch (e: unknown) {
+      error.value = e instanceof Error ? e.message : 'Failed to create fight'
     }
   }
 
