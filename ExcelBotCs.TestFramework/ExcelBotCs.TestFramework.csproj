@@ -8,10 +8,10 @@
 
     <ItemGroup>
         <PackageReference Include="NUnit" Version="4.2.2"/>
-        <PackageReference Include="MongoDB.Driver" Version="3.5.2"/>
+        <PackageReference Include="MongoDB.Driver" Version="3.8.0"/>
         <PackageReference Include="MongoDB.Driver.Linq.AsyncEnumerable" Version="2.15.4"/>
-        <PackageReference Include="Testcontainers" Version="4.9.0"/>
-        <PackageReference Include="Testcontainers.MongoDb" Version="4.9.0"/>
+        <PackageReference Include="Testcontainers" Version="4.11.0"/>
+        <PackageReference Include="Testcontainers.MongoDb" Version="4.11.0"/>
     </ItemGroup>
 
     <ItemGroup>

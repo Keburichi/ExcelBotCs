@@ -1,0 +1,52 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "extends": [
+    "config:recommended"
+  ],
+  "schedule": ["before 6am on monday"],
+  "prConcurrentLimit": 5,
+  "platformAutomerge": true,
+  "ignorePaths": [
+    "**/node_modules/**"
+  ],
+  "packageRules": [
+    {
+      "description": "Auto-merge NuGet patch and minor updates when CI passes",
+      "matchManagers": ["nuget"],
+      "matchUpdateTypes": ["patch", "minor"],
+      "automerge": true,
+      "automergeType": "pr"
+    },
+    {
+      "description": "Require manual review for NuGet major updates",
+      "matchManagers": ["nuget"],
+      "matchUpdateTypes": ["major"],
+      "automerge": false
+    },
+    {
+      "description": "Group all Microsoft.* NuGet packages together",
+      "matchManagers": ["nuget"],
+      "matchPackagePrefixes": ["Microsoft."],
+      "groupName": "Microsoft packages"
+    },
+    {
+      "description": "Group Testcontainers packages together",
+      "matchManagers": ["nuget"],
+      "matchPackageNames": ["Testcontainers", "Testcontainers.MongoDb"],
+      "groupName": "Testcontainers packages"
+    },
+    {
+      "description": "Auto-merge npm patch updates",
+      "matchManagers": ["npm"],
+      "matchUpdateTypes": ["patch"],
+      "automerge": true,
+      "automergeType": "pr"
+    },
+    {
+      "description": "Auto-merge GitHub Actions updates",
+      "matchManagers": ["github-actions"],
+      "automerge": true,
+      "automergeType": "pr"
+    }
+  ]
+}
