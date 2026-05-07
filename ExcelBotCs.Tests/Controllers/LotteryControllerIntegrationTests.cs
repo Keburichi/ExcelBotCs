@@ -3,186 +3,189 @@ using System.Net.Http.Json;
 using ExcelBotCs.Controllers;
 using ExcelBotCs.Models.Database;
 using ExcelBotCs.Services.API.Interfaces;
+using ExcelBotCs.TestFramework.Database;
 using ExcelBotCs.Tests.Utils;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace ExcelBotCs.Tests.Controllers;
 
-[TestFixture]
 public class LotteryControllerIntegrationTests : IntegrationTestBase
 {
+    public LotteryControllerIntegrationTests(MongoDbFixture fixture) : base(fixture)
+    {
+    }
     #region Permission Tests
 
-    [Test]
+    [Fact]
     public async Task Guess_CheckPermissions()
     {
         // No Auth = Unauthorized
         SetUnauthenticated();
         var response = await Client.PostAsync("api/Lottery/guess/42", null);
-        Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.Unauthorized));
+        response.StatusCode.ShouldBe(HttpStatusCode.Unauthorized);
 
         // No Member = Forbidden
         SetAuthenticatedUser("12355");
         response = await Client.PostAsync("api/Lottery/guess/42", null);
-        Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.Forbidden));
+        response.StatusCode.ShouldBe(HttpStatusCode.Forbidden);
 
         // Member = Ok
         await AuthenticateAsMember();
         response = await Client.PostAsync("api/Lottery/guess/42", null);
-        Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.OK));
+        response.StatusCode.ShouldBe(HttpStatusCode.OK);
 
         // Admin = Ok
         await AuthenticateAsAdmin();
         response = await Client.PostAsync("api/Lottery/guess/43", null);
-        Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.OK));
+        response.StatusCode.ShouldBe(HttpStatusCode.OK);
     }
 
-    [Test]
+    [Fact]
     public async Task GetUnusedNumbers_CheckPermissions()
     {
         // No Auth = Unauthorized
         SetUnauthenticated();
         var response = await Client.GetAsync("api/Lottery/unused");
-        Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.Unauthorized));
+        response.StatusCode.ShouldBe(HttpStatusCode.Unauthorized);
 
         // No Member = Forbidden
         SetAuthenticatedUser("12355");
         response = await Client.GetAsync("api/Lottery/unused");
-        Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.Forbidden));
+        response.StatusCode.ShouldBe(HttpStatusCode.Forbidden);
 
         // Member = Ok
         await AuthenticateAsMember();
         response = await Client.GetAsync("api/Lottery/unused");
-        Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.OK));
+        response.StatusCode.ShouldBe(HttpStatusCode.OK);
 
         // Admin = Ok
         await AuthenticateAsAdmin();
         response = await Client.GetAsync("api/Lottery/unused");
-        Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.OK));
+        response.StatusCode.ShouldBe(HttpStatusCode.OK);
     }
 
-    [Test]
+    [Fact]
     public async Task View_CheckPermissions()
     {
         // No Auth = Unauthorized
         SetUnauthenticated();
         var response = await Client.GetAsync("api/Lottery/view");
-        Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.Unauthorized));
+        response.StatusCode.ShouldBe(HttpStatusCode.Unauthorized);
 
         // No Member = Forbidden
         SetAuthenticatedUser("12355");
         response = await Client.GetAsync("api/Lottery/view");
-        Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.Forbidden));
+        response.StatusCode.ShouldBe(HttpStatusCode.Forbidden);
 
         // Member = Ok
         await AuthenticateAsMember();
         response = await Client.GetAsync("api/Lottery/view");
-        Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.OK));
+        response.StatusCode.ShouldBe(HttpStatusCode.OK);
 
         // Admin = Ok
         await AuthenticateAsAdmin();
         response = await Client.GetAsync("api/Lottery/view");
-        Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.OK));
+        response.StatusCode.ShouldBe(HttpStatusCode.OK);
     }
 
-    [Test]
+    [Fact]
     public async Task ChangeGuess_CheckPermissions()
     {
         // No Auth = Unauthorized
         SetUnauthenticated();
         var request = new ChangeGuessRequest(1, 2);
         var response = await Client.PostAsJsonAsync("api/Lottery/change", request);
-        Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.Unauthorized));
+        response.StatusCode.ShouldBe(HttpStatusCode.Unauthorized);
 
         // No Member = Forbidden
         SetAuthenticatedUser("12355");
         response = await Client.PostAsJsonAsync("api/Lottery/change", request);
-        Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.Forbidden));
+        response.StatusCode.ShouldBe(HttpStatusCode.Forbidden);
 
         // Member = Ok (even if they don't have the old number guessed, should get proper response)
         await AuthenticateAsMember();
         response = await Client.PostAsJsonAsync("api/Lottery/change", request);
-        Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.OK));
+        response.StatusCode.ShouldBe(HttpStatusCode.OK);
 
         // Admin = Ok
         await AuthenticateAsAdmin();
         response = await Client.PostAsJsonAsync("api/Lottery/change", request);
-        Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.OK));
+        response.StatusCode.ShouldBe(HttpStatusCode.OK);
     }
 
-    [Test]
+    [Fact]
     public async Task WhoGuessed_CheckPermissions()
     {
         // No Auth = Unauthorized
         SetUnauthenticated();
         var response = await Client.GetAsync("api/Lottery/who-guessed/42");
-        Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.Unauthorized));
+        response.StatusCode.ShouldBe(HttpStatusCode.Unauthorized);
 
         // No Member = Forbidden
         SetAuthenticatedUser("12355");
         response = await Client.GetAsync("api/Lottery/who-guessed/42");
-        Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.Forbidden));
+        response.StatusCode.ShouldBe(HttpStatusCode.Forbidden);
 
         // Member = Ok
         await AuthenticateAsMember();
         response = await Client.GetAsync("api/Lottery/who-guessed/42");
-        Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.OK));
+        response.StatusCode.ShouldBe(HttpStatusCode.OK);
 
         // Admin = Ok
         await AuthenticateAsAdmin();
         response = await Client.GetAsync("api/Lottery/who-guessed/42");
-        Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.OK));
+        response.StatusCode.ShouldBe(HttpStatusCode.OK);
     }
 
-    [Test]
+    [Fact]
     public async Task GetAllGuesses_CheckPermissions()
     {
         // No Auth = Unauthorized
         SetUnauthenticated();
         var response = await Client.GetAsync("api/Lottery/all-guesses");
-        Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.Unauthorized));
+        response.StatusCode.ShouldBe(HttpStatusCode.Unauthorized);
 
         // No Member = Forbidden
         SetAuthenticatedUser("12355");
         response = await Client.GetAsync("api/Lottery/all-guesses");
-        Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.Forbidden));
+        response.StatusCode.ShouldBe(HttpStatusCode.Forbidden);
 
         // Member = Ok
         await AuthenticateAsMember();
         response = await Client.GetAsync("api/Lottery/all-guesses");
-        Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.OK));
+        response.StatusCode.ShouldBe(HttpStatusCode.OK);
 
         // Admin = Ok
         await AuthenticateAsAdmin();
         response = await Client.GetAsync("api/Lottery/all-guesses");
-        Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.OK));
+        response.StatusCode.ShouldBe(HttpStatusCode.OK);
     }
 
-    [Test]
+    [Fact]
     public async Task RunLottery_CheckPermissions()
     {
         // No Auth = Unauthorized
         SetUnauthenticated();
         var response = await Client.PostAsync("api/Lottery/run", null);
-        Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.Unauthorized));
+        response.StatusCode.ShouldBe(HttpStatusCode.Unauthorized);
 
         // No Member = Forbidden
         SetAuthenticatedUser("12355");
         response = await Client.PostAsync("api/Lottery/run", null);
-        Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.Forbidden));
+        response.StatusCode.ShouldBe(HttpStatusCode.Forbidden);
 
         // Member (non-admin) = Forbidden
         await AuthenticateAsMember();
         response = await Client.PostAsync("api/Lottery/run", null);
-        Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.Forbidden));
+        response.StatusCode.ShouldBe(HttpStatusCode.Forbidden);
 
         // Admin = Ok
         await AuthenticateAsAdmin();
         response = await Client.PostAsync("api/Lottery/run", null);
-        Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.OK));
+        response.StatusCode.ShouldBe(HttpStatusCode.OK);
     }
 
-    [Test]
+    [Fact]
     public async Task AwardUsers_CheckPermissions()
     {
         var request = new AwardUsersRequest("Test reason", new List<string> { "TestUser" });
@@ -190,29 +193,29 @@ public class LotteryControllerIntegrationTests : IntegrationTestBase
         // No Auth = Unauthorized
         SetUnauthenticated();
         var response = await Client.PostAsJsonAsync("api/Lottery/award", request);
-        Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.Unauthorized));
+        response.StatusCode.ShouldBe(HttpStatusCode.Unauthorized);
 
         // No Member = Forbidden
         SetAuthenticatedUser("12355");
         response = await Client.PostAsJsonAsync("api/Lottery/award", request);
-        Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.Forbidden));
+        response.StatusCode.ShouldBe(HttpStatusCode.Forbidden);
 
         // Member (non-admin) = Forbidden
         await AuthenticateAsMember();
         response = await Client.PostAsJsonAsync("api/Lottery/award", request);
-        Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.Forbidden));
+        response.StatusCode.ShouldBe(HttpStatusCode.Forbidden);
 
         // Admin = Ok (or BadRequest if user not found, which is still authenticated)
         await AuthenticateAsAdmin();
         response = await Client.PostAsJsonAsync("api/Lottery/award", request);
-        Assert.That(response.StatusCode, Is.AnyOf(HttpStatusCode.OK, HttpStatusCode.BadRequest));
+        response.StatusCode.ShouldBeOneOf(HttpStatusCode.OK, HttpStatusCode.BadRequest);
     }
 
     #endregion
 
     #region Functional Tests - Guess
 
-    [Test]
+    [Fact]
     public async Task Guess_ValidNumber_ReturnsSuccess()
     {
         // Arrange
@@ -224,11 +227,11 @@ public class LotteryControllerIntegrationTests : IntegrationTestBase
         // Assert
         response.EnsureSuccessStatusCode();
         var content = await response.Content.ReadAsStringAsync();
-        Assert.That(content, Is.Not.Empty);
-        Assert.That(content, Does.Contain("guessResponse"));
+        content.ShouldNotBeEmpty();
+        content.ShouldContain("guessResponse");
     }
 
-    [Test]
+    [Fact]
     public async Task Guess_MultipleDifferentNumbers_AllSucceed()
     {
         // Arrange
@@ -245,7 +248,7 @@ public class LotteryControllerIntegrationTests : IntegrationTestBase
         response3.EnsureSuccessStatusCode();
     }
 
-    [Test]
+    [Fact]
     public async Task Guess_DuplicateNumber_ReturnsAppropriateResponse()
     {
         // Arrange
@@ -258,14 +261,14 @@ public class LotteryControllerIntegrationTests : IntegrationTestBase
         // Assert
         response.EnsureSuccessStatusCode();
         var content = await response.Content.ReadAsStringAsync();
-        Assert.That(content, Is.Not.Empty);
+        content.ShouldNotBeEmpty();
     }
 
     #endregion
 
     #region Functional Tests - GetUnusedNumbers
 
-    [Test]
+    [Fact]
     public async Task GetUnusedNumbers_NoGuesses_ReturnsAllNumbers()
     {
         // Arrange
@@ -277,11 +280,11 @@ public class LotteryControllerIntegrationTests : IntegrationTestBase
         // Assert
         response.EnsureSuccessStatusCode();
         var content = await response.Content.ReadAsStringAsync();
-        Assert.That(content, Is.Not.Empty);
-        Assert.That(content, Does.Contain("result"));
+        content.ShouldNotBeEmpty();
+        content.ShouldContain("result");
     }
 
-    [Test]
+    [Fact]
     public async Task GetUnusedNumbers_AfterGuesses_ReturnsRemainingNumbers()
     {
         // Arrange
@@ -296,16 +299,16 @@ public class LotteryControllerIntegrationTests : IntegrationTestBase
         // Assert
         response.EnsureSuccessStatusCode();
         var content = await response.Content.ReadAsStringAsync();
-        Assert.That(content, Is.Not.Empty);
+        content.ShouldNotBeEmpty();
         // The result should not contain the guessed numbers
-        Assert.That(content, Does.Contain("result"));
+        content.ShouldContain("result");
     }
 
     #endregion
 
     #region Functional Tests - View
 
-    [Test]
+    [Fact]
     public async Task View_NoGuesses_ReturnsEmptyOrDefault()
     {
         // Arrange
@@ -317,11 +320,11 @@ public class LotteryControllerIntegrationTests : IntegrationTestBase
         // Assert
         response.EnsureSuccessStatusCode();
         var content = await response.Content.ReadAsStringAsync();
-        Assert.That(content, Is.Not.Empty);
-        Assert.That(content, Does.Contain("view"));
+        content.ShouldNotBeEmpty();
+        content.ShouldContain("view");
     }
 
-    [Test]
+    [Fact]
     public async Task View_WithGuesses_ReturnsUserGuesses()
     {
         // Arrange
@@ -335,11 +338,11 @@ public class LotteryControllerIntegrationTests : IntegrationTestBase
         // Assert
         response.EnsureSuccessStatusCode();
         var content = await response.Content.ReadAsStringAsync();
-        Assert.That(content, Is.Not.Empty);
-        Assert.That(content, Does.Contain("view"));
+        content.ShouldNotBeEmpty();
+        content.ShouldContain("view");
     }
 
-    [Test]
+    [Fact]
     public async Task View_DifferentUsers_ReturnsDifferentGuesses()
     {
         // Arrange - User 1 makes guesses
@@ -364,14 +367,14 @@ public class LotteryControllerIntegrationTests : IntegrationTestBase
         var content1 = await response1.Content.ReadAsStringAsync();
         var content2 = await response2.Content.ReadAsStringAsync();
 
-        Assert.That(content1, Is.Not.EqualTo(content2));
+        content1.ShouldNotBe(content2);
     }
 
     #endregion
 
     #region Functional Tests - ChangeGuess
 
-    [Test]
+    [Fact]
     public async Task ChangeGuess_ValidChange_ReturnsSuccess()
     {
         // Arrange
@@ -385,11 +388,11 @@ public class LotteryControllerIntegrationTests : IntegrationTestBase
         // Assert
         response.EnsureSuccessStatusCode();
         var content = await response.Content.ReadAsStringAsync();
-        Assert.That(content, Is.Not.Empty);
-        Assert.That(content, Does.Contain("changeResponse"));
+        content.ShouldNotBeEmpty();
+        content.ShouldContain("changeResponse");
     }
 
-    [Test]
+    [Fact]
     public async Task ChangeGuess_NumberNotGuessed_ReturnsAppropriateResponse()
     {
         // Arrange
@@ -402,11 +405,11 @@ public class LotteryControllerIntegrationTests : IntegrationTestBase
         // Assert
         response.EnsureSuccessStatusCode();
         var content = await response.Content.ReadAsStringAsync();
-        Assert.That(content, Is.Not.Empty);
-        Assert.That(content, Does.Contain("changeResponse"));
+        content.ShouldNotBeEmpty();
+        content.ShouldContain("changeResponse");
     }
 
-    [Test]
+    [Fact]
     public async Task ChangeGuess_ToAlreadyGuessedNumber_ReturnsAppropriateResponse()
     {
         // Arrange
@@ -421,15 +424,15 @@ public class LotteryControllerIntegrationTests : IntegrationTestBase
         // Assert
         response.EnsureSuccessStatusCode();
         var content = await response.Content.ReadAsStringAsync();
-        Assert.That(content, Is.Not.Empty);
-        Assert.That(content, Does.Contain("changeResponse"));
+        content.ShouldNotBeEmpty();
+        content.ShouldContain("changeResponse");
     }
 
     #endregion
 
     #region Functional Tests - WhoGuessed
 
-    [Test]
+    [Fact]
     public async Task WhoGuessed_NumberNotGuessed_ReturnsEmptyList()
     {
         // Arrange
@@ -441,11 +444,11 @@ public class LotteryControllerIntegrationTests : IntegrationTestBase
         // Assert
         response.EnsureSuccessStatusCode();
         var content = await response.Content.ReadAsStringAsync();
-        Assert.That(content, Is.Not.Empty);
-        Assert.That(content, Does.Contain("whoGuessed"));
+        content.ShouldNotBeEmpty();
+        content.ShouldContain("whoGuessed");
     }
 
-    [Test]
+    [Fact]
     public async Task WhoGuessed_SingleUserGuessed_ReturnsThatUser()
     {
         // Arrange
@@ -458,11 +461,11 @@ public class LotteryControllerIntegrationTests : IntegrationTestBase
         // Assert
         response.EnsureSuccessStatusCode();
         var content = await response.Content.ReadAsStringAsync();
-        Assert.That(content, Is.Not.Empty);
-        Assert.That(content, Does.Contain("whoGuessed"));
+        content.ShouldNotBeEmpty();
+        content.ShouldContain("whoGuessed");
     }
 
-    [Test]
+    [Fact]
     public async Task WhoGuessed_MultipleUsersGuessed_ReturnsAllUsers()
     {
         // Arrange - User 1 guesses
@@ -479,15 +482,15 @@ public class LotteryControllerIntegrationTests : IntegrationTestBase
         // Assert
         response.EnsureSuccessStatusCode();
         var content = await response.Content.ReadAsStringAsync();
-        Assert.That(content, Is.Not.Empty);
-        Assert.That(content, Does.Contain("whoGuessed"));
+        content.ShouldNotBeEmpty();
+        content.ShouldContain("whoGuessed");
     }
 
     #endregion
 
     #region Functional Tests - GetAllGuesses
 
-    [Test]
+    [Fact]
     public async Task GetAllGuesses_NoGuesses_ReturnsEmptyList()
     {
         // Arrange
@@ -499,11 +502,11 @@ public class LotteryControllerIntegrationTests : IntegrationTestBase
         // Assert
         response.EnsureSuccessStatusCode();
         var result = await response.Content.ReadFromJsonAsync<List<object>>();
-        Assert.That(result, Is.Not.Null);
-        Assert.That(result, Is.Empty);
+        result.ShouldNotBeNull();
+        result.ShouldBeEmpty();
     }
 
-    [Test]
+    [Fact]
     public async Task GetAllGuesses_WithGuesses_ReturnsAllGuessedNumbers()
     {
         // Arrange - Create 3 different members each making one guess
@@ -522,15 +525,15 @@ public class LotteryControllerIntegrationTests : IntegrationTestBase
         // Assert
         response.EnsureSuccessStatusCode();
         var result = await response.Content.ReadFromJsonAsync<List<object>>();
-        Assert.That(result, Is.Not.Null);
-        Assert.That(result, Has.Count.AtLeast(3)); // Should have at least 3 guessed numbers
+        result.ShouldNotBeNull();
+        result.Count.ShouldBe(3);
     }
 
     #endregion
 
     #region Functional Tests - RunLottery
 
-    [Test]
+    [Fact]
     public async Task RunLottery_AsAdmin_ExecutesSuccessfully()
     {
         // Arrange
@@ -549,15 +552,15 @@ public class LotteryControllerIntegrationTests : IntegrationTestBase
         // Assert
         response.EnsureSuccessStatusCode();
         var result = await response.Content.ReadFromJsonAsync<Dictionary<string, object>>();
-        Assert.That(result, Is.Not.Null);
-        Assert.That(result.ContainsKey("message"), Is.True);
+        result.ShouldNotBeNull();
+        result.ContainsKey("message").ShouldBeTrue();
     }
 
     #endregion
 
     #region Functional Tests - AwardUsers
 
-    [Test]
+    [Fact]
     public async Task AwardUsers_WithValidUsernames_ReturnsSuccess()
     {
         // Arrange
@@ -578,17 +581,17 @@ public class LotteryControllerIntegrationTests : IntegrationTestBase
         var response = await Client.PostAsJsonAsync("api/Lottery/award", request);
 
         // Assert
-        Assert.That(response.StatusCode, Is.AnyOf(HttpStatusCode.OK, HttpStatusCode.BadRequest));
+        response.StatusCode.ShouldBeOneOf(HttpStatusCode.OK, HttpStatusCode.BadRequest);
 
         if (response.StatusCode == HttpStatusCode.OK)
         {
             var result = await response.Content.ReadFromJsonAsync<Dictionary<string, object>>();
-            Assert.That(result, Is.Not.Null);
-            Assert.That(result.ContainsKey("message"), Is.True);
+            result.ShouldNotBeNull();
+            result.ContainsKey("message").ShouldBeTrue();
         }
     }
 
-    [Test]
+    [Fact]
     public async Task AwardUsers_WithInvalidUsernames_ReturnsBadRequest()
     {
         // Arrange
@@ -599,13 +602,13 @@ public class LotteryControllerIntegrationTests : IntegrationTestBase
         var response = await Client.PostAsJsonAsync("api/Lottery/award", request);
 
         // Assert
-        Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.BadRequest));
+        response.StatusCode.ShouldBe(HttpStatusCode.BadRequest);
         var result = await response.Content.ReadFromJsonAsync<Dictionary<string, string>>();
-        Assert.That(result, Is.Not.Null);
-        Assert.That(result["message"], Does.Contain("No valid users found"));
+        result.ShouldNotBeNull();
+        result["message"].ShouldContain("No valid users found");
     }
 
-    [Test]
+    [Fact]
     public async Task AwardUsers_WithMixedUsernames_AwardsValidUsers()
     {
         // Arrange
@@ -629,10 +632,10 @@ public class LotteryControllerIntegrationTests : IntegrationTestBase
         var response = await Client.PostAsJsonAsync("api/Lottery/award", request);
 
         // Assert - Should succeed because at least one user is valid
-        Assert.That(response.StatusCode, Is.AnyOf(HttpStatusCode.OK, HttpStatusCode.BadRequest));
+        response.StatusCode.ShouldBeOneOf(HttpStatusCode.OK, HttpStatusCode.BadRequest);
     }
 
-    [Test]
+    [Fact]
     public async Task AwardUsers_WithPlayerName_FindsUser()
     {
         // Arrange
@@ -653,7 +656,7 @@ public class LotteryControllerIntegrationTests : IntegrationTestBase
         var response = await Client.PostAsJsonAsync("api/Lottery/award", request);
 
         // Assert
-        Assert.That(response.StatusCode, Is.AnyOf(HttpStatusCode.OK, HttpStatusCode.BadRequest));
+        response.StatusCode.ShouldBeOneOf(HttpStatusCode.OK, HttpStatusCode.BadRequest);
     }
 
     #endregion

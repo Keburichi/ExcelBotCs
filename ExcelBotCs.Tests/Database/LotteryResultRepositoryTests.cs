@@ -8,25 +8,29 @@ using MongoDB.Driver;
 
 namespace ExcelBotCs.Tests.Database;
 
-[TestFixture]
+[Collection("MongoDB")]
 public class LotteryResultRepositoryTests : MongoDbTest
 {
     private ILotteryResultRepository _repository = null!;
+
+    public LotteryResultRepositoryTests(MongoDbFixture fixture) : base(fixture)
+    {
+    }
 
     protected override void InitializeRepository(IMongoClient mongoClient, IOptions<DatabaseOptions> databaseOptions)
     {
         _repository = new LotteryResultRepository(mongoClient, databaseOptions);
     }
 
-    [Test]
+    [Fact]
     public async Task GetAsync_ReturnsEmpty_WhenNoResultsExist()
     {
         var result = await _repository.GetAsync();
 
-        Assert.That(result, Is.Empty);
+        result.ShouldBeEmpty();
     }
 
-    [Test]
+    [Fact]
     public async Task CreateAsync_PersistsResult_WithEmbeddedGuesses()
     {
         var discordId = ulong.Parse(GenerateRandomDiscordId());
@@ -43,13 +47,13 @@ public class LotteryResultRepositoryTests : MongoDbTest
         await _repository.CreateAsync(lotteryResult);
 
         var all = await _repository.GetAsync();
-        Assert.That(all, Has.Count.EqualTo(1));
-        Assert.That(all[0].WinningNumber, Is.EqualTo(42));
-        Assert.That(all[0].Guesses, Has.Count.EqualTo(2));
-        Assert.That(all[0].Guesses.Any(g => g.DiscordId == discordId), Is.True);
+        all.Count.ShouldBe(1);
+        all[0].WinningNumber.ShouldBe(42);
+        all[0].Guesses.Count.ShouldBe(2);
+        all[0].Guesses.Any(g => g.DiscordId == discordId).ShouldBeTrue();
     }
 
-    [Test]
+    [Fact]
     public async Task GetAsync_ReturnsAllResults()
     {
         await _repository.CreateAsync(new LotteryResult { WinningNumber = 1, Guesses = [] });
@@ -58,22 +62,22 @@ public class LotteryResultRepositoryTests : MongoDbTest
 
         var result = await _repository.GetAsync();
 
-        Assert.That(result, Has.Count.EqualTo(3));
-        Assert.That(result.Select(r => r.WinningNumber), Is.EquivalentTo(new[] { 1, 2, 3 }));
+        result.Count.ShouldBe(3);
+        result.Select(r => r.WinningNumber).ShouldBe(new[] { 1, 2, 3 }, ignoreOrder: true);
     }
 
-    [Test]
+    [Fact]
     public async Task DeleteAsync_RemovesResult()
     {
         var lotteryResult = new LotteryResult { WinningNumber = 99, Guesses = [] };
         await _repository.CreateAsync(lotteryResult);
 
         var before = await _repository.GetAsync();
-        Assert.That(before, Has.Count.EqualTo(1));
+        before.Count.ShouldBe(1);
 
         await _repository.DeleteAsync(lotteryResult.Id);
 
         var after = await _repository.GetAsync();
-        Assert.That(after, Is.Empty);
+        after.ShouldBeEmpty();
     }
 }

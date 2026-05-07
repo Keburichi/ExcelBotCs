@@ -7,13 +7,20 @@ using MongoDB.Driver;
 
 namespace ExcelBotCs.Tests.Database;
 
-[TestFixture]
+[Collection("MongoDB")]
 public class BaseRepositoryTests : MongoDbTest
 {
     private TestRepository _testRepository;
+    private IMongoClient _mongoClient;
+
+    public BaseRepositoryTests(MongoDbFixture fixture) : base(fixture)
+    {
+    }
 
     protected override void InitializeRepository(IMongoClient mongoClient, IOptions<DatabaseOptions> databaseOptions)
     {
+        _mongoClient = mongoClient;
+
         // By initializing multiple repositories we test that the base repository is correctly creating missing collections
         var unused = new EventRepository(mongoClient, databaseOptions);
         var memberRepository = new MemberRepository(mongoClient, databaseOptions);
@@ -21,22 +28,23 @@ public class BaseRepositoryTests : MongoDbTest
         _testRepository = new TestRepository(mongoClient, databaseOptions);
     }
 
-    [Test]
-    public void CollectionCreationTest()
+    [Fact]
+    public async Task CollectionCreationTest()
     {
-        // Nothing to do here, the actual test is in InitializeRepository
-        Assert.Pass();
+        var database = _mongoClient.GetDatabase("TestDatabase");
+        var collections = await (await database.ListCollectionNamesAsync()).ToListAsync();
+        collections.ShouldContain("TestDatabaseEntity");
     }
 
-    [Test]
+    [Fact]
     public async Task GetAsync_ReturnsEmptyList_WhenNoDocumentsExist()
     {
         var result = await _testRepository.GetAsync();
 
-        Assert.That(result, Is.Empty);
+        result.ShouldBeEmpty();
     }
 
-    [Test]
+    [Fact]
     public async Task GetAsync_ReturnsList_WhenDocumentsExist()
     {
         for (var i = 0; i < 10; i++)
@@ -44,19 +52,19 @@ public class BaseRepositoryTests : MongoDbTest
 
         var result = await _testRepository.GetAsync();
 
-        Assert.That(result, Is.Not.Empty);
-        Assert.That(result.Count, Is.EqualTo(10));
+        result.ShouldNotBeEmpty();
+        result.Count.ShouldBe(10);
     }
 
-    [Test]
+    [Fact]
     public async Task GetAsync_ReturnNull_WhenDocumentDoesNotExist()
     {
         // Use a valid MongoDB ObjectId format (24-digit hex string)
         var result = await _testRepository.GetAsync("507f1f77bcf86cd799439011");
-        Assert.That(result, Is.Null);
+        result.ShouldBeNull();
     }
 
-    [Test]
+    [Fact]
     public async Task GetAsync_ReturnDocument_WhenDocumentExists()
     {
         var entity = new TestDatabaseEntity().PopulateWithRandomData();
@@ -65,27 +73,27 @@ public class BaseRepositoryTests : MongoDbTest
         var allEntries = await _testRepository.GetAsync();
 
         var result = await _testRepository.GetAsync(allEntries.First(x => x.Name.Equals(entity.Name)).Id);
-        Assert.That(result, Is.Not.Null);
-        Assert.That(result.Name, Is.EqualTo(entity.Name));
+        result.ShouldNotBeNull();
+        result.Name.ShouldBe(entity.Name);
     }
 
-    [Test]
+    [Fact]
     public async Task CreateAsync_CreatesDocument_WhenValidEntity()
     {
         var before = await _testRepository.GetAsync();
-        Assert.That(before, Is.Empty);
+        before.ShouldBeEmpty();
 
         var entity = new TestDatabaseEntity().PopulateWithRandomData();
         await _testRepository.CreateAsync(entity);
 
         var allEntries = await _testRepository.GetAsync();
-        Assert.That(allEntries, Has.Count.EqualTo(1));
-        Assert.That(allEntries.First().Name, Is.EqualTo(entity.Name));
-        Assert.That(allEntries.First().DateCreated, Is.EqualTo(DateTime.UtcNow).Within(TimeSpan.FromSeconds(1)));
-        Assert.That(allEntries.First().DateModified, Is.EqualTo(DateTime.UtcNow).Within(TimeSpan.FromSeconds(1)));
+        allEntries.Count.ShouldBe(1);
+        allEntries.First().Name.ShouldBe(entity.Name);
+        allEntries.First().DateCreated.ShouldBe(DateTime.UtcNow, TimeSpan.FromSeconds(1));
+        allEntries.First().DateModified.ShouldBe(DateTime.UtcNow, TimeSpan.FromSeconds(1));
     }
 
-    [Test]
+    [Fact]
     public async Task UpdateAsync_UpdatesDocument_WhenValidEntity()
     {
         var entity = new TestDatabaseEntity().PopulateWithRandomData();
@@ -104,23 +112,23 @@ public class BaseRepositoryTests : MongoDbTest
 
         var updatedEntity = await _testRepository.GetAsync(dbEntity.Id);
 
-        Assert.That(updatedEntity.Name, Is.EqualTo(dbEntity.Name));
-        Assert.That(updatedEntity.Description, Is.EqualTo(dbEntity.Description));
-        Assert.That(updatedEntity.DateModified, Is.GreaterThan(originalEditDate));
+        updatedEntity.Name.ShouldBe(dbEntity.Name);
+        updatedEntity.Description.ShouldBe(dbEntity.Description);
+        updatedEntity.DateModified.ShouldBeGreaterThan(originalEditDate);
     }
 
-    [Test]
+    [Fact]
     public async Task DeleteAsync_DeletesDocument_WhenValidId()
     {
         var entity = new TestDatabaseEntity().PopulateWithRandomData();
         await _testRepository.CreateAsync(entity);
 
         var before = await _testRepository.GetAsync();
-        Assert.That(before, Has.Count.EqualTo(1));
+        before.Count.ShouldBe(1);
 
         await _testRepository.DeleteAsync(entity.Id);
 
         var after = await _testRepository.GetAsync();
-        Assert.That(after, Is.Empty);
+        after.ShouldBeEmpty();
     }
 }

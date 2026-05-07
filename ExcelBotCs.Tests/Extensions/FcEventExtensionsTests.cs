@@ -1,15 +1,15 @@
 using ExcelBotCs.Extensions;
 using ExcelBotCs.Models.Database;
 using ExcelBotCs.Modules.TeamFormation;
-using ExcelBotCs.TestFramework.Attributes;
+using ExcelBotCs.TestFramework.TestData;
 
 namespace ExcelBotCs.Tests.Extensions;
 
-[TestFixture]
 public class FcEventExtensionsTests
 {
-    [TestIsNullOrEmptyString]
-    public void CreateUpcomingRosterMessage_WithNullOrEmptyEventName_ShouldHandleCorrectly(string eventName)
+    [Theory]
+    [MemberData(nameof(NullOrEmptyStringData.Values), MemberType = typeof(NullOrEmptyStringData))]
+    public void CreateUpcomingRosterMessage_WithNullOrEmptyEventName_ShouldHandleCorrectly(string? eventName)
     {
         // Arrange
         var fcEvent = new Event
@@ -33,11 +33,11 @@ public class FcEventExtensionsTests
         var result = fcEvent.CreateUpcomingRosterMessage();
 
         // Assert
-        Assert.That(result, Is.Not.Null);
-        Assert.That(result, Does.Contain("Upcoming roster for:"));
+        result.ShouldNotBeNull();
+        result.ShouldContain("Upcoming roster for:");
     }
 
-    [Test]
+    [Fact]
     public void CreateUpcomingRosterMessage_WithNoOccurrences_ShouldReturnNoUpcomingMessage()
     {
         // Arrange
@@ -53,11 +53,11 @@ public class FcEventExtensionsTests
         var result = fcEvent.CreateUpcomingRosterMessage();
 
         // Assert
-        Assert.That(result, Does.Contain("No upcoming occurrences"));
-        Assert.That(result, Does.Contain("Test Event"));
+        result.ShouldContain("No upcoming occurrences");
+        result.ShouldContain("Test Event");
     }
 
-    [Test]
+    [Fact]
     public void CreateUpcomingRosterMessage_WithEmptyOccurrences_ShouldReturnNoUpcomingMessage()
     {
         // Arrange
@@ -73,10 +73,10 @@ public class FcEventExtensionsTests
         var result = fcEvent.CreateUpcomingRosterMessage();
 
         // Assert
-        Assert.That(result, Does.Contain("No upcoming occurrences"));
+        result.ShouldContain("No upcoming occurrences");
     }
 
-    [Test]
+    [Fact]
     public void CreateUpcomingRosterMessage_WithScheduledOccurrence_ShouldReturnFormattedMessage()
     {
         // Arrange
@@ -106,15 +106,15 @@ public class FcEventExtensionsTests
         var result = fcEvent.CreateUpcomingRosterMessage();
 
         // Assert
-        Assert.That(result, Does.Contain("Upcoming roster for: Raid Night"));
-        Assert.That(result, Does.Contain("**Date:**"));
-        Assert.That(result, Does.Contain("**In:**"));
-        Assert.That(result, Does.Contain("**Duration:** 120 minutes"));
-        Assert.That(result, Does.Contain("<@user1>"));
-        Assert.That(result, Does.Contain("<@user2>"));
+        result.ShouldContain("Upcoming roster for: Raid Night");
+        result.ShouldContain("**Date:**");
+        result.ShouldContain("**In:**");
+        result.ShouldContain("**Duration:** 120 minutes");
+        result.ShouldContain("<@user1>");
+        result.ShouldContain("<@user2>");
     }
 
-    [Test]
+    [Fact]
     public void CreateUpcomingRosterMessage_WithMultipleRoles_ShouldIncludeAllRoles()
     {
         // Arrange
@@ -148,20 +148,20 @@ public class FcEventExtensionsTests
         var result = fcEvent.CreateUpcomingRosterMessage();
 
         // Assert
-        Assert.That(result, Does.Contain(":RoleTank:"));
-        Assert.That(result, Does.Contain(":RoleHealer:"));
-        Assert.That(result, Does.Contain(":RoleMelee:"));
-        Assert.That(result, Does.Contain(":RoleCaster:"));
-        Assert.That(result, Does.Contain(":RoleRanged:"));
-        Assert.That(result, Does.Contain("<@tank1>"));
-        Assert.That(result, Does.Contain("<@tank2>"));
-        Assert.That(result, Does.Contain("<@healer1>"));
-        Assert.That(result, Does.Contain("<@melee1>"));
-        Assert.That(result, Does.Contain("<@caster1>"));
-        Assert.That(result, Does.Contain("<@ranged1>"));
+        result.ShouldContain(":RoleTank:");
+        result.ShouldContain(":RoleHealer:");
+        result.ShouldContain(":RoleMelee:");
+        result.ShouldContain(":RoleCaster:");
+        result.ShouldContain(":RoleRanged:");
+        result.ShouldContain("<@tank1>");
+        result.ShouldContain("<@tank2>");
+        result.ShouldContain("<@healer1>");
+        result.ShouldContain("<@melee1>");
+        result.ShouldContain("<@caster1>");
+        result.ShouldContain("<@ranged1>");
     }
 
-    [Test]
+    [Fact]
     public void CreateUpcomingRosterMessage_WithPastOccurrence_ShouldSelectFirstScheduledFutureOccurrence()
     {
         // Arrange
@@ -197,11 +197,11 @@ public class FcEventExtensionsTests
         var result = fcEvent.CreateUpcomingRosterMessage();
 
         // Assert
-        Assert.That(result, Does.Contain("Upcoming roster for: Weekly Raid"));
-        Assert.That(result, Does.Contain("<@user1>"));
+        result.ShouldContain("Upcoming roster for: Weekly Raid");
+        result.ShouldContain("<@user1>");
     }
 
-    [Test]
+    [Fact]
     public void CreateUpcomingRosterMessage_WithNullParticipants_ShouldHandleGracefully()
     {
         // Arrange
@@ -226,12 +226,12 @@ public class FcEventExtensionsTests
         var result = fcEvent.CreateUpcomingRosterMessage();
 
         // Assert
-        Assert.That(result, Does.Contain("Upcoming roster for: Empty Event"));
-        Assert.That(result, Does.Contain(":RoleTank:"));
-        Assert.That(result, Does.Contain(":RoleHealer:"));
+        result.ShouldContain("Upcoming roster for: Empty Event");
+        result.ShouldContain(":RoleTank:");
+        result.ShouldContain(":RoleHealer:");
     }
 
-    [Test]
+    [Fact]
     public void CreateUpcomingRosterMessage_WithEmptyParticipants_ShouldShowEmptyRoles()
     {
         // Arrange
@@ -256,12 +256,12 @@ public class FcEventExtensionsTests
         var result = fcEvent.CreateUpcomingRosterMessage();
 
         // Assert
-        Assert.That(result, Does.Contain("Upcoming roster for: No Signups Yet"));
-        Assert.That(result, Does.Contain(":RoleTank:"));
-        Assert.That(result, Does.Contain(":RoleHealer:"));
+        result.ShouldContain("Upcoming roster for: No Signups Yet");
+        result.ShouldContain(":RoleTank:");
+        result.ShouldContain(":RoleHealer:");
     }
 
-    [Test]
+    [Fact]
     public void CreateUpcomingRosterMessage_WithMultipleTanks_ShouldListAllTanks()
     {
         // Arrange
@@ -291,12 +291,12 @@ public class FcEventExtensionsTests
         var result = fcEvent.CreateUpcomingRosterMessage();
 
         // Assert
-        Assert.That(result, Does.Contain("<@tank1>"));
-        Assert.That(result, Does.Contain("<@tank2>"));
-        Assert.That(result, Does.Contain("<@tank3>"));
+        result.ShouldContain("<@tank1>");
+        result.ShouldContain("<@tank2>");
+        result.ShouldContain("<@tank3>");
     }
 
-    [Test]
+    [Fact]
     public void CreateUpcomingRosterMessage_WithCompletedOccurrence_ShouldSkipAndFindNextScheduled()
     {
         // Arrange
@@ -332,11 +332,11 @@ public class FcEventExtensionsTests
         var result = fcEvent.CreateUpcomingRosterMessage();
 
         // Assert
-        Assert.That(result, Does.Contain("Upcoming roster for: Recurring Event"));
-        Assert.That(result, Does.Contain("<@user1>"));
+        result.ShouldContain("Upcoming roster for: Recurring Event");
+        result.ShouldContain("<@user1>");
     }
 
-    [Test]
+    [Fact]
     public void CreateUpcomingRosterMessage_ShouldFormatDurationCorrectly()
     {
         // Arrange
@@ -361,6 +361,6 @@ public class FcEventExtensionsTests
         var result = fcEvent.CreateUpcomingRosterMessage();
 
         // Assert
-        Assert.That(result, Does.Contain("**Duration:** 180 minutes"));
+        result.ShouldContain("**Duration:** 180 minutes");
     }
 }

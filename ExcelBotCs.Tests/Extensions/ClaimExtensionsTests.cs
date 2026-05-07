@@ -1,13 +1,12 @@
 using System.Security.Claims;
 using ExcelBotCs.Extensions;
-using ExcelBotCs.TestFramework.Attributes;
+using ExcelBotCs.TestFramework.TestData;
 
 namespace ExcelBotCs.Tests.Extensions;
 
-[TestFixture]
 public class ClaimExtensionsTests
 {
-    [Test]
+    [Fact]
     public void GetDiscordId_WhenClaimExists_ShouldReturnValue()
     {
         // Arrange
@@ -20,10 +19,10 @@ public class ClaimExtensionsTests
         var result = claims.GetDiscordId();
 
         // Assert
-        Assert.That(result, Is.EqualTo("123456789"));
+        result.ShouldBe("123456789");
     }
 
-    [Test]
+    [Fact]
     public void GetDiscordId_WhenClaimDoesNotExist_ShouldReturnEmptyString()
     {
         // Arrange
@@ -36,10 +35,10 @@ public class ClaimExtensionsTests
         var result = claims.GetDiscordId();
 
         // Assert
-        Assert.That(result, Is.EqualTo(string.Empty));
+        result.ShouldBe(string.Empty);
     }
 
-    [Test]
+    [Fact]
     public void GetDiscordId_WhenListIsEmpty_ShouldReturnEmptyString()
     {
         // Arrange
@@ -49,11 +48,12 @@ public class ClaimExtensionsTests
         var result = claims.GetDiscordId();
 
         // Assert
-        Assert.That(result, Is.EqualTo(string.Empty));
+        result.ShouldBe(string.Empty);
     }
 
-    [TestIsNullOrEmptyString]
-    public void GetDiscordId_WithNullOrEmptyClaimValue_ShouldReturnValue(string claimValue)
+    [Theory]
+    [MemberData(nameof(NullOrEmptyStringData.Values), MemberType = typeof(NullOrEmptyStringData))]
+    public void GetDiscordId_WithNullOrEmptyClaimValue_ShouldReturnValue(string? claimValue)
     {
         // Arrange - Claim constructor doesn't accept null, so skip creating claim for null case
         var claims = new List<Claim>();
@@ -64,10 +64,10 @@ public class ClaimExtensionsTests
         var result = claims.GetDiscordId();
 
         // Assert
-        Assert.That(result, Is.EqualTo(claimValue ?? string.Empty));
+        result.ShouldBe(claimValue ?? string.Empty);
     }
 
-    [Test]
+    [Fact]
     public void GetDiscordId_WithMultipleClaims_ShouldReturnCorrectValue()
     {
         // Arrange
@@ -83,10 +83,10 @@ public class ClaimExtensionsTests
         var result = claims.GetDiscordId();
 
         // Assert
-        Assert.That(result, Is.EqualTo("123456789"));
+        result.ShouldBe("123456789");
     }
 
-    [Test]
+    [Fact]
     public void GetDiscordName_WhenClaimExists_ShouldReturnValue()
     {
         // Arrange
@@ -99,10 +99,10 @@ public class ClaimExtensionsTests
         var result = claims.GetDiscordName();
 
         // Assert
-        Assert.That(result, Is.EqualTo("JohnDoe"));
+        result.ShouldBe("JohnDoe");
     }
 
-    [Test]
+    [Fact]
     public void GetDiscordName_WhenClaimDoesNotExist_ShouldReturnEmptyString()
     {
         // Arrange
@@ -115,10 +115,10 @@ public class ClaimExtensionsTests
         var result = claims.GetDiscordName();
 
         // Assert
-        Assert.That(result, Is.EqualTo(string.Empty));
+        result.ShouldBe(string.Empty);
     }
 
-    [Test]
+    [Fact]
     public void GetDiscordName_WhenListIsEmpty_ShouldReturnEmptyString()
     {
         // Arrange
@@ -128,11 +128,12 @@ public class ClaimExtensionsTests
         var result = claims.GetDiscordName();
 
         // Assert
-        Assert.That(result, Is.EqualTo(string.Empty));
+        result.ShouldBe(string.Empty);
     }
 
-    [TestIsNullOrEmptyString]
-    public void GetDiscordName_WithNullOrEmptyClaimValue_ShouldReturnValue(string claimValue)
+    [Theory]
+    [MemberData(nameof(NullOrEmptyStringData.Values), MemberType = typeof(NullOrEmptyStringData))]
+    public void GetDiscordName_WithNullOrEmptyClaimValue_ShouldReturnValue(string? claimValue)
     {
         // Arrange - Claim constructor doesn't accept null, so skip creating claim for null case
         var claims = new List<Claim>();
@@ -143,10 +144,10 @@ public class ClaimExtensionsTests
         var result = claims.GetDiscordName();
 
         // Assert
-        Assert.That(result, Is.EqualTo(claimValue ?? string.Empty));
+        result.ShouldBe(claimValue ?? string.Empty);
     }
 
-    [Test]
+    [Fact]
     public void GetDiscordName_WithMultipleClaims_ShouldReturnCorrectValue()
     {
         // Arrange
@@ -161,10 +162,10 @@ public class ClaimExtensionsTests
         var result = claims.GetDiscordName();
 
         // Assert
-        Assert.That(result, Is.EqualTo("JohnDoe"));
+        result.ShouldBe("JohnDoe");
     }
 
-    [Test]
+    [Fact]
     public void GetDiscordAvatar_WhenClaimExists_ShouldReturnValue()
     {
         // Arrange
@@ -177,10 +178,10 @@ public class ClaimExtensionsTests
         var result = claims.GetDiscordAvatar();
 
         // Assert
-        Assert.That(result, Is.EqualTo("https://cdn.discordapp.com/avatars/123/abc.png"));
+        result.ShouldBe("https://cdn.discordapp.com/avatars/123/abc.png");
     }
 
-    [Test]
+    [Fact]
     public void GetDiscordAvatar_WhenClaimDoesNotExist_ShouldReturnEmptyString()
     {
         // Arrange
@@ -193,10 +194,10 @@ public class ClaimExtensionsTests
         var result = claims.GetDiscordAvatar();
 
         // Assert
-        Assert.That(result, Is.EqualTo(string.Empty));
+        result.ShouldBe(string.Empty);
     }
 
-    [Test]
+    [Fact]
     public void GetDiscordAvatar_WhenListIsEmpty_ShouldReturnEmptyString()
     {
         // Arrange
@@ -206,11 +207,12 @@ public class ClaimExtensionsTests
         var result = claims.GetDiscordAvatar();
 
         // Assert
-        Assert.That(result, Is.EqualTo(string.Empty));
+        result.ShouldBe(string.Empty);
     }
 
-    [TestIsNullOrEmptyString]
-    public void GetDiscordAvatar_WithNullOrEmptyClaimValue_ShouldReturnValue(string claimValue)
+    [Theory]
+    [MemberData(nameof(NullOrEmptyStringData.Values), MemberType = typeof(NullOrEmptyStringData))]
+    public void GetDiscordAvatar_WithNullOrEmptyClaimValue_ShouldReturnValue(string? claimValue)
     {
         // Arrange - Claim constructor doesn't accept null, so skip creating claim for null case
         var claims = new List<Claim>();
@@ -221,10 +223,10 @@ public class ClaimExtensionsTests
         var result = claims.GetDiscordAvatar();
 
         // Assert
-        Assert.That(result, Is.EqualTo(claimValue ?? string.Empty));
+        result.ShouldBe(claimValue ?? string.Empty);
     }
 
-    [Test]
+    [Fact]
     public void GetDiscordAvatar_WithMultipleClaims_ShouldReturnCorrectValue()
     {
         // Arrange
@@ -239,21 +241,21 @@ public class ClaimExtensionsTests
         var result = claims.GetDiscordAvatar();
 
         // Assert
-        Assert.That(result, Is.EqualTo("https://cdn.discordapp.com/avatars/123/abc.png"));
+        result.ShouldBe("https://cdn.discordapp.com/avatars/123/abc.png");
     }
 
-    [Test]
+    [Fact]
     public void ClaimTypeConstants_ShouldHaveCorrectValues()
     {
         // Assert
-        Assert.That(ClaimExtensions.DiscordIdClaimType,
-            Is.EqualTo("http://schemas.xmlsoap.org/ws/2005/05/identity/claims/nameidentifier"));
-        Assert.That(ClaimExtensions.DiscordNameClaimType,
-            Is.EqualTo("http://schemas.xmlsoap.org/ws/2005/05/identity/claims/name"));
-        Assert.That(ClaimExtensions.DiscordAvatarClaimType, Is.EqualTo("urn:discord:avatar:url"));
+        ClaimExtensions.DiscordIdClaimType
+            .ShouldBe("http://schemas.xmlsoap.org/ws/2005/05/identity/claims/nameidentifier");
+        ClaimExtensions.DiscordNameClaimType
+            .ShouldBe("http://schemas.xmlsoap.org/ws/2005/05/identity/claims/name");
+        ClaimExtensions.DiscordAvatarClaimType.ShouldBe("urn:discord:avatar:url");
     }
 
-    [Test]
+    [Fact]
     public void GetDiscordId_WithDuplicateClaims_ShouldReturnFirstMatch()
     {
         // Arrange
@@ -267,10 +269,10 @@ public class ClaimExtensionsTests
         var result = claims.GetDiscordId();
 
         // Assert
-        Assert.That(result, Is.EqualTo("111111111"));
+        result.ShouldBe("111111111");
     }
 
-    [Test]
+    [Fact]
     public void GetDiscordName_WithDuplicateClaims_ShouldReturnFirstMatch()
     {
         // Arrange
@@ -284,10 +286,10 @@ public class ClaimExtensionsTests
         var result = claims.GetDiscordName();
 
         // Assert
-        Assert.That(result, Is.EqualTo("FirstName"));
+        result.ShouldBe("FirstName");
     }
 
-    [Test]
+    [Fact]
     public void GetDiscordAvatar_WithDuplicateClaims_ShouldReturnFirstMatch()
     {
         // Arrange
@@ -301,10 +303,10 @@ public class ClaimExtensionsTests
         var result = claims.GetDiscordAvatar();
 
         // Assert
-        Assert.That(result, Is.EqualTo("avatar1.png"));
+        result.ShouldBe("avatar1.png");
     }
 
-    [Test]
+    [Fact]
     public void GetAllMethods_WithCompleteClaimSet_ShouldReturnAllValues()
     {
         // Arrange
@@ -321,12 +323,12 @@ public class ClaimExtensionsTests
         var discordAvatar = claims.GetDiscordAvatar();
 
         // Assert
-        Assert.That(discordId, Is.EqualTo("123456789"));
-        Assert.That(discordName, Is.EqualTo("TestUser"));
-        Assert.That(discordAvatar, Is.EqualTo("https://cdn.discordapp.com/avatars/123/abc.png"));
+        discordId.ShouldBe("123456789");
+        discordName.ShouldBe("TestUser");
+        discordAvatar.ShouldBe("https://cdn.discordapp.com/avatars/123/abc.png");
     }
 
-    [Test]
+    [Fact]
     public void GetAllMethods_WithNoMatchingClaims_ShouldReturnEmptyStrings()
     {
         // Arrange
@@ -342,12 +344,12 @@ public class ClaimExtensionsTests
         var discordAvatar = claims.GetDiscordAvatar();
 
         // Assert
-        Assert.That(discordId, Is.EqualTo(string.Empty));
-        Assert.That(discordName, Is.EqualTo(string.Empty));
-        Assert.That(discordAvatar, Is.EqualTo(string.Empty));
+        discordId.ShouldBe(string.Empty);
+        discordName.ShouldBe(string.Empty);
+        discordAvatar.ShouldBe(string.Empty);
     }
 
-    [Test]
+    [Fact]
     public void GetDiscordId_WithSpecialCharactersInValue_ShouldReturnValue()
     {
         // Arrange
@@ -360,10 +362,10 @@ public class ClaimExtensionsTests
         var result = claims.GetDiscordId();
 
         // Assert
-        Assert.That(result, Is.EqualTo("123-456-789_abc@xyz"));
+        result.ShouldBe("123-456-789_abc@xyz");
     }
 
-    [Test]
+    [Fact]
     public void GetDiscordName_WithSpecialCharactersInValue_ShouldReturnValue()
     {
         // Arrange
@@ -376,10 +378,10 @@ public class ClaimExtensionsTests
         var result = claims.GetDiscordName();
 
         // Assert
-        Assert.That(result, Is.EqualTo("User#1234"));
+        result.ShouldBe("User#1234");
     }
 
-    [Test]
+    [Fact]
     public void GetDiscordAvatar_WithGifAvatar_ShouldReturnValue()
     {
         // Arrange
@@ -392,6 +394,6 @@ public class ClaimExtensionsTests
         var result = claims.GetDiscordAvatar();
 
         // Assert
-        Assert.That(result, Is.EqualTo("https://cdn.discordapp.com/avatars/123/a_abc.gif"));
+        result.ShouldBe("https://cdn.discordapp.com/avatars/123/a_abc.gif");
     }
 }

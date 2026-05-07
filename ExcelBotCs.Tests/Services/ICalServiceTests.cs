@@ -1,12 +1,11 @@
 using ExcelBotCs.Models.Database;
 using ExcelBotCs.Services;
-using ExcelBotCs.TestFramework.Attributes;
+using ExcelBotCs.TestFramework.TestData;
 using Ical.Net;
 using Ical.Net.Serialization;
 
 namespace ExcelBotCs.Tests.Services;
 
-[TestFixture]
 public class ICalServiceTests
 {
     private readonly IICalService _iCalService;
@@ -16,21 +15,22 @@ public class ICalServiceTests
         _iCalService = new ICalService();
     }
 
-    [TestIsNullOrEmptyString]
-    public void IsRecurringEvent_ICalIsEmpty_ReturnsFalse(string ical)
+    [Theory]
+    [MemberData(nameof(NullOrEmptyStringData.Values), MemberType = typeof(NullOrEmptyStringData))]
+    public void IsRecurringEvent_ICalIsEmpty_ReturnsFalse(string? ical)
     {
-        Assert.That(() => _iCalService.IsRecurringEvent(ical), Is.False);
+        _iCalService.IsRecurringEvent(ical).ShouldBeFalse();
     }
 
-    // [Test]
+    // [Fact]
     public void IsRecurringEvent_InvalidIcal_ReturnsFalse()
     {
         var ical = "I'm invalid";
 
-        Assert.That(() => _iCalService.IsRecurringEvent(ical), Is.False);
+        _iCalService.IsRecurringEvent(ical).ShouldBeFalse();
     }
 
-    [Test]
+    [Fact]
     public void IsRecurringEvent_ICalContainsNoEvent_ReturnsFalse()
     {
         var calendar = new Calendar();
@@ -38,10 +38,10 @@ public class ICalServiceTests
         var serializer = new CalendarSerializer();
         var ical = serializer.SerializeToString(calendar);
 
-        Assert.That(() => _iCalService.IsRecurringEvent(ical), Is.False);
+        _iCalService.IsRecurringEvent(ical).ShouldBeFalse();
     }
 
-    [Test]
+    [Fact]
     public void IsRecurringEvent_EventIsNotRecurring_ReturnsFalse()
     {
         var sut = new Event
@@ -53,13 +53,14 @@ public class ICalServiceTests
 
         var ical = _iCalService.GenerateICalString(sut);
 
-        Assert.That(() => _iCalService.IsRecurringEvent(ical), Is.False);
+        _iCalService.IsRecurringEvent(ical).ShouldBeFalse();
     }
 
 
-    [TestIsNullOrEmptyString]
-    public void IsRecurringEnding_ICalIsEmpty_ReturnsFalse(string ical)
+    [Theory]
+    [MemberData(nameof(NullOrEmptyStringData.Values), MemberType = typeof(NullOrEmptyStringData))]
+    public void IsRecurringEnding_ICalIsEmpty_ReturnsFalse(string? ical)
     {
-        Assert.That(() => _iCalService.IsRecurrenceEnding(ical), Is.False);
+        _iCalService.IsRecurrenceEnding(ical).ShouldBeFalse();
     }
 }

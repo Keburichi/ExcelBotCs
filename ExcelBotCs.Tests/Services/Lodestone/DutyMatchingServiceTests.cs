@@ -5,14 +5,12 @@ using Moq;
 
 namespace ExcelBotCs.Tests.Services.Lodestone;
 
-[TestFixture]
 public class DutyMatchingServiceTests
 {
-    private DutyMatchingService _service;
-    private Mock<ILogger<DutyMatchingService>> _loggerMock;
+    private readonly DutyMatchingService _service;
+    private readonly Mock<ILogger<DutyMatchingService>> _loggerMock;
 
-    [SetUp]
-    public void SetUp()
+    public DutyMatchingServiceTests()
     {
         _loggerMock = new Mock<ILogger<DutyMatchingService>>();
         _service = new DutyMatchingService(_loggerMock.Object);
@@ -20,7 +18,7 @@ public class DutyMatchingServiceTests
 
     #region NormalizeName Tests
 
-    [Test]
+    [Fact]
     public void NormalizeName_RemovesExtremeSuffix()
     {
         // Arrange
@@ -30,10 +28,10 @@ public class DutyMatchingServiceTests
         var result = _service.NormalizeName(name);
 
         // Assert
-        Assert.That(result, Is.EqualTo("titan"));
+        result.ShouldBe("titan");
     }
 
-    [Test]
+    [Fact]
     public void NormalizeName_RemovesSavageSuffix()
     {
         // Arrange
@@ -43,10 +41,10 @@ public class DutyMatchingServiceTests
         var result = _service.NormalizeName(name);
 
         // Assert
-        Assert.That(result, Is.EqualTo("m1s"));
+        result.ShouldBe("m1s");
     }
 
-    [Test]
+    [Fact]
     public void NormalizeName_RemovesUltimateSuffix()
     {
         // Arrange
@@ -56,10 +54,10 @@ public class DutyMatchingServiceTests
         var result = _service.NormalizeName(name);
 
         // Assert
-        Assert.That(result, Is.EqualTo("the weapon's refrain"));
+        result.ShouldBe("the weapon's refrain");
     }
 
-    [Test]
+    [Fact]
     public void NormalizeName_RemovesChaoticSuffix()
     {
         // Arrange
@@ -69,34 +67,34 @@ public class DutyMatchingServiceTests
         var result = _service.NormalizeName(name);
 
         // Assert
-        Assert.That(result, Is.EqualTo("cloud of darkness"));
+        result.ShouldBe("cloud of darkness");
     }
 
-    [Test]
+    [Fact]
     public void NormalizeName_HandlesNullInput()
     {
         // Act
         var result = _service.NormalizeName(null);
 
         // Assert
-        Assert.That(result, Is.EqualTo(string.Empty));
+        result.ShouldBe(string.Empty);
     }
 
-    [Test]
+    [Fact]
     public void NormalizeName_HandlesEmptyString()
     {
         // Act
         var result = _service.NormalizeName("");
 
         // Assert
-        Assert.That(result, Is.EqualTo(string.Empty));
+        result.ShouldBe(string.Empty);
     }
 
     #endregion
 
     #region ExtractSignificantWords Tests
 
-    [Test]
+    [Fact]
     public void ExtractSignificantWords_FiltersStopWords()
     {
         // Arrange
@@ -106,16 +104,16 @@ public class DutyMatchingServiceTests
         var result = _service.ExtractSignificantWords(text);
 
         // Assert (case-insensitive comparison since the method preserves original case)
-        Assert.That(result, Does.Contain("Binding").IgnoreCase);
-        Assert.That(result, Does.Contain("Coil").IgnoreCase);
-        Assert.That(result, Does.Contain("Bahamut").IgnoreCase);
-        Assert.That(result, Does.Not.Contain("The").IgnoreCase);
-        Assert.That(result, Does.Not.Contain("of").IgnoreCase);
-        Assert.That(result, Does.Not.Contain("Savage").IgnoreCase);
-        Assert.That(result, Does.Not.Contain("Turn").IgnoreCase);
+        result.ShouldContain(s => s.Equals("Binding", StringComparison.OrdinalIgnoreCase));
+        result.ShouldContain(s => s.Equals("Coil", StringComparison.OrdinalIgnoreCase));
+        result.ShouldContain(s => s.Equals("Bahamut", StringComparison.OrdinalIgnoreCase));
+        result.ShouldNotContain(s => s.Equals("The", StringComparison.OrdinalIgnoreCase));
+        result.ShouldNotContain(s => s.Equals("of", StringComparison.OrdinalIgnoreCase));
+        result.ShouldNotContain(s => s.Equals("Savage", StringComparison.OrdinalIgnoreCase));
+        result.ShouldNotContain(s => s.Equals("Turn", StringComparison.OrdinalIgnoreCase));
     }
 
-    [Test]
+    [Fact]
     public void ExtractSignificantWords_FiltersShortWords()
     {
         // Arrange
@@ -125,32 +123,32 @@ public class DutyMatchingServiceTests
         var result = _service.ExtractSignificantWords(text);
 
         // Assert
-        Assert.That(result, Does.Not.Contain("of")); // Too short
-        Assert.That(result, Does.Contain("M1S").IgnoreCase);
-        Assert.That(result, Does.Contain("Heavens").IgnoreCase);
+        result.ShouldNotContain(s => s.Equals("of", StringComparison.OrdinalIgnoreCase));
+        result.ShouldContain(s => s.Equals("M1S", StringComparison.OrdinalIgnoreCase));
+        result.ShouldContain(s => s.Equals("Heavens", StringComparison.OrdinalIgnoreCase));
     }
 
-    [Test]
+    [Fact]
     public void ExtractSignificantWords_HandlesNullInput()
     {
         // Act
         var result = _service.ExtractSignificantWords(null);
 
         // Assert
-        Assert.That(result, Is.Empty);
+        result.ShouldBeEmpty();
     }
 
-    [Test]
+    [Fact]
     public void ExtractSignificantWords_HandlesEmptyString()
     {
         // Act
         var result = _service.ExtractSignificantWords("");
 
         // Assert
-        Assert.That(result, Is.Empty);
+        result.ShouldBeEmpty();
     }
 
-    [Test]
+    [Fact]
     public void ExtractSignificantWords_SplitsOnMultipleDelimiters()
     {
         // Arrange
@@ -160,17 +158,17 @@ public class DutyMatchingServiceTests
         var result = _service.ExtractSignificantWords(text);
 
         // Assert
-        Assert.That(result, Does.Contain("Eden's").IgnoreCase);
-        Assert.That(result, Does.Not.Contain("Gate").IgnoreCase); // "Gate" is a stopword
-        Assert.That(result, Does.Contain("Resurrection").IgnoreCase);
-        Assert.That(result, Does.Not.Contain("Savage").IgnoreCase); // "Savage" is also a stopword
+        result.ShouldContain(s => s.Equals("Eden's", StringComparison.OrdinalIgnoreCase));
+        result.ShouldNotContain(s => s.Equals("Gate", StringComparison.OrdinalIgnoreCase));
+        result.ShouldContain(s => s.Equals("Resurrection", StringComparison.OrdinalIgnoreCase));
+        result.ShouldNotContain(s => s.Equals("Savage", StringComparison.OrdinalIgnoreCase));
     }
 
     #endregion
 
     #region FindBestMatch Tests
 
-    [Test]
+    [Fact]
     public void FindBestMatch_ExactMatch_WithinExpansion()
     {
         // Arrange
@@ -190,11 +188,11 @@ public class DutyMatchingServiceTests
         var result = _service.FindBestMatch(fight, duties);
 
         // Assert
-        Assert.That(result, Is.Not.Null);
-        Assert.That(result!.Name, Is.EqualTo("Abyssos: The Eighth Circle (Savage)"));
+        result.ShouldNotBeNull();
+        result!.Name.ShouldBe("Abyssos: The Eighth Circle (Savage)");
     }
 
-    [Test]
+    [Fact]
     public void FindBestMatch_ExactMatch_OutsideExpansionWarning()
     {
         // Arrange
@@ -214,12 +212,12 @@ public class DutyMatchingServiceTests
         var result = _service.FindBestMatch(fight, duties);
 
         // Assert
-        Assert.That(result, Is.Not.Null);
-        Assert.That(result!.Name, Is.EqualTo("Titan (Extreme)"));
-        Assert.That(result.ExpansionId, Is.EqualTo(0));
+        result.ShouldNotBeNull();
+        result!.Name.ShouldBe("Titan (Extreme)");
+        result.ExpansionId.ShouldBe(0);
     }
 
-    [Test]
+    [Fact]
     public void FindBestMatch_BossNameExactMatch()
     {
         // Arrange
@@ -243,11 +241,11 @@ public class DutyMatchingServiceTests
         var result = _service.FindBestMatch(fight, duties);
 
         // Assert
-        Assert.That(result, Is.Not.Null);
-        Assert.That(result!.Name, Is.EqualTo("Alphascape V4.0 (Savage)"));
+        result.ShouldNotBeNull();
+        result!.Name.ShouldBe("Alphascape V4.0 (Savage)");
     }
 
-    [Test]
+    [Fact]
     public void FindBestMatch_ContainsMatch_WithMinLength()
     {
         // Arrange
@@ -267,11 +265,11 @@ public class DutyMatchingServiceTests
         var result = _service.FindBestMatch(fight, duties);
 
         // Assert
-        Assert.That(result, Is.Not.Null);
-        Assert.That(result!.Name, Does.Contain("Abyssos"));
+        result.ShouldNotBeNull();
+        result!.Name.ShouldContain("Abyssos");
     }
 
-    [Test]
+    [Fact]
     public void FindBestMatch_PreventsShortSubstringMatch()
     {
         // Arrange - This should NOT match because "Titan" is too short and could match "Titania"
@@ -290,10 +288,10 @@ public class DutyMatchingServiceTests
         var result = _service.FindBestMatch(fight, duties);
 
         // Assert
-        Assert.That(result, Is.Null); // Should not match because it's below 4 char minimum
+        result.ShouldBeNull(); // Should not match because it's below 4 char minimum
     }
 
-    [Test]
+    [Fact]
     public void FindBestMatch_BossNamePartialMatch()
     {
         // Arrange - Use a boss name that doesn't appear in the duty name
@@ -323,12 +321,12 @@ public class DutyMatchingServiceTests
         var result = _service.FindBestMatch(fight, duties);
 
         // Assert
-        Assert.That(result, Is.Not.Null);
-        Assert.That(result!.Name, Is.EqualTo("The Binding Coil of Bahamut - Turn 5"));
-        Assert.That(result.BossNames, Does.Contain("Twintania"));
+        result.ShouldNotBeNull();
+        result!.Name.ShouldBe("The Binding Coil of Bahamut - Turn 5");
+        result.BossNames.ShouldContain("Twintania");
     }
 
-    [Test]
+    [Fact]
     public void FindBestMatch_WordBasedMatching()
     {
         // Arrange
@@ -348,11 +346,11 @@ public class DutyMatchingServiceTests
         var result = _service.FindBestMatch(fight, duties);
 
         // Assert
-        Assert.That(result, Is.Not.Null);
-        Assert.That(result!.Name, Does.Contain("Resurrection"));
+        result.ShouldNotBeNull();
+        result!.Name.ShouldContain("Resurrection");
     }
 
-    [Test]
+    [Fact]
     public void FindBestMatch_NoMatch_ReturnsNull()
     {
         // Arrange
@@ -371,10 +369,10 @@ public class DutyMatchingServiceTests
         var result = _service.FindBestMatch(fight, duties);
 
         // Assert
-        Assert.That(result, Is.Null);
+        result.ShouldBeNull();
     }
 
-    [Test]
+    [Fact]
     public void FindBestMatch_PrioritizesExpansionFilter()
     {
         // Arrange - Two duties with same name in different expansions
@@ -394,12 +392,12 @@ public class DutyMatchingServiceTests
         var result = _service.FindBestMatch(fight, duties);
 
         // Assert
-        Assert.That(result, Is.Not.Null);
-        Assert.That(result!.LodestoneId, Is.EqualTo("correct"));
-        Assert.That(result.ExpansionId, Is.EqualTo(0));
+        result.ShouldNotBeNull();
+        result!.LodestoneId.ShouldBe("correct");
+        result.ExpansionId.ShouldBe(0);
     }
 
-    [Test]
+    [Fact]
     public void FindBestMatch_WithoutExpansionId_SearchesAllExpansions()
     {
         // Arrange
@@ -419,11 +417,11 @@ public class DutyMatchingServiceTests
         var result = _service.FindBestMatch(fight, duties);
 
         // Assert
-        Assert.That(result, Is.Not.Null);
-        Assert.That(result!.Name, Is.EqualTo("Titan (Extreme)"));
+        result.ShouldNotBeNull();
+        result!.Name.ShouldBe("Titan (Extreme)");
     }
 
-    [Test]
+    [Fact]
     public void FindBestMatch_TitanVsTitania_DoesNotCrossMatch()
     {
         // Arrange - This is the key edge case from the original issue
@@ -443,9 +441,9 @@ public class DutyMatchingServiceTests
         var result = _service.FindBestMatch(titanFight, duties);
 
         // Assert
-        Assert.That(result, Is.Not.Null);
-        Assert.That(result!.Name, Does.Contain("Titan"));
-        Assert.That(result.Name, Does.Not.Contain("Titania"));
+        result.ShouldNotBeNull();
+        result!.Name.ShouldContain("Titan");
+        result.Name.ShouldNotContain("Titania");
     }
 
     #endregion

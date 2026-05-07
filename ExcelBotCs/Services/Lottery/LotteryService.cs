@@ -61,6 +61,10 @@ public class LotteryService : ILotteryService
         if (await Task.WhenAny(task, Task.Delay(TimeSpan.FromSeconds(5), cts.Token)) == task)
         {
             await cts.CancelAsync();
+
+            if (task.IsCanceled)
+                return new RandomGuessTimeoutResponse();
+
             var result = await task;
 
             if (result is SuccessGuessResponse success)
@@ -317,8 +321,7 @@ public class LotteryService : ILotteryService
 
         while (true)
         {
-            if (ctx.IsCancellationRequested)
-                return new AlreadyGuessedNumberGuessResponse(0);
+            ctx.ThrowIfCancellationRequested();
 
             var randomNumber = _rng.Pick(numberPool).First();
             var result = await TryGuess(discordUserId, randomNumber);

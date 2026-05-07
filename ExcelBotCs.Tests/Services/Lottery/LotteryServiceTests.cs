@@ -15,7 +15,7 @@ using Moq;
 
 namespace ExcelBotCs.Tests.Services.Lottery;
 
-[TestFixture]
+[Collection("MongoDB")]
 public class LotteryServiceTests : MongoDbTest
 {
     private ILotteryGuessRepository _lotteryGuessRepository = null!;
@@ -25,6 +25,10 @@ public class LotteryServiceTests : MongoDbTest
     private Mock<IMemberService> _memberService = null!;
     private Mock<IDiscordMessageService> _discordMessageService = null!;
 
+    public LotteryServiceTests(MongoDbFixture fixture) : base(fixture)
+    {
+    }
+
     protected override void InitializeRepository(IMongoClient mongoClient, IOptions<DatabaseOptions> databaseOptions)
     {
         _lotteryGuessRepository = new LotteryGuessRepository(mongoClient, databaseOptions);
@@ -32,8 +36,7 @@ public class LotteryServiceTests : MongoDbTest
         _lotteryResultRepository = new LotteryResultRepository(mongoClient, databaseOptions);
     }
 
-    [SetUp]
-    public void Setup()
+    protected override Task OnAfterInitializeAsync()
     {
         var rng = new Prng();
         _memberService = new Mock<IMemberService>();
@@ -41,17 +44,19 @@ public class LotteryServiceTests : MongoDbTest
 
         _lotteryService = new LotteryService(rng, _lotteryGuessRepository, _extraLotteryGuessRepository,
             _lotteryResultRepository, _memberService.Object, _discordMessageService.Object);
+
+        return Task.CompletedTask;
     }
 
-    [TearDown]
-    public void Teardown()
+    protected override Task BeforeTearDownAsync()
     {
         _discordMessageService.VerifyAll();
+        return Task.CompletedTask;
     }
 
     #region GuessAsync Tests
 
-    [Test]
+    [Fact]
     public async Task GuessAsync_UserDoesntExist()
     {
         var userId = Convert.ToUInt64(GenerateRandomDiscordId());
@@ -59,10 +64,10 @@ public class LotteryServiceTests : MongoDbTest
 
         var result = await _lotteryService.GuessAsync(userId, 3);
 
-        Assert.That(result.GetType(), Is.EqualTo(typeof(NotFcMemberGuessResponse)));
+        result.ShouldBeOfType<NotFcMemberGuessResponse>();
     }
 
-    [Test]
+    [Fact]
     public async Task GuessAsync_NotFcMember()
     {
         var userId = Convert.ToUInt64(GenerateRandomDiscordId());
@@ -76,10 +81,10 @@ public class LotteryServiceTests : MongoDbTest
         _memberService.Setup(x => x.GetByDiscordId(Convert.ToUInt64(userId))).ReturnsAsync(user);
 
         var result = await _lotteryService.GuessAsync(userId, 3);
-        Assert.That(result.GetType(), Is.EqualTo(typeof(NotFcMemberGuessResponse)));
+        result.ShouldBeOfType<NotFcMemberGuessResponse>();
     }
 
-    [Test]
+    [Fact]
     public async Task GuessAsync_GuessOutOfRange()
     {
         var userId = Convert.ToUInt64(GenerateRandomDiscordId());
@@ -94,10 +99,10 @@ public class LotteryServiceTests : MongoDbTest
         _memberService.Setup(x => x.GetByDiscordId(Convert.ToUInt64(userId))).ReturnsAsync(user);
 
         var result = await _lotteryService.GuessAsync(userId, 1000);
-        Assert.That(result.GetType(), Is.EqualTo(typeof(OutOfRangeGuessResponse)));
+        result.ShouldBeOfType<OutOfRangeGuessResponse>();
     }
 
-    [Test]
+    [Fact]
     public async Task GuessAsync_AlreadyGuessedNumber()
     {
         var userId = Convert.ToUInt64(GenerateRandomDiscordId());
@@ -112,13 +117,13 @@ public class LotteryServiceTests : MongoDbTest
         _memberService.Setup(x => x.GetByDiscordId(Convert.ToUInt64(userId))).ReturnsAsync(user);
 
         var initialGuess = await _lotteryService.GuessAsync(userId, 3);
-        Assert.That(initialGuess.GetType(), Is.EqualTo(typeof(SuccessGuessResponse)));
+        initialGuess.ShouldBeOfType<SuccessGuessResponse>();
 
         var result = await _lotteryService.GuessAsync(userId, 3);
-        Assert.That(result.GetType(), Is.EqualTo(typeof(AlreadyGuessedNumberGuessResponse)));
+        result.ShouldBeOfType<AlreadyGuessedNumberGuessResponse>();
     }
 
-    [Test]
+    [Fact]
     public async Task GuessAsync_NoMoreGuesses()
     {
         var userId = Convert.ToUInt64(GenerateRandomDiscordId());
@@ -133,13 +138,13 @@ public class LotteryServiceTests : MongoDbTest
         _memberService.Setup(x => x.GetByDiscordId(Convert.ToUInt64(userId))).ReturnsAsync(user);
 
         var initialGuess = await _lotteryService.GuessAsync(userId, 3);
-        Assert.That(initialGuess.GetType(), Is.EqualTo(typeof(SuccessGuessResponse)));
+        initialGuess.ShouldBeOfType<SuccessGuessResponse>();
 
         var result = await _lotteryService.GuessAsync(userId, 4);
-        Assert.That(result.GetType(), Is.EqualTo(typeof(NoMoreGuessesGuessResponse)));
+        result.ShouldBeOfType<NoMoreGuessesGuessResponse>();
     }
 
-    [Test]
+    [Fact]
     public async Task GuessAsync_Success()
     {
         var userId = Convert.ToUInt64(GenerateRandomDiscordId());
@@ -154,7 +159,7 @@ public class LotteryServiceTests : MongoDbTest
         _memberService.Setup(x => x.GetByDiscordId(Convert.ToUInt64(userId))).ReturnsAsync(user);
 
         var initialGuess = await _lotteryService.GuessAsync(userId, 3);
-        Assert.That(initialGuess.GetType(), Is.EqualTo(typeof(SuccessGuessResponse)));
+        initialGuess.ShouldBeOfType<SuccessGuessResponse>();
 
         _discordMessageService.Verify(x => x.PostInLotteryChannelAsync(It.IsAny<string>()), Times.Once);
     }
@@ -163,16 +168,16 @@ public class LotteryServiceTests : MongoDbTest
 
     #region GetUnusedNumbersAsync Tests
 
-    [Test]
+    [Fact]
     public async Task GetUnusedNumbersAsync_NoUsedNumbers()
     {
         var result = await _lotteryService.GetUnusedNumbersAsync();
 
-        Assert.That(result.UnusedNumbers.Count, Is.EqualTo(99));
-        Assert.That(result.UsedNumbers.Count, Is.EqualTo(0));
+        result.UnusedNumbers.Count.ShouldBe(99);
+        result.UsedNumbers.Count.ShouldBe(0);
     }
 
-    [Test]
+    [Fact]
     public async Task GetUnusedNumbersAsync_GuessNumberNotPresent()
     {
         var userId = Convert.ToUInt64(GenerateRandomDiscordId());
@@ -189,12 +194,12 @@ public class LotteryServiceTests : MongoDbTest
 
         var result = await _lotteryService.GetUnusedNumbersAsync();
 
-        Assert.That(result.UnusedNumbers.Count, Is.EqualTo(98));
-        Assert.That(result.UsedNumbers.Count, Is.EqualTo(1));
-        Assert.That(result.UsedNumbers.First(), Is.EqualTo(3));
+        result.UnusedNumbers.Count.ShouldBe(98);
+        result.UsedNumbers.Count.ShouldBe(1);
+        result.UsedNumbers.First().ShouldBe(3);
     }
 
-    [Test]
+    [Fact]
     public async Task GetUnusedNumbersAsync_NoUnusedNumbers()
     {
         var userId = Convert.ToUInt64(GenerateRandomDiscordId());
@@ -210,22 +215,22 @@ public class LotteryServiceTests : MongoDbTest
         for (var i = 1; i <= 99; i++)
         {
             var guessResult = await _lotteryService.GuessAsync(userId, i);
-            Assert.That(guessResult.GetType(), Is.EqualTo(typeof(SuccessGuessResponse)));
+            guessResult.ShouldBeOfType<SuccessGuessResponse>();
 
             await _lotteryService.AwardUsersAsync(new SuccessAwardResponse([userId], "", "testing"));
         }
 
         var result = await _lotteryService.GetUnusedNumbersAsync();
 
-        Assert.That(result.UnusedNumbers.Count, Is.EqualTo(0));
-        Assert.That(result.UsedNumbers.Count, Is.EqualTo(99));
+        result.UnusedNumbers.Count.ShouldBe(0);
+        result.UsedNumbers.Count.ShouldBe(99);
     }
 
     #endregion
 
     #region RandomGuessAsync Tests
 
-    [Test]
+    [Fact]
     public async Task RandomGuessAsync_TimeoutResponse()
     {
         var userId = Convert.ToUInt64(GenerateRandomDiscordId());
@@ -240,16 +245,16 @@ public class LotteryServiceTests : MongoDbTest
         _memberService.Setup(x => x.GetByDiscordId(userId)).ReturnsAsync(user);
 
         var cts = new CancellationTokenSource();
-        cts.CancelAfter(TimeSpan.FromMilliseconds(1)); // Cancel immediately to trigger timeout
+        cts.Cancel(); // Pre-cancel so Task.Delay(cts.Token) is already done, making WhenAny deterministic
 
         var result = await _lotteryService.RandomGuessAsync(userId, cts);
 
-        Assert.That(result.GetType(), Is.EqualTo(typeof(RandomGuessTimeoutResponse)));
+        result.ShouldBeOfType<RandomGuessTimeoutResponse>();
         // Timeout doesn't post a message
         _discordMessageService.Verify(x => x.PostInLotteryChannelAsync(It.IsAny<string>()), Times.Never);
     }
 
-    [Test]
+    [Fact]
     public async Task RandomGuessAsync_NotFcMember()
     {
         var userId = Convert.ToUInt64(GenerateRandomDiscordId());
@@ -258,12 +263,12 @@ public class LotteryServiceTests : MongoDbTest
         var cts = new CancellationTokenSource();
         var result = await _lotteryService.RandomGuessAsync(userId, cts);
 
-        Assert.That(result.GetType(), Is.EqualTo(typeof(NotFcMemberGuessResponse)));
+        result.ShouldBeOfType<NotFcMemberGuessResponse>();
         // Not FC member response doesn't post a message
         _discordMessageService.Verify(x => x.PostInLotteryChannelAsync(It.IsAny<string>()), Times.Never);
     }
 
-    [Test]
+    [Fact]
     public async Task RandomGuessAsync_Any_Success()
     {
         var userId = Convert.ToUInt64(GenerateRandomDiscordId());
@@ -280,13 +285,14 @@ public class LotteryServiceTests : MongoDbTest
         var cts = new CancellationTokenSource();
         var result = await _lotteryService.RandomGuessAsync(userId, cts, RandomGuessType.Any);
 
-        Assert.That(result.GetType(), Is.EqualTo(typeof(SuccessGuessResponse)));
+        result.ShouldBeOfType<SuccessGuessResponse>();
         var success = (SuccessGuessResponse)result;
-        Assert.That(success.Number, Is.GreaterThanOrEqualTo(0).And.LessThan(100));
+        success.Number.ShouldBeGreaterThanOrEqualTo(0);
+        success.Number.ShouldBeLessThan(100);
         _discordMessageService.Verify(x => x.PostInLotteryChannelAsync(It.IsAny<string>()), Times.Once);
     }
 
-    [Test]
+    [Fact]
     public async Task RandomGuessAsync_UnusedOnly_Success()
     {
         var userId = Convert.ToUInt64(GenerateRandomDiscordId());
@@ -303,13 +309,14 @@ public class LotteryServiceTests : MongoDbTest
         var cts = new CancellationTokenSource();
         var result = await _lotteryService.RandomGuessAsync(userId, cts);
 
-        Assert.That(result.GetType(), Is.EqualTo(typeof(SuccessGuessResponse)));
+        result.ShouldBeOfType<SuccessGuessResponse>();
         var success = (SuccessGuessResponse)result;
-        Assert.That(success.Number, Is.GreaterThanOrEqualTo(1).And.LessThanOrEqualTo(99));
+        success.Number.ShouldBeGreaterThanOrEqualTo(1);
+        success.Number.ShouldBeLessThanOrEqualTo(99);
         _discordMessageService.Verify(x => x.PostInLotteryChannelAsync(It.IsAny<string>()), Times.Once);
     }
 
-    [Test]
+    [Fact]
     public async Task RandomGuessAsync_UsedOnly_AlreadyUsedAllGuesses()
     {
         var userId = Convert.ToUInt64(GenerateRandomDiscordId());
@@ -331,10 +338,10 @@ public class LotteryServiceTests : MongoDbTest
         // it keeps trying the same number and times out
         var result = await _lotteryService.RandomGuessAsync(userId, cts, RandomGuessType.UsedOnly);
 
-        Assert.That(result.GetType(), Is.EqualTo(typeof(RandomGuessTimeoutResponse)));
+        result.ShouldBeOfType<RandomGuessTimeoutResponse>();
     }
 
-    [Test]
+    [Fact]
     public async Task RandomGuessAsync_UsedOnly_NoUsedNumbers()
     {
         var userId = Convert.ToUInt64(GenerateRandomDiscordId());
@@ -351,14 +358,14 @@ public class LotteryServiceTests : MongoDbTest
         var cts = new CancellationTokenSource();
         var result = await _lotteryService.RandomGuessAsync(userId, cts, RandomGuessType.UsedOnly);
 
-        Assert.That(result.GetType(), Is.EqualTo(typeof(OutOfRangeGuessResponse)));
+        result.ShouldBeOfType<OutOfRangeGuessResponse>();
     }
 
     #endregion
 
     #region ChangeGuessAsync Tests
 
-    [Test]
+    [Fact]
     public async Task ChangeGuessAsync_NotFcMember()
     {
         var userId = Convert.ToUInt64(GenerateRandomDiscordId());
@@ -366,10 +373,10 @@ public class LotteryServiceTests : MongoDbTest
 
         var result = await _lotteryService.ChangeGuessAsync(userId, 3, 5);
 
-        Assert.That(result.GetType(), Is.EqualTo(typeof(NotFcMemberGuessResponse)));
+        result.ShouldBeOfType<NotFcMemberGuessResponse>();
     }
 
-    [Test]
+    [Fact]
     public async Task ChangeGuessAsync_OutOfRange()
     {
         var userId = Convert.ToUInt64(GenerateRandomDiscordId());
@@ -385,10 +392,10 @@ public class LotteryServiceTests : MongoDbTest
 
         var result = await _lotteryService.ChangeGuessAsync(userId, 3, 1000);
 
-        Assert.That(result.GetType(), Is.EqualTo(typeof(OutOfRangeGuessResponse)));
+        result.ShouldBeOfType<OutOfRangeGuessResponse>();
     }
 
-    [Test]
+    [Fact]
     public async Task ChangeGuessAsync_OldNumberNotGuessed()
     {
         var userId = Convert.ToUInt64(GenerateRandomDiscordId());
@@ -404,10 +411,10 @@ public class LotteryServiceTests : MongoDbTest
 
         var result = await _lotteryService.ChangeGuessAsync(userId, 3, 5);
 
-        Assert.That(result.GetType(), Is.EqualTo(typeof(NotCurrentGuessedNumberGuessResponse)));
+        result.ShouldBeOfType<NotCurrentGuessedNumberGuessResponse>();
     }
 
-    [Test]
+    [Fact]
     public async Task ChangeGuessAsync_NewNumberAlreadyGuessed()
     {
         var userId = Convert.ToUInt64(GenerateRandomDiscordId());
@@ -428,10 +435,10 @@ public class LotteryServiceTests : MongoDbTest
 
         var result = await _lotteryService.ChangeGuessAsync(userId, 3, 5);
 
-        Assert.That(result.GetType(), Is.EqualTo(typeof(AlreadyGuessedNumberGuessResponse)));
+        result.ShouldBeOfType<AlreadyGuessedNumberGuessResponse>();
     }
 
-    [Test]
+    [Fact]
     public async Task ChangeGuessAsync_Success()
     {
         var userId = Convert.ToUInt64(GenerateRandomDiscordId());
@@ -449,11 +456,11 @@ public class LotteryServiceTests : MongoDbTest
 
         var result = await _lotteryService.ChangeGuessAsync(userId, 3, 5);
 
-        Assert.That(result.GetType(), Is.EqualTo(typeof(SuccessGuessResponse)));
+        result.ShouldBeOfType<SuccessGuessResponse>();
         var success = (SuccessGuessResponse)result;
-        Assert.That(success.Number, Is.EqualTo(5));
-        Assert.That(success.CurrentGuesses, Contains.Item(5));
-        Assert.That(success.CurrentGuesses, Does.Not.Contain(3));
+        success.Number.ShouldBe(5);
+        success.CurrentGuesses.ShouldContain(5);
+        success.CurrentGuesses.ShouldNotContain(3);
         _discordMessageService.Verify(x => x.PostInLotteryChannelAsync(It.IsAny<string>()), Times.Exactly(2));
     }
 
@@ -461,16 +468,16 @@ public class LotteryServiceTests : MongoDbTest
 
     #region WhoGuessedAsync Tests
 
-    [Test]
+    [Fact]
     public async Task WhoGuessedAsync_NoGuesses()
     {
         var result = await _lotteryService.WhoGuessedAsync(42);
 
-        Assert.That(result.Number, Is.EqualTo(42));
-        Assert.That(result.Users, Is.Empty);
+        result.Number.ShouldBe(42);
+        result.Users.ShouldBeEmpty();
     }
 
-    [Test]
+    [Fact]
     public async Task WhoGuessedAsync_SingleUser()
     {
         var userId = Convert.ToUInt64(GenerateRandomDiscordId());
@@ -491,13 +498,13 @@ public class LotteryServiceTests : MongoDbTest
 
         var result = await _lotteryService.WhoGuessedAsync(42);
 
-        Assert.That(result.Number, Is.EqualTo(42));
-        Assert.That(result.Users.Count, Is.EqualTo(1));
-        Assert.That(result.Users[0].DiscordId, Is.EqualTo(userId));
-        Assert.That(result.Users[0].DiscordName, Is.EqualTo("TestUser"));
+        result.Number.ShouldBe(42);
+        result.Users.Count.ShouldBe(1);
+        result.Users[0].DiscordId.ShouldBe(userId);
+        result.Users[0].DiscordName.ShouldBe("TestUser");
     }
 
-    [Test]
+    [Fact]
     public async Task WhoGuessedAsync_MultipleUsers()
     {
         var userId1 = Convert.ToUInt64(GenerateRandomDiscordId());
@@ -529,11 +536,11 @@ public class LotteryServiceTests : MongoDbTest
 
         var result = await _lotteryService.WhoGuessedAsync(42);
 
-        Assert.That(result.Number, Is.EqualTo(42));
-        Assert.That(result.Users.Count, Is.EqualTo(2));
+        result.Number.ShouldBe(42);
+        result.Users.Count.ShouldBe(2);
     }
 
-    [Test]
+    [Fact]
     public async Task WhoGuessedAsync_UserNotFound()
     {
         var userId = Convert.ToUInt64(GenerateRandomDiscordId());
@@ -550,14 +557,14 @@ public class LotteryServiceTests : MongoDbTest
 
         var result = await _lotteryService.WhoGuessedAsync(42);
 
-        Assert.That(result.Users[0].DiscordName, Does.Contain("Unknown User"));
+        result.Users[0].DiscordName.ShouldContain("Unknown User");
     }
 
     #endregion
 
     #region ViewAsync Tests
 
-    [Test]
+    [Fact]
     public async Task ViewAsync_NotFcMember()
     {
         var userId = Convert.ToUInt64(GenerateRandomDiscordId());
@@ -565,10 +572,10 @@ public class LotteryServiceTests : MongoDbTest
 
         var result = await _lotteryService.ViewAsync(userId);
 
-        Assert.That(result.GetType(), Is.EqualTo(typeof(NotFcMemberViewResponse)));
+        result.ShouldBeOfType<NotFcMemberViewResponse>();
     }
 
-    [Test]
+    [Fact]
     public async Task ViewAsync_NoGuesses()
     {
         var userId = Convert.ToUInt64(GenerateRandomDiscordId());
@@ -581,15 +588,15 @@ public class LotteryServiceTests : MongoDbTest
 
         var result = await _lotteryService.ViewAsync(userId);
 
-        Assert.That(result.GetType(), Is.EqualTo(typeof(ViewResponse)));
+        result.ShouldBeOfType<ViewResponse>();
         var view = (ViewResponse)result;
-        Assert.That(view.CurrentGuesses, Is.Empty);
-        Assert.That(view.UsedGuesses, Is.EqualTo(0));
-        Assert.That(view.TotalGuesses, Is.EqualTo(1));
-        Assert.That(view.RemainingMessage, Does.Contain("not used"));
+        view.CurrentGuesses.ShouldBeEmpty();
+        view.UsedGuesses.ShouldBe(0);
+        view.TotalGuesses.ShouldBe(1);
+        view.RemainingMessage.ShouldContain("not used");
     }
 
-    [Test]
+    [Fact]
     public async Task ViewAsync_WithGuesses()
     {
         var userId = Convert.ToUInt64(GenerateRandomDiscordId());
@@ -604,15 +611,15 @@ public class LotteryServiceTests : MongoDbTest
 
         var result = await _lotteryService.ViewAsync(userId);
 
-        Assert.That(result.GetType(), Is.EqualTo(typeof(ViewResponse)));
+        result.ShouldBeOfType<ViewResponse>();
         var view = (ViewResponse)result;
-        Assert.That(view.CurrentGuesses, Contains.Item(42));
-        Assert.That(view.UsedGuesses, Is.EqualTo(1));
-        Assert.That(view.TotalGuesses, Is.EqualTo(1));
-        Assert.That(view.RemainingMessage, Does.Contain("used your guess"));
+        view.CurrentGuesses.ShouldContain(42);
+        view.UsedGuesses.ShouldBe(1);
+        view.TotalGuesses.ShouldBe(1);
+        view.RemainingMessage.ShouldContain("used your guess");
     }
 
-    [Test]
+    [Fact]
     public async Task ViewAsync_WithExtraGuesses()
     {
         var userId = Convert.ToUInt64(GenerateRandomDiscordId());
@@ -628,13 +635,13 @@ public class LotteryServiceTests : MongoDbTest
 
         var result = await _lotteryService.ViewAsync(userId);
 
-        Assert.That(result.GetType(), Is.EqualTo(typeof(ViewResponse)));
+        result.ShouldBeOfType<ViewResponse>();
         var view = (ViewResponse)result;
-        Assert.That(view.TotalGuesses, Is.EqualTo(2));
-        Assert.That(view.RemainingMessage, Does.Contain("used 1 of your 2 guesses"));
+        view.TotalGuesses.ShouldBe(2);
+        view.RemainingMessage.ShouldContain("used 1 of your 2 guesses");
     }
 
-    [Test]
+    [Fact]
     public async Task ViewAsync_GuessesAreSorted()
     {
         var userId = Convert.ToUInt64(GenerateRandomDiscordId());
@@ -652,26 +659,26 @@ public class LotteryServiceTests : MongoDbTest
         var result = await _lotteryService.ViewAsync(userId);
 
         var view = (ViewResponse)result;
-        Assert.That(view.CurrentGuesses, Is.Ordered);
-        Assert.That(view.CurrentGuesses[0], Is.EqualTo(10));
-        Assert.That(view.CurrentGuesses[1], Is.EqualTo(50));
+        view.CurrentGuesses.ShouldBeInOrder();
+        view.CurrentGuesses[0].ShouldBe(10);
+        view.CurrentGuesses[1].ShouldBe(50);
     }
 
     #endregion
 
     #region RunLotteryAsync Tests
 
-    [Test]
+    [Fact]
     public async Task RunLotteryAsync_UserNotFound()
     {
         var userId = Convert.ToUInt64(GenerateRandomDiscordId());
         _memberService.Setup(x => x.GetByDiscordId(userId)).ReturnsAsync((Member)null);
 
-        Assert.ThrowsAsync<ArgumentException>(async () =>
+        await Should.ThrowAsync<ArgumentException>(async () =>
             await _lotteryService.RunLotteryAsync(userId));
     }
 
-    [Test]
+    [Fact]
     public async Task RunLotteryAsync_NotAdmin()
     {
         var userId = Convert.ToUInt64(GenerateRandomDiscordId());
@@ -687,7 +694,7 @@ public class LotteryServiceTests : MongoDbTest
         _discordMessageService.Verify(x => x.PostInLotteryChannelAsync(It.IsAny<string>()), Times.Never);
     }
 
-    [Test]
+    [Fact]
     public async Task RunLotteryAsync_NoWinners()
     {
         var adminId = Convert.ToUInt64(GenerateRandomDiscordId());
@@ -721,7 +728,7 @@ public class LotteryServiceTests : MongoDbTest
             It.Is<string>(s => s.Contains("winning number") || s.Contains("Participants"))), Times.AtLeast(2));
     }
 
-    [Test]
+    [Fact]
     public async Task RunLotteryAsync_WithWinners()
     {
         var adminId = Convert.ToUInt64(GenerateRandomDiscordId());
@@ -749,7 +756,7 @@ public class LotteryServiceTests : MongoDbTest
         _discordMessageService.Verify(x => x.PostInLotteryChannelAsync(It.IsAny<string>()), Times.AtLeast(2));
     }
 
-    [Test]
+    [Fact]
     public async Task RunLotteryAsync_ClearsGuesses()
     {
         var adminId = Convert.ToUInt64(GenerateRandomDiscordId());
@@ -774,17 +781,19 @@ public class LotteryServiceTests : MongoDbTest
 
         // Verify guesses were cleared
         var unusedNumbers = await _lotteryService.GetUnusedNumbersAsync();
-        Assert.That(unusedNumbers.UsedNumbers, Is.Empty);
+        unusedNumbers.UsedNumbers.ShouldBeEmpty();
     }
 
     #endregion
 
     #region RemindAsync Tests
 
-    [Test]
+    [Fact]
     public async Task RemindAsync_NoFcMembers()
     {
         var userId = Convert.ToUInt64(GenerateRandomDiscordId());
+        _memberService.Setup(x => x.GetByDiscordId(userId))
+            .ReturnsAsync(new Member { DiscordId = userId.ToString(), Roles = new List<MemberRole> { new() { IsAdmin = true } } });
         _memberService.Setup(x => x.GetFcMembers()).ReturnsAsync([]);
 
         await _lotteryService.RemindAsync(userId);
@@ -793,7 +802,7 @@ public class LotteryServiceTests : MongoDbTest
             It.Is<string>(s => s.Contains("Use your guesses"))), Times.Once);
     }
 
-    [Test]
+    [Fact]
     public async Task RemindAsync_WithMembersWithoutGuesses()
     {
         var userId = Convert.ToUInt64(GenerateRandomDiscordId());
@@ -803,6 +812,8 @@ public class LotteryServiceTests : MongoDbTest
             DiscordName = "TestUser",
             Roles = new List<MemberRole> { new() { IsMember = true } }
         };
+        _memberService.Setup(x => x.GetByDiscordId(userId))
+            .ReturnsAsync(new Member { DiscordId = userId.ToString(), Roles = new List<MemberRole> { new() { IsAdmin = true } } });
         _memberService.Setup(x => x.GetFcMembers()).ReturnsAsync([fcMember]);
 
         await _lotteryService.RemindAsync(userId);
@@ -817,39 +828,39 @@ public class LotteryServiceTests : MongoDbTest
 
     #region Award Tests
 
-    [Test]
+    [Fact]
     public async Task TryAwardUsersAsync_NoUsers()
     {
         var result = await _lotteryService.TryAwardUsersAsync("test reason", []);
 
-        Assert.That(result.GetType(), Is.EqualTo(typeof(NoUsersAwardResponse)));
+        result.ShouldBeOfType<NoUsersAwardResponse>();
     }
 
-    [Test]
+    [Fact]
     public async Task TryAwardUsersAsync_SingleUser()
     {
         var userId = Convert.ToUInt64(GenerateRandomDiscordId());
         var result = await _lotteryService.TryAwardUsersAsync("test reason", [userId]);
 
-        Assert.That(result.GetType(), Is.EqualTo(typeof(SuccessAwardResponse)));
+        result.ShouldBeOfType<SuccessAwardResponse>();
         var success = (SuccessAwardResponse)result;
-        Assert.That(success.DiscordUserIds, Contains.Item(userId));
-        Assert.That(success.Reason, Is.EqualTo("test reason"));
+        success.DiscordUserIds.ShouldContain(userId);
+        success.Reason.ShouldBe("test reason");
     }
 
-    [Test]
+    [Fact]
     public async Task TryAwardUsersAsync_MultipleUsers()
     {
         var userId1 = Convert.ToUInt64(GenerateRandomDiscordId());
         var userId2 = Convert.ToUInt64(GenerateRandomDiscordId());
         var result = await _lotteryService.TryAwardUsersAsync("test reason", [userId1, userId2]);
 
-        Assert.That(result.GetType(), Is.EqualTo(typeof(SuccessAwardResponse)));
+        result.ShouldBeOfType<SuccessAwardResponse>();
         var success = (SuccessAwardResponse)result;
-        Assert.That(success.DiscordUserIds.Count(), Is.EqualTo(2));
+        success.DiscordUserIds.Count().ShouldBe(2);
     }
 
-    [Test]
+    [Fact]
     public async Task AwardUsersAsync_SingleUser()
     {
         var userId = Convert.ToUInt64(GenerateRandomDiscordId());
@@ -869,10 +880,10 @@ public class LotteryServiceTests : MongoDbTest
         // Verify the user now has 2 allowed guesses
         var view = await _lotteryService.ViewAsync(userId);
         var viewResponse = (ViewResponse)view;
-        Assert.That(viewResponse.TotalGuesses, Is.EqualTo(2));
+        viewResponse.TotalGuesses.ShouldBe(2);
     }
 
-    [Test]
+    [Fact]
     public async Task AwardUsersAsync_MultipleUsers()
     {
         var userId1 = Convert.ToUInt64(GenerateRandomDiscordId());

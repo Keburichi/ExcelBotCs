@@ -7,20 +7,18 @@ using Moq;
 
 namespace ExcelBotCs.Tests.Services.API;
 
-[TestFixture]
 public class FightServiceTests
 {
-    private IFightService _fightService;
-    private Mock<IFightRepository> _fightRepositoryMock;
+    private readonly IFightService _fightService;
+    private readonly Mock<IFightRepository> _fightRepositoryMock;
 
-    [SetUp]
-    public void SetUp()
+    public FightServiceTests()
     {
         _fightRepositoryMock = new Mock<IFightRepository>();
         _fightService = new FightService(_fightRepositoryMock.Object);
     }
 
-    [Test]
+    [Fact]
     public async Task GetAsync_ReturnsEmptyList()
     {
         // Arrange
@@ -30,12 +28,12 @@ public class FightServiceTests
         var result = await _fightService.GetAsync();
 
         // Assert
-        Assert.That(result, Is.Empty);
+        result.ShouldBeEmpty();
 
         _fightRepositoryMock.Verify(x => x.GetAsync(), Times.Once());
     }
 
-    [Test]
+    [Fact]
     public async Task GetAsync_ReturnsList_WithFiltering()
     {
         // Arrange
@@ -63,16 +61,16 @@ public class FightServiceTests
         var result = await _fightService.GetAsync();
 
         // Assert
-        Assert.That(result, Is.Not.Null);
-        Assert.That(result.Count, Is.EqualTo(2)); // Fight1 should be deduplicated
-        Assert.That(result[0].Name, Is.EqualTo("Fight1"));
-        Assert.That(result[0].Type, Is.EqualTo(FightType.Savage)); // LegacySavage should be converted to Savage
-        Assert.That(result[1].Name, Is.EqualTo("Fight2"));
+        result.ShouldNotBeNull();
+        result.Count.ShouldBe(2); // Fight1 should be deduplicated
+        result[0].Name.ShouldBe("Fight1");
+        result[0].Type.ShouldBe(FightType.Savage); // LegacySavage should be converted to Savage
+        result[1].Name.ShouldBe("Fight2");
 
         _fightRepositoryMock.Verify(x => x.GetAsync(), Times.Once());
     }
 
-    [Test]
+    [Fact]
     public async Task GetAsync_RenamesBahamutPrime()
     {
         // Arrange
@@ -87,14 +85,14 @@ public class FightServiceTests
         var result = await _fightService.GetAsync();
 
         // Assert
-        Assert.That(result, Is.Not.Null);
-        Assert.That(result.Count, Is.EqualTo(1));
-        Assert.That(result[0].Name, Is.EqualTo("The Unending Coil of Bahamut"));
+        result.ShouldNotBeNull();
+        result.Count.ShouldBe(1);
+        result[0].Name.ShouldBe("The Unending Coil of Bahamut");
 
         _fightRepositoryMock.Verify(x => x.GetAsync(), Times.Once());
     }
 
-    [Test]
+    [Fact]
     public async Task GetAsync_RenamesUltimaWeapon()
     {
         // Arrange
@@ -111,14 +109,14 @@ public class FightServiceTests
         var result = await _fightService.GetAsync();
 
         // Assert
-        Assert.That(result, Is.Not.Null);
-        Assert.That(result.Count, Is.EqualTo(1));
-        Assert.That(result[0].Name, Is.EqualTo("The Weapon's Refrain"));
+        result.ShouldNotBeNull();
+        result.Count.ShouldBe(1);
+        result[0].Name.ShouldBe("The Weapon's Refrain");
 
         _fightRepositoryMock.Verify(x => x.GetAsync(), Times.Once());
     }
 
-    [Test]
+    [Fact]
     public async Task GetAsync_ById_ReturnsNull()
     {
         // Arrange
@@ -129,12 +127,12 @@ public class FightServiceTests
         var result = await _fightService.GetAsync(id);
 
         // Assert
-        Assert.That(result, Is.Null);
+        result.ShouldBeNull();
 
         _fightRepositoryMock.Verify(x => x.GetAsync(id), Times.Once());
     }
 
-    [Test]
+    [Fact]
     public async Task GetAsync_ById_ReturnsItem()
     {
         // Arrange
@@ -146,13 +144,13 @@ public class FightServiceTests
         var result = await _fightService.GetAsync(id);
 
         // Assert
-        Assert.That(result, Is.Not.Null);
-        Assert.That(result, Is.EqualTo(fight));
+        result.ShouldNotBeNull();
+        result.ShouldBe(fight);
 
         _fightRepositoryMock.Verify(x => x.GetAsync(id), Times.Once());
     }
 
-    [Test]
+    [Fact]
     public async Task CreateAsync_CallsRepository()
     {
         // Arrange
@@ -166,7 +164,7 @@ public class FightServiceTests
         _fightRepositoryMock.Verify(x => x.CreateAsync(fight), Times.Once());
     }
 
-    [Test]
+    [Fact]
     public async Task UpdateAsync_CallsRepository()
     {
         // Arrange
@@ -181,7 +179,7 @@ public class FightServiceTests
         _fightRepositoryMock.Verify(x => x.UpdateAsync(id, fight), Times.Once());
     }
 
-    [Test]
+    [Fact]
     public async Task DeleteAsync_CallsRepository()
     {
         // Arrange
@@ -195,7 +193,7 @@ public class FightServiceTests
         _fightRepositoryMock.Verify(x => x.DeleteAsync(id), Times.Once());
     }
 
-    [Test]
+    [Fact]
     public async Task GetByNameAndTypeAsync_ReturnsNull()
     {
         // Arrange
@@ -207,12 +205,12 @@ public class FightServiceTests
         var result = await _fightService.GetByNameAndTypeAsync(name, type);
 
         // Assert
-        Assert.That(result, Is.Null);
+        result.ShouldBeNull();
 
         _fightRepositoryMock.Verify(x => x.GetByNameAndTypeAsync(name, type), Times.Once());
     }
 
-    [Test]
+    [Fact]
     public async Task GetByNameAndTypeAsync_ReturnsItem()
     {
         // Arrange
@@ -225,13 +223,13 @@ public class FightServiceTests
         var result = await _fightService.GetByNameAndTypeAsync(name, type);
 
         // Assert
-        Assert.That(result, Is.Not.Null);
-        Assert.That(result, Is.EqualTo(fight));
+        result.ShouldNotBeNull();
+        result.ShouldBe(fight);
 
         _fightRepositoryMock.Verify(x => x.GetByNameAndTypeAsync(name, type), Times.Once());
     }
 
-    [Test]
+    [Fact]
     public async Task UpsertAsync_CreatesNewFight_WhenNotExists()
     {
         // Arrange
@@ -243,14 +241,14 @@ public class FightServiceTests
         var result = await _fightService.UpsertAsync(fight);
 
         // Assert
-        Assert.That(result, Is.True); // true means inserted
+        result.ShouldBeTrue(); // true means inserted
 
         _fightRepositoryMock.Verify(x => x.GetByNameAndTypeAsync(fight.Name, fight.Type), Times.Once());
         _fightRepositoryMock.Verify(x => x.CreateAsync(fight), Times.Once());
         _fightRepositoryMock.Verify(x => x.UpdateAsync(It.IsAny<string>(), It.IsAny<Fight>()), Times.Never());
     }
 
-    [Test]
+    [Fact]
     public async Task UpsertAsync_UpdatesExistingFight_WhenExists()
     {
         // Arrange
@@ -276,16 +274,16 @@ public class FightServiceTests
         var result = await _fightService.UpsertAsync(updatedFight);
 
         // Assert
-        Assert.That(result, Is.False); // false means updated
-        Assert.That(updatedFight.Id, Is.EqualTo(existingFight.Id));
-        Assert.That(updatedFight.DateCreated, Is.EqualTo(existingFight.DateCreated));
+        result.ShouldBeFalse(); // false means updated
+        updatedFight.Id.ShouldBe(existingFight.Id);
+        updatedFight.DateCreated.ShouldBe(existingFight.DateCreated);
 
         _fightRepositoryMock.Verify(x => x.GetByNameAndTypeAsync(updatedFight.Name, updatedFight.Type), Times.Once());
         _fightRepositoryMock.Verify(x => x.UpdateAsync(existingFight.Id, updatedFight), Times.Once());
         _fightRepositoryMock.Verify(x => x.CreateAsync(It.IsAny<Fight>()), Times.Never());
     }
 
-    [Test]
+    [Fact]
     public async Task BulkUpsertAsync_InsertsAndUpdatesMultipleFights()
     {
         // Arrange
@@ -319,8 +317,8 @@ public class FightServiceTests
         var (inserted, updated) = await _fightService.BulkUpsertAsync(fights);
 
         // Assert
-        Assert.That(inserted, Is.EqualTo(2));
-        Assert.That(updated, Is.EqualTo(1));
+        inserted.ShouldBe(2);
+        updated.ShouldBe(1);
 
         _fightRepositoryMock.Verify(x => x.CreateAsync(It.IsAny<Fight>()), Times.Exactly(2));
         _fightRepositoryMock.Verify(x => x.UpdateAsync(It.IsAny<string>(), It.IsAny<Fight>()), Times.Once());

@@ -4,7 +4,6 @@ using ExcelBotCs.Services;
 
 namespace ExcelBotCs.Tests.Models.Database;
 
-[TestFixture]
 public class EventTests
 {
     private readonly IICalService _iCalService;
@@ -14,17 +13,18 @@ public class EventTests
         _iCalService = new ICalService();
     }
 
-    [Test]
+    [Fact]
     public void AvailableForSignup_EmptyOccurrences_ReturnsFalse()
     {
         var sut = new Event();
 
-        Assert.That(sut.AvailableForSignup, Is.False);
+        sut.AvailableForSignup.ShouldBeFalse();
     }
 
-    [TestCase(OccurrenceStatus.Cancelled)]
-    [TestCase(OccurrenceStatus.Completed)]
-    [TestCase(OccurrenceStatus.InProgress)]
+    [Theory]
+    [InlineData(OccurrenceStatus.Cancelled)]
+    [InlineData(OccurrenceStatus.Completed)]
+    [InlineData(OccurrenceStatus.InProgress)]
     public void AvailableForSignup_OccurrencesNotScheduled_ReturnsFalse(OccurrenceStatus occurrenceStatus)
     {
         var sut = new Event
@@ -42,10 +42,10 @@ public class EventTests
             }
         };
 
-        Assert.That(sut.AvailableForSignup, Is.False);
+        sut.AvailableForSignup.ShouldBeFalse();
     }
 
-    [Test]
+    [Fact]
     public void AvailableForSignup_PreviousOccurrenceNotInPast_ReturnsFalse()
     {
         var sut = new Event
@@ -70,10 +70,10 @@ public class EventTests
             }
         };
 
-        Assert.That(sut.AvailableForSignup, Is.False);
+        sut.AvailableForSignup.ShouldBeFalse();
     }
 
-    [Test]
+    [Fact]
     public void AvailableForSignup_ParticipantsSelected_ReturnsFalse()
     {
         var sut = new Event
@@ -107,10 +107,10 @@ public class EventTests
             }
         };
 
-        Assert.That(sut.AvailableForSignup, Is.False);
+        sut.AvailableForSignup.ShouldBeFalse();
     }
 
-    [Test]
+    [Fact]
     public void AvailableForSignup_NoSignups_ReturnsTrue()
     {
         var sut = new Event
@@ -135,10 +135,10 @@ public class EventTests
             }
         };
 
-        Assert.That(sut.AvailableForSignup, Is.True);
+        sut.AvailableForSignup.ShouldBeTrue();
     }
 
-    [Test]
+    [Fact]
     public void AvailableForSignup_SignupsExist_ReturnsTrue()
     {
         var sut = new Event
@@ -175,6 +175,6 @@ public class EventTests
             }
         };
 
-        Assert.That(sut.AvailableForSignup, Is.True);
+        sut.AvailableForSignup.ShouldBeTrue();
     }
 }

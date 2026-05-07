@@ -4,7 +4,6 @@ using ExcelBotCs.Extensions;
 
 namespace ExcelBotCs.Tests.Extensions;
 
-[TestFixture]
 public class AssemblyExtensionsTests
 {
     // Test interfaces and classes for testing GetTypesFromInterface
@@ -52,7 +51,7 @@ public class AssemblyExtensionsTests
         public string? Property { get; set; }
     }
 
-    [Test]
+    [Fact]
     public void GetTypesFromInterface_ShouldReturnConcreteImplementations()
     {
         // Arrange
@@ -63,13 +62,13 @@ public class AssemblyExtensionsTests
         var result = assembly.GetTypesFromInterface(interfaceType).ToList();
 
         // Assert
-        Assert.That(result, Is.Not.Null);
-        Assert.That(result.Count, Is.EqualTo(2));
-        Assert.That(result, Does.Contain(typeof(ConcreteImplementation)));
-        Assert.That(result, Does.Contain(typeof(AnotherImplementation)));
+        result.ShouldNotBeNull();
+        result.Count.ShouldBe(2);
+        result.ShouldContain(typeof(ConcreteImplementation));
+        result.ShouldContain(typeof(AnotherImplementation));
     }
 
-    [Test]
+    [Fact]
     public void GetTypesFromInterface_ShouldNotReturnAbstractClasses()
     {
         // Arrange
@@ -80,10 +79,10 @@ public class AssemblyExtensionsTests
         var result = assembly.GetTypesFromInterface(interfaceType).ToList();
 
         // Assert
-        Assert.That(result, Does.Not.Contain(typeof(AbstractImplementation)));
+        result.ShouldNotContain(typeof(AbstractImplementation));
     }
 
-    [Test]
+    [Fact]
     public void GetTypesFromInterface_ShouldNotReturnInterfaces()
     {
         // Arrange
@@ -94,10 +93,10 @@ public class AssemblyExtensionsTests
         var result = assembly.GetTypesFromInterface(interfaceType).ToList();
 
         // Assert
-        Assert.That(result, Does.Not.Contain(typeof(ITestInterface<>)));
+        result.ShouldNotContain(typeof(ITestInterface<>));
     }
 
-    [Test]
+    [Fact]
     public void GetTypesFromInterface_WithNonExistentInterface_ShouldReturnEmpty()
     {
         // Arrange
@@ -108,10 +107,10 @@ public class AssemblyExtensionsTests
         var result = assembly.GetTypesFromInterface(interfaceType).ToList();
 
         // Assert - May or may not be empty depending on what's in the test assembly
-        Assert.That(result, Is.Not.Null);
+        result.ShouldNotBeNull();
     }
 
-    [Test]
+    [Fact]
     public void GetOptionTypes_ShouldReturnTypesWithOptionsSectionAttribute()
     {
         // Arrange
@@ -121,14 +120,14 @@ public class AssemblyExtensionsTests
         var result = assembly.GetOptionTypes();
 
         // Assert
-        Assert.That(result, Is.Not.Null);
+        result.ShouldNotBeNull();
         var testOptionsResult = result.FirstOrDefault(x => x.Type == typeof(TestOptionsClass));
-        Assert.That(testOptionsResult, Is.Not.Null);
-        Assert.That(testOptionsResult!.Attribute, Is.Not.Null);
-        Assert.That(testOptionsResult.Attribute!.Name, Is.EqualTo("TestSection"));
+        testOptionsResult.ShouldNotBeNull();
+        testOptionsResult!.Attribute.ShouldNotBeNull();
+        testOptionsResult.Attribute!.Name.ShouldBe("TestSection");
     }
 
-    [Test]
+    [Fact]
     public void GetOptionTypes_ShouldReturnMultipleTypesWithAttribute()
     {
         // Arrange
@@ -138,17 +137,17 @@ public class AssemblyExtensionsTests
         var result = assembly.GetOptionTypes();
 
         // Assert
-        Assert.That(result, Is.Not.Null);
+        result.ShouldNotBeNull();
         var testOptionsResult = result.FirstOrDefault(x => x.Type == typeof(TestOptionsClass));
         var anotherOptionsResult = result.FirstOrDefault(x => x.Type == typeof(AnotherOptionsClass));
 
-        Assert.That(testOptionsResult, Is.Not.Null);
-        Assert.That(anotherOptionsResult, Is.Not.Null);
-        Assert.That(testOptionsResult!.Attribute!.Name, Is.EqualTo("TestSection"));
-        Assert.That(anotherOptionsResult!.Attribute!.Name, Is.EqualTo("AnotherSection"));
+        testOptionsResult.ShouldNotBeNull();
+        anotherOptionsResult.ShouldNotBeNull();
+        testOptionsResult!.Attribute!.Name.ShouldBe("TestSection");
+        anotherOptionsResult!.Attribute!.Name.ShouldBe("AnotherSection");
     }
 
-    [Test]
+    [Fact]
     public void GetOptionTypes_ShouldNotReturnTypesWithoutAttribute()
     {
         // Arrange
@@ -158,12 +157,12 @@ public class AssemblyExtensionsTests
         var result = assembly.GetOptionTypes();
 
         // Assert
-        Assert.That(result, Is.Not.Null);
+        result.ShouldNotBeNull();
         var classWithoutAttributeResult = result.FirstOrDefault(x => x.Type == typeof(ClassWithoutAttribute));
-        Assert.That(classWithoutAttributeResult, Is.Null);
+        classWithoutAttributeResult.ShouldBeNull();
     }
 
-    [Test]
+    [Fact]
     public void GetOptionTypes_ShouldNotReturnAbstractClasses()
     {
         // Arrange
@@ -173,11 +172,11 @@ public class AssemblyExtensionsTests
         var result = assembly.GetOptionTypes();
 
         // Assert
-        Assert.That(result, Is.Not.Null);
-        Assert.That(result.All(x => !x.Type.IsAbstract), Is.True);
+        result.ShouldNotBeNull();
+        result.All(x => !x.Type.IsAbstract).ShouldBeTrue();
     }
 
-    [Test]
+    [Fact]
     public void GetOptionTypes_ShouldNotReturnInterfaces()
     {
         // Arrange
@@ -187,11 +186,11 @@ public class AssemblyExtensionsTests
         var result = assembly.GetOptionTypes();
 
         // Assert
-        Assert.That(result, Is.Not.Null);
-        Assert.That(result.All(x => !x.Type.IsInterface), Is.True);
+        result.ShouldNotBeNull();
+        result.All(x => !x.Type.IsInterface).ShouldBeTrue();
     }
 
-    [Test]
+    [Fact]
     public void OptionsAttribute_ShouldHaveTypeAndAttributeProperties()
     {
         // Arrange & Act
@@ -202,12 +201,12 @@ public class AssemblyExtensionsTests
         };
 
         // Assert
-        Assert.That(optionsAttribute.Type, Is.EqualTo(typeof(string)));
-        Assert.That(optionsAttribute.Attribute, Is.Not.Null);
-        Assert.That(optionsAttribute.Attribute!.Name, Is.EqualTo("TestSection"));
+        optionsAttribute.Type.ShouldBe(typeof(string));
+        optionsAttribute.Attribute.ShouldNotBeNull();
+        optionsAttribute.Attribute!.Name.ShouldBe("TestSection");
     }
 
-    [Test]
+    [Fact]
     public void OptionsAttribute_ShouldAllowNullAttribute()
     {
         // Arrange & Act
@@ -218,11 +217,11 @@ public class AssemblyExtensionsTests
         };
 
         // Assert
-        Assert.That(optionsAttribute.Type, Is.EqualTo(typeof(string)));
-        Assert.That(optionsAttribute.Attribute, Is.Null);
+        optionsAttribute.Type.ShouldBe(typeof(string));
+        optionsAttribute.Attribute.ShouldBeNull();
     }
 
-    [Test]
+    [Fact]
     public void GetTypesFromInterface_ShouldHandleGenericConstraints()
     {
         // Arrange
@@ -236,11 +235,11 @@ public class AssemblyExtensionsTests
         var stringImplementation = result.FirstOrDefault(t => t == typeof(ConcreteImplementation));
         var intImplementation = result.FirstOrDefault(t => t == typeof(AnotherImplementation));
 
-        Assert.That(stringImplementation, Is.Not.Null);
-        Assert.That(intImplementation, Is.Not.Null);
+        stringImplementation.ShouldNotBeNull();
+        intImplementation.ShouldNotBeNull();
     }
 
-    [Test]
+    [Fact]
     public void GetOptionTypes_ShouldReturnListType()
     {
         // Arrange
@@ -250,10 +249,10 @@ public class AssemblyExtensionsTests
         var result = assembly.GetOptionTypes();
 
         // Assert
-        Assert.That(result, Is.InstanceOf<List<OptionsAttribute>>());
+        result.ShouldBeOfType<List<OptionsAttribute>>();
     }
 
-    [Test]
+    [Fact]
     public void GetTypesFromInterface_ShouldReturnEnumerableType()
     {
         // Arrange
@@ -264,6 +263,6 @@ public class AssemblyExtensionsTests
         var result = assembly.GetTypesFromInterface(interfaceType);
 
         // Assert
-        Assert.That(result, Is.InstanceOf<IEnumerable<Type>>());
+        result.ShouldBeAssignableTo<IEnumerable<Type>>();
     }
 }

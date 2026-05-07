@@ -7,20 +7,18 @@ using Moq;
 
 namespace ExcelBotCs.Tests.Services.API;
 
-[TestFixture]
 public class MemberRoleServiceTests
 {
-    private IMemberRoleService _memberRoleService;
-    private Mock<IMemberRoleRepository> _memberRoleRepositoryMock;
+    private readonly IMemberRoleService _memberRoleService;
+    private readonly Mock<IMemberRoleRepository> _memberRoleRepositoryMock;
 
-    [SetUp]
-    public void SetUp()
+    public MemberRoleServiceTests()
     {
         _memberRoleRepositoryMock = new Mock<IMemberRoleRepository>();
         _memberRoleService = new MemberRoleService(_memberRoleRepositoryMock.Object);
     }
 
-    [Test]
+    [Fact]
     public async Task GetAsync_ReturnsNull()
     {
         // Arrange
@@ -30,12 +28,12 @@ public class MemberRoleServiceTests
         var result = await _memberRoleService.GetAsync();
 
         // Assert
-        Assert.That(result, Is.Null);
+        result.ShouldBeNull();
 
         _memberRoleRepositoryMock.Verify(x => x.GetAsync(), Times.Once());
     }
 
-    [Test]
+    [Fact]
     public async Task GetAsync_ReturnsList()
     {
         // Arrange
@@ -46,13 +44,13 @@ public class MemberRoleServiceTests
         var result = await _memberRoleService.GetAsync();
 
         // Assert
-        Assert.That(result, Is.Not.Null);
-        Assert.That(result, Is.EquivalentTo(memberRoles));
+        result.ShouldNotBeNull();
+        result.ShouldBe(memberRoles);
 
         _memberRoleRepositoryMock.Verify(x => x.GetAsync(), Times.Once());
     }
 
-    [Test]
+    [Fact]
     public async Task GetAsync_ById_ReturnsNull()
     {
         // Arrange
@@ -63,12 +61,12 @@ public class MemberRoleServiceTests
         var result = await _memberRoleService.GetAsync(id);
 
         // Assert
-        Assert.That(result, Is.Null);
+        result.ShouldBeNull();
 
         _memberRoleRepositoryMock.Verify(x => x.GetAsync(id), Times.Once());
     }
 
-    [Test]
+    [Fact]
     public async Task GetAsync_ById_ReturnsItem()
     {
         // Arrange
@@ -80,13 +78,13 @@ public class MemberRoleServiceTests
         var result = await _memberRoleService.GetAsync(id);
 
         // Assert
-        Assert.That(result, Is.Not.Null);
-        Assert.That(result, Is.EqualTo(memberRole));
+        result.ShouldNotBeNull();
+        result.ShouldBe(memberRole);
 
         _memberRoleRepositoryMock.Verify(x => x.GetAsync(id), Times.Once());
     }
 
-    [Test]
+    [Fact]
     public async Task CreateAsync_CallsRepository()
     {
         // Arrange
@@ -100,7 +98,7 @@ public class MemberRoleServiceTests
         _memberRoleRepositoryMock.Verify(x => x.CreateAsync(memberRole), Times.Once());
     }
 
-    [Test]
+    [Fact]
     public async Task UpdateAsync_CallsRepository()
     {
         // Arrange
@@ -115,7 +113,7 @@ public class MemberRoleServiceTests
         _memberRoleRepositoryMock.Verify(x => x.UpdateAsync(id, memberRole), Times.Once());
     }
 
-    [Test]
+    [Fact]
     public async Task DeleteAsync_CallsRepository()
     {
         // Arrange
@@ -129,7 +127,7 @@ public class MemberRoleServiceTests
         _memberRoleRepositoryMock.Verify(x => x.DeleteAsync(id), Times.Once());
     }
 
-    [Test]
+    [Fact]
     public async Task GetByDiscordId_ReturnsNull()
     {
         // Arrange
@@ -140,12 +138,12 @@ public class MemberRoleServiceTests
         var result = await _memberRoleService.GetByDiscordId(discordId);
 
         // Assert
-        Assert.That(result, Is.Null);
+        result.ShouldBeNull();
 
         _memberRoleRepositoryMock.Verify(x => x.GetByDiscordId(discordId), Times.Once());
     }
 
-    [Test]
+    [Fact]
     public async Task GetByDiscordId_ReturnsItem()
     {
         // Arrange
@@ -157,8 +155,8 @@ public class MemberRoleServiceTests
         var result = await _memberRoleService.GetByDiscordId(discordId);
 
         // Assert
-        Assert.That(result, Is.Not.Null);
-        Assert.That(result, Is.EqualTo(memberRole));
+        result.ShouldNotBeNull();
+        result.ShouldBe(memberRole);
 
         _memberRoleRepositoryMock.Verify(x => x.GetByDiscordId(discordId), Times.Once());
     }

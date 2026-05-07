@@ -4,20 +4,20 @@ using ExcelBotCs.Modules.TeamFormation;
 
 namespace ExcelBotCs.Tests.Models.DTO;
 
-[TestFixture]
 public class EventDtoTests
 {
-    [Test]
+    [Fact]
     public void AvailableForSignup_EmptyOccurrences_ReturnsFalse()
     {
         var sut = new EventDto();
 
-        Assert.That(sut.AvailableForSignup, Is.False);
+        sut.AvailableForSignup.ShouldBeFalse();
     }
 
-    [TestCase(OccurrenceStatus.Cancelled)]
-    [TestCase(OccurrenceStatus.Completed)]
-    [TestCase(OccurrenceStatus.InProgress)]
+    [Theory]
+    [InlineData(OccurrenceStatus.Cancelled)]
+    [InlineData(OccurrenceStatus.Completed)]
+    [InlineData(OccurrenceStatus.InProgress)]
     public void AvailableForSignup_OccurrencesNotScheduled_ReturnsFalse(OccurrenceStatus occurrenceStatus)
     {
         var sut = new EventDto
@@ -35,10 +35,10 @@ public class EventDtoTests
             }
         };
 
-        Assert.That(sut.AvailableForSignup, Is.False);
+        sut.AvailableForSignup.ShouldBeFalse();
     }
 
-    [Test]
+    [Fact]
     public void AvailableForSignup_PreviousOccurrenceNotInPast_ReturnsFalse()
     {
         var sut = new EventDto
@@ -63,10 +63,10 @@ public class EventDtoTests
             }
         };
 
-        Assert.That(sut.AvailableForSignup, Is.False);
+        sut.AvailableForSignup.ShouldBeFalse();
     }
 
-    [Test]
+    [Fact]
     public void AvailableForSignup_ParticipantsSelected_ReturnsFalse()
     {
         var sut = new EventDto
@@ -100,10 +100,10 @@ public class EventDtoTests
             }
         };
 
-        Assert.That(sut.AvailableForSignup, Is.False);
+        sut.AvailableForSignup.ShouldBeFalse();
     }
 
-    [Test]
+    [Fact]
     public void AvailableForSignup_NoSignups_ReturnsTrue()
     {
         var sut = new EventDto
@@ -128,10 +128,10 @@ public class EventDtoTests
             }
         };
 
-        Assert.That(sut.AvailableForSignup, Is.True);
+        sut.AvailableForSignup.ShouldBeTrue();
     }
 
-    [Test]
+    [Fact]
     public void AvailableForSignup_SignupsExist_ReturnsTrue()
     {
         var sut = new EventDto
@@ -168,6 +168,6 @@ public class EventDtoTests
             }
         };
 
-        Assert.That(sut.AvailableForSignup, Is.True);
+        sut.AvailableForSignup.ShouldBeTrue();
     }
 }

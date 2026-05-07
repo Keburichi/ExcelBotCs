@@ -5,10 +5,9 @@ using ExcelBotCs.TestFramework.Utils;
 
 namespace ExcelBotCs.Tests.Mappers;
 
-[TestFixture]
 public class RaidplanMapperTests
 {
-    [Test]
+    [Fact]
     public void ToDto()
     {
         // Arrange
@@ -18,15 +17,15 @@ public class RaidplanMapperTests
         var entityDto = RaidplanMapper.ToDto(entity);
 
         // Assert
-        Assert.That(entityDto, Is.Not.Null);
-        Assert.That(entityDto.Id, Is.EqualTo(entity.Id));
-        Assert.That(entityDto.Name, Is.EqualTo(entity.Name));
-        Assert.That(entityDto.Description, Is.EqualTo(entity.Description));
-        Assert.That(entityDto.Url, Is.EqualTo(entity.Url));
-        Assert.That(entityDto.AuthorId, Is.EqualTo(entity.AuthorId));
+        entityDto.ShouldNotBeNull();
+        entityDto.Id.ShouldBe(entity.Id);
+        entityDto.Name.ShouldBe(entity.Name);
+        entityDto.Description.ShouldBe(entity.Description);
+        entityDto.Url.ShouldBe(entity.Url);
+        entityDto.AuthorId.ShouldBe(entity.AuthorId);
     }
 
-    [Test]
+    [Fact]
     public void ToEntity()
     {
         // Arrange
@@ -36,11 +35,11 @@ public class RaidplanMapperTests
         var entity = RaidplanMapper.ToEntity(entityDto);
 
         // Assert
-        Assert.That(entity, Is.Not.Null);
-        Assert.That(entity.Id, Is.EqualTo(entityDto.Id));
-        Assert.That(entity.Name, Is.EqualTo(entityDto.Name));
-        Assert.That(entity.Description, Is.EqualTo(entityDto.Description));
-        Assert.That(entity.Url, Is.EqualTo(entityDto.Url));
-        Assert.That(entity.AuthorId, Is.EqualTo(entityDto.AuthorId));
+        entity.ShouldNotBeNull();
+        entity.Id.ShouldBe(entityDto.Id);
+        entity.Name.ShouldBe(entityDto.Name);
+        entity.Description.ShouldBe(entityDto.Description);
+        entity.Url.ShouldBe(entityDto.Url);
+        entity.AuthorId.ShouldBe(entityDto.AuthorId);
     }
 }

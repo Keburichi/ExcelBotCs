@@ -7,20 +7,18 @@ using Moq;
 
 namespace ExcelBotCs.Tests.Services.API;
 
-[TestFixture]
 public class FcMemberServiceTests
 {
-    private IFcMemberService _fcMemberService;
-    private Mock<IFcMemberRepository> _fcMemberRepositoryMock;
+    private readonly IFcMemberService _fcMemberService;
+    private readonly Mock<IFcMemberRepository> _fcMemberRepositoryMock;
 
-    [SetUp]
-    public void SetUp()
+    public FcMemberServiceTests()
     {
         _fcMemberRepositoryMock = new Mock<IFcMemberRepository>();
         _fcMemberService = new FcMemberService(_fcMemberRepositoryMock.Object);
     }
 
-    [Test]
+    [Fact]
     public async Task GetAsync_ReturnsNull()
     {
         // Arrange
@@ -30,12 +28,12 @@ public class FcMemberServiceTests
         var result = await _fcMemberService.GetAsync();
 
         // Assert
-        Assert.That(result, Is.Null);
+        result.ShouldBeNull();
 
         _fcMemberRepositoryMock.Verify(x => x.GetAsync(), Times.Once());
     }
 
-    [Test]
+    [Fact]
     public async Task GetAsync_ReturnsList()
     {
         // Arrange
@@ -46,13 +44,13 @@ public class FcMemberServiceTests
         var result = await _fcMemberService.GetAsync();
 
         // Assert
-        Assert.That(result, Is.Not.Null);
-        Assert.That(result, Is.EquivalentTo(fcMembers));
+        result.ShouldNotBeNull();
+        result.ShouldBe(fcMembers);
 
         _fcMemberRepositoryMock.Verify(x => x.GetAsync(), Times.Once());
     }
 
-    [Test]
+    [Fact]
     public async Task GetAsync_ById_ReturnsNull()
     {
         // Arrange
@@ -63,12 +61,12 @@ public class FcMemberServiceTests
         var result = await _fcMemberService.GetAsync(id);
 
         // Assert
-        Assert.That(result, Is.Null);
+        result.ShouldBeNull();
 
         _fcMemberRepositoryMock.Verify(x => x.GetAsync(id), Times.Once());
     }
 
-    [Test]
+    [Fact]
     public async Task GetAsync_ById_ReturnsItem()
     {
         // Arrange
@@ -80,13 +78,13 @@ public class FcMemberServiceTests
         var result = await _fcMemberService.GetAsync(id);
 
         // Assert
-        Assert.That(result, Is.Not.Null);
-        Assert.That(result, Is.EqualTo(fcMember));
+        result.ShouldNotBeNull();
+        result.ShouldBe(fcMember);
 
         _fcMemberRepositoryMock.Verify(x => x.GetAsync(id), Times.Once());
     }
 
-    [Test]
+    [Fact]
     public async Task CreateAsync_CallsRepository()
     {
         // Arrange
@@ -100,7 +98,7 @@ public class FcMemberServiceTests
         _fcMemberRepositoryMock.Verify(x => x.CreateAsync(fcMember), Times.Once());
     }
 
-    [Test]
+    [Fact]
     public async Task UpdateAsync_CallsRepository()
     {
         // Arrange
@@ -115,7 +113,7 @@ public class FcMemberServiceTests
         _fcMemberRepositoryMock.Verify(x => x.UpdateAsync(id, fcMember), Times.Once());
     }
 
-    [Test]
+    [Fact]
     public async Task DeleteAsync_CallsRepository()
     {
         // Arrange
@@ -129,7 +127,7 @@ public class FcMemberServiceTests
         _fcMemberRepositoryMock.Verify(x => x.DeleteAsync(id), Times.Once());
     }
 
-    [Test]
+    [Fact]
     public async Task GetByCharacterId_ReturnsNull()
     {
         // Arrange
@@ -140,12 +138,12 @@ public class FcMemberServiceTests
         var result = await _fcMemberService.GetByCharacterId(characterId);
 
         // Assert
-        Assert.That(result, Is.Null);
+        result.ShouldBeNull();
 
         _fcMemberRepositoryMock.Verify(x => x.GetByCharacterId(characterId), Times.Once());
     }
 
-    [Test]
+    [Fact]
     public async Task GetByCharacterId_ReturnsItem()
     {
         // Arrange
@@ -157,8 +155,8 @@ public class FcMemberServiceTests
         var result = await _fcMemberService.GetByCharacterId(characterId);
 
         // Assert
-        Assert.That(result, Is.Not.Null);
-        Assert.That(result, Is.EqualTo(fcMember));
+        result.ShouldNotBeNull();
+        result.ShouldBe(fcMember);
 
         _fcMemberRepositoryMock.Verify(x => x.GetByCharacterId(characterId), Times.Once());
     }

@@ -3,6 +3,7 @@ using System.Net.Http.Json;
 using Discord;
 using ExcelBotCs.Models;
 using ExcelBotCs.Services.Discord.Interfaces;
+using ExcelBotCs.TestFramework.Database;
 using ExcelBotCs.Tests.Utils;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
@@ -10,40 +11,42 @@ using Moq;
 
 namespace ExcelBotCs.Tests.Controllers;
 
-[TestFixture]
 public class HomeControllerIntegrationTests : IntegrationTestBase
 {
+    public HomeControllerIntegrationTests(MongoDbFixture fixture) : base(fixture)
+    {
+    }
     #region Permission Tests
 
-    [Test]
+    [Fact]
     public async Task GetAnnouncements_CheckPermissions()
     {
         // No Auth = Unauthorized
         SetUnauthenticated();
         var response = await Client.GetAsync("api/Home/announcements");
-        Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.Unauthorized));
+        response.StatusCode.ShouldBe(HttpStatusCode.Unauthorized);
 
         // No Member = Forbidden
         SetAuthenticatedUser("12355");
         response = await Client.GetAsync("api/Home/announcements");
-        Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.Forbidden));
+        response.StatusCode.ShouldBe(HttpStatusCode.Forbidden);
 
         // Member = Ok
         await AuthenticateAsMember();
         response = await Client.GetAsync("api/Home/announcements");
-        Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.OK));
+        response.StatusCode.ShouldBe(HttpStatusCode.OK);
 
         // Admin = Ok
         await AuthenticateAsAdmin();
         response = await Client.GetAsync("api/Home/announcements");
-        Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.OK));
+        response.StatusCode.ShouldBe(HttpStatusCode.OK);
     }
 
     #endregion
 
     #region Functional Tests
 
-    [Test]
+    [Fact]
     public async Task GetAnnouncements_NoMessages_ReturnsEmptyList()
     {
         // Arrange
@@ -57,11 +60,11 @@ public class HomeControllerIntegrationTests : IntegrationTestBase
         // Assert
         response.EnsureSuccessStatusCode();
         var announcements = await response.Content.ReadFromJsonAsync<List<Announcement>>();
-        Assert.That(announcements, Is.Not.Null);
-        Assert.That(announcements, Is.Empty);
+        announcements.ShouldNotBeNull();
+        announcements.ShouldBeEmpty();
     }
 
-    [Test]
+    [Fact]
     public async Task GetAnnouncements_WithMessages_ReturnsAnnouncementList()
     {
         // Arrange
@@ -113,25 +116,25 @@ public class HomeControllerIntegrationTests : IntegrationTestBase
         // Assert
         response.EnsureSuccessStatusCode();
         var announcements = await response.Content.ReadFromJsonAsync<List<Announcement>>();
-        Assert.That(announcements, Is.Not.Null);
-        Assert.That(announcements, Has.Count.EqualTo(2));
+        announcements.ShouldNotBeNull();
+        announcements.Count.ShouldBe(2);
 
         // Verify first announcement
         var announcement1 = announcements[0];
-        Assert.That(announcement1.Content, Is.EqualTo("Test announcement 1"));
-        Assert.That(announcement1.Author, Is.EqualTo("TestUser1"));
-        Assert.That(announcement1.Attachments, Is.Empty);
+        announcement1.Content.ShouldBe("Test announcement 1");
+        announcement1.Author.ShouldBe("TestUser1");
+        announcement1.Attachments.ShouldBeEmpty();
 
         // Verify second announcement
         var announcement2 = announcements[1];
-        Assert.That(announcement2.Content, Is.EqualTo("Test announcement 2"));
-        Assert.That(announcement2.Author, Is.EqualTo("TestUser2"));
-        Assert.That(announcement2.Attachments, Has.Count.EqualTo(1));
-        Assert.That(announcement2.Attachments[0].Name, Is.EqualTo("image1.png"));
-        Assert.That(announcement2.Attachments[0].Url, Is.EqualTo("https://example.com/image1.png"));
+        announcement2.Content.ShouldBe("Test announcement 2");
+        announcement2.Author.ShouldBe("TestUser2");
+        announcement2.Attachments.Count.ShouldBe(1);
+        announcement2.Attachments[0].Name.ShouldBe("image1.png");
+        announcement2.Attachments[0].Url.ShouldBe("https://example.com/image1.png");
     }
 
-    [Test]
+    [Fact]
     public async Task GetAnnouncements_WithMessagesWithMultipleAttachments_ReturnsCorrectData()
     {
         // Arrange
@@ -175,14 +178,14 @@ public class HomeControllerIntegrationTests : IntegrationTestBase
         // Assert
         response.EnsureSuccessStatusCode();
         var announcements = await response.Content.ReadFromJsonAsync<List<Announcement>>();
-        Assert.That(announcements, Is.Not.Null);
-        Assert.That(announcements, Has.Count.EqualTo(1));
+        announcements.ShouldNotBeNull();
+        announcements.Count.ShouldBe(1);
 
         var announcement = announcements[0];
-        Assert.That(announcement.Attachments, Has.Count.EqualTo(3));
-        Assert.That(announcement.Attachments[0].Name, Is.EqualTo("screenshot1.png"));
-        Assert.That(announcement.Attachments[1].Name, Is.EqualTo("screenshot2.png"));
-        Assert.That(announcement.Attachments[2].Name, Is.EqualTo("document.pdf"));
+        announcement.Attachments.Count.ShouldBe(3);
+        announcement.Attachments[0].Name.ShouldBe("screenshot1.png");
+        announcement.Attachments[1].Name.ShouldBe("screenshot2.png");
+        announcement.Attachments[2].Name.ShouldBe("document.pdf");
     }
 
     #endregion
