@@ -24,9 +24,6 @@
     </ItemGroup>
 
     <ItemGroup>
-        <None Update="Static\hello.txt">
-            <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-        </None>
         <None Include="ClientApp\node_modules\@babel\parser\typings\babel-parser.d.ts"/>
         <None Include="ClientApp\node_modules\@babel\types\lib\index-legacy.d.ts"/>
         <None Include="ClientApp\node_modules\@babel\types\lib\index.d.ts"/>

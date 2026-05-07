@@ -3,6 +3,7 @@ using ExcelBotCs.Models.Config;
 using ExcelBotCs.Models.Database;
 using ExcelBotCs.Services;
 using ExcelBotCs.Services.API.Interfaces;
+using ExcelBotCs.Services.Import;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Mvc;
@@ -17,12 +18,17 @@ public class DiscordController : ControllerBase
     private readonly IMemberService _memberService;
     private readonly JwtOptions _jwtOptions;
     private readonly RsaKeyService _rsaKeyService;
+    private readonly ImportService _importService;
+    private readonly IOptions<DiscordBotOptions> _discordBotOptions;
 
-    public DiscordController(IMemberService memberService, IOptions<JwtOptions> jwtOptions, RsaKeyService rsaKeyService)
+    public DiscordController(IMemberService memberService, IOptions<JwtOptions> jwtOptions, RsaKeyService rsaKeyService,
+        ImportService importService, IOptions<DiscordBotOptions> discbordBotOptions)
     {
         _memberService = memberService;
         _jwtOptions = jwtOptions.Value;
         _rsaKeyService = rsaKeyService;
+        _importService = importService;
+        _discordBotOptions = discbordBotOptions;
     }
 
     [HttpGet]
@@ -68,7 +74,11 @@ public class DiscordController : ControllerBase
 
         var member = await _memberService.GetByDiscordId(discordId);
 
+        // If the user doesn't already exist in the database, create it
+        // and sync their roles so they don't have to wait until the next scheduled sync
+        // to access the website
         if (member is null)
+        {
             await _memberService.CreateAsync(new Member
             {
                 DiscordId = discordId,
@@ -76,8 +86,10 @@ public class DiscordController : ControllerBase
                 DiscordAvatar = discordAvatar
             });
 
+            await _importService.ImportMembers(_discordBotOptions.Value.GuildId);
+        }
+
         // Redirect to SPA home where the cookie will authorize API calls
         return Results.Redirect("/");
     }
-
 }
