@@ -2,6 +2,7 @@ using System.Reflection;
 using Discord;
 using Discord.Interactions;
 using Discord.WebSocket;
+using ExcelBotCs.Extensions;
 using ExcelBotCs.Models.Config;
 using Microsoft.Extensions.Options;
 
@@ -50,6 +51,12 @@ public class DiscordBotService : BackgroundService
 
     private async Task ClientOnReady()
     {
+        // Check if any modules are already registered and remove them before registering them again
+        // (this happens during re-connects from the bot)
+        if (!_interaction.Modules.IsNullOrEmpty())
+            foreach (var interactionModule in _interaction.Modules)
+                await _interaction.RemoveModuleAsync(interactionModule);
+
         await _interaction.AddModulesAsync(Assembly.GetEntryAssembly(), _serviceProvider);
 
         // Instead of registering the commands only for the Excel discord, register them for all servers
