@@ -1,5 +1,6 @@
 using ExcelBotCs.Models.Database;
 using ExcelBotCs.Models.DTO;
+using ExcelBotCs.Modules.TeamFormation;
 
 namespace ExcelBotCs.Services.API.Interfaces;
 
@@ -53,4 +54,10 @@ public interface IEventService : IBaseEntityService<Event>
     ///     Use this instead of full regeneration when an occurrence completes.
     /// </summary>
     Task AppendNextOccurrencesAsync(string eventId, int count = 1);
+
+    /// <summary>
+    ///     Handles a signup button interaction for an event.
+    ///     Toggles the given role for the user on the next upcoming scheduled occurrence.
+    /// </summary>
+    Task HandleSignupAsync(string eventId, Role role, ulong discordUserId);
 }

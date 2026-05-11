@@ -1,4 +1,3 @@
-using Discord.WebSocket;
 using ExcelBotCs.Database.Interfaces;
 using ExcelBotCs.Extensions;
 using ExcelBotCs.Models.Database;
@@ -16,128 +15,58 @@ public class EventService : BaseEntityService<Event, IEventRepository>, IEventSe
     private const double DateTimeToleranceSeconds = 1.0;
 
     private readonly IICalService _iCalService;
-    private readonly DiscordSocketClient _discordSocketClient;
     private readonly IDiscordMessageService _discordMessageService;
 
     public EventService(IEventRepository eventRepository, IICalService iCalService,
-        DiscordSocketClient discordSocketClient, IDiscordMessageService discordMessageService) : base(eventRepository)
+        IDiscordMessageService discordMessageService) : base(eventRepository)
     {
         _iCalService = iCalService;
-        _discordSocketClient = discordSocketClient;
         _discordMessageService = discordMessageService;
-
-        _discordSocketClient.InteractionCreated += DiscordSocketClientOnInteractionCreated;
     }
 
-    private async Task DiscordSocketClientOnInteractionCreated(SocketInteraction interaction)
+    public async Task HandleSignupAsync(string eventId, Role role, ulong discordUserId)
     {
-        switch (interaction)
+        var fcEvent = await Repository.GetAsync(eventId);
+        if (fcEvent == null) return;
+
+        var occurrence = fcEvent.Occurrences
+            ?.Where(o => o.Status == OccurrenceStatus.Scheduled && o.OccurrenceDate >= DateTime.UtcNow)
+            .OrderBy(o => o.OccurrenceDate)
+            .FirstOrDefault()
+            ?? fcEvent.Occurrences?.FirstOrDefault();
+
+        if (occurrence == null)
         {
-            case SocketMessageComponent component:
+            occurrence = new EventOccurrence
             {
-                // check if its a signup interaction
-                if (component.Data.CustomId.Contains("signup"))
-                {
-                    var eventId = component.Data.CustomId.Split("-").First();
-                    var roleButton = component.Data.CustomId.Split("-").Last();
-                    Role role;
-
-                    switch (roleButton)
-                    {
-                        case "tank":
-                            role = Role.Tank;
-                            break;
-
-                        case "healer":
-                            role = Role.Healer;
-                            break;
-
-                        case "melee":
-                            role = Role.Melee;
-                            break;
-
-                        case "range":
-                            role = Role.Ranged;
-                            break;
-
-                        case "caster":
-                            role = Role.Caster;
-                            break;
-
-                        default:
-                            role = Role.Tank;
-                            break;
-                    }
-
-                    var fcEvent = await Repository.GetAsync(eventId);
-
-                    if (fcEvent != null)
-                    {
-                        // Determine target occurrence: prefer next upcoming scheduled occurrence, fall back to the first; create if none exists
-                        var occurrence = fcEvent.Occurrences
-                                             ?.Where(o =>
-                                                 o.Status == OccurrenceStatus.Scheduled &&
-                                                 o.OccurrenceDate >= DateTime.UtcNow)
-                                             .OrderBy(o => o.OccurrenceDate)
-                                             .FirstOrDefault()
-                                         ?? fcEvent.Occurrences?.FirstOrDefault();
-
-                        if (occurrence == null)
-                        {
-                            occurrence = new EventOccurrence
-                            {
-                                OccurrenceDate = fcEvent.StartDate,
-                                Status = OccurrenceStatus.Scheduled
-                            };
-                            fcEvent.Occurrences ??= new List<EventOccurrence>();
-                            fcEvent.Occurrences.Add(occurrence);
-                        }
-
-                        occurrence.Signups ??= new List<DbEventSignup>();
-
-                        // check if the member is already signed up for this occurence
-                        var existing =
-                            occurrence.Signups.FirstOrDefault(x => x.DiscordUserId == interaction.User.Id.ToString());
-
-                        if (existing != null)
-                        {
-                            // update roles for existing signup
-                            if (existing.Roles.Contains(role))
-                                existing.Roles.Remove(role);
-                            else
-                                existing.Roles.Add(role);
-                        }
-                        else
-                        {
-                            occurrence.Signups.Add(new DbEventSignup
-                            {
-                                DiscordUserId = interaction.User.Id.ToString(),
-                                Roles = new List<Role>
-                                {
-                                    role
-                                },
-                                SignupDate = DateTime.UtcNow
-                            });
-                        }
-
-                        await UpdateAsync(fcEvent.Id, fcEvent);
-                    }
-                }
-
-                switch (component.Data.CustomId)
-                {
-                    case "signup-tank":
-
-                        await component.RespondAsync("You have successfully signed up as a tank!", ephemeral: true);
-                        break;
-                    default:
-                        await component.RespondAsync("received!", ephemeral: true);
-                        break;
-                }
-
-                break;
-            }
+                OccurrenceDate = fcEvent.StartDate,
+                Status = OccurrenceStatus.Scheduled
+            };
+            fcEvent.Occurrences ??= new List<EventOccurrence>();
+            fcEvent.Occurrences.Add(occurrence);
         }
+
+        occurrence.Signups ??= new List<DbEventSignup>();
+
+        var existing = occurrence.Signups.FirstOrDefault(x => x.DiscordUserId == discordUserId.ToString());
+        if (existing != null)
+        {
+            if (existing.Roles.Contains(role))
+                existing.Roles.Remove(role);
+            else
+                existing.Roles.Add(role);
+        }
+        else
+        {
+            occurrence.Signups.Add(new DbEventSignup
+            {
+                DiscordUserId = discordUserId.ToString(),
+                Roles = new List<Role> { role },
+                SignupDate = DateTime.UtcNow
+            });
+        }
+
+        await UpdateAsync(fcEvent.Id, fcEvent);
     }
 
     public override async Task<List<Event>> GetAsync()
