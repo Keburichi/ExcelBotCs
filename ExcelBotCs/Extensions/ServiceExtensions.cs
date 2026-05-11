@@ -6,6 +6,8 @@ using ExcelBotCs.Services;
 using ExcelBotCs.Services.API;
 using ExcelBotCs.Services.API.Interfaces;
 using ExcelBotCs.Services.FFLogs;
+using ExcelBotCs.Services.Tasks;
+using ExcelBotCs.Services.Tasks.Handlers;
 
 namespace ExcelBotCs.Extensions;
 
@@ -68,5 +70,12 @@ public static class ServiceExtensions
         services.AddSingleton<FFLogsAuthService>();
         services.AddSingleton<FFLogsGraphQLService>();
         services.AddSingleton<FFLogsSyncService>();
+    }
+
+    public static void AddTaskQueueServices(this IServiceCollection services)
+    {
+        services.AddSingleton<IBotTaskHandler, PostEventSignupHandler>();
+        services.AddSingleton<IBotTaskHandler, PostDiscordMessageHandler>();
+        services.AddSingleton<IBotTaskHandler, UpdateSignupMessageHandler>();
     }
 }
