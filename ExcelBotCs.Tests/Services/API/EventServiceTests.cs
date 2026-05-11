@@ -1,8 +1,10 @@
+using Discord.WebSocket;
 using ExcelBotCs.Database.Interfaces;
 using ExcelBotCs.Models.Database;
 using ExcelBotCs.Services;
 using ExcelBotCs.Services.API;
 using ExcelBotCs.Services.API.Interfaces;
+using ExcelBotCs.Services.Discord.Interfaces;
 using ExcelBotCs.TestFramework.Utils;
 using Ical.Net;
 using Moq;
@@ -13,13 +15,18 @@ public class EventServiceTests
 {
     private readonly IEventService _eventService;
     private readonly Mock<IEventRepository> _eventRepositoryMock;
+    private readonly Mock<DiscordSocketClient> _discordSocketClientMock;
+    private readonly Mock<IDiscordMessageService> _discordMessageServiceMock;
     private readonly IICalService _iCalService;
 
     public EventServiceTests()
     {
         _eventRepositoryMock = new Mock<IEventRepository>();
+        _discordSocketClientMock = new Mock<DiscordSocketClient>();
+        _discordMessageServiceMock = new Mock<IDiscordMessageService>();
         _iCalService = new ICalService();
-        _eventService = new EventService(_eventRepositoryMock.Object, _iCalService);
+        _eventService = new EventService(_eventRepositoryMock.Object, _iCalService, _discordSocketClientMock.Object,
+            _discordMessageServiceMock.Object);
     }
 
     [Fact]
@@ -119,7 +126,8 @@ public class EventServiceTests
         eventItem.Occurrences.Count.ShouldBe(3);
 
         for (var i = 0; i < eventItem.Occurrences.Count; i++)
-            eventItem.Occurrences[i].OccurrenceDate.ShouldBe(eventItem.StartDate.AddDays(i * 7), TimeSpan.FromMinutes(1));
+            eventItem.Occurrences[i].OccurrenceDate
+                .ShouldBe(eventItem.StartDate.AddDays(i * 7), TimeSpan.FromMinutes(1));
 
         _eventRepositoryMock.Verify(x => x.CreateAsync(eventItem), Times.Once());
     }

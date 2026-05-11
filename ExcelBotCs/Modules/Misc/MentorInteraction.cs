@@ -31,38 +31,37 @@ public class MentorInteraction : InteractionModuleBase<SocketInteractionContext>
 
 
     [SlashCommand("tank", "Toggle tank specialist role")]
-    private Task ToggleTankMentorRole()
+    public Task ToggleTankMentorRole()
     {
         return ToggleMentorRole("Tank", TankSpecialistRole);
     }
 
     [SlashCommand("healer", "Toggle healer specialist role")]
-    private Task ToggleHealerMentorRole()
+    public Task ToggleHealerMentorRole()
     {
         return ToggleMentorRole("Healer", HealerSpecialistRole);
     }
 
     [SlashCommand("melee", "Toggle melee specialist role")]
-    private Task ToggleMeleeMentorRole()
+    public Task ToggleMeleeMentorRole()
     {
         return ToggleMentorRole("Melee DPS", MeleeSpecialistRole);
     }
 
-
     [SlashCommand("caster", "Toggle caster specialist role")]
-    private Task ToggleCasterMentorRole()
+    public Task ToggleCasterMentorRole()
     {
         return ToggleMentorRole("Caster DPS", CasterSpecialistRole);
     }
 
     [SlashCommand("ranged", "Toggle ranged physical specialist role")]
-    private Task ToggleRangedMentorRole()
+    public Task ToggleRangedMentorRole()
     {
         return ToggleMentorRole("Physical Ranged DPS", RangedPhysSpecialistRole);
     }
 
     [SlashCommand("crafter", "Toggle crafter specialist role")]
-    private Task ToggleCrafterMentorRole()
+    public Task ToggleCrafterMentorRole()
     {
         return ToggleMentorRole("Crafter", CrafterSpecialistRole);
     }

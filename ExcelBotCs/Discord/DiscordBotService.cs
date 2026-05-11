@@ -32,7 +32,10 @@ public class DiscordBotService : BackgroundService
             return Task.CompletedTask;
         };
 
-        _interaction = new InteractionService(_client);
+        _interaction = new InteractionService(_client, new InteractionServiceConfig
+        {
+            DefaultRunMode = RunMode.Sync
+        });
         _config = config.Value;
         _serviceProvider = serviceProvider;
         _logger = logger;
@@ -40,6 +43,29 @@ public class DiscordBotService : BackgroundService
         _client.Ready += ClientOnReady;
         _client.Disconnected += OnDisconnected;
         _client.InteractionCreated += ClientOnInteractionCreated;
+
+        _interaction.Log += message =>
+        {
+            var level = message.Severity switch
+            {
+                LogSeverity.Critical => LogLevel.Critical,
+                LogSeverity.Error => LogLevel.Error,
+                LogSeverity.Warning => LogLevel.Warning,
+                LogSeverity.Info => LogLevel.Information,
+                _ => LogLevel.Debug
+            };
+            logger.Log(level, message.Exception, message.ToString());
+            return Task.CompletedTask;
+        };
+
+        _interaction.InteractionExecuted += (_, context, result) =>
+        {
+            if (!result.IsSuccess)
+                logger.LogError("Interaction '{Name}' failed: {Error} — {Reason}",
+                    context?.Interaction.Data is IApplicationCommandInteractionData d ? d.Name : "unknown",
+                    result.Error, result.ErrorReason);
+            return Task.CompletedTask;
+        };
     }
 
     private Task OnDisconnected(Exception ex)
@@ -67,7 +93,13 @@ public class DiscordBotService : BackgroundService
     {
         await using var scope = _serviceProvider.CreateAsyncScope();
         var context = new SocketInteractionContext(_client, interaction);
+
         await _interaction.ExecuteCommandAsync(context, scope.ServiceProvider);
+
+        // var result = await _interaction.ExecuteCommandAsync(context, scope.ServiceProvider);
+        //
+        // if (!result.IsSuccess)
+        //     _logger.LogError(result.ErrorReason);
     }
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)

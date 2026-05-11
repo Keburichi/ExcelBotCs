@@ -70,6 +70,7 @@ public class Program
 
         builder.Services.AddScoped<ILotteryService, LotteryService>();
         builder.Services.AddScoped<IDiscordMessageService, DiscordMessageService>();
+        builder.Services.AddScoped<IComponentCreator, ComponentCreator>();
 
         // Register Lodestone-related services
         builder.Services.AddSingleton<DutyMatchingService>(sp =>
