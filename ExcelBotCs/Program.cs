@@ -15,6 +15,7 @@ using ExcelBotCs.Services.Discord;
 using ExcelBotCs.Services.Discord.Interfaces;
 using ExcelBotCs.Services.Import;
 using ExcelBotCs.Services.Lodestone;
+using ExcelBotCs.Services.Tasks;
 using ExcelBotCs.Services.Lottery;
 using ExcelBotCs.Services.Lottery.Interfaces;
 using ExcelBotCs.Utilities;
@@ -69,8 +70,8 @@ public class Program
         builder.Services.LoadSettings(builder);
 
         builder.Services.AddScoped<ILotteryService, LotteryService>();
-        builder.Services.AddScoped<IDiscordMessageService, DiscordMessageService>();
-        builder.Services.AddScoped<IComponentCreator, ComponentCreator>();
+        builder.Services.AddSingleton<IDiscordMessageService, DiscordMessageService>();
+        builder.Services.AddSingleton<IComponentCreator, ComponentCreator>();
 
         // Register Lodestone-related services
         builder.Services.AddSingleton<DutyMatchingService>(sp =>
@@ -167,6 +168,8 @@ public class Program
         // register all custom services, repositories and mappers
         builder.Services.AddDatabaseRepositories();
         builder.Services.AddApiServices();
+        builder.Services.AddTaskQueueServices();
+        AddHostedService<TaskDispatcherService>();
         builder.Services.AddDomainServices();
         builder.Services.AddDiscordClient();
         builder.Services.AddFFLogsServices();
