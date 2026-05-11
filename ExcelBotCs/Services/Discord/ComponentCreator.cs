@@ -44,7 +44,7 @@ public class ComponentCreator : IComponentCreator
         if (meleeEmote != null)
             meleeButton.WithEmote(meleeEmote);
 
-        var rangeButton = new ButtonBuilder("Range", $"{fcEvent.Id}-signup-range");
+        var rangeButton = new ButtonBuilder("Range", $"{fcEvent.Id}-signup-ranged");
 
         if (rangeEmote != null)
             rangeButton.WithEmote(rangeEmote);
@@ -81,13 +81,17 @@ public class ComponentCreator : IComponentCreator
         componentBuilderV2.WithSeparator(SeparatorSpacingSize.Large);
         componentBuilderV2.WithTextDisplay("**Current Signups**");
 
-        foreach (Role role in Enum.GetValues(typeof(Role)))
+        var firstOccurrence = fcEvent.Occurrences?.FirstOrDefault();
+        if (firstOccurrence != null)
         {
-            var signUps = fcEvent.Occurrences.First().Signups.Where(x => x.Roles.Contains(role));
-            var members = signUps.Aggregate<EventSignup?, string>(null,
-                (current, eventSignup) => current + $"<@{eventSignup.DiscordUserId}>, ");
-
-            componentBuilderV2.WithTextDisplay($"{_discordSocketClient.GetEmoteByRole(role)}: {members}");
+            foreach (Role role in Enum.GetValues(typeof(Role)))
+            {
+                var signUps = (firstOccurrence.Signups ?? Enumerable.Empty<EventSignup>())
+                    .Where(x => x.Roles.Contains(role));
+                var members = signUps.Aggregate<EventSignup?, string>(null,
+                    (current, eventSignup) => current + $"<@{eventSignup.DiscordUserId}>, ");
+                componentBuilderV2.WithTextDisplay($"{_discordSocketClient.GetEmoteByRole(role)}: {members}");
+            }
         }
 
         return componentBuilderV2;
