@@ -37,6 +37,7 @@ public static class ServiceExtensions
         services.AddSingleton<IMemberRoleService, MemberRoleService>();
         services.AddSingleton<ILodestoneDutyService, LodestoneDutyService>();
         services.AddSingleton<IRaidplanService, RaidplanService>();
+        services.AddSingleton<IBotTaskService, BotTaskService>();
     }
 
     public static void AddDomainServices(this IServiceCollection services)
