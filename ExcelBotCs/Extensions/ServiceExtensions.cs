@@ -25,6 +25,7 @@ public static class ServiceExtensions
         services.AddSingleton<IExtraLotteryGuessRepository, ExtraLotteryGuessRepository>();
         services.AddSingleton<ILotteryResultRepository, LotteryResultRepository>();
         services.AddSingleton<IEventDetailsRepository, EventDetailsRepository>();
+        services.AddSingleton<IBotTaskRepository, BotTaskRepository>();
     }
 
     public static void AddApiServices(this IServiceCollection services)
