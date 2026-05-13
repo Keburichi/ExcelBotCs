@@ -225,17 +225,11 @@ public class EventsController : AuthorizedController, IEventsController
 
     #region Occurrence
 
-    public Task<ActionResult> UpdateOccurenceStatus(string eventId, string occurrenceId,
-        UpdateOccurrenceStatusRequest occurrenceStatusRequest)
-    {
-        throw new NotImplementedException();
-    }
-
     [HttpPatch]
     [Route("{eventId}/occurrences/{occurrenceId}/status")]
     [AdminAuth]
-    public async Task<IActionResult> UpdateOccurrenceStatus(string eventId, string occurrenceId,
-        [FromBody] OccurrenceStatusUpdateDto statusUpdate)
+    public async Task<ActionResult> UpdateOccurenceStatus(string eventId, string occurrenceId,
+        [FromBody] UpdateOccurrenceStatusRequest statusUpdate)
     {
         var user = await _currentMemberAccessor.GetCurrentAsync();
         if (user is null)
@@ -275,15 +269,10 @@ public class EventsController : AuthorizedController, IEventsController
         return Ok();
     }
 
-    public Task<ActionResult> CancelOccurence(string eventId, string occurrenceId)
-    {
-        throw new NotImplementedException();
-    }
-
     [HttpDelete]
     [Route("{eventId}/occurrences/{occurrenceId}")]
     [AdminAuth]
-    public async Task<IActionResult> CancelOccurrence(string eventId, string occurrenceId)
+    public async Task<ActionResult> CancelOccurence(string eventId, string occurrenceId)
     {
         var user = await _currentMemberAccessor.GetCurrentAsync();
         if (user is null)
