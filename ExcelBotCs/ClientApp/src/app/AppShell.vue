@@ -228,7 +228,7 @@ const isLoginPage = computed(() => route.path === '/login')
   position: sticky;
   top: -1rem;
   z-index: 1000;
-  transition: all 0.3s ease;
+  transition: all 0.2s ease;
   margin-left: -1rem;
   margin-right: -1rem;
   margin-top: -1rem;
@@ -273,7 +273,7 @@ const isLoginPage = computed(() => route.path === '/login')
 
 .nav :deep(a) {
   padding: 0.5rem 1rem;
-  border-radius: 10px;
+  border-radius: 12px;
   color: var(--fg);
   text-decoration: none;
   font-weight: 500;
@@ -360,19 +360,8 @@ const isLoginPage = computed(() => route.path === '/login')
   font-size: 0.875rem;
   font-weight: 500;
   letter-spacing: 0.5px;
-  opacity: 0.85;
-  color: rgba(0, 0, 0, 0.75);
+  color: var(--muted);
   line-height: 1.6;
-}
-
-:root[data-theme='dark'] .copyright-text {
-  color: rgba(255, 255, 255, 0.85);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root:not([data-theme='light']) .copyright-text {
-    color: rgba(255, 255, 255, 0.85);
-  }
 }
 
 /* Responsive design */

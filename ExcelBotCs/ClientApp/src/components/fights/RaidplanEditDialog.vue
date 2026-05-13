@@ -135,7 +135,7 @@ const isEditing = computed(() => !!props.raidplan?.Id)
 .form-input {
   padding: 0.75rem;
   border: 1px solid var(--border);
-  border-radius: 0.375rem;
+  border-radius: 8px;
   font-size: 1rem;
   background: var(--card);
   color: var(--fg);

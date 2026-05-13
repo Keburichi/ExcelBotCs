@@ -107,45 +107,45 @@ function cardClick(fight: Fight) {
 
 /* Difficulty badges */
 .difficulty-badge.difficulty-normal {
-  background: #e3f2fd;
-  color: #1565c0;
+  background: var(--cat-blue-bg);
+  color: var(--cat-blue-fg);
 }
 
 .difficulty-badge.difficulty-extreme {
-  background: #f3e5f5;
-  color: #7b1fa2;
+  background: var(--cat-purple-bg);
+  color: var(--cat-purple-fg);
 }
 
 .difficulty-badge.difficulty-savage {
-  background: #ffebee;
-  color: #c62828;
+  background: var(--cat-red-bg);
+  color: var(--cat-red-fg);
 }
 
 .difficulty-badge.difficulty-legacysavage {
-  background: #fce4ec;
-  color: #c2185b;
+  background: var(--cat-rose-bg);
+  color: var(--cat-rose-fg);
 }
 
 .difficulty-badge.difficulty-ultimate {
-  background: #fff3e0;
-  color: #e65100;
+  background: var(--cat-orange-bg);
+  color: var(--cat-orange-fg);
 }
 
 .difficulty-badge.difficulty-chaotic {
-  background: #ede7f6;
-  color: #4527a0;
+  background: var(--cat-indigo-bg);
+  color: var(--cat-indigo-fg);
 }
 
 /* Expansion badge */
 .expansion-badge {
-  background: #e8f5e9;
-  color: #2e7d32;
+  background: var(--cat-green-bg);
+  color: var(--cat-green-fg);
 }
 
 /* Zone badge */
 .zone-badge {
-  background: #e0f2f1;
-  color: #00695c;
+  background: var(--cat-teal-bg);
+  color: var(--cat-teal-fg);
 }
 
 .card__image {
@@ -157,7 +157,7 @@ function cardClick(fight: Fight) {
   display: flex;
   align-items: center;
   justify-content: center;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(135deg, var(--exp-ultimate-from) 0%, var(--exp-ultimate-to) 100%);
   position: relative;
   overflow: hidden;
 }

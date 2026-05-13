@@ -103,7 +103,7 @@ if (typeof window !== 'undefined') {
   height: 32px;
   border-radius: 9999px;
   background: linear-gradient(135deg, #3b82f6 0%, #8b5cf6 50%, #ec4899 100%);
-  color: white;
+  color: var(--bg);
   display: inline-flex;
   align-items: center;
   justify-content: center;

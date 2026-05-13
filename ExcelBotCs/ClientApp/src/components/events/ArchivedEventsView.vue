@@ -375,7 +375,7 @@ onMounted(() => {
   padding: 0.5rem 0.75rem;
   font-size: 0.9rem;
   border: 1px solid var(--border);
-  border-radius: 0.375rem;
+  border-radius: 8px;
   background: var(--bg);
   color: var(--fg);
 }
@@ -410,7 +410,7 @@ onMounted(() => {
   padding: 0.375rem 0.5rem;
   font-size: 0.875rem;
   border: 1px solid var(--border);
-  border-radius: 0.375rem;
+  border-radius: 8px;
   background: var(--bg);
   color: var(--fg);
 }
@@ -433,11 +433,11 @@ onMounted(() => {
   font-size: 0.875rem;
   font-weight: 500;
   border: 1px solid var(--border);
-  border-radius: 0.375rem;
+  border-radius: 8px;
   background: var(--card);
   color: var(--fg);
   cursor: pointer;
-  transition: background-color 0.15s, border-color 0.15s;
+  transition: background-color 0.2s, border-color 0.2s;
 }
 
 .page-btn:hover:not(:disabled) {
@@ -469,7 +469,7 @@ onMounted(() => {
 
 .archive-info {
   padding: 1rem;
-  background: var(--muted-bg, #f9f9f9);
+  background: var(--muted-bg);
   border: 1px solid var(--border);
   border-top: none;
   border-radius: 0 0 0.5rem 0.5rem;
@@ -521,7 +521,7 @@ onMounted(() => {
 }
 
 .error {
-  color: var(--danger, #ef4444);
+  color: var(--danger);
   margin-bottom: 1rem;
 }
 </style>

@@ -142,26 +142,3 @@ export function eventTypeToString(type: EventType): string {
   return EventType[type]
 }
 
-export function eventTypeToBadgeBgColor(type: EventType): string {
-  switch (type) {
-    case EventType.Raid:
-      return '#e3f2fd'
-    case EventType.Social:
-      return '#f3e5f5'
-    case EventType.Farming:
-      return '#e8f5e9'
-    case EventType.Maps:
-      return '#fff3e0'
-    case EventType.BLU:
-      return '#e0f2f1'
-    case EventType.Academy:
-      return '#fce4ec'
-    case EventType.MinIlvl:
-      return '#fff9c4'
-    case EventType.Downsynced:
-      return '#ede7f6'
-    case EventType.Other:
-    default:
-      return '#eceff1'
-  }
-}

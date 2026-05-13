@@ -149,18 +149,18 @@ onUnmounted(() => {
 .display-value {
   width: 100%;
   padding: 8px 32px 8px 12px;
-  border: 1px solid var(--border, #ccc);
-  border-radius: 6px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
   font-size: 14px;
-  background: var(--input-bg, white);
-  color: var(--fg, black);
+  background: var(--input-bg);
+  color: var(--fg);
   outline: none;
   transition: border-color 0.2s;
 }
 
 .search-input:focus,
 .display-value:focus {
-  border-color: var(--primary, #4a90e2);
+  border-color: var(--link);
 }
 
 .display-value {
@@ -169,11 +169,11 @@ onUnmounted(() => {
 }
 
 .display-value.placeholder {
-  color: var(--muted, #999);
+  color: var(--muted);
 }
 
 .display-value.has-value {
-  color: var(--fg, black);
+  color: var(--fg);
 }
 
 .clear-button {
@@ -185,14 +185,14 @@ onUnmounted(() => {
   border: none;
   font-size: 24px;
   line-height: 1;
-  color: var(--muted, #999);
+  color: var(--muted);
   cursor: pointer;
   padding: 0 4px;
   transition: color 0.2s;
 }
 
 .clear-button:hover {
-  color: var(--fg, black);
+  color: var(--fg);
 }
 
 .dropdown-menu {
@@ -202,9 +202,9 @@ onUnmounted(() => {
   right: 0;
   max-height: 300px;
   overflow-y: auto;
-  background: var(--card, white);
-  border: 1px solid var(--border, #ccc);
-  border-radius: 6px;
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 12px;
   margin-top: 4px;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
   z-index: 1000;
@@ -214,20 +214,20 @@ onUnmounted(() => {
   padding: 10px 12px;
   cursor: pointer;
   transition: background-color 0.2s;
-  color: var(--fg, black);
+  color: var(--fg);
 }
 
 .dropdown-item:hover {
-  background-color: var(--hover-bg, #f5f5f5);
+  background-color: var(--muted-bg);
 }
 
 .dropdown-item.selected {
-  background-color: var(--selected-bg, #e3f2fd);
+  background-color: color-mix(in oklab, var(--card) 90%, var(--link) 10%);
   font-weight: 500;
 }
 
 .dropdown-item.no-results {
-  color: var(--muted, #999);
+  color: var(--muted);
   font-style: italic;
   cursor: default;
 }
@@ -237,7 +237,7 @@ onUnmounted(() => {
 }
 
 .no-selection {
-  color: var(--muted, #999);
+  color: var(--muted);
   font-style: italic;
 }
 
@@ -247,16 +247,16 @@ onUnmounted(() => {
 }
 
 .dropdown-menu::-webkit-scrollbar-track {
-  background: var(--scroll-track, #f1f1f1);
-  border-radius: 4px;
+  background: var(--muted-bg);
+  border-radius: 8px;
 }
 
 .dropdown-menu::-webkit-scrollbar-thumb {
-  background: var(--scroll-thumb, #888);
-  border-radius: 4px;
+  background: var(--border);
+  border-radius: 8px;
 }
 
 .dropdown-menu::-webkit-scrollbar-thumb:hover {
-  background: var(--scroll-thumb-hover, #555);
+  background: var(--muted);
 }
 </style>

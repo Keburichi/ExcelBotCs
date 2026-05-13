@@ -91,19 +91,19 @@ defineProps<{
   margin: 0 0 1rem 0;
   font-size: 1.25rem;
   font-weight: 600;
-  color: var(--fg, #111827);
+  color: var(--fg);
 }
 
 .no-guesses {
   text-align: center;
   padding: 2rem;
-  color: var(--muted, #6b7280);
+  color: var(--muted);
   font-style: italic;
 }
 
 .guesses-table-container {
   overflow-x: auto;
-  border: 1px solid var(--border, #e5e7eb);
+  border: 1px solid var(--border);
   border-radius: 16px;
 }
 
@@ -114,23 +114,23 @@ defineProps<{
 }
 
 .guesses-table thead {
-  background: var(--card, #fff);
-  border-bottom: 2px solid var(--border, #e5e7eb);
+  background: var(--card);
+  border-bottom: 2px solid var(--border);
 }
 
 .guesses-table th {
   padding: 0.75rem;
   text-align: left;
   font-weight: 600;
-  color: var(--fg, #111827);
-  border-bottom: 2px solid var(--border, #e5e7eb);
+  color: var(--fg);
+  border-bottom: 2px solid var(--border);
   white-space: nowrap;
 }
 
 .guesses-table td {
   padding: 0.75rem;
-  border-bottom: 1px solid var(--border, #e5e7eb);
-  color: var(--fg, #111827);
+  border-bottom: 1px solid var(--border);
+  color: var(--fg);
 }
 
 .guesses-table tbody tr:last-child td {
@@ -147,6 +147,6 @@ defineProps<{
 
 .number-cell {
   font-weight: 600;
-  color: #3b82f6;
+  color: var(--link);
 }
 </style>

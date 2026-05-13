@@ -161,7 +161,7 @@ const timezoneOffset = computed(() => {
 .picker-label {
   font-weight: 600;
   font-size: 1rem;
-  color: var(--fg, #333);
+  color: var(--fg);
   margin-bottom: 4px;
 }
 
@@ -188,38 +188,38 @@ const timezoneOffset = computed(() => {
 .input-label {
   font-size: 0.875rem;
   font-weight: 500;
-  color: var(--muted, #666);
+  color: var(--muted);
   text-transform: uppercase;
   letter-spacing: 0.5px;
 }
 
 .date-input {
   padding: 10px 12px;
-  border: 1px solid var(--border, #ccc);
-  border-radius: 6px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
   font-size: 1rem;
-  background: var(--input-bg, white);
-  color: var(--fg, black);
+  background: var(--input-bg);
+  color: var(--fg);
   transition: border-color 0.2s, box-shadow 0.2s;
 }
 
 .date-input:focus {
   outline: none;
-  border-color: var(--primary, #4a90e2);
-  box-shadow: 0 0 0 3px rgba(74, 144, 226, 0.1);
+  border-color: var(--link);
+  box-shadow: 0 0 0 3px var(--ring);
 }
 
 .date-input:disabled {
-  background: var(--disabled-bg, #f5f5f5);
+  background: var(--muted-bg);
   cursor: not-allowed;
   opacity: 0.6;
 }
 
 .time-preview {
   padding: 12px 16px;
-  background: linear-gradient(135deg, var(--muted-bg, #f9f9f9) 0%, var(--card, #ffffff) 100%);
+  background: linear-gradient(135deg, var(--muted-bg) 0%, var(--card) 100%);
   border-radius: 8px;
-  border: 1px solid var(--border, #e0e0e0);
+  border: 1px solid var(--border);
   display: flex;
   flex-direction: column;
   gap: 8px;
@@ -233,19 +233,19 @@ const timezoneOffset = computed(() => {
 }
 
 .preview-row:not(:last-child) {
-  border-bottom: 1px solid var(--border, #e8e8e8);
+  border-bottom: 1px solid var(--border);
   padding-bottom: 8px;
 }
 
 .preview-label {
   font-size: 0.875rem;
   font-weight: 600;
-  color: var(--muted, #666);
+  color: var(--muted);
 }
 
 .preview-value {
   font-size: 0.95rem;
-  color: var(--fg, #333);
+  color: var(--fg);
   font-weight: 500;
   font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
 }

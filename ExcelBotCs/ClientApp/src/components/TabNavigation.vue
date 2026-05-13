@@ -45,7 +45,7 @@ const activeTab = computed(() => {
   padding: 0.5rem;
   background: rgba(255, 255, 255, 0.6);
   backdrop-filter: blur(20px);
-  border-radius: 14px;
+  border-radius: 16px;
   border: 1px solid rgba(255, 255, 255, 0.3);
   box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08),
   inset 0 1px 0 rgba(255, 255, 255, 0.5);
@@ -80,7 +80,7 @@ const activeTab = computed(() => {
   padding: 0.625rem 1.25rem;
   font-weight: 500;
   color: var(--muted);
-  border-radius: 10px;
+  border-radius: 12px;
   transition: all 0.2s ease;
   text-decoration: none;
   white-space: nowrap;
@@ -133,7 +133,7 @@ const activeTab = computed(() => {
 
 .tab-navigation::-webkit-scrollbar-thumb {
   background: rgba(var(--color-muted), 0.3);
-  border-radius: 3px;
+  border-radius: 8px;
 }
 
 .tab-navigation::-webkit-scrollbar-thumb:hover {

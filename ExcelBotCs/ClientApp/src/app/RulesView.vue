@@ -127,53 +127,53 @@
 
 /* High-contrast badge variants for light theme (default) */
 .section-badge--rule {
-  background: #FEF3C7; /* amber-100 */
-  color: #7C2D12; /* amber-900 */
-  border-color: #F59E0B; /* amber-500 */
+  background: color-mix(in oklab, rgb(var(--color-warning)) 20%, var(--bg) 80%);
+  color: color-mix(in oklab, rgb(var(--color-warning)) 80%, var(--fg) 20%);
+  border-color: rgb(var(--color-warning));
 }
 
 .section-badge--slot {
-  background: #DBEAFE; /* blue-100 */
-  color: #1E3A8A; /* blue-900 */
-  border-color: #3B82F6; /* blue-500 */
+  background: color-mix(in oklab, var(--link) 20%, var(--bg) 80%);
+  color: color-mix(in oklab, var(--link) 80%, var(--fg) 20%);
+  border-color: var(--link);
 }
 
 /* Slightly differentiate individual slots */
 .section-badge.slot-4 {
-  background: #D1FAE5; /* emerald-100 */
-  color: #065F46; /* emerald-900 */
-  border-color: #10B981; /* emerald-500 */
+  background: color-mix(in oklab, rgb(var(--color-success)) 20%, var(--bg) 80%);
+  color: color-mix(in oklab, rgb(var(--color-success)) 80%, var(--fg) 20%);
+  border-color: rgb(var(--color-success));
 }
 
 .section-badge.slot-5 {
-  background: #FEE2E2; /* red-100 */
-  color: #7F1D1D; /* red-900 */
-  border-color: #EF4444; /* red-500 */
+  background: color-mix(in oklab, var(--danger) 20%, var(--bg) 80%);
+  color: color-mix(in oklab, var(--danger) 80%, var(--fg) 20%);
+  border-color: var(--danger);
 }
 
 /* Dark theme overrides for strong contrast */
 /* Fixed: Put entire selector inside :global() to prevent Firefox bug */
 :global([data-theme='dark'] .rules .section-badge--rule) {
-  background: #78350f; /* amber-900 */
-  color: #fde68a; /* amber-200 */
-  border-color: #f59e0b; /* amber-500 */
+  background: color-mix(in oklab, rgb(var(--color-warning)) 40%, var(--bg) 60%);
+  color: color-mix(in oklab, rgb(var(--color-warning)) 60%, var(--bg) 40%);
+  border-color: rgb(var(--color-warning));
 }
 
 :global([data-theme='dark'] .rules .section-badge--slot) {
-  background: #1e3a8a; /* blue-900 */
-  color: #bfdbfe; /* blue-200 */
-  border-color: #60a5fa; /* blue-400 */
+  background: color-mix(in oklab, var(--link) 40%, var(--bg) 60%);
+  color: color-mix(in oklab, var(--link) 60%, var(--bg) 40%);
+  border-color: var(--link);
 }
 
 :global([data-theme='dark'] .rules .section-badge.slot-4) {
-  background: #064e3b; /* emerald-900 */
-  color: #a7f3d0; /* emerald-200 */
-  border-color: #34d399; /* emerald-400 */
+  background: color-mix(in oklab, rgb(var(--color-success)) 40%, var(--bg) 60%);
+  color: color-mix(in oklab, rgb(var(--color-success)) 60%, var(--bg) 40%);
+  border-color: rgb(var(--color-success));
 }
 
 :global([data-theme='dark'] .rules .section-badge.slot-5) {
-  background: #7f1d1d; /* red-900 */
-  color: #fca5a5; /* red-300 */
-  border-color: #f87171; /* red-400 */
+  background: color-mix(in oklab, var(--danger) 40%, var(--bg) 60%);
+  color: color-mix(in oklab, var(--danger) 60%, var(--bg) 40%);
+  border-color: var(--danger);
 }
 </style>

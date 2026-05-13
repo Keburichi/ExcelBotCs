@@ -75,33 +75,33 @@ const rankBadgeClass = computed(() => {
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.5px;
-  background: var(--muted-bg, #e0e0e0);
-  color: var(--fg, #333);
+  background: var(--muted-bg);
+  color: var(--fg);
 }
 
 /* Rank specific colors */
 .member-rank-badge.rank-master {
-  background: #ede7f6;
-  color: #4527a0;
+  background: var(--cat-indigo-bg);
+  color: var(--cat-indigo-fg);
 }
 
 .member-rank-badge.rank-living-memory {
-  background: #e0f2f1;
-  color: #00695c;
+  background: var(--cat-teal-bg);
+  color: var(--cat-teal-fg);
 }
 
 .member-rank-badge.rank-leader {
-  background: #ffecb3; /* Light amber */
-  color: #ff6f00; /* Dark amber */
+  background: var(--cat-amber-bg);
+  color: var(--cat-amber-fg);
 }
 
 .member-rank-badge.rank-officer {
-  background: #c8e6c9; /* Light green */
-  color: #2e7d32; /* Dark green */
+  background: var(--cat-green-bg);
+  color: var(--cat-green-fg);
 }
 
 .member-rank-badge.rank-member {
-  background: #e3f2fd; /* Light blue */
-  color: #1565c0; /* Dark blue */
+  background: var(--cat-blue-bg);
+  color: var(--cat-blue-fg);
 }
 </style>

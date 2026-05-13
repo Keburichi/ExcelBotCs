@@ -357,7 +357,7 @@ async function verifyClaim() {
 .experience-item {
   padding: 10px 12px;
   border: 1px dashed var(--border);
-  border-radius: 10px;
+  border-radius: 12px;
   background: color-mix(in oklab, var(--card) 96%, transparent 4%);
 }
 
@@ -407,7 +407,7 @@ async function verifyClaim() {
 }
 
 .kv-value.muted, .muted {
-  color: #9ca3af;
+  color: var(--muted);
   font-weight: 400;
 }
 

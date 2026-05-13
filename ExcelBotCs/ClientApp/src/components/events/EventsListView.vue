@@ -300,83 +300,83 @@ onMounted(e.load)
 }
 
 .event-type--raid {
-  background-color: #e3f2fd;
-  border: 1px solid #1565c0;
+  background-color: var(--cat-blue-bg);
+  border: 1px solid var(--cat-blue-fg);
 }
 
 .event-type--social {
-  background-color: #f3e5f5;
-  border: 1px solid #7b1fa2;
+  background-color: var(--cat-purple-bg);
+  border: 1px solid var(--cat-purple-fg);
 }
 
 .event-type--farming {
-  background-color: #e8f5e9;
-  border: 1px solid #2e7d32;
+  background-color: var(--cat-green-bg);
+  border: 1px solid var(--cat-green-fg);
 }
 
 .event-type--maps {
-  background-color: #fff3e0;
-  border: 1px solid #e65100;
+  background-color: var(--cat-orange-bg);
+  border: 1px solid var(--cat-orange-fg);
 }
 
 .event-type--blu {
-  background-color: #e0f2f1;
-  border: 1px solid #00695c;
+  background-color: var(--cat-teal-bg);
+  border: 1px solid var(--cat-teal-fg);
 }
 
 .event-type--academy {
-  background-color: #fce4ec;
-  border: 1px solid #c2185b;
+  background-color: var(--cat-rose-bg);
+  border: 1px solid var(--cat-rose-fg);
 }
 
 .event-type--minilvl {
-  background-color: #fff9c4;
-  border: 1px solid #f57f17;
+  background-color: var(--cat-amber-bg);
+  border: 1px solid var(--cat-amber-fg);
 }
 
 .event-type--downsynced {
-  background-color: #ede7f6;
-  border: 1px solid #4527a0;
+  background-color: var(--cat-indigo-bg);
+  border: 1px solid var(--cat-indigo-fg);
 }
 
 .event-type--other {
-  background-color: #eceff1;
-  border: 1px solid #455a64;
+  background-color: var(--cat-slate-bg);
+  border: 1px solid var(--cat-slate-fg);
 }
 
 .vuecal--dark .event-type--raid {
-  background-color: #1565c0;
+  background-color: var(--cat-blue-fg);
 }
 
 .vuecal--dark .event-type--social {
-  background-color: #7b1fa2;
+  background-color: var(--cat-purple-fg);
 }
 
 .vuecal--dark .event-type--farming {
-  background-color: #2e7d32;
+  background-color: var(--cat-green-fg);
 }
 
 .vuecal--dark .event-type--maps {
-  background-color: #e65100;
+  background-color: var(--cat-orange-fg);
 }
 
 .vuecal--dark .event-type--blu {
-  background-color: #00695c;
+  background-color: var(--cat-teal-fg);
 }
 
 .vuecal--dark .event-type--academy {
-  background-color: #c2185b;
+  background-color: var(--cat-rose-fg);
 }
 
 .vuecal--dark .event-type--minilvl {
-  background-color: #f57f17;
+  background-color: var(--cat-amber-fg);
 }
 
 .vuecal--dark .event-type--downsynced {
-  background-color: #4527a0;
+  background-color: var(--cat-indigo-fg);
 }
 
 .vuecal--dark .event-type--other {
-  background-color: #455a64;
+  background-color: var(--cat-slate-fg);
 }
 </style>

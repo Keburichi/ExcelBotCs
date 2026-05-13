@@ -157,7 +157,7 @@ function getTooltip(num: number): string | undefined {
   padding: 1rem;
   background: rgba(0, 0, 0, 0.02);
   border-radius: 0.5rem;
-  border: 1px solid var(--border, #e5e7eb);
+  border: 1px solid var(--border);
 }
 
 [data-theme="dark"] .grid-legend {
@@ -173,33 +173,33 @@ function getTooltip(num: number): string | undefined {
 .legend-box {
   width: 24px;
   height: 24px;
-  border-radius: 0.375rem;
+  border-radius: 8px;
   border: 2px solid;
 }
 
 .legend-box--available {
-  background: #3b82f6;
-  border-color: #2563eb;
+  background: var(--lot-available);
+  border-color: var(--lot-available-border);
 }
 
 .legend-box--my-guess {
-  background: #8b5cf6;
-  border-color: #7c3aed;
+  background: var(--lot-mine);
+  border-color: var(--lot-mine-border);
 }
 
 .legend-box--selected {
-  background: #10b981;
-  border-color: #059669;
+  background: var(--lot-selected);
+  border-color: var(--lot-selected-border);
 }
 
 .legend-box--taken {
-  background: #ef4444;
-  border-color: #dc2626;
+  background: var(--lot-taken);
+  border-color: var(--lot-taken-border);
 }
 
 .grid-help {
   text-align: center;
-  color: var(--muted, #6b7280);
+  color: var(--muted);
   font-size: 0.875rem;
   margin: 0;
 }

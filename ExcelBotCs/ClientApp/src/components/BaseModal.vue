@@ -276,11 +276,11 @@ onUnmounted(() => {
 
 /* Enter transition */
 .modal-enter-active {
-  transition: opacity 0.25s ease;
+  transition: opacity 0.2s ease;
 }
 
 .modal-enter-active .modal-container {
-  transition: transform 0.25s ease, opacity 0.25s ease;
+  transition: transform 0.2s ease, opacity 0.2s ease;
 }
 
 .modal-enter-from {

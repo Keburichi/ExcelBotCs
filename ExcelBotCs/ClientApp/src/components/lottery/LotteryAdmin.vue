@@ -255,7 +255,7 @@ async function awardUsers() {
   margin: 0 0 1.5rem 0;
   font-size: 1.25rem;
   font-weight: 600;
-  color: var(--fg, #111827);
+  color: var(--fg);
 }
 
 .admin-section {
@@ -263,7 +263,7 @@ async function awardUsers() {
   background: rgba(0, 0, 0, 0.02);
   border-radius: 16px;
   margin-bottom: 1.5rem;
-  border: 1px solid var(--border, #e5e7eb);
+  border: 1px solid var(--border);
 }
 
 [data-theme="dark"] .admin-section {
@@ -278,12 +278,12 @@ async function awardUsers() {
   margin: 0 0 0.5rem 0;
   font-size: 1.125rem;
   font-weight: 600;
-  color: var(--fg, #111827);
+  color: var(--fg);
 }
 
 .section-description {
   margin: 0 0 1rem 0;
-  color: var(--muted, #6b7280);
+  color: var(--muted);
   font-size: 0.875rem;
 }
 
@@ -295,7 +295,7 @@ async function awardUsers() {
   display: block;
   margin-bottom: 0.5rem;
   font-weight: 500;
-  color: var(--fg, #111827);
+  color: var(--fg);
   font-size: 0.875rem;
 }
 
@@ -303,18 +303,18 @@ async function awardUsers() {
 .form-group textarea {
   width: 100%;
   padding: 0.75rem;
-  border: 1px solid var(--border, #d1d5db);
-  border-radius: 0.375rem;
+  border: 1px solid var(--border);
+  border-radius: 8px;
   font-family: inherit;
   font-size: 0.875rem;
-  background: var(--card, #fff);
-  color: var(--fg, #111827);
+  background: var(--card);
+  color: var(--fg);
 }
 
 .form-group input:focus,
 .form-group textarea:focus {
   outline: none;
-  border-color: #3b82f6;
+  border-color: var(--link);
   box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
 }
 
@@ -332,9 +332,9 @@ async function awardUsers() {
   top: 100%;
   left: 0;
   right: 0;
-  background: var(--card, #fff);
-  border: 1px solid var(--border, #d1d5db);
-  border-radius: 0.375rem;
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 8px;
   margin-top: 0.25rem;
   max-height: 200px;
   overflow-y: auto;
@@ -345,8 +345,8 @@ async function awardUsers() {
 .suggestion-item {
   padding: 0.75rem;
   cursor: pointer;
-  color: var(--fg, #111827);
-  transition: background 0.15s;
+  color: var(--fg);
+  transition: background 0.2s;
 }
 
 .suggestion-item:hover {
@@ -365,8 +365,8 @@ async function awardUsers() {
   align-items: center;
   gap: 0.5rem;
   padding: 0.5rem 0.75rem;
-  background: #3b82f6;
-  color: white;
+  background: var(--link);
+  color: var(--bg);
   border-radius: 9999px;
   font-size: 0.875rem;
 }
@@ -374,7 +374,7 @@ async function awardUsers() {
 .remove-chip {
   background: none;
   border: none;
-  color: white;
+  color: var(--bg);
   font-size: 1.25rem;
   line-height: 1;
   cursor: pointer;
@@ -385,7 +385,7 @@ async function awardUsers() {
   align-items: center;
   justify-content: center;
   border-radius: 50%;
-  transition: background 0.15s;
+  transition: background 0.2s;
 }
 
 .remove-chip:hover {
@@ -400,26 +400,14 @@ async function awardUsers() {
 }
 
 .message--error {
-  background: #fee;
-  color: #c62828;
-  border: 1px solid #ffcdd2;
+  background: var(--msg-error-bg);
+  color: var(--msg-error-fg);
+  border: 1px solid var(--msg-error-border);
 }
 
 .message--success {
-  background: #e8f5e9;
-  color: #2e7d32;
-  border: 1px solid #c8e6c9;
-}
-
-[data-theme="dark"] .message--error {
-  background: rgba(239, 68, 68, 0.1);
-  border-color: rgba(239, 68, 68, 0.3);
-  color: #fca5a5;
-}
-
-[data-theme="dark"] .message--success {
-  background: rgba(16, 185, 129, 0.1);
-  border-color: rgba(16, 185, 129, 0.3);
-  color: #6ee7b7;
+  background: var(--msg-success-bg);
+  color: var(--msg-success-fg);
+  border: 1px solid var(--msg-success-border);
 }
 </style>

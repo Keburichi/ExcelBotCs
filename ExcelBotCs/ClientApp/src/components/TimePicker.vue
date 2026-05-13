@@ -306,8 +306,8 @@ function setPreset(h: number, m: number) {
 .format-toggle {
   display: flex;
   gap: 4px;
-  border-radius: 6px;
-  background: var(--muted-bg, #f0f0f0);
+  border-radius: 8px;
+  background: var(--muted-bg);
   padding: 4px;
   width: fit-content;
 }
@@ -316,21 +316,21 @@ function setPreset(h: number, m: number) {
   padding: 6px 16px;
   border: none;
   background: transparent;
-  border-radius: 4px;
+  border-radius: 8px;
   cursor: pointer;
   font-size: 0.875rem;
   font-weight: 600;
-  color: var(--muted, #666);
+  color: var(--muted);
   transition: all 0.2s;
 }
 
 .toggle-button:hover {
-  background: var(--hover-bg, #e0e0e0);
+  background: var(--border);
 }
 
 .toggle-button.active {
-  background: var(--primary, #4a90e2);
-  color: white;
+  background: var(--link);
+  color: var(--bg);
 }
 
 /* Time Controls */
@@ -352,12 +352,12 @@ function setPreset(h: number, m: number) {
 .decrement-button {
   width: 40px;
   height: 32px;
-  border: 1px solid var(--border, #ccc);
-  background: var(--card, white);
-  border-radius: 4px;
+  border: 1px solid var(--border);
+  background: var(--card);
+  border-radius: 8px;
   cursor: pointer;
   font-size: 0.75rem;
-  color: var(--fg, #333);
+  color: var(--fg);
   transition: all 0.2s;
   display: flex;
   align-items: center;
@@ -366,9 +366,9 @@ function setPreset(h: number, m: number) {
 
 .increment-button:hover,
 .decrement-button:hover {
-  background: var(--primary, #4a90e2);
-  color: white;
-  border-color: var(--primary, #4a90e2);
+  background: var(--link);
+  color: var(--bg);
+  border-color: var(--link);
 }
 
 .increment-button:active,
@@ -382,17 +382,17 @@ function setPreset(h: number, m: number) {
   text-align: center;
   font-size: 1.5rem;
   font-weight: 600;
-  border: 2px solid var(--border, #ccc);
+  border: 2px solid var(--border);
   border-radius: 8px;
-  background: var(--input-bg, white);
-  color: var(--fg, #333);
+  background: var(--input-bg);
+  color: var(--fg);
   transition: border-color 0.2s;
 }
 
 .time-input:focus {
   outline: none;
-  border-color: var(--primary, #4a90e2);
-  box-shadow: 0 0 0 3px rgba(74, 144, 226, 0.1);
+  border-color: var(--link);
+  box-shadow: 0 0 0 3px var(--ring);
 }
 
 /* Remove spinner arrows from number input */
@@ -409,7 +409,7 @@ function setPreset(h: number, m: number) {
 .time-separator {
   font-size: 2rem;
   font-weight: 600;
-  color: var(--fg, #333);
+  color: var(--fg);
   margin: 0 4px;
 }
 
@@ -424,24 +424,24 @@ function setPreset(h: number, m: number) {
 .period-button {
   width: 50px;
   height: 36px;
-  border: 1px solid var(--border, #ccc);
-  background: var(--card, white);
-  border-radius: 6px;
+  border: 1px solid var(--border);
+  background: var(--card);
+  border-radius: 8px;
   cursor: pointer;
   font-size: 0.875rem;
   font-weight: 600;
-  color: var(--fg, #333);
+  color: var(--fg);
   transition: all 0.2s;
 }
 
 .period-button:hover {
-  background: var(--hover-bg, #f5f5f5);
+  background: var(--muted-bg);
 }
 
 .period-button.active {
-  background: var(--primary, #4a90e2);
-  color: white;
-  border-color: var(--primary, #4a90e2);
+  background: var(--link);
+  color: var(--bg);
+  border-color: var(--link);
 }
 
 /* Quick Presets */
@@ -450,13 +450,13 @@ function setPreset(h: number, m: number) {
   flex-direction: column;
   gap: 8px;
   padding-top: 12px;
-  border-top: 1px solid var(--border, #e0e0e0);
+  border-top: 1px solid var(--border);
 }
 
 .presets-label {
   font-size: 0.75rem;
   font-weight: 600;
-  color: var(--muted, #666);
+  color: var(--muted);
   text-transform: uppercase;
   letter-spacing: 0.5px;
 }
@@ -469,19 +469,19 @@ function setPreset(h: number, m: number) {
 
 .preset-button {
   padding: 6px 12px;
-  border: 1px solid var(--border, #ccc);
-  background: var(--card, white);
-  border-radius: 6px;
+  border: 1px solid var(--border);
+  background: var(--card);
+  border-radius: 8px;
   cursor: pointer;
   font-size: 0.875rem;
-  color: var(--fg, #333);
+  color: var(--fg);
   transition: all 0.2s;
 }
 
 .preset-button:hover {
-  background: var(--primary, #4a90e2);
-  color: white;
-  border-color: var(--primary, #4a90e2);
+  background: var(--link);
+  color: var(--bg);
+  border-color: var(--link);
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
 

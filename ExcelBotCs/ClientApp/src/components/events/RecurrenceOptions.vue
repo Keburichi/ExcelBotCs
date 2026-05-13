@@ -261,9 +261,9 @@ function getOrdinalSuffix(day: number): string {
 .recurrence-config {
   margin-top: 12px;
   padding: 16px;
-  border: 1px solid var(--border, #e0e0e0);
+  border: 1px solid var(--border);
   border-radius: 8px;
-  background: var(--muted-bg, #f9f9f9);
+  background: var(--muted-bg);
 }
 
 .form-row {
@@ -285,7 +285,7 @@ function getOrdinalSuffix(day: number): string {
   width: 18px;
   height: 18px;
   cursor: pointer;
-  accent-color: var(--primary, #2196f3);
+  accent-color: var(--link);
   /* Improve visibility in dark themes */
   filter: brightness(1.1);
 }
@@ -297,17 +297,17 @@ function getOrdinalSuffix(day: number): string {
 }
 
 .frequency-input span {
-  color: var(--fg, #333);
+  color: var(--fg);
   font-weight: 500;
 }
 
 .interval-input {
   width: 70px;
   padding: 8px;
-  border: 1px solid var(--border, #ccc);
-  border-radius: 4px;
-  background: var(--card, white);
-  color: var(--fg, #333);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--card);
+  color: var(--fg);
 }
 
 .frequency-select,
@@ -315,10 +315,10 @@ function getOrdinalSuffix(day: number): string {
 .monthday-select {
   flex: 1;
   padding: 8px;
-  border: 1px solid var(--border, #ccc);
-  border-radius: 4px;
-  background: var(--card, white);
-  color: var(--fg, #333);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--card);
+  color: var(--fg);
 }
 
 .weekday-selector {
@@ -329,52 +329,52 @@ function getOrdinalSuffix(day: number): string {
 
 .weekday-button {
   padding: 8px 12px;
-  border: 2px solid var(--border, #ccc);
-  border-radius: 6px;
-  background: var(--card, white);
-  color: var(--fg, #333);
+  border: 2px solid var(--border);
+  border-radius: 8px;
+  background: var(--card);
+  color: var(--fg);
   cursor: pointer;
   font-weight: 500;
   transition: all 0.2s;
 }
 
 .weekday-button:hover {
-  border-color: var(--primary, #2196f3);
-  background: var(--primary-light, #e3f2fd);
+  border-color: var(--link);
+  background: color-mix(in oklab, var(--card) 90%, var(--link) 10%);
 }
 
 .weekday-button.active {
-  border-color: var(--primary, #2196f3);
-  background: var(--primary, #2196f3);
-  color: white;
+  border-color: var(--link);
+  background: var(--link);
+  color: var(--bg);
 }
 
 .recurrence-summary {
   margin-top: 16px;
   padding: 12px;
-  background: var(--card, white);
-  border-radius: 6px;
-  border: 1px solid var(--border, #e0e0e0);
+  background: var(--card);
+  border-radius: 8px;
+  border: 1px solid var(--border);
   font-size: 0.95rem;
-  color: var(--fg, #333);
+  color: var(--fg);
 }
 
 .recurrence-summary strong {
-  color: var(--primary, #2196f3);
+  color: var(--link);
 }
 
 label {
   font-weight: 500;
-  color: var(--fg, #333);
+  color: var(--fg);
 }
 
 input[type="number"],
 input[type="text"] {
   padding: 8px;
-  border: 1px solid var(--border, #ccc);
-  border-radius: 4px;
-  background: var(--card, white);
-  color: var(--fg, #333);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--card);
+  color: var(--fg);
 }
 
 .signup-type-options {
@@ -388,23 +388,23 @@ input[type="text"] {
   align-items: flex-start;
   gap: 12px;
   padding: 12px;
-  border: 2px solid var(--border, #ccc);
+  border: 2px solid var(--border);
   border-radius: 8px;
-  background: var(--card, white);
+  background: var(--card);
   cursor: pointer;
   transition: all 0.2s;
 }
 
 .signup-type-option:hover {
-  border-color: var(--primary, #2196f3);
-  background: var(--muted-bg, #f9f9f9);
+  border-color: var(--link);
+  background: var(--muted-bg);
 }
 
 .signup-type-option:has(input:checked) {
-  border-color: var(--primary, #2196f3);
+  border-color: var(--link);
   border-width: 3px;
-  background: var(--card, white);
-  box-shadow: 0 0 0 2px var(--primary, #2196f3) inset;
+  background: var(--card);
+  box-shadow: 0 0 0 2px var(--link) inset;
 }
 
 .signup-type-option:has(input:checked) .option-label {
@@ -417,7 +417,7 @@ input[type="text"] {
   height: 18px;
   cursor: pointer;
   flex-shrink: 0;
-  accent-color: var(--primary, #2196f3);
+  accent-color: var(--link);
   /* Improve visibility in dark themes */
   filter: brightness(1.1);
 }
@@ -431,12 +431,12 @@ input[type="text"] {
 
 .option-label {
   font-weight: 600;
-  color: var(--fg, #333);
+  color: var(--fg);
 }
 
 .option-description {
   font-size: 0.875rem;
-  color: var(--muted, #666);
+  color: var(--muted);
   font-style: italic;
 }
 

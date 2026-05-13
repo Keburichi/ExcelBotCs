@@ -262,7 +262,7 @@ async function proceed() {
   max-width: 440px;
   background: rgba(255, 255, 255, 0.7);
   backdrop-filter: blur(20px);
-  border-radius: 24px;
+  border-radius: 16px;
   border: 1px solid rgba(255, 255, 255, 0.3);
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1),
   inset 0 1px 0 rgba(255, 255, 255, 0.5);
@@ -353,7 +353,7 @@ async function proceed() {
   width: 20px;
   height: 20px;
   border: 2px solid rgba(59, 130, 246, 0.2);
-  border-top-color: #3b82f6;
+  border-top-color: var(--link);
   border-radius: 50%;
   animation: spin 0.8s linear infinite;
 }
@@ -369,8 +369,8 @@ async function proceed() {
   width: 64px;
   height: 64px;
   border-radius: 50%;
-  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
-  color: white;
+  background: linear-gradient(135deg, var(--exp-extreme) 0%, var(--exp-extreme-border) 100%);
+  color: var(--bg);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -396,7 +396,7 @@ async function proceed() {
   width: 100%;
   padding: 1rem 2rem;
   background: linear-gradient(135deg, #5865f2 0%, #4752c4 100%);
-  color: white;
+  color: var(--bg);
   border: none;
   border-radius: 12px;
   font-size: 1.05rem;
@@ -406,7 +406,7 @@ async function proceed() {
   align-items: center;
   justify-content: center;
   gap: 0.75rem;
-  transition: all 0.3s ease;
+  transition: all 0.2s ease;
   box-shadow: 0 4px 12px rgba(88, 101, 242, 0.3);
   position: relative;
   overflow: hidden;
@@ -418,7 +418,7 @@ async function proceed() {
   inset: 0;
   background: linear-gradient(135deg, rgba(255, 255, 255, 0) 0%, rgba(255, 255, 255, 0.1) 100%);
   opacity: 0;
-  transition: opacity 0.3s ease;
+  transition: opacity 0.2s ease;
 }
 
 .discord-button:hover {

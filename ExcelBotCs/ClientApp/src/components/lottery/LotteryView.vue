@@ -141,27 +141,15 @@ function handleSelect(num: number) {
 }
 
 .message--error {
-  background: #fee;
-  color: #c62828;
-  border: 1px solid #ffcdd2;
+  background: var(--msg-error-bg);
+  color: var(--msg-error-fg);
+  border: 1px solid var(--msg-error-border);
 }
 
 .message--success {
-  background: #e8f5e9;
-  color: #2e7d32;
-  border: 1px solid #c8e6c9;
-}
-
-[data-theme="dark"] .message--error {
-  background: rgba(239, 68, 68, 0.1);
-  border-color: rgba(239, 68, 68, 0.3);
-  color: #fca5a5;
-}
-
-[data-theme="dark"] .message--success {
-  background: rgba(16, 185, 129, 0.1);
-  border-color: rgba(16, 185, 129, 0.3);
-  color: #6ee7b7;
+  background: var(--msg-success-bg);
+  color: var(--msg-success-fg);
+  border: 1px solid var(--msg-success-border);
 }
 
 .lottery-info {
@@ -223,22 +211,22 @@ function handleSelect(num: number) {
   margin: 0 0 1rem 0;
   font-size: 1.125rem;
   font-weight: 600;
-  color: var(--fg, #111827);
+  color: var(--fg);
 }
 
 .info-content {
   margin: 0;
-  color: var(--fg, #111827);
+  color: var(--fg);
   line-height: 1.6;
 }
 
 .info-hint {
   margin: 1rem 0 0 0;
   padding: 0.75rem;
-  background: rgba(59, 130, 246, 0.1);
-  border-left: 3px solid #3b82f6;
-  border-radius: 0.375rem;
-  color: var(--fg, #111827);
+  border: 1px solid var(--link);
+  background: color-mix(in oklab, var(--card) 95%, var(--link) 5%);
+  border-radius: 8px;
+  color: var(--fg);
   font-size: 0.875rem;
 }
 
@@ -252,7 +240,7 @@ function handleSelect(num: number) {
   font-size: 1.5rem;
   font-weight: 600;
   margin: 0 0 1rem 0;
-  color: var(--fg, #111827);
+  color: var(--fg);
 }
 
 .quick-pick-section {
@@ -267,7 +255,7 @@ function handleSelect(num: number) {
 
 .quick-pick-hint {
   margin: 0.5rem 0 0 0;
-  color: var(--muted, #6b7280);
+  color: var(--muted);
   font-size: 0.875rem;
 }
 </style>

@@ -402,7 +402,7 @@ onMounted(async () => {
   align-items: center;
   margin-bottom: 12px;
   padding-bottom: 8px;
-  border-bottom: 1px solid var(--border, #e0e0e0);
+  border-bottom: 1px solid var(--border);
 }
 
 .event-type-badge {
@@ -413,75 +413,75 @@ onMounted(async () => {
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.5px;
-  background: var(--muted-bg, #f5f5f5);
-  color: var(--fg, #333);
+  background: var(--muted-bg);
+  color: var(--fg);
 }
 
 /* Event type specific colors */
 .event-type-badge.type-raid {
-  background: #e3f2fd;
-  color: #1565c0;
+  background: var(--cat-blue-bg);
+  color: var(--cat-blue-fg);
 }
 
 .event-type-badge.type-social {
-  background: #f3e5f5;
-  color: #7b1fa2;
+  background: var(--cat-purple-bg);
+  color: var(--cat-purple-fg);
 }
 
 .event-type-badge.type-farming {
-  background: #e8f5e9;
-  color: #2e7d32;
+  background: var(--cat-green-bg);
+  color: var(--cat-green-fg);
 }
 
 .event-type-badge.type-maps {
-  background: #fff3e0;
-  color: #e65100;
+  background: var(--cat-orange-bg);
+  color: var(--cat-orange-fg);
 }
 
 .event-type-badge.type-blu {
-  background: #e0f2f1;
-  color: #00695c;
+  background: var(--cat-teal-bg);
+  color: var(--cat-teal-fg);
 }
 
 .event-type-badge.type-academy {
-  background: #fce4ec;
-  color: #c2185b;
+  background: var(--cat-rose-bg);
+  color: var(--cat-rose-fg);
 }
 
 .event-type-badge.type-minilvl {
-  background: #fff9c4;
-  color: #f57f17;
+  background: var(--cat-amber-bg);
+  color: var(--cat-amber-fg);
 }
 
 .event-type-badge.type-downsynced {
-  background: #ede7f6;
-  color: #4527a0;
+  background: var(--cat-indigo-bg);
+  color: var(--cat-indigo-fg);
 }
 
 .event-type-badge.type-other {
-  background: #eceff1;
-  color: #455a64;
+  background: var(--cat-slate-bg);
+  color: var(--cat-slate-fg);
 }
 
 .fight-info {
   font-size: 0.9rem;
-  color: var(--fg, #333);
+  color: var(--fg);
   display: flex;
   align-items: center;
   gap: 4px;
 }
 
 .fight-info strong {
-  color: var(--muted, #666);
+  color: var(--muted);
   font-weight: 500;
 }
 
 .event-datetime {
   margin-bottom: 12px;
   padding: 12px;
-  background: var(--muted-bg, #f9f9f9);
+  background: var(--muted-bg);
   border-radius: 8px;
-  border: 1px solid var(--border, #e0e0e0);
+  border: 1px solid var(--border);
 }
 
 .datetime-row {
@@ -497,13 +497,13 @@ onMounted(async () => {
 
 .datetime-label {
   font-weight: 600;
-  color: var(--muted, #666);
+  color: var(--muted);
   font-size: 0.9rem;
 }
 
 .datetime-value {
   font-size: 0.95rem;
-  color: var(--fg, #333);
+  color: var(--fg);
   font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
 }
 
@@ -513,9 +513,9 @@ onMounted(async () => {
   gap: 8px;
   margin-bottom: 12px;
   padding: 10px 12px;
-  background: var(--muted-bg, #f9f9f9);
+  background: var(--muted-bg);
   border-radius: 8px;
-  border: 1px solid var(--border, #e0e0e0);
+  border: 1px solid var(--border);
 }
 
 .recurrence-icon {
@@ -526,7 +526,7 @@ onMounted(async () => {
 .recurrence-text {
   font-size: 0.9rem;
   font-weight: 500;
-  color: var(--fg, #333);
+  color: var(--fg);
   font-style: italic;
 }
 
@@ -536,30 +536,30 @@ onMounted(async () => {
   gap: 12px;
   margin-bottom: 12px;
   padding: 10px 12px;
-  background: var(--muted-bg, #f9f9f9);
+  background: var(--muted-bg);
   border-radius: 8px;
-  border: 1px solid var(--border, #e0e0e0);
+  border: 1px solid var(--border);
 }
 
 .status-label {
   font-weight: 600;
-  color: var(--muted, #666);
+  color: var(--muted);
   font-size: 0.9rem;
 }
 
 .status-value {
   font-size: 0.9rem;
   font-weight: 500;
-  color: var(--fg, #333);
+  color: var(--fg);
   padding: 2px 8px;
-  border-radius: 4px;
-  background: var(--muted-bg, #e8f5e9);
+  border-radius: 8px;
+  background: var(--muted-bg);
 }
 
 .participants-info {
   margin-left: auto;
   font-size: 0.9rem;
-  color: var(--muted, #666);
+  color: var(--muted);
   font-weight: 500;
 }
 
@@ -571,8 +571,8 @@ onMounted(async () => {
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.5px;
-  background: #fef3c7;
-  color: #92400e;
-  border: 1px solid #fbbf24;
+  background: var(--cat-amber-bg);
+  color: var(--cat-amber-fg);
+  border: 1px solid var(--cat-amber-fg);
 }
 </style>
