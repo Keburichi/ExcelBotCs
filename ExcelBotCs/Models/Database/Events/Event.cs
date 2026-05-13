@@ -72,26 +72,15 @@ public class Event : BaseEntity
     {
         get
         {
-            // Event is available for signup if it has at least one occurrence that's available
             if (Occurrences == null || !Occurrences.Any())
                 return false;
 
-            // Get latest occurrence thats available
-            var latestAvailable = Occurrences.Where(o => o.Status == OccurrenceStatus.Scheduled)
-                .OrderByDescending(o => o.OccurrenceDate).FirstOrDefault();
-
-            if (latestAvailable == null)
+            // Signups are event-level: available if there's at least one scheduled occurrence
+            // and no groups have been created yet (roster not finalized)
+            var hasScheduledOccurrence = Occurrences.Any(o => o.Status == OccurrenceStatus.Scheduled);
+            if (!hasScheduledOccurrence)
                 return false;
 
-            // Check if the previous occurrence is actually in the past, if it isn't we don't allow signups for the next one yet
-            var previousOccurrence = Occurrences.Where(o => o.OccurrenceDate < latestAvailable.OccurrenceDate)
-                .OrderBy(o => o.OccurrenceDate).FirstOrDefault();
-
-            if (previousOccurrence != null && previousOccurrence.OccurrenceDate > DateTime.UtcNow)
-                return false;
-
-            // Check if the participants have already been selected for the next occurrence, then the roster 
-            // has already been decided
             return Groups.IsNullOrEmpty();
         }
     }

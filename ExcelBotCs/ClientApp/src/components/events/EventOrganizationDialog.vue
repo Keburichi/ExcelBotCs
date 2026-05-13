@@ -59,6 +59,11 @@ const canAddGroup = computed(() => {
   return uniqueSignupCount.value >= (groups.value.length + 1) * maxParticipants.value
 })
 
+const signupsNeededForNextGroup = computed(() => {
+  const needed = (groups.value.length + 1) * maxParticipants.value
+  return Math.max(0, needed - uniqueSignupCount.value)
+})
+
 const totalAssigned = computed(() => {
   return groups.value.reduce((sum, g) => sum + g.Participants.length, 0)
 })
@@ -130,47 +135,46 @@ function removeGroup(index: number) {
   groups.value.splice(index, 1)
 }
 
-// Handle drag from pool to group — intercept and show role picker
+// Unified handler for all drops into a group
 function onGroupChange(groupIndex: number, evt: any) {
-  if (evt.added) {
-    const addedItem = evt.added.element as UnassignedItem
-    const group = groups.value[groupIndex]
+  if (!evt.added) return
 
-    if (group.Participants.length > maxParticipants.value) {
-      // Over capacity — remove the just-added item
-      const addedIndex = evt.added.newIndex
-      group.Participants.splice(addedIndex, 1)
-      openInfo(`This group already has ${maxParticipants.value} participants (maximum).`)
-      return
-    }
+  const addedItem = evt.added.element
+  const addedIndex = evt.added.newIndex
+  const group = groups.value[groupIndex]
 
-    // The item was added as an UnassignedItem, but we need it as an EventParticipant with a role
-    // Remove it temporarily and show role picker
-    const addedIndex = evt.added.newIndex
+  // Capacity check
+  if (group.Participants.length > maxParticipants.value) {
     group.Participants.splice(addedIndex, 1)
+    openInfo(`This group already has ${maxParticipants.value} participants (maximum).`)
+    return
+  }
 
-    const signupRoles = getSignupRoles(addedItem.DiscordUserId)
-    if (signupRoles.length === 1) {
-      // Only one role — auto-assign
-      group.Participants.splice(addedIndex, 0, {
+  // If the item already has a Role (inter-group move), keep it as-is
+  if (addedItem.Role !== undefined) return
+
+  // Item came from the pool (UnassignedItem) — remove it, then assign a role
+  group.Participants.splice(addedIndex, 1)
+
+  const signupRoles = getSignupRoles(addedItem.DiscordUserId)
+  if (signupRoles.length === 1) {
+    group.Participants.splice(addedIndex, 0, {
+      DiscordUserId: addedItem.DiscordUserId,
+      Role: signupRoles[0],
+      SelectionDate: new Date(),
+    })
+  }
+  else if (signupRoles.length > 1) {
+    rolePickerTarget.value = {
+      groupIndex,
+      signup: {
         DiscordUserId: addedItem.DiscordUserId,
-        Role: signupRoles[0],
-        SelectionDate: new Date(),
-      })
+        Roles: signupRoles,
+        SignupDate: new Date(),
+      },
+      element: null,
     }
-    else if (signupRoles.length > 1) {
-      // Multiple roles — show picker
-      rolePickerTarget.value = {
-        groupIndex,
-        signup: {
-          DiscordUserId: addedItem.DiscordUserId,
-          Roles: signupRoles,
-          SignupDate: new Date(),
-        },
-        element: null,
-      }
-      rolePickerOpen.value = true
-    }
+    rolePickerOpen.value = true
   }
 }
 
@@ -198,18 +202,6 @@ function cancelRolePicker() {
 // Remove participant from a group back to pool
 function removeFromGroup(groupIndex: number, participantIndex: number) {
   groups.value[groupIndex].Participants.splice(participantIndex, 1)
-}
-
-// Handle moving between groups (participant already has a role)
-function onGroupMoveParticipant(groupIndex: number, evt: any) {
-  if (evt.added) {
-    const group = groups.value[groupIndex]
-    if (group.Participants.length > maxParticipants.value) {
-      const addedIndex = evt.added.newIndex
-      group.Participants.splice(addedIndex, 1)
-      openInfo(`This group already has ${maxParticipants.value} participants (maximum).`)
-    }
-  }
 }
 
 function openInfo(message: string) {
@@ -294,7 +286,7 @@ watch(modelValue, (isOpen) => {
           <h4 class="panel-title">Unassigned Pool ({{ unassigned.length }})</h4>
           <draggable
             :list="unassigned"
-            :group="{ name: 'participants', pull: 'clone', put: false }"
+            :group="{ name: 'group-drop', pull: 'clone', put: false }"
             item-key="DiscordUserId"
             class="pool-list"
             :clone="(item: UnassignedItem) => ({ ...item })"
@@ -347,10 +339,10 @@ watch(modelValue, (isOpen) => {
 
             <draggable
               :list="group.Participants"
-              :group="{ name: 'assigned-participants', put: true }"
+              :group="{ name: 'group-drop', put: true }"
               item-key="DiscordUserId"
               class="group-list"
-              @change="onGroupMoveParticipant(gIdx, $event)"
+              @change="onGroupChange(gIdx, $event)"
             >
               <template #item="{ element, index }">
                 <div class="group-member">
@@ -370,20 +362,7 @@ watch(modelValue, (isOpen) => {
                   </button>
                 </div>
               </template>
-            </draggable>
-
-            <!-- Drop zone for items from the unassigned pool -->
-            <draggable
-              :list="[]"
-              :group="{ name: 'participants', put: true }"
-              item-key="DiscordUserId"
-              class="group-dropzone"
-              @change="onGroupChange(gIdx, $event)"
-            >
-              <template #item="{ element }">
-                <div />
-              </template>
-              <template #header>
+              <template #footer>
                 <div v-if="group.Participants.length < maxParticipants" class="dropzone-hint">
                   Drop here to add
                 </div>
@@ -399,6 +378,16 @@ watch(modelValue, (isOpen) => {
             state="secondary"
             @clicked="addGroup"
           />
+          <div v-if="!canAddGroup" class="not-enough-signups">
+            <template v-if="groups.length === 0">
+              Need <b>{{ signupsNeededForNextGroup }}</b> more signup{{ signupsNeededForNextGroup === 1 ? '' : 's' }}
+              to create a group ({{ uniqueSignupCount }}/{{ maxParticipants }} required).
+            </template>
+            <template v-else>
+              Need <b>{{ signupsNeededForNextGroup }}</b> more signup{{ signupsNeededForNextGroup === 1 ? '' : 's' }}
+              to add another group.
+            </template>
+          </div>
         </div>
       </div>
     </template>
@@ -570,6 +559,15 @@ watch(modelValue, (isOpen) => {
   border: 1px solid var(--border);
 }
 
+.not-enough-signups {
+  padding: 0.6rem 0.75rem;
+  font-size: 0.85rem;
+  color: var(--muted);
+  background: var(--muted-bg);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+}
+
 .empty-pool {
   padding: 2rem;
   text-align: center;
@@ -670,10 +668,6 @@ watch(modelValue, (isOpen) => {
 
 .btn-remove-member:hover {
   color: #e53e3e;
-}
-
-.group-dropzone {
-  min-height: 8px;
 }
 
 .dropzone-hint {
