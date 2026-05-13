@@ -299,31 +299,6 @@ public class EventsController : AuthorizedController, IEventsController
 
     #endregion
 
-    #region planning and concluding events
-
-    public Task<ActionResult> PlanEvent(string id, PlannedEventRequest planRequest)
-    {
-        throw new NotImplementedException();
-    }
-
-    [HttpPost]
-    [Route("{id:length(24)}/plan")]
-    [AdminAuth]
-    public async Task<IActionResult> PlanEvent(string id, Event eventDto)
-    {
-        var fcEvent = await _eventService.GetAsync(id);
-        if (fcEvent is null)
-            return NotFound();
-
-        // Save the list of participants and post the message to the upcoming roster channel
-        await _eventService.UpdateAsync(fcEvent.Id, eventDto);
-        await _discordMessageService.PostInUpcomingRosterChannelAsync(eventDto.CreateUpcomingRosterMessage());
-
-        return Ok();
-    }
-
-    #endregion
-
     #region event calendar
 
     [HttpGet]

@@ -31,9 +31,6 @@ public interface IEventsController
 
     public Task<ActionResult> CancelOccurence(string eventId, string occurrenceId);
 
-    // planning and concluding events
-    public Task<ActionResult> PlanEvent(string id, PlannedEventRequest planRequest);
-
     // event calendar
     public Task<ActionResult> GetEventIcal(string eventId);
 }
