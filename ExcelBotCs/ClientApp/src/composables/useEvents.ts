@@ -17,6 +17,12 @@ export function useEvents() {
   const archivedEvents = ref<FCEvent[]>([])
   const archiveLoading = ref(false)
 
+  // Archive pagination state
+  const archivePage = ref(1)
+  const archivePageSize = ref(20)
+  const archiveTotalCount = ref(0)
+  const archiveHasMore = ref(false)
+
   const newEvent = reactive<FCEvent>({
     Name: '',
     Description: '',
@@ -54,7 +60,17 @@ export function useEvents() {
     loading.value = true
     error.value = ''
     try {
-      events.value = await EventsApi.list()
+      const allEvents: FCEvent[] = []
+      let page = 1
+      const pageSize = 50
+      let hasMore = true
+      while (hasMore) {
+        const result = await EventsApi.list(page, pageSize)
+        allEvents.push(...result.Items)
+        hasMore = result.HasMore
+        page++
+      }
+      events.value = allEvents
     }
     catch (e: unknown) {
       error.value = e instanceof Error ? e.message : 'Failed'
@@ -215,11 +231,18 @@ export function useEvents() {
   }
 
   // Archive/Restore methods
-  async function loadArchived(searchParams?: ArchiveSearchParams) {
+  async function loadArchived(searchParams?: ArchiveSearchParams, page?: number, pageSize?: number) {
     archiveLoading.value = true
     error.value = ''
+    if (page !== undefined)
+      archivePage.value = page
+    if (pageSize !== undefined)
+      archivePageSize.value = pageSize
     try {
-      archivedEvents.value = await EventsApi.listArchived(searchParams)
+      const result = await EventsApi.listArchived(archivePage.value, archivePageSize.value, searchParams)
+      archivedEvents.value = result.Items
+      archiveTotalCount.value = result.TotalCount
+      archiveHasMore.value = result.HasMore
     }
     catch (e: unknown) {
       error.value = e instanceof Error ? e.message : 'Failed to load archived events'
@@ -298,6 +321,10 @@ export function useEvents() {
     // Archive/Restore methods
     archivedEvents,
     archiveLoading,
+    archivePage,
+    archivePageSize,
+    archiveTotalCount,
+    archiveHasMore,
     loadArchived,
     archiveEvent,
     restoreEvent,

@@ -1,3 +1,11 @@
+export interface PagedResult<T> {
+  Items: T[]
+  TotalCount: number
+  Page: number
+  PageSize: number
+  HasMore: boolean
+}
+
 export interface FCEvent {
   Id: string
   Name: string

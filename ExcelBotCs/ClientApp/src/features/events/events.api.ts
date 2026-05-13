@@ -4,12 +4,14 @@ import type {
   ExtendEventRequest,
   FCEvent,
   OccurrenceStatus,
+  PagedResult,
   Role,
 } from '@/features/events/events.types'
 import { http } from '@/services/http'
 
 export const EventsApi = {
-  list: (archived = false) => http<FCEvent[]>(`/api/events?archived=${archived}`),
+  list: (page = 1, pageSize = 50) =>
+    http<PagedResult<FCEvent>>(`/api/events?page=${page}&pageSize=${pageSize}`),
   get: (id: string) => http<FCEvent>(`/api/events/${id}`),
   create: (e: FCEvent) => http<FCEvent>('/api/events', { method: 'POST', body: JSON.stringify(e) }),
   update: (id: string, e: FCEvent) => http<void>(`/api/events/${id}`, { method: 'PUT', body: JSON.stringify(e) }),
@@ -52,8 +54,10 @@ export const EventsApi = {
     }),
 
   // Archive/Restore endpoints
-  listArchived: (searchParams?: ArchiveSearchParams) => {
+  listArchived: (page = 1, pageSize = 20, searchParams?: ArchiveSearchParams) => {
     const params = new URLSearchParams()
+    params.append('page', String(page))
+    params.append('pageSize', String(pageSize))
     if (searchParams?.searchText)
       params.append('searchText', searchParams.searchText)
     if (searchParams?.startDate)
@@ -62,8 +66,7 @@ export const EventsApi = {
       params.append('endDate', searchParams.endDate)
     if (searchParams?.eventType !== undefined)
       params.append('eventType', String(searchParams.eventType))
-    const queryString = params.toString()
-    return http<FCEvent[]>(`/api/events/archived${queryString ? `?${queryString}` : ''}`)
+    return http<PagedResult<FCEvent>>(`/api/events/archived?${params.toString()}`)
   },
 
   archive: (eventId: string) =>
