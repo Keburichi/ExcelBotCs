@@ -1,5 +1,6 @@
 using ExcelBotCs.Extensions;
 using ExcelBotCs.Models.Database.Events;
+using ExcelBotCs.Models.DTO;
 using ExcelBotCs.Models.DTO.Events;
 using DbEventSignup = ExcelBotCs.Models.Database.Events.EventSignup;
 using DtoEventSignup = ExcelBotCs.Models.DTO.EventSignupDto;
@@ -13,6 +14,17 @@ public static class EventMappingExtensions
         return events.IsNullOrEmpty()
             ? new List<EventResponse>()
             : events.Select(fcEvent => fcEvent.ToEventResponse()).ToList();
+    }
+
+    public static PagedResult<EventResponse> ToPagedEventResponse(this PagedResult<Event> pagedResult)
+    {
+        return new PagedResult<EventResponse>
+        {
+            Items = pagedResult.Items.ToEventResponse(),
+            TotalCount = pagedResult.TotalCount,
+            Page = pagedResult.Page,
+            PageSize = pagedResult.PageSize
+        };
     }
 
     public static EventResponse ToEventResponse(this Event fcEvent)

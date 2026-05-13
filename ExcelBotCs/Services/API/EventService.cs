@@ -48,6 +48,81 @@ public class EventService : IEventService
         return events.OrderBy(e => e.StartDate).ToList();
     }
 
+    public async Task<PagedResult<Event>> GetPagedAsync(int page, int pageSize)
+    {
+        var events = await _eventRepository.GetAsync();
+
+        if (events is null)
+            return new PagedResult<Event> { Page = page, PageSize = pageSize };
+
+        var filtered = events
+            .Where(e => !e.IsArchived)
+            .OrderByDescending(e => e.DateCreated)
+            .ToList();
+
+        var totalCount = filtered.Count;
+        var items = filtered
+            .Skip((page - 1) * pageSize)
+            .Take(pageSize)
+            .ToList();
+
+        return new PagedResult<Event>
+        {
+            Items = items,
+            TotalCount = totalCount,
+            Page = page,
+            PageSize = pageSize
+        };
+    }
+
+    public async Task<PagedResult<Event>> GetArchivedPagedAsync(int page, int pageSize,
+        ArchiveSearchParams? searchParams = null)
+    {
+        var events = await _eventRepository.GetAsync();
+
+        if (events is null)
+            return new PagedResult<Event> { Page = page, PageSize = pageSize };
+
+        var archivedEvents = events.Where(e => e.IsArchived);
+
+        if (searchParams != null)
+        {
+            if (!string.IsNullOrWhiteSpace(searchParams.SearchText))
+            {
+                var searchLower = searchParams.SearchText.ToLowerInvariant();
+                archivedEvents = archivedEvents.Where(e =>
+                    e.Name.ToLowerInvariant().Contains(searchLower));
+            }
+
+            if (searchParams.StartDate.HasValue)
+                archivedEvents = archivedEvents.Where(e => e.StartDate >= searchParams.StartDate.Value);
+
+            if (searchParams.EndDate.HasValue)
+                archivedEvents = archivedEvents.Where(e => e.StartDate <= searchParams.EndDate.Value);
+
+            if (searchParams.EventType.HasValue)
+                archivedEvents = archivedEvents.Where(e => e.Type == searchParams.EventType.Value);
+        }
+
+        var sorted = archivedEvents
+            .OrderByDescending(e => e.ArchivedDate ?? e.EndDate)
+            .ToList();
+
+        var totalCount = sorted.Count;
+        var items = sorted
+            .Skip((page - 1) * pageSize)
+            .Take(pageSize)
+            .ToList();
+
+        return new PagedResult<Event>
+        {
+            Items = items,
+            TotalCount = totalCount,
+            Page = page,
+            PageSize = pageSize
+        };
+    }
+
     public async Task<List<Event>> GetArchivedAsync(ArchiveSearchParams? searchParams = null)
     {
         var events = await _eventRepository.GetAsync();

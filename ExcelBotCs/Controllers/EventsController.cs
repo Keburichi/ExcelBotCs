@@ -45,10 +45,10 @@ public class EventsController : AuthorizedController, IEventsController
     #region CRUD Operations
 
     [HttpGet]
-    public async Task<ActionResult<List<EventResponse>>> GetEvents(int limit = 50, int page = 1)
+    public async Task<ActionResult<PagedResult<EventResponse>>> GetEvents(int page = 1, int pageSize = 50)
     {
-        var events = await _eventService.GetAsync(false);
-        return events.ToEventResponse();
+        var pagedResult = await _eventService.GetPagedAsync(page, pageSize);
+        return Ok(pagedResult.ToPagedEventResponse());
     }
 
     [HttpGet("{eventId:length(24)}")]
@@ -113,11 +113,11 @@ public class EventsController : AuthorizedController, IEventsController
 
     [HttpGet("archived")]
     [AdminAuth]
-    public async Task<ActionResult<List<EventResponse>>> GetArchivedEvents(int limit = 50, int page = 1,
+    public async Task<ActionResult<PagedResult<EventResponse>>> GetArchivedEvents(int page = 1, int pageSize = 20,
         [FromQuery] ArchiveSearchParams? searchParams = null)
     {
-        var archivedEvents = await _eventService.GetArchivedAsync(searchParams);
-        return archivedEvents.ToEventResponse();
+        var pagedResult = await _eventService.GetArchivedPagedAsync(page, pageSize, searchParams);
+        return Ok(pagedResult.ToPagedEventResponse());
     }
 
     [HttpPost("{id:length(24)}/archive")]

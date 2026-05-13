@@ -13,6 +13,8 @@ public interface IEventService
     Task DeleteAsync(string id);
 
     Task<List<Event>> GetAsync(bool includeArchived);
+    Task<PagedResult<Event>> GetPagedAsync(int page, int pageSize);
+    Task<PagedResult<Event>> GetArchivedPagedAsync(int page, int pageSize, ArchiveSearchParams? searchParams = null);
     Task<List<Event>> GetArchivedAsync(ArchiveSearchParams? searchParams = null);
     Task<(bool Success, string? ErrorMessage)> ArchiveAsync(string eventId, string archivedByUserId);
     Task<bool> TryAutoArchiveAsync(string eventId, string archivedByUserId);
