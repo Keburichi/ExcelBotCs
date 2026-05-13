@@ -320,6 +320,8 @@
 
     <ItemGroup>
         <Folder Include="ClientApp\src\static\img\"/>
+        <Folder Include="Models\Database\Fights\"/>
+        <Folder Include="Models\Database\Members\"/>
     </ItemGroup>
 
 </Project>

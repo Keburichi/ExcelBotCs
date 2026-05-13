@@ -1,4 +1,5 @@
 using ExcelBotCs.Models.Database;
+using ExcelBotCs.Models.Database.Events;
 using Ical.Net;
 using Ical.Net.CalendarComponents;
 using Ical.Net.DataTypes;

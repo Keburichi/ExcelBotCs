@@ -1,15 +1,16 @@
 using ExcelBotCs.Models.Database;
 using ExcelBotCs.Models.DTO;
+using ExcelBotCs.Models.DTO.Events;
 using ExcelBotCs.Modules.TeamFormation;
 
 namespace ExcelBotCs.Tests.Models.DTO;
 
-public class EventDtoTests
+public class EventResponseTests
 {
     [Fact]
     public void AvailableForSignup_EmptyOccurrences_ReturnsFalse()
     {
-        var sut = new EventDto();
+        var sut = new EventResponse();
 
         sut.AvailableForSignup.ShouldBeFalse();
     }
@@ -20,7 +21,7 @@ public class EventDtoTests
     [InlineData(OccurrenceStatus.InProgress)]
     public void AvailableForSignup_OccurrencesNotScheduled_ReturnsFalse(OccurrenceStatus occurrenceStatus)
     {
-        var sut = new EventDto
+        var sut = new EventResponse
         {
             MaxNumberOfParticipants = 1,
             Occurrences = new List<EventOccurrenceDto>
@@ -30,9 +31,9 @@ public class EventDtoTests
                     Id = Guid.NewGuid().ToString(),
                     Status = occurrenceStatus,
                     OccurrenceDate = DateTime.UtcNow.AddMinutes(5),
-                    Signups = new List<EventSignupDto>()
                 }
-            }
+            },
+            Signups = new List<EventSignupDto>()
         };
 
         sut.AvailableForSignup.ShouldBeFalse();
@@ -41,7 +42,7 @@ public class EventDtoTests
     [Fact]
     public void AvailableForSignup_PreviousOccurrenceNotInPast_ReturnsFalse()
     {
-        var sut = new EventDto
+        var sut = new EventResponse
         {
             MaxNumberOfParticipants = 1,
             Occurrences = new List<EventOccurrenceDto>
@@ -50,17 +51,16 @@ public class EventDtoTests
                 {
                     Id = Guid.NewGuid().ToString(),
                     Status = OccurrenceStatus.Cancelled,
-                    OccurrenceDate = DateTime.UtcNow.AddMinutes(5),
-                    Signups = new List<EventSignupDto>()
+                    OccurrenceDate = DateTime.UtcNow.AddMinutes(5)
                 },
                 new()
                 {
                     Id = Guid.NewGuid().ToString(),
                     Status = OccurrenceStatus.Scheduled,
                     OccurrenceDate = DateTime.UtcNow.AddDays(5),
-                    Signups = new List<EventSignupDto>()
                 }
-            }
+            },
+            Signups = new List<EventSignupDto>()
         };
 
         sut.AvailableForSignup.ShouldBeFalse();
@@ -69,7 +69,7 @@ public class EventDtoTests
     [Fact]
     public void AvailableForSignup_ParticipantsSelected_ReturnsFalse()
     {
-        var sut = new EventDto
+        var sut = new EventResponse
         {
             MaxNumberOfParticipants = 1,
             Occurrences = new List<EventOccurrenceDto>
@@ -79,14 +79,19 @@ public class EventDtoTests
                     Id = Guid.NewGuid().ToString(),
                     Status = OccurrenceStatus.Cancelled,
                     OccurrenceDate = DateTime.UtcNow.Subtract(TimeSpan.FromDays(5)),
-                    Signups = new List<EventSignupDto>()
                 },
                 new()
                 {
                     Id = Guid.NewGuid().ToString(),
                     Status = OccurrenceStatus.Scheduled,
-                    OccurrenceDate = DateTime.UtcNow.AddDays(5),
-                    Signups = new List<EventSignupDto>(),
+                    OccurrenceDate = DateTime.UtcNow.AddDays(5)
+                }
+            },
+            Signups = new List<EventSignupDto>(),
+            Groups = new List<EventGroupResponse>
+            {
+                new()
+                {
                     Participants = new List<EventParticipantDto>
                     {
                         new()
@@ -106,7 +111,7 @@ public class EventDtoTests
     [Fact]
     public void AvailableForSignup_NoSignups_ReturnsTrue()
     {
-        var sut = new EventDto
+        var sut = new EventResponse
         {
             MaxNumberOfParticipants = 1,
             Occurrences = new List<EventOccurrenceDto>
@@ -115,17 +120,16 @@ public class EventDtoTests
                 {
                     Id = Guid.NewGuid().ToString(),
                     Status = OccurrenceStatus.Cancelled,
-                    OccurrenceDate = DateTime.UtcNow.Subtract(TimeSpan.FromDays(5)),
-                    Signups = new List<EventSignupDto>()
+                    OccurrenceDate = DateTime.UtcNow.Subtract(TimeSpan.FromDays(5))
                 },
                 new()
                 {
                     Id = Guid.NewGuid().ToString(),
                     Status = OccurrenceStatus.Scheduled,
-                    OccurrenceDate = DateTime.UtcNow.AddDays(5),
-                    Signups = new List<EventSignupDto>()
+                    OccurrenceDate = DateTime.UtcNow.AddDays(5)
                 }
-            }
+            },
+            Signups = new List<EventSignupDto>()
         };
 
         sut.AvailableForSignup.ShouldBeTrue();
@@ -134,7 +138,7 @@ public class EventDtoTests
     [Fact]
     public void AvailableForSignup_SignupsExist_ReturnsTrue()
     {
-        var sut = new EventDto
+        var sut = new EventResponse
         {
             MaxNumberOfParticipants = 1,
             Occurrences = new List<EventOccurrenceDto>
@@ -144,26 +148,25 @@ public class EventDtoTests
                     Id = Guid.NewGuid().ToString(),
                     Status = OccurrenceStatus.Cancelled,
                     OccurrenceDate = DateTime.UtcNow.Subtract(TimeSpan.FromDays(5)),
-                    Signups = new List<EventSignupDto>()
                 },
                 new()
                 {
                     Id = Guid.NewGuid().ToString(),
                     Status = OccurrenceStatus.Scheduled,
-                    OccurrenceDate = DateTime.UtcNow.AddDays(5),
-                    Signups = new List<EventSignupDto>
+                    OccurrenceDate = DateTime.UtcNow.AddDays(5)
+                }
+            },
+            Signups = new List<EventSignupDto>
+            {
+                new()
+                {
+                    DiscordUserId = "1234567890",
+                    Roles = new List<Role>
                     {
-                        new()
-                        {
-                            DiscordUserId = "1234567890",
-                            Roles = new List<Role>
-                            {
-                                Role.Caster,
-                                Role.Healer
-                            },
-                            SignupDate = DateTime.UtcNow
-                        }
-                    }
+                        Role.Caster,
+                        Role.Healer
+                    },
+                    SignupDate = DateTime.UtcNow
                 }
             }
         };

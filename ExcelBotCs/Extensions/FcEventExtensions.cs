@@ -1,5 +1,5 @@
 using System.Text;
-using ExcelBotCs.Models.Database;
+using ExcelBotCs.Models.Database.Events;
 using ExcelBotCs.Modules.TeamFormation;
 
 namespace ExcelBotCs.Extensions;
@@ -8,41 +8,56 @@ public static class FcEventExtensions
 {
     public static string CreateUpcomingRosterMessage(this Event fcEvent)
     {
+        if (fcEvent.Groups == null || fcEvent.Groups.Count == 0)
+            throw new ArgumentException("No groups selected for event. Unable to post a roster");
+
         var messageBuilder = new StringBuilder();
 
-        // Get next upcoming occurrence or first occurrence
-        var occurrence = fcEvent.Occurrences
-                             ?.Where(o => o.Status == OccurrenceStatus.Scheduled && o.OccurrenceDate >= DateTime.UtcNow)
-                             .OrderBy(o => o.OccurrenceDate)
-                             .FirstOrDefault()
-                         ?? fcEvent.Occurrences?.FirstOrDefault();
-
-        if (occurrence == null) return $"**No upcoming occurrences for: {fcEvent.Name}**";
-
-        var participants = occurrence.Participants ?? new List<EventParticipant>();
-
         messageBuilder.AppendLine($"**Upcoming roster for: {fcEvent.Name}**");
-        messageBuilder.AppendLine($"**Date:** {occurrence.OccurrenceDate.ToLongDiscordDateLongTime()}");
-        messageBuilder.AppendLine($"**In:** {occurrence.OccurrenceDate.ToRelativeDiscordTime()}");
+        messageBuilder.AppendLine($"**Date:** {fcEvent.StartDate.ToLongDiscordDateLongTime()}");
+        messageBuilder.AppendLine($"**In:** {fcEvent.StartDate.ToRelativeDiscordTime()}");
         messageBuilder.AppendLine($"**Duration:** {fcEvent.Duration} minutes");
         messageBuilder.AppendLine();
+
+        if (fcEvent.Groups.Count > 1)
+        {
+            foreach (var fcEventGroup in fcEvent.Groups)
+            {
+                var participants = fcEventGroup.Participants;
+
+                messageBuilder.AppendLine($"{fcEventGroup.Name}:");
+                AppendRoleMentions(messageBuilder, participants);
+            }
+        }
+        else
+        {
+            var participants = fcEvent.Groups.First().Participants;
+            AppendRoleMentions(messageBuilder, participants);
+        }
+
+        return messageBuilder.ToString();
+    }
+
+    private static void AppendRoleMentions(StringBuilder messageBuilder, List<EventParticipant> participants)
+    {
         messageBuilder.AppendLine($":RoleTank: {RoleMentions(participants, Role.Tank)}");
         messageBuilder.AppendLine($":RoleHealer: {RoleMentions(participants, Role.Healer)}");
         messageBuilder.AppendLine($":RoleMelee: {RoleMentions(participants, Role.Melee)}");
         messageBuilder.AppendLine($":RoleCaster: {RoleMentions(participants, Role.Caster)}");
         messageBuilder.AppendLine($":RoleRanged: {RoleMentions(participants, Role.Ranged)}");
-
-        return messageBuilder.ToString();
     }
 
     private static string RoleMentions(List<EventParticipant> eventParticipants, Role role)
     {
+        if (eventParticipants.IsNullOrEmpty())
+            return string.Empty;
+
         var messageBuilder = new StringBuilder();
-        
+
         var participants = eventParticipants.Where(p => p.Role == role).ToList();
         foreach (var participant in participants)
             messageBuilder.Append($"<@{participant.DiscordUserId}> ");
-        
+
         return messageBuilder.ToString();
     }
 }

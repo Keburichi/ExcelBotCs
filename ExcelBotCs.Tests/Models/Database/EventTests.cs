@@ -1,4 +1,5 @@
 using ExcelBotCs.Models.Database;
+using ExcelBotCs.Models.Database.Events;
 using ExcelBotCs.Modules.TeamFormation;
 using ExcelBotCs.Services;
 
@@ -36,10 +37,10 @@ public class EventTests
                 {
                     Id = Guid.NewGuid().ToString(),
                     Status = occurrenceStatus,
-                    OccurrenceDate = DateTime.UtcNow.AddMinutes(5),
-                    Signups = new List<EventSignup>()
+                    OccurrenceDate = DateTime.UtcNow.AddMinutes(5)
                 }
-            }
+            },
+            Signups = new List<EventSignup>()
         };
 
         sut.AvailableForSignup.ShouldBeFalse();
@@ -58,16 +59,15 @@ public class EventTests
                     Id = Guid.NewGuid().ToString(),
                     Status = OccurrenceStatus.Cancelled,
                     OccurrenceDate = DateTime.UtcNow.AddMinutes(5),
-                    Signups = new List<EventSignup>()
                 },
                 new()
                 {
                     Id = Guid.NewGuid().ToString(),
                     Status = OccurrenceStatus.Scheduled,
-                    OccurrenceDate = DateTime.UtcNow.AddDays(5),
-                    Signups = new List<EventSignup>()
+                    OccurrenceDate = DateTime.UtcNow.AddDays(5)
                 }
-            }
+            },
+            Signups = new List<EventSignup>()
         };
 
         sut.AvailableForSignup.ShouldBeFalse();
@@ -86,14 +86,19 @@ public class EventTests
                     Id = Guid.NewGuid().ToString(),
                     Status = OccurrenceStatus.Cancelled,
                     OccurrenceDate = DateTime.UtcNow.Subtract(TimeSpan.FromDays(5)),
-                    Signups = new List<EventSignup>()
                 },
                 new()
                 {
                     Id = Guid.NewGuid().ToString(),
                     Status = OccurrenceStatus.Scheduled,
-                    OccurrenceDate = DateTime.UtcNow.AddDays(5),
-                    Signups = new List<EventSignup>(),
+                    OccurrenceDate = DateTime.UtcNow.AddDays(5)
+                }
+            },
+            Signups = new List<EventSignup>(),
+            Groups = new List<EventGroup>
+            {
+                new()
+                {
                     Participants = new List<EventParticipant>
                     {
                         new()
@@ -123,16 +128,15 @@ public class EventTests
                     Id = Guid.NewGuid().ToString(),
                     Status = OccurrenceStatus.Cancelled,
                     OccurrenceDate = DateTime.UtcNow.Subtract(TimeSpan.FromDays(5)),
-                    Signups = new List<EventSignup>()
                 },
                 new()
                 {
                     Id = Guid.NewGuid().ToString(),
                     Status = OccurrenceStatus.Scheduled,
-                    OccurrenceDate = DateTime.UtcNow.AddDays(5),
-                    Signups = new List<EventSignup>()
+                    OccurrenceDate = DateTime.UtcNow.AddDays(5)
                 }
-            }
+            },
+            Signups = new List<EventSignup>()
         };
 
         sut.AvailableForSignup.ShouldBeTrue();
@@ -151,26 +155,25 @@ public class EventTests
                     Id = Guid.NewGuid().ToString(),
                     Status = OccurrenceStatus.Cancelled,
                     OccurrenceDate = DateTime.UtcNow.Subtract(TimeSpan.FromDays(5)),
-                    Signups = new List<EventSignup>()
                 },
                 new()
                 {
                     Id = Guid.NewGuid().ToString(),
                     Status = OccurrenceStatus.Scheduled,
                     OccurrenceDate = DateTime.UtcNow.AddDays(5),
-                    Signups = new List<EventSignup>
+                }
+            },
+            Signups = new List<EventSignup>
+            {
+                new()
+                {
+                    DiscordUserId = "1234567890",
+                    Roles = new List<Role>
                     {
-                        new()
-                        {
-                            DiscordUserId = "1234567890",
-                            Roles = new List<Role>
-                            {
-                                Role.Caster,
-                                Role.Healer
-                            },
-                            SignupDate = DateTime.UtcNow
-                        }
-                    }
+                        Role.Caster,
+                        Role.Healer
+                    },
+                    SignupDate = DateTime.UtcNow
                 }
             }
         };

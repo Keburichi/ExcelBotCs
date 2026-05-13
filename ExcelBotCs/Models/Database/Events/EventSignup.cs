@@ -1,6 +1,6 @@
 using ExcelBotCs.Modules.TeamFormation;
 
-namespace ExcelBotCs.Models.Database;
+namespace ExcelBotCs.Models.Database.Events;
 
 /// <summary>
 ///     Represents a user signup for an event occurrence (embedded subdocument)

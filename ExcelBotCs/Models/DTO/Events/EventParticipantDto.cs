@@ -1,6 +1,6 @@
 using ExcelBotCs.Modules.TeamFormation;
 
-namespace ExcelBotCs.Models.DTO;
+namespace ExcelBotCs.Models.DTO.Events;
 
 public class EventParticipantDto
 {

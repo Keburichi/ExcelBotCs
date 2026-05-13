@@ -1,4 +1,4 @@
-using ExcelBotCs.Models.Database;
+using ExcelBotCs.Models.Database.Events;
 
 namespace ExcelBotCs.Models.DTO;
 

@@ -1,4 +1,5 @@
 using ExcelBotCs.Models.Database;
+using ExcelBotCs.Models.Database.Events;
 using ExcelBotCs.TestFramework.Utils;
 using MongoDB.Bson.Serialization.Attributes;
 

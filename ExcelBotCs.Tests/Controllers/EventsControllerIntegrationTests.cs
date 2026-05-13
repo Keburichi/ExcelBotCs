@@ -2,7 +2,9 @@ using System.Net;
 using System.Net.Http.Json;
 using ExcelBotCs.Database.Interfaces;
 using ExcelBotCs.Models.Database;
+using ExcelBotCs.Models.Database.Events;
 using ExcelBotCs.Models.DTO;
+using ExcelBotCs.Models.DTO.Events;
 using ExcelBotCs.Modules.TeamFormation;
 using ExcelBotCs.Services.API.Interfaces;
 using ExcelBotCs.TestFramework.Database;
@@ -10,7 +12,7 @@ using ExcelBotCs.TestFramework.Utils;
 using ExcelBotCs.Tests.Utils;
 using Ical.Net;
 using Microsoft.Extensions.DependencyInjection;
-using EventSignup = ExcelBotCs.Models.Database.EventSignup;
+using EventSignup = ExcelBotCs.Models.Database.Events.EventSignup;
 
 namespace ExcelBotCs.Tests.Controllers;
 
@@ -68,9 +70,7 @@ public class EventsControllerIntegrationTests : IntegrationTestBase
             fcEvent.Occurrences.Add(new EventOccurrence
             {
                 OccurrenceDate = start.AddDays(i * 7),
-                Status = OccurrenceStatus.Scheduled,
-                Signups = new List<EventSignup>(),
-                Participants = new List<EventParticipant>()
+                Status = OccurrenceStatus.Scheduled
             });
 
         return fcEvent;
@@ -240,17 +240,16 @@ END:VCALENDAR";
     #region Signup Flow Tests
 
     [Fact]
-    public async Task SignupForOccurrence_NewSignup_CreatesSignup()
+    public async Task SignupForEvent_NewSignup_CreatesSignup()
     {
         // Arrange
         var member = await CreateAndAuthenticateAsMember(GenerateRandomDiscordId());
         var fcEvent = CreateTestEvent();
         await _eventService.CreateAsync(fcEvent);
-        var occurrenceId = fcEvent.Occurrences[0].Id;
 
         // Act
         var response = await Client.PostAsJsonAsync(
-            $"api/Events/{fcEvent.Id}/occurrences/{occurrenceId}/signup",
+            $"api/Events/{fcEvent.Id}/signup",
             new EventSignupDto { Roles = new List<Role> { Role.Tank, Role.Healer } });
 
         // Assert
@@ -258,8 +257,7 @@ END:VCALENDAR";
 
         // Verify in database
         var updatedEvent = await _eventService.GetAsync(fcEvent.Id);
-        var occurrence = updatedEvent!.Occurrences.First(o => o.Id == occurrenceId);
-        var signup = occurrence.Signups.FirstOrDefault(s => s.DiscordUserId == member.DiscordId);
+        var signup = updatedEvent.Signups.FirstOrDefault(s => s.DiscordUserId == member.DiscordId);
 
         signup.ShouldNotBeNull();
         signup.Roles.Count.ShouldBe(2);
@@ -268,12 +266,12 @@ END:VCALENDAR";
     }
 
     [Fact]
-    public async Task SignupForOccurrence_ExistingSignup_UpdatesRoles()
+    public async Task SignupForEvent_ExistingSignup_UpdatesRoles()
     {
         // Arrange
         var member = await CreateAndAuthenticateAsMember(GenerateRandomDiscordId());
         var fcEvent = CreateTestEvent();
-        fcEvent.Occurrences[0].Signups.Add(new EventSignup
+        fcEvent.Signups.Add(new EventSignup
         {
             DiscordUserId = member.DiscordId,
             Roles = new List<Role> { Role.Tank },
@@ -284,15 +282,14 @@ END:VCALENDAR";
 
         // Act
         var response = await Client.PostAsJsonAsync(
-            $"api/Events/{fcEvent.Id}/occurrences/{occurrenceId}/signup",
+            $"api/Events/{fcEvent.Id}/signup",
             new EventSignupDto { Roles = new List<Role> { Role.Healer, Role.Caster } });
 
         // Assert
         response.EnsureSuccessStatusCode();
 
         var updatedEvent = await _eventService.GetAsync(fcEvent.Id);
-        var occurrence = updatedEvent!.Occurrences.First(o => o.Id == occurrenceId);
-        var signups = occurrence.Signups.Where(s => s.DiscordUserId == member.DiscordId).ToList();
+        var signups = updatedEvent.Signups.Where(s => s.DiscordUserId == member.DiscordId).ToList();
 
         // Should only have one signup entry
         signups.Count.ShouldBe(1);
@@ -353,279 +350,13 @@ END:VCALENDAR";
         response.StatusCode.ShouldBe(HttpStatusCode.BadRequest);
     }
 
-    [Fact]
-    public async Task CancelSignup_RemovesSignup()
-    {
-        // Arrange
-        var member = await CreateAndAuthenticateAsMember(GenerateRandomDiscordId());
-        var fcEvent = CreateTestEvent();
-        fcEvent.Occurrences[0].Signups.Add(new EventSignup
-        {
-            DiscordUserId = member.DiscordId,
-            Roles = new List<Role> { Role.Tank },
-            SignupDate = DateTime.UtcNow
-        });
-        await _eventService.CreateAsync(fcEvent);
-        var occurrenceId = fcEvent.Occurrences[0].Id;
-
-        // Act
-        var response = await Client.DeleteAsync(
-            $"api/Events/{fcEvent.Id}/occurrences/{occurrenceId}/signup");
-
-        // Assert
-        response.EnsureSuccessStatusCode();
-
-        var updatedEvent = await _eventService.GetAsync(fcEvent.Id);
-        var occurrence = updatedEvent!.Occurrences.First(o => o.Id == occurrenceId);
-        var signup = occurrence.Signups.FirstOrDefault(s => s.DiscordUserId == member.DiscordId);
-
-        signup.ShouldBeNull();
-    }
-
     #endregion
 
     #region LockedGroup Signup Tests
 
-    [Fact]
-    public async Task SignupForOccurrence_LockedGroup_PropagatesSignupToAllOccurrences()
-    {
-        // Arrange
-        var member = await CreateAndAuthenticateAsMember(GenerateRandomDiscordId());
-        var fcEvent = CreateTestEvent(signupType: SignupType.LockedGroup, occurrenceCount: 3);
-        await _eventService.CreateAsync(fcEvent);
-        var occurrenceId = fcEvent.Occurrences[0].Id;
-
-        // Act
-        var response = await Client.PostAsJsonAsync(
-            $"api/Events/{fcEvent.Id}/occurrences/{occurrenceId}/signup",
-            new EventSignupDto { Roles = new List<Role> { Role.Tank, Role.Healer } });
-
-        // Assert
-        response.EnsureSuccessStatusCode();
-
-        var updatedEvent = await _eventService.GetAsync(fcEvent.Id);
-
-        // All occurrences should have the signup
-        foreach (var occurrence in updatedEvent!.Occurrences)
-        {
-            var signup = occurrence.Signups.FirstOrDefault(s => s.DiscordUserId == member.DiscordId);
-            signup.ShouldNotBeNull($"Occurrence {occurrence.Id} should have the signup");
-            signup.Roles.Count.ShouldBe(2);
-            signup.Roles.ShouldContain(Role.Tank);
-            signup.Roles.ShouldContain(Role.Healer);
-        }
-    }
-
-    [Fact]
-    public async Task CancelSignup_LockedGroup_RemovesFromAllOccurrences()
-    {
-        // Arrange
-        var member = await CreateAndAuthenticateAsMember(GenerateRandomDiscordId());
-        var fcEvent = CreateTestEvent(signupType: SignupType.LockedGroup, occurrenceCount: 3);
-
-        // Add signup to all occurrences
-        foreach (var occurrence in fcEvent.Occurrences)
-            occurrence.Signups.Add(new EventSignup
-            {
-                DiscordUserId = member.DiscordId,
-                Roles = new List<Role> { Role.Tank },
-                SignupDate = DateTime.UtcNow
-            });
-        await _eventService.CreateAsync(fcEvent);
-        var occurrenceId = fcEvent.Occurrences[0].Id;
-
-        // Act
-        var response = await Client.DeleteAsync(
-            $"api/Events/{fcEvent.Id}/occurrences/{occurrenceId}/signup");
-
-        // Assert
-        response.EnsureSuccessStatusCode();
-
-        var updatedEvent = await _eventService.GetAsync(fcEvent.Id);
-
-        // All occurrences should have the signup removed
-        foreach (var occurrence in updatedEvent!.Occurrences)
-        {
-            var signup = occurrence.Signups.FirstOrDefault(s => s.DiscordUserId == member.DiscordId);
-            signup.ShouldBeNull($"Occurrence {occurrence.Id} should not have the signup");
-        }
-    }
-
-    [Fact]
-    public async Task SignupForOccurrence_IndependentSignups_OnlyUpdatesTargetOccurrence()
-    {
-        // Arrange
-        var member = await CreateAndAuthenticateAsMember(GenerateRandomDiscordId());
-        var fcEvent = CreateTestEvent(signupType: SignupType.IndependentSignups, occurrenceCount: 3);
-        await _eventService.CreateAsync(fcEvent);
-        var occurrenceId = fcEvent.Occurrences[0].Id;
-
-        // Act
-        var response = await Client.PostAsJsonAsync(
-            $"api/Events/{fcEvent.Id}/occurrences/{occurrenceId}/signup",
-            new EventSignupDto { Roles = new List<Role> { Role.Tank } });
-
-        // Assert
-        response.EnsureSuccessStatusCode();
-
-        var updatedEvent = await _eventService.GetAsync(fcEvent.Id);
-
-        // Only the first occurrence should have the signup
-        var firstOccurrence = updatedEvent!.Occurrences.First(o => o.Id == occurrenceId);
-        firstOccurrence.Signups.Any(s => s.DiscordUserId == member.DiscordId).ShouldBeTrue();
-
-        // Other occurrences should NOT have the signup
-        var otherOccurrences = updatedEvent.Occurrences.Where(o => o.Id != occurrenceId);
-        foreach (var occurrence in otherOccurrences)
-            occurrence.Signups.Any(s => s.DiscordUserId == member.DiscordId).ShouldBeFalse(
-                $"Occurrence {occurrence.Id} should not have the signup");
-    }
-
     #endregion
 
     #region Participant Selection Tests
-
-    [Fact]
-    public async Task SelectParticipants_SingleEvent_UpdatesOccurrence()
-    {
-        // Arrange
-        var admin = await CreateAndAuthenticateAsMember(GenerateRandomDiscordId(), true);
-        var member1 = await CreateAndAuthenticateAsMember(GenerateRandomDiscordId());
-        var fcEvent = CreateTestEvent(signupType: SignupType.SingleEvent);
-        await _eventService.CreateAsync(fcEvent);
-        var occurrenceId = fcEvent.Occurrences[0].Id;
-
-        // Re-authenticate as admin
-        SetAuthenticatedUser(admin.DiscordId, admin.DiscordName);
-
-        var participants = new List<EventParticipant>
-        {
-            new() { DiscordUserId = admin.DiscordId, Role = Role.Tank },
-            new() { DiscordUserId = member1.DiscordId, Role = Role.Healer }
-        };
-
-        // Act
-        var response = await Client.PostAsJsonAsync(
-            $"api/Events/{fcEvent.Id}/occurrences/{occurrenceId}/participants",
-            participants);
-
-        // Assert
-        response.EnsureSuccessStatusCode();
-
-        var updatedEvent = await _eventService.GetAsync(fcEvent.Id);
-        var occurrence = updatedEvent!.Occurrences.First(o => o.Id == occurrenceId);
-
-        occurrence.Participants.Count.ShouldBe(2);
-        occurrence.Participants.Any(p => p.DiscordUserId == admin.DiscordId && p.Role == Role.Tank)
-            .ShouldBeTrue();
-        occurrence.Participants.Any(p => p.DiscordUserId == member1.DiscordId && p.Role == Role.Healer)
-            .ShouldBeTrue();
-    }
-
-    [Fact]
-    public async Task SelectParticipants_IndependentSignups_UpdatesOnlyTargetOccurrence()
-    {
-        // Arrange
-        var admin = await CreateAndAuthenticateAsMember(GenerateRandomDiscordId(), true);
-        var fcEvent = CreateTestEvent(signupType: SignupType.IndependentSignups, occurrenceCount: 3);
-        await _eventService.CreateAsync(fcEvent);
-        var occurrenceId = fcEvent.Occurrences[0].Id;
-
-        var participants = new List<EventParticipant>
-        {
-            new() { DiscordUserId = admin.DiscordId, Role = Role.Tank }
-        };
-
-        // Act
-        var response = await Client.PostAsJsonAsync(
-            $"api/Events/{fcEvent.Id}/occurrences/{occurrenceId}/participants",
-            participants);
-
-        // Assert
-        response.EnsureSuccessStatusCode();
-
-        var updatedEvent = await _eventService.GetAsync(fcEvent.Id);
-
-        // Only the first occurrence should have participants
-        var firstOccurrence = updatedEvent!.Occurrences.First(o => o.Id == occurrenceId);
-        firstOccurrence.Participants.Count.ShouldBe(1);
-
-        // Other occurrences should NOT have participants
-        var otherOccurrences = updatedEvent.Occurrences.Where(o => o.Id != occurrenceId);
-        foreach (var occurrence in otherOccurrences)
-            occurrence.Participants.ShouldBeEmpty(
-                $"Occurrence {occurrence.Id} should not have participants");
-    }
-
-    [Fact]
-    public async Task SelectParticipants_LockedGroup_PropagatesParticipantsToAllOccurrences()
-    {
-        // Arrange
-        var admin = await CreateAndAuthenticateAsMember(GenerateRandomDiscordId(), true);
-        var member1 = await CreateAndAuthenticateAsMember(GenerateRandomDiscordId());
-
-        // Re-authenticate as admin
-        SetAuthenticatedUser(admin.DiscordId, admin.DiscordName);
-
-        var fcEvent = CreateTestEvent(signupType: SignupType.LockedGroup, occurrenceCount: 3);
-        await _eventService.CreateAsync(fcEvent);
-        var occurrenceId = fcEvent.Occurrences[0].Id;
-
-        var participants = new List<EventParticipant>
-        {
-            new() { DiscordUserId = admin.DiscordId, Role = Role.Tank },
-            new() { DiscordUserId = member1.DiscordId, Role = Role.Healer }
-        };
-
-        // Act
-        var response = await Client.PostAsJsonAsync(
-            $"api/Events/{fcEvent.Id}/occurrences/{occurrenceId}/participants",
-            participants);
-
-        // Assert
-        response.EnsureSuccessStatusCode();
-
-        var updatedEvent = await _eventService.GetAsync(fcEvent.Id);
-
-        // All occurrences should have the same participants
-        foreach (var occurrence in updatedEvent!.Occurrences)
-        {
-            occurrence.Participants.Count.ShouldBe(2,
-                $"Occurrence {occurrence.Id} should have 2 participants");
-            occurrence.Participants.Any(p => p.DiscordUserId == admin.DiscordId && p.Role == Role.Tank)
-                .ShouldBeTrue($"Occurrence {occurrence.Id} should have admin as Tank");
-            occurrence.Participants.Any(p => p.DiscordUserId == member1.DiscordId && p.Role == Role.Healer)
-                .ShouldBeTrue($"Occurrence {occurrence.Id} should have member1 as Healer");
-        }
-    }
-
-    [Fact]
-    public async Task RemoveParticipant_RemovesFromOccurrence()
-    {
-        // Arrange
-        var admin = await CreateAndAuthenticateAsMember(GenerateRandomDiscordId(), true);
-        var fcEvent = CreateTestEvent();
-        fcEvent.Occurrences[0].Participants.Add(new EventParticipant
-        {
-            DiscordUserId = admin.DiscordId,
-            Role = Role.Tank,
-            SelectionDate = DateTime.UtcNow
-        });
-        await _eventService.CreateAsync(fcEvent);
-        var occurrenceId = fcEvent.Occurrences[0].Id;
-
-        // Act
-        var response = await Client.DeleteAsync(
-            $"api/Events/{fcEvent.Id}/occurrences/{occurrenceId}/participants/{admin.DiscordId}");
-
-        // Assert
-        response.EnsureSuccessStatusCode();
-
-        var updatedEvent = await _eventService.GetAsync(fcEvent.Id);
-        var occurrence = updatedEvent!.Occurrences.First(o => o.Id == occurrenceId);
-
-        occurrence.Participants.ShouldBeEmpty();
-    }
 
     #endregion
 
@@ -730,7 +461,7 @@ END:VCALENDAR";
 
         // Assert
         response.EnsureSuccessStatusCode();
-        var events = await response.Content.ReadFromJsonAsync<List<EventDto>>();
+        var events = await response.Content.ReadFromJsonAsync<List<EventResponse>>();
         events.ShouldNotBeNull();
         events.Count.ShouldBe(2);
     }
@@ -748,7 +479,7 @@ END:VCALENDAR";
 
         // Assert
         response.EnsureSuccessStatusCode();
-        var retrievedEvent = await response.Content.ReadFromJsonAsync<EventDto>();
+        var retrievedEvent = await response.Content.ReadFromJsonAsync<EventResponse>();
         retrievedEvent.ShouldNotBeNull();
         retrievedEvent.Id.ShouldBe(fcEvent.Id);
         retrievedEvent.Name.ShouldBe(fcEvent.Name);
@@ -772,7 +503,7 @@ END:VCALENDAR";
     public async Task DeleteEvent_RemovesEvent()
     {
         // Arrange
-        await AuthenticateAsMember();
+        await AuthenticateAsAdmin();
         var fcEvent = CreateTestEvent();
         await _eventService.CreateAsync(fcEvent);
 
@@ -984,7 +715,7 @@ END:VCALENDAR";
 
         // Assert
         response.EnsureSuccessStatusCode();
-        var events = await response.Content.ReadFromJsonAsync<List<EventDto>>();
+        var events = await response.Content.ReadFromJsonAsync<List<EventResponse>>();
         events.ShouldNotBeNull();
         events!.Any(e => e.Name == "Active Event").ShouldBeTrue();
         events.Any(e => e.Name == "Archived Event").ShouldBeFalse();
@@ -1013,7 +744,7 @@ END:VCALENDAR";
 
         // Assert
         response.EnsureSuccessStatusCode();
-        var events = await response.Content.ReadFromJsonAsync<List<EventDto>>();
+        var events = await response.Content.ReadFromJsonAsync<List<EventResponse>>();
         events.ShouldNotBeNull();
         events!.Any(e => e.Name == "Archived Event").ShouldBeTrue();
         events.Any(e => e.Name == "Active Event").ShouldBeFalse();
@@ -1044,7 +775,7 @@ END:VCALENDAR";
 
         // Assert
         response.EnsureSuccessStatusCode();
-        var events = await response.Content.ReadFromJsonAsync<List<EventDto>>();
+        var events = await response.Content.ReadFromJsonAsync<List<EventResponse>>();
         events.ShouldNotBeNull();
         events!.Count.ShouldBe(1);
         events[0].Name.ShouldBe("Weekly Raid Night");

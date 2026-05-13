@@ -1,11 +1,11 @@
 using ExcelBotCs.Database.Interfaces;
 using ExcelBotCs.Extensions;
-using ExcelBotCs.Models.Database;
+using ExcelBotCs.Models.Database.Events;
 using ExcelBotCs.Models.DTO;
 using ExcelBotCs.Modules.TeamFormation;
 using ExcelBotCs.Services.API.Interfaces;
 using ExcelBotCs.Services.Discord.Interfaces;
-using DbEventSignup = ExcelBotCs.Models.Database.EventSignup;
+using DbEventSignup = ExcelBotCs.Models.Database.Events.EventSignup;
 
 namespace ExcelBotCs.Services.API;
 
@@ -29,26 +29,7 @@ public class EventService : BaseEntityService<Event, IEventRepository>, IEventSe
         var fcEvent = await Repository.GetAsync(eventId);
         if (fcEvent == null) return;
 
-        var occurrence = fcEvent.Occurrences
-            ?.Where(o => o.Status == OccurrenceStatus.Scheduled && o.OccurrenceDate >= DateTime.UtcNow)
-            .OrderBy(o => o.OccurrenceDate)
-            .FirstOrDefault()
-            ?? fcEvent.Occurrences?.FirstOrDefault();
-
-        if (occurrence == null)
-        {
-            occurrence = new EventOccurrence
-            {
-                OccurrenceDate = fcEvent.StartDate,
-                Status = OccurrenceStatus.Scheduled
-            };
-            fcEvent.Occurrences ??= new List<EventOccurrence>();
-            fcEvent.Occurrences.Add(occurrence);
-        }
-
-        occurrence.Signups ??= new List<DbEventSignup>();
-
-        var existing = occurrence.Signups.FirstOrDefault(x => x.DiscordUserId == discordUserId.ToString());
+        var existing = fcEvent.Signups.FirstOrDefault(x => x.DiscordUserId == discordUserId.ToString());
         if (existing != null)
         {
             if (existing.Roles.Contains(role))
@@ -58,7 +39,7 @@ public class EventService : BaseEntityService<Event, IEventRepository>, IEventSe
         }
         else
         {
-            occurrence.Signups.Add(new DbEventSignup
+            fcEvent.Signups.Add(new DbEventSignup
             {
                 DiscordUserId = discordUserId.ToString(),
                 Roles = new List<Role> { role },
@@ -364,9 +345,6 @@ public class EventService : BaseEntityService<Event, IEventRepository>, IEventSe
                 // Preserve data from existing occurrence
                 newOccurrence.Id = existingOccurrence.Id;
                 newOccurrence.Status = existingOccurrence.Status;
-                newOccurrence.DiscordMessageId = existingOccurrence.DiscordMessageId;
-                newOccurrence.Signups = existingOccurrence.Signups ?? new List<DbEventSignup>();
-                newOccurrence.Participants = existingOccurrence.Participants ?? new List<EventParticipant>();
             }
         }
     }

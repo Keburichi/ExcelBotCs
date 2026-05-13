@@ -1,9 +1,8 @@
-using ExcelBotCs.Extensions;
-using ExcelBotCs.Models.Database;
+﻿using ExcelBotCs.Extensions;
 
-namespace ExcelBotCs.Models.DTO;
+namespace ExcelBotCs.Models.Database.Events;
 
-public class EventDto : BaseDto
+public class Event : BaseEntity
 {
     // Denormalized fields for efficient querying
     public string Name { get; set; }
@@ -40,8 +39,14 @@ public class EventDto : BaseDto
     public string? Organizer { get; set; }
     public int MaxNumberOfParticipants { get; set; }
 
-    // Occurrences
-    public List<EventOccurrenceDto> Occurrences { get; set; } = new();
+    // Occurrences - always has at least one
+    public List<EventOccurrence> Occurrences { get; set; } = new();
+
+    // Signups for this event
+    public List<EventSignup> Signups { get; set; } = new();
+
+    // Selected groups with participants for this event
+    public List<EventGroup> Groups { get; set; } = new();
 
     // Archive properties
     public bool IsArchived { get; set; } = false;
@@ -87,10 +92,35 @@ public class EventDto : BaseDto
 
             // Check if the participants have already been selected for the next occurrence, then the roster 
             // has already been decided
-            if (latestAvailable.Participants != null && latestAvailable.Participants.Any())
-                return false;
-
-            return true;
+            return Groups.IsNullOrEmpty();
         }
+    }
+
+    /// <summary>
+    ///     Can be used to get the current occurrence of an event to check if it has already been concluded.
+    ///     This info is useful for determining if lottery guesses have been awarded
+    /// </summary>
+    /// <returns></returns>
+    public EventOccurrence GetCurrentOccurrence()
+    {
+        // Determine target occurrence: prefer next upcoming scheduled occurrence, fall back to the first; create if none exists
+        var occurrence = Occurrences
+                             ?.Where(o => o.Status == OccurrenceStatus.Scheduled && o.OccurrenceDate >= DateTime.UtcNow)
+                             .OrderBy(o => o.OccurrenceDate)
+                             .FirstOrDefault()
+                         ?? Occurrences?.FirstOrDefault();
+
+        if (occurrence == null)
+        {
+            occurrence = new EventOccurrence
+            {
+                OccurrenceDate = StartDate,
+                Status = OccurrenceStatus.Scheduled
+            };
+            Occurrences ??= new List<EventOccurrence>();
+            Occurrences.Add(occurrence);
+        }
+
+        return occurrence;
     }
 }

@@ -4,6 +4,7 @@ using MongoDB.Bson.Serialization.Attributes;
 
 namespace ExcelBotCs.Models.Database;
 
+[BsonIgnoreExtraElements]
 public abstract class BaseEntity
 {
     [BsonId]

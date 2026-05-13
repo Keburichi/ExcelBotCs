@@ -1,4 +1,4 @@
-namespace ExcelBotCs.Models.Database;
+namespace ExcelBotCs.Models.Database.Events;
 
 public enum EventType
 {

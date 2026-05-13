@@ -1,7 +1,7 @@
 using Discord;
 using Discord.WebSocket;
 using ExcelBotCs.Extensions;
-using ExcelBotCs.Models.Database;
+using ExcelBotCs.Models.Database.Events;
 using ExcelBotCs.Modules.TeamFormation;
 using ExcelBotCs.Services.API.Interfaces;
 using ExcelBotCs.Services.Discord.Interfaces;
@@ -19,7 +19,7 @@ public class ComponentCreator : IComponentCreator
         _fightService = fightService;
     }
 
-    public async Task<ComponentBuilderV2> CreateSignupComponents(Event fcEvent, Fight? fight = null)
+    public async Task<ComponentBuilderV2> CreateSignupComponents(Event fcEvent)
     {
         var buttons = new List<ButtonBuilder>();
 
@@ -81,17 +81,13 @@ public class ComponentCreator : IComponentCreator
         componentBuilderV2.WithSeparator(SeparatorSpacingSize.Large);
         componentBuilderV2.WithTextDisplay("**Current Signups**");
 
-        var firstOccurrence = fcEvent.Occurrences?.FirstOrDefault();
-        if (firstOccurrence != null)
+        foreach (Role role in Enum.GetValues(typeof(Role)))
         {
-            foreach (Role role in Enum.GetValues(typeof(Role)))
-            {
-                var signUps = (firstOccurrence.Signups ?? Enumerable.Empty<EventSignup>())
-                    .Where(x => x.Roles.Contains(role));
-                var members = signUps.Aggregate<EventSignup?, string>(null,
-                    (current, eventSignup) => current + $"<@{eventSignup.DiscordUserId}>, ");
-                componentBuilderV2.WithTextDisplay($"{_discordSocketClient.GetEmoteByRole(role)}: {members}");
-            }
+            var signUps = (fcEvent.Signups ?? Enumerable.Empty<EventSignup>())
+                .Where(x => x.Roles.Contains(role));
+            var members = signUps.Aggregate<EventSignup?, string>(null,
+                (current, eventSignup) => current + $"<@{eventSignup.DiscordUserId}>, ");
+            componentBuilderV2.WithTextDisplay($"{_discordSocketClient.GetEmoteByRole(role)}: {members}");
         }
 
         return componentBuilderV2;

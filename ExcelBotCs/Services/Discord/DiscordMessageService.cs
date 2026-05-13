@@ -1,7 +1,7 @@
 using Discord;
 using Discord.WebSocket;
 using ExcelBotCs.Models.Config;
-using ExcelBotCs.Models.Database;
+using ExcelBotCs.Models.Database.Events;
 using ExcelBotCs.Services.Discord.Interfaces;
 using Microsoft.Extensions.Options;
 

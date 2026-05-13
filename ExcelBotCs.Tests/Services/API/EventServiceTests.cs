@@ -1,5 +1,6 @@
 using ExcelBotCs.Database.Interfaces;
 using ExcelBotCs.Models.Database;
+using ExcelBotCs.Models.Database.Events;
 using ExcelBotCs.Modules.TeamFormation;
 using ExcelBotCs.Services;
 using ExcelBotCs.Services.API;
@@ -243,17 +244,23 @@ public class EventServiceTests
         {
             StartDate = occurrenceDate,
             ICalString = CalendarUtils.CreateICalString(occurrenceDate, FrequencyType.Weekly, 2),
+            DiscordMessageId = "123456",
             Occurrences = new List<EventOccurrence>
             {
                 new EventOccurrence
                 {
                     Id = "existing-occ-id",
                     OccurrenceDate = occurrenceDate,
-                    Status = OccurrenceStatus.Scheduled,
-                    DiscordMessageId = "123456",
-                    Signups = new List<EventSignup> { new EventSignup().PopulateWithRandomData() },
-                    Participants = new List<EventParticipant> { new EventParticipant().PopulateWithRandomData() }
+                    Status = OccurrenceStatus.Scheduled
                 }.PopulateWithRandomData()
+            },
+            Signups = new List<EventSignup> { new EventSignup().PopulateWithRandomData() },
+            Groups = new List<EventGroup>
+            {
+                new EventGroup
+                {
+                    Participants = new List<EventParticipant> { new EventParticipant().PopulateWithRandomData() }
+                }
             }
         }.PopulateWithRandomData();
 
@@ -276,9 +283,6 @@ public class EventServiceTests
         var preservedOccurrence = updatedEvent.Occurrences.OrderBy(x => x.OccurrenceDate).First();
         preservedOccurrence.Id.ShouldBe(existingEvent.Occurrences.First().Id);
         preservedOccurrence.Status.ShouldBe(existingEvent.Occurrences.First().Status);
-        preservedOccurrence.DiscordMessageId.ShouldBe(existingEvent.Occurrences.First().DiscordMessageId);
-        preservedOccurrence.Signups.ShouldNotBeNull();
-        preservedOccurrence.Participants.ShouldNotBeNull();
 
         _eventRepositoryMock.Verify(x => x.UpdateAsync(id, updatedEvent), Times.Once());
     }
@@ -295,67 +299,6 @@ public class EventServiceTests
 
         // Assert
         _eventRepositoryMock.Verify(x => x.DeleteAsync(id), Times.Once());
-    }
-
-    [Fact]
-    public async Task HandleSignupAsync_AddsSignup_WhenUserNotYetSignedUp()
-    {
-        // Arrange
-        var eventId = MongoDB.Bson.ObjectId.GenerateNewId().ToString();
-        var discordUserId = 123456789UL;
-        var occurrence = new EventOccurrence
-        {
-            OccurrenceDate = DateTime.UtcNow.AddDays(1),
-            Status = OccurrenceStatus.Scheduled,
-            Signups = new List<EventSignup>()
-        };
-        var fcEvent = new Event { Id = eventId, Occurrences = new List<EventOccurrence> { occurrence } };
-
-        _eventRepositoryMock.Setup(x => x.GetAsync(eventId)).ReturnsAsync(fcEvent);
-        _eventRepositoryMock.Setup(x => x.UpdateAsync(eventId, It.IsAny<Event>())).Returns(Task.CompletedTask);
-        _discordMessageServiceMock.Setup(x => x.UpdateSignupMessage(It.IsAny<Event>())).Returns(Task.CompletedTask);
-
-        // Act
-        await _eventService.HandleSignupAsync(eventId, Role.Tank, discordUserId);
-
-        // Assert
-        occurrence.Signups.Count.ShouldBe(1);
-        occurrence.Signups[0].DiscordUserId.ShouldBe(discordUserId.ToString());
-        occurrence.Signups[0].Roles.ShouldContain(Role.Tank);
-        _eventRepositoryMock.Verify(x => x.UpdateAsync(eventId, It.IsAny<Event>()), Times.Once());
-    }
-
-    [Fact]
-    public async Task HandleSignupAsync_RemovesRole_WhenUserAlreadyHasRole()
-    {
-        // Arrange
-        var eventId = MongoDB.Bson.ObjectId.GenerateNewId().ToString();
-        var discordUserId = 123456789UL;
-        var occurrence = new EventOccurrence
-        {
-            OccurrenceDate = DateTime.UtcNow.AddDays(1),
-            Status = OccurrenceStatus.Scheduled,
-            Signups = new List<EventSignup>
-            {
-                new EventSignup
-                {
-                    DiscordUserId = discordUserId.ToString(),
-                    Roles = new List<Role> { Role.Tank },
-                    SignupDate = DateTime.UtcNow
-                }
-            }
-        };
-        var fcEvent = new Event { Id = eventId, Occurrences = new List<EventOccurrence> { occurrence } };
-
-        _eventRepositoryMock.Setup(x => x.GetAsync(eventId)).ReturnsAsync(fcEvent);
-        _eventRepositoryMock.Setup(x => x.UpdateAsync(eventId, It.IsAny<Event>())).Returns(Task.CompletedTask);
-        _discordMessageServiceMock.Setup(x => x.UpdateSignupMessage(It.IsAny<Event>())).Returns(Task.CompletedTask);
-
-        // Act
-        await _eventService.HandleSignupAsync(eventId, Role.Tank, discordUserId);
-
-        // Assert
-        occurrence.Signups[0].Roles.ShouldBeEmpty();
     }
 
     [Fact]

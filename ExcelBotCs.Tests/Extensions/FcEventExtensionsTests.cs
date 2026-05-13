@@ -1,5 +1,6 @@
 using ExcelBotCs.Extensions;
 using ExcelBotCs.Models.Database;
+using ExcelBotCs.Models.Database.Events;
 using ExcelBotCs.Modules.TeamFormation;
 using ExcelBotCs.TestFramework.TestData;
 
@@ -24,56 +25,13 @@ public class FcEventExtensionsTests
                     Id = "occ1",
                     OccurrenceDate = DateTime.UtcNow.AddDays(1),
                     Status = OccurrenceStatus.Scheduled,
-                    Participants = new List<EventParticipant>()
                 }
-            }
+            },
+            StartDate = DateTime.UtcNow
         };
 
-        // Act
-        var result = fcEvent.CreateUpcomingRosterMessage();
-
-        // Assert
-        result.ShouldNotBeNull();
-        result.ShouldContain("Upcoming roster for:");
-    }
-
-    [Fact]
-    public void CreateUpcomingRosterMessage_WithNoOccurrences_ShouldReturnNoUpcomingMessage()
-    {
-        // Arrange
-        var fcEvent = new Event
-        {
-            Id = "1",
-            Name = "Test Event",
-            Duration = 60,
-            Occurrences = null
-        };
-
-        // Act
-        var result = fcEvent.CreateUpcomingRosterMessage();
-
-        // Assert
-        result.ShouldContain("No upcoming occurrences");
-        result.ShouldContain("Test Event");
-    }
-
-    [Fact]
-    public void CreateUpcomingRosterMessage_WithEmptyOccurrences_ShouldReturnNoUpcomingMessage()
-    {
-        // Arrange
-        var fcEvent = new Event
-        {
-            Id = "1",
-            Name = "Test Event",
-            Duration = 60,
-            Occurrences = new List<EventOccurrence>()
-        };
-
-        // Act
-        var result = fcEvent.CreateUpcomingRosterMessage();
-
-        // Assert
-        result.ShouldContain("No upcoming occurrences");
+        // Act & Assert
+        Assert.Throws<ArgumentException>(fcEvent.CreateUpcomingRosterMessage);
     }
 
     [Fact]
@@ -92,14 +50,21 @@ public class FcEventExtensionsTests
                 {
                     Id = "occ1",
                     OccurrenceDate = occurrenceDate,
-                    Status = OccurrenceStatus.Scheduled,
+                    Status = OccurrenceStatus.Scheduled
+                }
+            },
+            Groups = new List<EventGroup>
+            {
+                new()
+                {
                     Participants = new List<EventParticipant>
                     {
                         new() { DiscordUserId = "user1", Role = Role.Tank },
                         new() { DiscordUserId = "user2", Role = Role.Healer }
                     }
                 }
-            }
+            },
+            StartDate = DateTime.UtcNow
         };
 
         // Act
@@ -130,7 +95,13 @@ public class FcEventExtensionsTests
                 {
                     Id = "occ1",
                     OccurrenceDate = occurrenceDate,
-                    Status = OccurrenceStatus.Scheduled,
+                    Status = OccurrenceStatus.Scheduled
+                }
+            },
+            Groups = new List<EventGroup>
+            {
+                new()
+                {
                     Participants = new List<EventParticipant>
                     {
                         new() { DiscordUserId = "tank1", Role = Role.Tank },
@@ -141,7 +112,8 @@ public class FcEventExtensionsTests
                         new() { DiscordUserId = "ranged1", Role = Role.Ranged }
                     }
                 }
-            }
+            },
+            StartDate = DateTime.UtcNow
         };
 
         // Act
@@ -178,19 +150,25 @@ public class FcEventExtensionsTests
                     Id = "occ1",
                     OccurrenceDate = DateTime.UtcNow.AddDays(-1), // Past
                     Status = OccurrenceStatus.Scheduled,
-                    Participants = new List<EventParticipant>()
                 },
                 new()
                 {
                     Id = "occ2",
                     OccurrenceDate = futureDate, // Future
                     Status = OccurrenceStatus.Scheduled,
+                }
+            },
+            Groups = new List<EventGroup>
+            {
+                new()
+                {
                     Participants = new List<EventParticipant>
                     {
                         new() { DiscordUserId = "user1", Role = Role.Tank }
                     }
                 }
-            }
+            },
+            StartDate = DateTime.UtcNow
         };
 
         // Act
@@ -216,10 +194,17 @@ public class FcEventExtensionsTests
                 {
                     Id = "occ1",
                     OccurrenceDate = DateTime.UtcNow.AddDays(1),
-                    Status = OccurrenceStatus.Scheduled,
+                    Status = OccurrenceStatus.Scheduled
+                }
+            },
+            Groups = new List<EventGroup>
+            {
+                new()
+                {
                     Participants = null
                 }
-            }
+            },
+            StartDate = DateTime.UtcNow
         };
 
         // Act
@@ -246,10 +231,17 @@ public class FcEventExtensionsTests
                 {
                     Id = "occ1",
                     OccurrenceDate = DateTime.UtcNow.AddDays(1),
-                    Status = OccurrenceStatus.Scheduled,
+                    Status = OccurrenceStatus.Scheduled
+                }
+            },
+            Groups = new List<EventGroup>
+            {
+                new()
+                {
                     Participants = new List<EventParticipant>()
                 }
-            }
+            },
+            StartDate = DateTime.UtcNow
         };
 
         // Act
@@ -276,7 +268,13 @@ public class FcEventExtensionsTests
                 {
                     Id = "occ1",
                     OccurrenceDate = DateTime.UtcNow.AddDays(1),
-                    Status = OccurrenceStatus.Scheduled,
+                    Status = OccurrenceStatus.Scheduled
+                }
+            },
+            Groups = new List<EventGroup>
+            {
+                new()
+                {
                     Participants = new List<EventParticipant>
                     {
                         new() { DiscordUserId = "tank1", Role = Role.Tank },
@@ -284,7 +282,8 @@ public class FcEventExtensionsTests
                         new() { DiscordUserId = "tank3", Role = Role.Tank }
                     }
                 }
-            }
+            },
+            StartDate = DateTime.UtcNow
         };
 
         // Act
@@ -313,19 +312,25 @@ public class FcEventExtensionsTests
                     Id = "occ1",
                     OccurrenceDate = DateTime.UtcNow.AddDays(1),
                     Status = OccurrenceStatus.Completed,
-                    Participants = new List<EventParticipant>()
                 },
                 new()
                 {
                     Id = "occ2",
                     OccurrenceDate = futureDate,
-                    Status = OccurrenceStatus.Scheduled,
+                    Status = OccurrenceStatus.Scheduled
+                }
+            },
+            Groups = new List<EventGroup>
+            {
+                new()
+                {
                     Participants = new List<EventParticipant>
                     {
                         new() { DiscordUserId = "user1", Role = Role.Healer }
                     }
                 }
-            }
+            },
+            StartDate = DateTime.UtcNow
         };
 
         // Act
@@ -351,10 +356,17 @@ public class FcEventExtensionsTests
                 {
                     Id = "occ1",
                     OccurrenceDate = DateTime.UtcNow.AddDays(1),
-                    Status = OccurrenceStatus.Scheduled,
+                    Status = OccurrenceStatus.Scheduled
+                }
+            },
+            Groups = new List<EventGroup>
+            {
+                new()
+                {
                     Participants = new List<EventParticipant>()
                 }
-            }
+            },
+            StartDate = DateTime.UtcNow
         };
 
         // Act

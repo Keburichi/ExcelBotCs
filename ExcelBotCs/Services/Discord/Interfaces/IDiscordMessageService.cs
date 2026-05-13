@@ -1,5 +1,5 @@
 using Discord;
-using ExcelBotCs.Models.Database;
+using ExcelBotCs.Models.Database.Events;
 
 namespace ExcelBotCs.Services.Discord.Interfaces;
 

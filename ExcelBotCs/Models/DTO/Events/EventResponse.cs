@@ -1,10 +1,11 @@
-﻿using ExcelBotCs.Extensions;
+using ExcelBotCs.Extensions;
+using ExcelBotCs.Models.Database;
+using ExcelBotCs.Models.Database.Events;
 
-namespace ExcelBotCs.Models.Database;
+namespace ExcelBotCs.Models.DTO.Events;
 
-public class Event : BaseEntity
+public class EventResponse : BaseDto
 {
-    // Denormalized fields for efficient querying
     public string Name { get; set; }
     public string Description { get; set; }
     public EventType Type { get; set; } = EventType.Other;
@@ -39,8 +40,14 @@ public class Event : BaseEntity
     public string? Organizer { get; set; }
     public int MaxNumberOfParticipants { get; set; }
 
-    // Occurrences - always has at least one
-    public List<EventOccurrence> Occurrences { get; set; } = new();
+    // Occurrences
+    public List<EventOccurrenceDto> Occurrences { get; set; } = new();
+
+    // Signups for this event
+    public List<EventSignupDto> Signups { get; set; } = new();
+
+    // Selected groups with participants for this event
+    public List<EventGroupResponse> Groups { get; set; } = new();
 
     // Archive properties
     public bool IsArchived { get; set; } = false;
@@ -86,10 +93,7 @@ public class Event : BaseEntity
 
             // Check if the participants have already been selected for the next occurrence, then the roster 
             // has already been decided
-            if (latestAvailable.Participants != null && latestAvailable.Participants.Any())
-                return false;
-
-            return true;
+            return Groups.IsNullOrEmpty();
         }
     }
 }

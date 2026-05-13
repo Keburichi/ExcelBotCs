@@ -1,4 +1,4 @@
-using ExcelBotCs.Models.Database;
+using ExcelBotCs.Models.Database.Events;
 using ExcelBotCs.Models.DTO;
 using ExcelBotCs.Modules.TeamFormation;
 

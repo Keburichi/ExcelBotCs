@@ -1,15 +1,23 @@
-using ExcelBotCs.Models.Database;
-using ExcelBotCs.Models.DTO;
-using DbEventSignup = ExcelBotCs.Models.Database.EventSignup;
+using ExcelBotCs.Extensions;
+using ExcelBotCs.Models.Database.Events;
+using ExcelBotCs.Models.DTO.Events;
+using DbEventSignup = ExcelBotCs.Models.Database.Events.EventSignup;
 using DtoEventSignup = ExcelBotCs.Models.DTO.EventSignupDto;
 
-namespace ExcelBotCs.Mappers;
+namespace ExcelBotCs.Mappers.Events;
 
-public static class EventMapper
+public static class EventMappingExtensions
 {
-    public static EventDto ToDto(Event fcEvent)
+    public static List<EventResponse> ToEventResponse(this List<Event> events)
     {
-        return new EventDto
+        return events.IsNullOrEmpty()
+            ? new List<EventResponse>()
+            : events.Select(fcEvent => fcEvent.ToEventResponse()).ToList();
+    }
+
+    public static EventResponse ToEventResponse(this Event fcEvent)
+    {
+        return new EventResponse
         {
             Id = fcEvent.Id,
             Name = fcEvent.Name,
@@ -28,32 +36,9 @@ public static class EventMapper
             Occurrences = fcEvent.Occurrences?.Select(MapOccurrenceToDto).ToList() ?? new List<EventOccurrenceDto>(),
             IsArchived = fcEvent.IsArchived,
             ArchivedDate = fcEvent.ArchivedDate,
-            ArchivedByUserId = fcEvent.ArchivedByUserId
-        };
-    }
-
-    public static Event ToEntity(EventDto fcEvent)
-    {
-        return new Event
-        {
-            Id = fcEvent.Id,
-            Name = fcEvent.Name,
-            Description = fcEvent.Description,
-            Duration = fcEvent.Duration,
-            StartDate = fcEvent.StartDate,
-            ICalString = fcEvent.ICalString,
-            SignupType = fcEvent.SignupType,
-            DiscordMessageId = fcEvent.DiscordMessageId,
-            PictureUrl = fcEvent.PictureUrl,
-            Type = fcEvent.Type,
-            FightId = fcEvent.FightId,
-            MaxNumberOfParticipants = fcEvent.MaxNumberOfParticipants,
-            AuthorId = fcEvent.AuthorId,
-            Organizer = fcEvent.Organizer,
-            Occurrences = fcEvent.Occurrences?.Select(MapOccurrenceToEntity).ToList() ?? new List<EventOccurrence>(),
-            IsArchived = fcEvent.IsArchived,
-            ArchivedDate = fcEvent.ArchivedDate,
-            ArchivedByUserId = fcEvent.ArchivedByUserId
+            ArchivedByUserId = fcEvent.ArchivedByUserId,
+            Signups = fcEvent.Signups?.Select(MapSignupToDto).ToList() ?? new List<DtoEventSignup>(),
+            Groups = fcEvent.Groups.ToEventGroupResponses()
         };
     }
 
@@ -63,11 +48,7 @@ public static class EventMapper
         {
             Id = occurrence.Id,
             OccurrenceDate = occurrence.OccurrenceDate,
-            Status = occurrence.Status,
-            DiscordMessageId = occurrence.DiscordMessageId,
-            Signups = occurrence.Signups?.Select(MapSignupToDto).ToList() ?? new List<DtoEventSignup>(),
-            Participants = occurrence.Participants?.Select(MapParticipantToDto).ToList() ??
-                           new List<EventParticipantDto>()
+            Status = occurrence.Status
         };
     }
 
@@ -77,10 +58,7 @@ public static class EventMapper
         {
             Id = dto.Id,
             OccurrenceDate = dto.OccurrenceDate,
-            Status = dto.Status,
-            DiscordMessageId = dto.DiscordMessageId,
-            Signups = dto.Signups?.Select(MapSignupToEntity).ToList() ?? new List<DbEventSignup>(),
-            Participants = dto.Participants?.Select(MapParticipantToEntity).ToList() ?? new List<EventParticipant>()
+            Status = dto.Status
         };
     }
 
@@ -121,6 +99,24 @@ public static class EventMapper
             DiscordUserId = dto.DiscordUserId,
             Role = dto.Role,
             SelectionDate = dto.SelectionDate
+        };
+    }
+
+    public static Event ToFcEvent(this CreateEventRequest createEventRequest)
+    {
+        return new Event
+        {
+            Name = createEventRequest.Name,
+            Description = createEventRequest.Description,
+            Type = createEventRequest.Type,
+            StartDate = createEventRequest.StartDate,
+            Duration = createEventRequest.Duration,
+            ICalString = createEventRequest.ICalString,
+            SignupType = createEventRequest.SignupType,
+            PictureUrl = createEventRequest.PictureUrl,
+            FightId = createEventRequest.FightId,
+            Organizer = createEventRequest.Organizer,
+            MaxNumberOfParticipants = createEventRequest.MaxNumberOfParticipants
         };
     }
 }
