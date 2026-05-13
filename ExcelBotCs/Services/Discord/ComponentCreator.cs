@@ -74,7 +74,9 @@ public class ComponentCreator : IComponentCreator
 
         componentBuilderV2.WithTextDisplay(
             $"**Date:** {fcEvent.StartDate.ToLongDiscordDateLongTime()} - {fcEvent.EndDate.ToLongDiscordDateLongTime()} ({fcEvent.StartDate.ToRelativeDiscordTime()})");
-        componentBuilderV2.WithTextDisplay($"{fcEvent.Description}");
+
+        if (fcEvent.Description != string.Empty)
+            componentBuilderV2.WithTextDisplay($"{fcEvent.Description}");
 
         componentBuilderV2.WithSeparator();
         componentBuilderV2.WithActionRow(buttons);
