@@ -34,12 +34,12 @@ const errorMessage = ref('')
 // Members list
 const allMembers = computed(() => membersComposable.members.value)
 
-// Get participant names from occurrence
-const occurrenceParticipantNames = computed((): string[] => {
-  if (!props.occurrence.Participants)
+// Get participant names from event groups
+const eventParticipantNames = computed((): string[] => {
+  if (!props.event.Groups || props.event.Groups.length === 0)
     return []
 
-  return props.occurrence.Participants.map((participant) => {
+  return props.event.Groups.flatMap(group => group.Participants).map((participant) => {
     const member = allMembers.value.find(m => m.DiscordId === participant.DiscordUserId)
     return member?.PlayerName || member?.DiscordName || participant.DiscordUserId
   })
@@ -74,7 +74,7 @@ const occurrenceDate = computed(() => {
 // Initialize selected participants when dialog opens
 watch(() => props.modelValue, (isOpen) => {
   if (isOpen) {
-    selectedParticipants.value = [...occurrenceParticipantNames.value]
+    selectedParticipants.value = [...eventParticipantNames.value]
     awardLottery.value = true
     searchQuery.value = ''
     isSubmitting.value = false

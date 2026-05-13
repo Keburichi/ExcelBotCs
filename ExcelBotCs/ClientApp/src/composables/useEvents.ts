@@ -1,14 +1,14 @@
 import type {
   ArchiveSearchParams,
+  EventGroupRequest,
   EventOccurrence,
-  EventParticipant,
   FCEvent,
   OccurrenceStatus,
   Role,
 } from '@/features/events/events.types'
 import { reactive, ref } from 'vue'
 import { EventsApi } from '@/features/events/events.api'
-import { canSignUpForOccurrence, isOccurrencePast, OccurrenceStatus as OccStatus } from '@/features/events/events.types'
+import { isOccurrencePast, OccurrenceStatus as OccStatus } from '@/features/events/events.types'
 
 export function useEvents() {
   const loading = ref(false)
@@ -17,14 +17,22 @@ export function useEvents() {
   const archivedEvents = ref<FCEvent[]>([])
   const archiveLoading = ref(false)
 
+  // Archive pagination state
+  const archivePage = ref(1)
+  const archivePageSize = ref(20)
+  const archiveTotalCount = ref(0)
+  const archiveHasMore = ref(false)
+
   const newEvent = reactive<FCEvent>({
     Name: '',
     Description: '',
-    DiscordMessage: '',
+    DiscordMessageId: '',
     Id: '',
     PictureUrl: '',
     Organizer: '',
     Occurrences: [],
+    Signups: [],
+    Groups: [],
     AvailableForSignup: false,
     StartDate: new Date(),
     Duration: 0,
@@ -35,11 +43,13 @@ export function useEvents() {
   const editBuffer = reactive<FCEvent>({
     Name: '',
     Description: '',
-    DiscordMessage: '',
+    DiscordMessageId: '',
     PictureUrl: '',
     Id: '',
     Organizer: '',
     Occurrences: [],
+    Signups: [],
+    Groups: [],
     AvailableForSignup: false,
     StartDate: new Date(),
     Duration: 0,
@@ -50,7 +60,17 @@ export function useEvents() {
     loading.value = true
     error.value = ''
     try {
-      events.value = await EventsApi.list()
+      const allEvents: FCEvent[] = []
+      let page = 1
+      const pageSize = 50
+      let hasMore = true
+      while (hasMore) {
+        const result = await EventsApi.list(page, pageSize)
+        allEvents.push(...result.Items)
+        hasMore = result.HasMore
+        page++
+      }
+      events.value = allEvents
     }
     catch (e: unknown) {
       error.value = e instanceof Error ? e.message : 'Failed'
@@ -118,32 +138,20 @@ export function useEvents() {
     }
   }
 
-  async function signup(event: FCEvent, role: Role) {
-    if (!event)
-      return
-
+  // Event-level signup
+  async function signUpForEvent(eventId: string, roles: Role[]) {
     try {
-      await EventsApi.signUp(event, role)
+      await EventsApi.signUp(eventId, roles)
+      await load()
     }
     catch (e: unknown) {
-      error.value = e instanceof Error ? e.message : 'Failed to signup'
+      error.value = e instanceof Error ? e.message : 'Failed to sign up for event'
     }
   }
 
-  // Occurrence-specific methods
-  async function signUpForOccurrence(eventId: string, occurrenceId: string, roles: Role[]) {
+  async function cancelSignupForEvent(eventId: string) {
     try {
-      await EventsApi.signUpForOccurrence(eventId, occurrenceId, roles)
-      await load() // Reload events to get updated data
-    }
-    catch (e: unknown) {
-      error.value = e instanceof Error ? e.message : 'Failed to sign up for occurrence'
-    }
-  }
-
-  async function cancelSignupForOccurrence(eventId: string, occurrenceId: string) {
-    try {
-      await EventsApi.cancelSignup(eventId, occurrenceId)
+      await EventsApi.cancelSignup(eventId)
       await load()
     }
     catch (e: unknown) {
@@ -151,9 +159,10 @@ export function useEvents() {
     }
   }
 
-  async function selectParticipantsForOccurrence(eventId: string, occurrenceId: string, participants: EventParticipant[]) {
+  // Group-based participant selection
+  async function selectParticipantsForEvent(eventId: string, groups: EventGroupRequest[]) {
     try {
-      await EventsApi.selectParticipants(eventId, occurrenceId, participants)
+      await EventsApi.selectParticipants(eventId, groups)
       await load()
     }
     catch (e: unknown) {
@@ -161,9 +170,9 @@ export function useEvents() {
     }
   }
 
-  async function removeParticipantFromOccurrence(eventId: string, occurrenceId: string, userId: string) {
+  async function removeParticipantFromEvent(eventId: string, userId: string) {
     try {
-      await EventsApi.removeParticipant(eventId, occurrenceId, userId)
+      await EventsApi.removeParticipant(eventId, userId)
       await load()
     }
     catch (e: unknown) {
@@ -171,6 +180,7 @@ export function useEvents() {
     }
   }
 
+  // Occurrence management
   async function updateOccurrenceStatusById(eventId: string, occurrenceId: string, status: OccurrenceStatus) {
     try {
       await EventsApi.updateOccurrenceStatus(eventId, occurrenceId, status)
@@ -178,7 +188,7 @@ export function useEvents() {
     }
     catch (e: unknown) {
       error.value = e instanceof Error ? e.message : 'Failed to update occurrence status'
-      throw e // Re-throw so callers can handle it
+      throw e
     }
   }
 
@@ -206,16 +216,10 @@ export function useEvents() {
     return upcoming.length > 0 ? upcoming[0] : null
   }
 
-  /**
-   * Gets the next occurrence that can be concluded.
-   * Prioritizes past scheduled occurrences (since you can only complete past events),
-   * then falls back to the next upcoming scheduled occurrence.
-   */
   function getOccurrenceToComplete(event: FCEvent): EventOccurrence | null {
     if (!event.Occurrences)
       return null
 
-    // First, look for past scheduled occurrences (these need to be concluded)
     const pastScheduled = event.Occurrences
       .filter(o => o.Status === OccStatus.Scheduled && isOccurrencePast(o))
       .sort((a, b) => new Date(a.OccurrenceDate).getTime() - new Date(b.OccurrenceDate).getTime())
@@ -223,20 +227,22 @@ export function useEvents() {
     if (pastScheduled.length > 0)
       return pastScheduled[0]
 
-    // Fall back to next upcoming occurrence (for display purposes, though it can't be completed yet)
     return getNextOccurrence(event)
   }
 
-  function canUserSignUp(event: FCEvent, occurrence: EventOccurrence): boolean {
-    return canSignUpForOccurrence(occurrence, event.MaxNumberOfParticipants)
-  }
-
   // Archive/Restore methods
-  async function loadArchived(searchParams?: ArchiveSearchParams) {
+  async function loadArchived(searchParams?: ArchiveSearchParams, page?: number, pageSize?: number) {
     archiveLoading.value = true
     error.value = ''
+    if (page !== undefined)
+      archivePage.value = page
+    if (pageSize !== undefined)
+      archivePageSize.value = pageSize
     try {
-      archivedEvents.value = await EventsApi.listArchived(searchParams)
+      const result = await EventsApi.listArchived(archivePage.value, archivePageSize.value, searchParams)
+      archivedEvents.value = result.Items
+      archiveTotalCount.value = result.TotalCount
+      archiveHasMore.value = result.HasMore
     }
     catch (e: unknown) {
       error.value = e instanceof Error ? e.message : 'Failed to load archived events'
@@ -249,7 +255,6 @@ export function useEvents() {
   async function archiveEvent(eventId: string) {
     try {
       await EventsApi.archive(eventId)
-      // Remove from active events
       events.value = events.value.filter(e => e.Id !== eventId)
       return true
     }
@@ -262,9 +267,7 @@ export function useEvents() {
   async function restoreEvent(eventId: string) {
     try {
       await EventsApi.restore(eventId)
-      // Remove from archived events
       archivedEvents.value = archivedEvents.value.filter(e => e.Id !== eventId)
-      // Reload active events to include the restored one
       await load()
       return true
     }
@@ -277,7 +280,6 @@ export function useEvents() {
   async function extendEvent(eventId: string, count: number) {
     try {
       const updatedEvent = await EventsApi.extend(eventId, { Count: count })
-      // Update event in the list
       const index = events.value.findIndex(e => e.Id === eventId)
       if (index >= 0) {
         events.value[index] = updatedEvent
@@ -303,23 +305,26 @@ export function useEvents() {
     cancelEdit,
     save,
     deleteEvent,
-    signup,
     getEvent,
-    // Occurrence-specific methods
-    signUpForOccurrence,
-    cancelSignupForOccurrence,
-    selectParticipantsForOccurrence,
-    removeParticipantFromOccurrence,
+    // Event-level signup/participant methods
+    signUpForEvent,
+    cancelSignupForEvent,
+    selectParticipantsForEvent,
+    removeParticipantFromEvent,
+    // Occurrence methods
     updateOccurrenceStatusById,
     cancelOccurrenceById,
     // Helper methods
     getUpcomingOccurrences,
     getNextOccurrence,
     getOccurrenceToComplete,
-    canUserSignUp,
     // Archive/Restore methods
     archivedEvents,
     archiveLoading,
+    archivePage,
+    archivePageSize,
+    archiveTotalCount,
+    archiveHasMore,
     loadArchived,
     archiveEvent,
     restoreEvent,

@@ -67,4 +67,5 @@ public static class ServiceExtensions
         services.AddSingleton<FFLogsGraphQLService>();
         services.AddSingleton<FFLogsSyncService>();
     }
+
 }

@@ -1,8 +1,8 @@
 using ExcelBotCs.Models.Database;
 
-namespace ExcelBotCs.Models.DTO;
+namespace ExcelBotCs.Models.DTO.Events;
 
-public class OccurrenceStatusUpdateDto
+public class UpdateOccurrenceStatusRequest
 {
     public OccurrenceStatus Status { get; set; }
 }

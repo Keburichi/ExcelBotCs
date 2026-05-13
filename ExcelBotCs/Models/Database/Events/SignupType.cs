@@ -1,4 +1,4 @@
-namespace ExcelBotCs.Models.Database;
+namespace ExcelBotCs.Models.Database.Events;
 
 /// <summary>
 ///     Defines how signups work for an event

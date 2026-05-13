@@ -20,6 +20,13 @@ const selectedEventType = ref<EventType | null>(null)
 const startDate = ref('')
 const endDate = ref('')
 
+// Page size options
+const pageSizeOptions = [
+  { label: '10', value: 10 },
+  { label: '20', value: 20 },
+  { label: '50', value: 50 },
+]
+
 // Event type options for filter
 const eventTypeOptions = computed(() => [
   { label: 'All', value: null },
@@ -39,14 +46,18 @@ const searchParams = computed<ArchiveSearchParams>(() => ({
   eventType: selectedEventType.value ?? undefined,
 }))
 
-// Debounced search
+const totalPages = computed(() =>
+  Math.max(1, Math.ceil(e.archiveTotalCount.value / e.archivePageSize.value)),
+)
+
+// Debounced search — resets to page 1
 let searchTimeout: number | null = null
 
 function debouncedSearch() {
   if (searchTimeout)
     clearTimeout(searchTimeout)
   searchTimeout = window.setTimeout(() => {
-    e.loadArchived(searchParams.value)
+    e.loadArchived(searchParams.value, 1)
   }, 300)
 }
 
@@ -54,6 +65,14 @@ function debouncedSearch() {
 watch([searchText, selectedEventType, startDate, endDate], () => {
   debouncedSearch()
 })
+
+function goToPage(page: number) {
+  e.loadArchived(searchParams.value, page)
+}
+
+function changePageSize(size: number) {
+  e.loadArchived(searchParams.value, 1, size)
+}
 
 function goBackToEvents() {
   router.push({ name: 'events' })
@@ -66,26 +85,21 @@ function goEdit(event: FCEvent) {
 async function handleRestore(event: FCEvent) {
   const success = await e.restoreEvent(event.Id)
   if (success) {
-    // Reload archived events to refresh the list
     await e.loadArchived(searchParams.value)
   }
 }
 
 // Get total signups across all occurrences
 function getTotalSignups(event: FCEvent): number {
-  if (!event.Occurrences)
-    return 0
-  return event.Occurrences.reduce((total, occ) => {
-    return total + (occ.Signups?.length ?? 0)
-  }, 0)
+  return event.Signups?.length ?? 0
 }
 
-// Get total participants across all occurrences
+// Get total participants across all groups
 function getTotalParticipants(event: FCEvent): number {
-  if (!event.Occurrences)
+  if (!event.Groups || event.Groups.length === 0)
     return 0
-  return event.Occurrences.reduce((total, occ) => {
-    return total + (occ.Participants?.length ?? 0)
+  return event.Groups.reduce((total, group) => {
+    return total + (group.Participants?.length ?? 0)
   }, 0)
 }
 
@@ -178,9 +192,23 @@ onMounted(() => {
       {{ e.error }}
     </p>
 
-    <p class="results-count">
-      {{ e.archivedEvents.value.length }} archived event{{ e.archivedEvents.value.length === 1 ? '' : 's' }} found
-    </p>
+    <div class="results-bar">
+      <p class="results-count">
+        {{ e.archiveTotalCount.value }} archived event{{ e.archiveTotalCount.value === 1 ? '' : 's' }} found
+      </p>
+      <div class="page-size-control">
+        <label class="filter-label">Per page</label>
+        <select
+          :value="e.archivePageSize.value"
+          class="page-size-select"
+          @change="changePageSize(Number(($event.target as HTMLSelectElement).value))"
+        >
+          <option v-for="opt in pageSizeOptions" :key="opt.value" :value="opt.value">
+            {{ opt.label }}
+          </option>
+        </select>
+      </div>
+    </div>
 
     <div v-if="e.archiveLoading.value" class="loading">
       Loading archived events...
@@ -235,6 +263,26 @@ onMounted(() => {
         </div>
       </template>
     </CardList>
+
+    <div v-if="totalPages > 1 && !e.archiveLoading.value" class="pagination">
+      <button
+        class="page-btn"
+        :disabled="e.archivePage.value <= 1"
+        @click="goToPage(e.archivePage.value - 1)"
+      >
+        Previous
+      </button>
+      <span class="page-info">
+        Page {{ e.archivePage.value }} of {{ totalPages }}
+      </span>
+      <button
+        class="page-btn"
+        :disabled="!e.archiveHasMore.value"
+        @click="goToPage(e.archivePage.value + 1)"
+      >
+        Next
+      </button>
+    </div>
 
     <div v-if="!e.archiveLoading.value && e.archivedEvents.value.length === 0" class="empty-state">
       <p>No archived events found.</p>
@@ -337,10 +385,74 @@ onMounted(() => {
   border-color: var(--link);
 }
 
-.results-count {
+.results-bar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
   margin: 1rem 0;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.results-count {
+  margin: 0;
   color: var(--muted);
   font-size: 0.875rem;
+}
+
+.page-size-control {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.page-size-select {
+  padding: 0.375rem 0.5rem;
+  font-size: 0.875rem;
+  border: 1px solid var(--border);
+  border-radius: 0.375rem;
+  background: var(--bg);
+  color: var(--fg);
+}
+
+.page-size-select:focus {
+  outline: none;
+  border-color: var(--link);
+}
+
+.pagination {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 1rem;
+  margin: 1.5rem 0;
+}
+
+.page-btn {
+  padding: 0.5rem 1rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+  border: 1px solid var(--border);
+  border-radius: 0.375rem;
+  background: var(--card);
+  color: var(--fg);
+  cursor: pointer;
+  transition: background-color 0.15s, border-color 0.15s;
+}
+
+.page-btn:hover:not(:disabled) {
+  background: var(--bg);
+  border-color: var(--link);
+}
+
+.page-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.page-info {
+  font-size: 0.875rem;
+  color: var(--muted);
 }
 
 .loading {

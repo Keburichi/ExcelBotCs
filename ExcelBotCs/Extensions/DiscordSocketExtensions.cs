@@ -2,6 +2,7 @@ using System.Text.RegularExpressions;
 using Discord;
 using Discord.Interactions;
 using Discord.WebSocket;
+using ExcelBotCs.Modules.TeamFormation;
 
 namespace ExcelBotCs.Extensions;
 
@@ -75,4 +76,57 @@ public static class DiscordSocketExtensions
     public record NotFoundUrlMessageResponse : IMessageResponse;
 
     public record SuccessMessageResponse(IMessage Message) : IMessageResponse;
+
+    public static List<GuildEmote> GetEmotes(this SocketGuild guild)
+    {
+        return guild.Emotes.ToList();
+    }
+
+    public static List<GuildEmote> GetEmotes(this DiscordSocketClient discordSocketClient)
+    {
+        return discordSocketClient.Guilds.SelectMany(x => x.Emotes).ToList();
+    }
+
+    public static Emote? GetTankEmote(this DiscordSocketClient client)
+    {
+        return client.GetEmotes().FirstOrDefault(x => x.Id == Constants.TankRoleEmoteId);
+    }
+
+    public static Emote? GetHealerEmote(this DiscordSocketClient client)
+    {
+        return client.GetEmotes().FirstOrDefault(x => x.Id == Constants.HealerRoleEmoteId);
+    }
+
+    public static Emote? GetMeleeEmote(this DiscordSocketClient client)
+    {
+        return client.GetEmotes().FirstOrDefault(x => x.Id == Constants.MeleeRoleEmoteId);
+    }
+
+    public static Emote? GetRangedEmote(this DiscordSocketClient client)
+    {
+        return client.GetEmotes().FirstOrDefault(x => x.Id == Constants.RangedRoleEmoteId);
+    }
+
+    public static Emote? GetCasterEmote(this DiscordSocketClient client)
+    {
+        return client.GetEmotes().FirstOrDefault(x => x.Id == Constants.CasterRoleEmoteId);
+    }
+
+    public static Emote? GetEmoteById(this DiscordSocketClient client, ulong id)
+    {
+        return client.GetEmotes().FirstOrDefault(x => x.Id == id);
+    }
+
+    public static Emote? GetEmoteByRole(this DiscordSocketClient client, Role role)
+    {
+        return role switch
+        {
+            Role.Tank => client.GetTankEmote(),
+            Role.Healer => client.GetHealerEmote(),
+            Role.Melee => client.GetMeleeEmote(),
+            Role.Caster => client.GetCasterEmote(),
+            Role.Ranged => client.GetRangedEmote(),
+            _ => throw new ArgumentOutOfRangeException(nameof(role), role, null)
+        };
+    }
 }

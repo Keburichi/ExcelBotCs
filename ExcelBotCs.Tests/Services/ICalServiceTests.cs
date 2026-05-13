@@ -1,4 +1,4 @@
-using ExcelBotCs.Models.Database;
+using ExcelBotCs.Models.Database.Events;
 using ExcelBotCs.Services;
 using ExcelBotCs.TestFramework.TestData;
 using Ical.Net;

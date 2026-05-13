@@ -1,6 +1,6 @@
 using ExcelBotCs.Database.Interfaces;
 using ExcelBotCs.Models.Config;
-using ExcelBotCs.Models.Database;
+using ExcelBotCs.Models.Database.Events;
 using Microsoft.Extensions.Options;
 using MongoDB.Driver;
 

@@ -1,10 +1,11 @@
 ﻿using System.Text;
 using ExcelBotCs.Attributes;
 using ExcelBotCs.Controllers.Interfaces;
-using ExcelBotCs.Extensions;
-using ExcelBotCs.Mappers;
+using ExcelBotCs.Mappers.Events;
 using ExcelBotCs.Models.Database;
+using ExcelBotCs.Models.Database.Events;
 using ExcelBotCs.Models.DTO;
+using ExcelBotCs.Models.DTO.Events;
 using ExcelBotCs.Modules.TeamFormation;
 using ExcelBotCs.Services;
 using ExcelBotCs.Services.API.Interfaces;
@@ -15,153 +16,140 @@ using Ical.Net.DataTypes;
 using Ical.Net.Serialization;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using DbEventSignup = ExcelBotCs.Models.Database.EventSignup;
 
 namespace ExcelBotCs.Controllers;
 
 [ApiController]
 [MemberAuth]
 [Route("api/[controller]")]
-public class EventsController : AuthorizedController, IBaseCrudController<EventDto>
+public class EventsController : AuthorizedController, IEventsController
 {
     private readonly ICurrentMemberAccessor _currentMemberAccessor;
     private readonly IDiscordMessageService _discordMessageService;
     private readonly IEventService _eventService;
     private readonly IICalService _iiCalService;
+    private readonly IDiscordMessageCreator _discordMessageCreator;
     private readonly string _rootUrl;
 
     public EventsController(ILogger<EventsController> logger, IEventService eventService,
         ICurrentMemberAccessor currentMemberAccessor, IDiscordMessageService discordMessageService,
-        IICalService iiCalService) : base(logger)
+        IICalService iiCalService, IDiscordMessageCreator discordMessageCreator) : base(logger)
     {
         _eventService = eventService;
         _currentMemberAccessor = currentMemberAccessor;
         _discordMessageService = discordMessageService;
         _iiCalService = iiCalService;
+        _discordMessageCreator = discordMessageCreator;
         _rootUrl = Utils.GetEnvVar("EVENT_ENDPOINT_URL", nameof(TeamFormationInteraction));
     }
 
+    #region CRUD Operations
+
     [HttpGet]
-    public async Task<ActionResult<List<EventDto>>> GetEntities([FromQuery] bool archived = false)
+    public async Task<ActionResult<PagedResult<EventResponse>>> GetEvents(int page = 1, int pageSize = 50)
     {
-        return await GetEntitiesInternal(archived);
+        var pagedResult = await _eventService.GetPagedAsync(page, pageSize);
+        return Ok(pagedResult.ToPagedEventResponse());
     }
 
-    // Explicit interface implementation to satisfy IBaseCrudController<EventDto>
-    async Task<ActionResult<List<EventDto>>> IBaseCrudController<EventDto>.GetEntities()
+    [HttpGet("{eventId:length(24)}")]
+    public async Task<ActionResult<EventResponse>> GetEvent(string eventId)
     {
-        return await GetEntitiesInternal(false);
+        var fcEvent = await _eventService.GetAsync(eventId);
+
+        if (fcEvent == null)
+            return NotFound();
+
+        return fcEvent.ToEventResponse();
     }
 
-    private async Task<ActionResult<List<EventDto>>> GetEntitiesInternal(bool archived)
+    [HttpPost]
+    [AdminAuth]
+    public async Task<ActionResult<EventResponse>> CreateEvent(CreateEventRequest createEvent)
     {
-        var entities = await _eventService.GetAsync(archived);
+        var member = await _currentMemberAccessor.GetCurrentAsync();
+        if (member is null)
+            return BadRequest("Member not found for the current user");
 
-        if (entities is null)
-            return new List<EventDto>();
+        var newFcEvent = createEvent.ToFcEvent();
 
-        var dtos = entities.Select(EventMapper.ToDto).ToList();
+        newFcEvent.AuthorId = member.Id;
+        newFcEvent.Organizer = member.PlayerName;
 
-        return dtos;
+        await _eventService.CreateAsync(newFcEvent);
+        return CreatedAtAction(nameof(CreateEvent), new { id = newFcEvent.Id }, newFcEvent);
     }
+
+    [HttpPut("{id:length(24)}")]
+    [AdminAuth]
+    public async Task<ActionResult<EventResponse>> UpdateEvent(string id, [FromBody] UpdateEventRequest updateEvent)
+    {
+        var existingEvent = await _eventService.GetAsync(id);
+        if (existingEvent is null)
+            return NotFound();
+
+        existingEvent.ApplyUpdate(updateEvent);
+
+        await _eventService.UpdateAsync(id, existingEvent);
+
+        return Ok(existingEvent.ToEventResponse());
+    }
+
+    [HttpDelete("{eventId:length(24)}")]
+    [AdminAuth]
+    public async Task<ActionResult> DeleteEvent(string eventId)
+    {
+        var fcEvent = await _eventService.GetAsync(eventId);
+
+        if (fcEvent is null)
+            return NotFound();
+
+        await _eventService.DeleteAsync(eventId);
+        return NoContent();
+    }
+
+    #endregion
+
+    #region Archive Operations
 
     [HttpGet("archived")]
     [AdminAuth]
-    public async Task<ActionResult<List<EventDto>>> GetArchivedEvents(
+    public async Task<ActionResult<PagedResult<EventResponse>>> GetArchivedEvents(int page = 1, int pageSize = 20,
         [FromQuery] ArchiveSearchParams? searchParams = null)
     {
-        var entities = await _eventService.GetArchivedAsync(searchParams);
-        var dtos = entities.Select(EventMapper.ToDto).ToList();
-
-        return dtos;
+        var pagedResult = await _eventService.GetArchivedPagedAsync(page, pageSize, searchParams);
+        return Ok(pagedResult.ToPagedEventResponse());
     }
 
     [HttpPost("{id:length(24)}/archive")]
     [AdminAuth]
-    public async Task<IActionResult> ArchiveEvent(string id)
+    public async Task<ActionResult> ArchiveEvent(string id)
     {
         var user = await _currentMemberAccessor.GetCurrentAsync();
         if (user is null)
             return BadRequest("User not found for the current user");
 
         var (success, errorMessage) = await _eventService.ArchiveAsync(id, user.DiscordId);
-
         return success ? Ok() : BadRequest(errorMessage);
     }
 
     [HttpPost("{id:length(24)}/restore")]
     [AdminAuth]
-    public async Task<IActionResult> RestoreEvent(string id)
+    public async Task<ActionResult> RestoreEvent(string id)
     {
         var (success, errorMessage) = await _eventService.RestoreAsync(id);
-
         return success ? Ok() : BadRequest(errorMessage);
     }
 
-    [HttpPost("{id:length(24)}/extend")]
-    [AdminAuth]
-    public async Task<ActionResult<EventDto>> ExtendEvent(string id, [FromBody] ExtendEventRequest request)
-    {
-        var (updatedEvent, errorMessage) = await _eventService.ExtendEventAsync(id, request.Count);
+    #endregion
 
-        if (updatedEvent == null)
-            return BadRequest(errorMessage);
-
-        return Ok(EventMapper.ToDto(updatedEvent));
-    }
-
-    [HttpGet("{id:length(24)}")]
-    public async Task<ActionResult<EventDto>> GetEntity(string id)
-    {
-        var entity = await _eventService.GetAsync(id);
-
-        if (entity is null)
-            return NotFound();
-
-        return EventMapper.ToDto(entity);
-    }
+    #region Signups
 
     [HttpPost]
-    public async Task<ActionResult<EventDto>> CreateEntity(EventDto entity)
+    [Route("{eventId}/signup")]
+    public async Task<ActionResult> SignupForEvent(string eventId, [FromBody] EventSignupDto signupRequest)
     {
-        var member = await _currentMemberAccessor.GetCurrentAsync();
-        if (member is null)
-            return BadRequest("Member not found for the current user");
-
-        entity.AuthorId = member.Id;
-        entity.Organizer = member.PlayerName;
-
-        await _eventService.CreateAsync(EventMapper.ToEntity(entity));
-        return CreatedAtAction(nameof(CreateEntity), new { id = entity.Id }, entity);
-    }
-
-    [HttpPut("{id:length(24)}")]
-    public async Task<ActionResult<EventDto>> UpdateEntity(string id, EventDto updatedEntity)
-    {
-        Logger.LogInformation("Updating entity with id: {id}", id);
-
-        await _eventService.UpdateAsync(id, EventMapper.ToEntity(updatedEntity));
-
-        return NoContent();
-    }
-
-    [HttpDelete("{id:length(24)}")]
-    public async Task<ActionResult<EventDto>> DeleteEntity(string id)
-    {
-        var entity = await _eventService.GetAsync(id);
-
-        if (entity is null)
-            return NotFound();
-
-        await _eventService.DeleteAsync(id);
-        return NoContent();
-    }
-
-    [HttpPost]
-    [Route("{id}/signup")]
-    public async Task<IActionResult> SignupForEvent(string id, [FromBody] EventSignupDto signup)
-    {
-        var fcEvent = await _eventService.GetAsync(id);
+        var fcEvent = await _eventService.GetAsync(eventId);
 
         if (fcEvent is null)
             return NotFound();
@@ -170,36 +158,16 @@ public class EventsController : AuthorizedController, IBaseCrudController<EventD
         if (member is null)
             return BadRequest("Member not found for the current user");
 
-        // Determine target occurrence: prefer next upcoming scheduled occurrence, fall back to the first; create if none exists
-        var occurrence = fcEvent.Occurrences
-                             ?.Where(o => o.Status == OccurrenceStatus.Scheduled && o.OccurrenceDate >= DateTime.UtcNow)
-                             .OrderBy(o => o.OccurrenceDate)
-                             .FirstOrDefault()
-                         ?? fcEvent.Occurrences?.FirstOrDefault();
-
-        if (occurrence == null)
-        {
-            occurrence = new EventOccurrence
-            {
-                OccurrenceDate = fcEvent.StartDate,
-                Status = OccurrenceStatus.Scheduled
-            };
-            fcEvent.Occurrences ??= new List<EventOccurrence>();
-            fcEvent.Occurrences.Add(occurrence);
-        }
-
-        occurrence.Signups ??= new List<DbEventSignup>();
-
         // Check if the member is already signed up for this occurrence
-        var existing = occurrence.Signups.FirstOrDefault(x => x.DiscordUserId == member.DiscordId);
+        var existing = fcEvent.Signups.FirstOrDefault(x => x.DiscordUserId == member.DiscordId);
         if (existing != null)
             // Update roles for existing signup
-            existing.Roles = signup.Roles;
+            existing.Roles = signupRequest.Roles;
         else
-            occurrence.Signups.Add(new DbEventSignup
+            fcEvent.Signups.Add(new EventSignup
             {
                 DiscordUserId = member.DiscordId,
-                Roles = signup.Roles,
+                Roles = signupRequest.Roles,
                 SignupDate = DateTime.UtcNow
             });
 
@@ -208,179 +176,92 @@ public class EventsController : AuthorizedController, IBaseCrudController<EventD
         return Ok();
     }
 
-    [HttpPost]
-    [Route("{eventId}/occurrences/{occurrenceId}/signup")]
-    public async Task<IActionResult> SignupForOccurrence(string eventId, string occurrenceId,
-        [FromBody] EventSignupDto signup)
-    {
-        var fcEvent = await _eventService.GetAsync(eventId);
-        if (fcEvent is null)
-            return NotFound("Event not found");
-
-        var member = await _currentMemberAccessor.GetCurrentAsync();
-        if (member is null)
-            return BadRequest("Member not found for the current user");
-
-        var occurrence = fcEvent.Occurrences?.FirstOrDefault(o => o.Id == occurrenceId);
-        if (occurrence == null)
-            return NotFound("Occurrence not found");
-
-        // Check if occurrence is available for signup
-        if (occurrence.Status != OccurrenceStatus.Scheduled)
-            return BadRequest("Cannot sign up for non-scheduled occurrence");
-
-        if (occurrence.OccurrenceDate < DateTime.UtcNow)
-            return BadRequest("Cannot sign up for past occurrence");
-
-        // For LockedGroup, propagate signup to ALL occurrences
-        if (fcEvent.SignupType == SignupType.LockedGroup)
-        {
-            foreach (var occ in fcEvent.Occurrences ?? new List<EventOccurrence>())
-            {
-                occ.Signups ??= new List<DbEventSignup>();
-
-                var existing = occ.Signups.FirstOrDefault(x => x.DiscordUserId == member.DiscordId);
-                if (existing != null)
-                    existing.Roles = signup.Roles;
-                else
-                    occ.Signups.Add(new DbEventSignup
-                    {
-                        DiscordUserId = member.DiscordId,
-                        Roles = signup.Roles,
-                        SignupDate = DateTime.UtcNow
-                    });
-            }
-        }
-        else
-        {
-            // For other types, only update the specified occurrence
-            occurrence.Signups ??= new List<DbEventSignup>();
-
-            var existing = occurrence.Signups.FirstOrDefault(x => x.DiscordUserId == member.DiscordId);
-            if (existing != null)
-                existing.Roles = signup.Roles;
-            else
-                occurrence.Signups.Add(new DbEventSignup
-                {
-                    DiscordUserId = member.DiscordId,
-                    Roles = signup.Roles,
-                    SignupDate = DateTime.UtcNow
-                });
-        }
-
-        await _eventService.UpdateAsync(fcEvent.Id, fcEvent);
-
-        return Ok();
-    }
-
     [HttpDelete]
-    [Route("{eventId}/occurrences/{occurrenceId}/signup")]
-    public async Task<IActionResult> CancelSignupForOccurrence(string eventId, string occurrenceId)
+    [Route("{eventId}/signup")]
+    public async Task<ActionResult> CancelSignup(string eventId)
     {
         var fcEvent = await _eventService.GetAsync(eventId);
+
         if (fcEvent is null)
-            return NotFound("Event not found");
+            return NotFound();
 
         var member = await _currentMemberAccessor.GetCurrentAsync();
         if (member is null)
             return BadRequest("Member not found for the current user");
 
-        var occurrence = fcEvent.Occurrences?.FirstOrDefault(o => o.Id == occurrenceId);
-        if (occurrence == null)
-            return NotFound("Occurrence not found");
+        var existing = fcEvent.Signups.FirstOrDefault(x => x.DiscordUserId == member.DiscordId);
+        if (existing == null)
+            return Ok();
 
-        // For LockedGroup, remove signup from ALL occurrences
-        if (fcEvent.SignupType == SignupType.LockedGroup)
-        {
-            foreach (var occ in fcEvent.Occurrences ?? new List<EventOccurrence>())
-            {
-                occ.Signups ??= new List<DbEventSignup>();
-                var signup = occ.Signups.FirstOrDefault(s => s.DiscordUserId == member.DiscordId);
-                if (signup != null)
-                    occ.Signups.Remove(signup);
-            }
-        }
-        else
-        {
-            occurrence.Signups ??= new List<DbEventSignup>();
-            var signup = occurrence.Signups.FirstOrDefault(s => s.DiscordUserId == member.DiscordId);
-            if (signup != null)
-                occurrence.Signups.Remove(signup);
-        }
-
+        fcEvent.Signups.Remove(existing);
         await _eventService.UpdateAsync(fcEvent.Id, fcEvent);
 
         return Ok();
     }
 
     [HttpPost]
-    [Route("{eventId}/occurrences/{occurrenceId}/participants")]
+    [Route("{eventId}/participants")]
     [AdminAuth]
-    public async Task<IActionResult> SelectParticipants(string eventId, string occurrenceId,
-        [FromBody] List<EventParticipant> participants)
+    public async Task<ActionResult> SelectParticipants(string eventId, [FromBody] List<EventGroupRequest> eventGroups)
     {
         var fcEvent = await _eventService.GetAsync(eventId);
         if (fcEvent is null)
             return NotFound("Event not found");
-
-        var occurrence = fcEvent.Occurrences?.FirstOrDefault(o => o.Id == occurrenceId);
-        if (occurrence == null)
-            return NotFound("Occurrence not found");
 
         // Set selection date for all participants
-        foreach (var participant in participants) participant.SelectionDate = DateTime.UtcNow;
+        foreach (var group in eventGroups)
+        {
+            foreach (var participant in group.Participants)
+            {
+                participant.SelectionDate = DateTime.UtcNow;
+            }
+        }
 
-        // For LockedGroup, copy participants to ALL occurrences
-        if (fcEvent.SignupType == SignupType.LockedGroup)
-            foreach (var occ in fcEvent.Occurrences ?? new List<EventOccurrence>())
-                occ.Participants = participants.Select(p => new EventParticipant
-                {
-                    DiscordUserId = p.DiscordUserId,
-                    Role = p.Role,
-                    SelectionDate = p.SelectionDate
-                }).ToList();
-        else
-            // For other types, only update the specified occurrence
-            occurrence.Participants = participants;
+        fcEvent.Groups = eventGroups.ToEventGroups();
 
         await _eventService.UpdateAsync(fcEvent.Id, fcEvent);
 
         // Post the roster to Discord
-        await _discordMessageService.PostInUpcomingRosterChannelAsync(fcEvent.CreateUpcomingRosterMessage());
+        await _discordMessageService.PostInUpcomingRosterChannelAsync(
+            await _discordMessageCreator.CreateUpcomingRosterMessage(fcEvent));
 
         return Ok();
     }
 
     [HttpDelete]
-    [Route("{eventId}/occurrences/{occurrenceId}/participants/{userId}")]
+    [Route("{eventId}/participants/{userId}")]
     [AdminAuth]
-    public async Task<IActionResult> RemoveParticipant(string eventId, string occurrenceId, string userId)
+    public async Task<ActionResult> RemoveParticipant(string eventId, string participantId)
     {
         var fcEvent = await _eventService.GetAsync(eventId);
         if (fcEvent is null)
             return NotFound("Event not found");
 
-        var occurrence = fcEvent.Occurrences?.FirstOrDefault(o => o.Id == occurrenceId);
-        if (occurrence == null)
-            return NotFound("Occurrence not found");
+        EventParticipant participant = null;
+        foreach (var eventParticipant in fcEvent.Groups.Select(fcEventGroup =>
+                     fcEventGroup.Participants.FirstOrDefault(eventParticipant =>
+                         eventParticipant.DiscordUserId == participantId)))
+            participant = eventParticipant;
 
-        occurrence.Participants ??= new List<EventParticipant>();
+        // var participant = fcEvent.Participants.FirstOrDefault(p => p.DiscordUserId == userId);
+        if (participant == null)
+            return Ok();
 
-        var participant = occurrence.Participants.FirstOrDefault(p => p.DiscordUserId == userId);
-        if (participant != null)
-        {
-            occurrence.Participants.Remove(participant);
-            await _eventService.UpdateAsync(fcEvent.Id, fcEvent);
-        }
+        fcEvent.Groups.ForEach(x => x.Participants.Remove(participant));
+        await _eventService.UpdateAsync(fcEvent.Id, fcEvent);
 
         return Ok();
     }
 
+    #endregion
+
+    #region Occurrence
+
     [HttpPatch]
     [Route("{eventId}/occurrences/{occurrenceId}/status")]
     [AdminAuth]
-    public async Task<IActionResult> UpdateOccurrenceStatus(string eventId, string occurrenceId,
-        [FromBody] OccurrenceStatusUpdateDto statusUpdate)
+    public async Task<ActionResult> UpdateOccurenceStatus(string eventId, string occurrenceId,
+        [FromBody] UpdateOccurrenceStatusRequest statusUpdate)
     {
         var user = await _currentMemberAccessor.GetCurrentAsync();
         if (user is null)
@@ -423,7 +304,7 @@ public class EventsController : AuthorizedController, IBaseCrudController<EventD
     [HttpDelete]
     [Route("{eventId}/occurrences/{occurrenceId}")]
     [AdminAuth]
-    public async Task<IActionResult> CancelOccurrence(string eventId, string occurrenceId)
+    public async Task<ActionResult> CancelOccurence(string eventId, string occurrenceId)
     {
         var user = await _currentMemberAccessor.GetCurrentAsync();
         if (user is null)
@@ -448,26 +329,14 @@ public class EventsController : AuthorizedController, IBaseCrudController<EventD
         return Ok();
     }
 
-    [HttpPost]
-    [Route("{id:length(24)}/plan")]
-    [AdminAuth]
-    public async Task<IActionResult> PlanEvent(string id, Event eventDto)
-    {
-        var fcEvent = await _eventService.GetAsync(id);
-        if (fcEvent is null)
-            return NotFound();
+    #endregion
 
-        // Save the list of participants and post the message to the upcoming roster channel
-        await _eventService.UpdateAsync(fcEvent.Id, eventDto);
-        await _discordMessageService.PostInUpcomingRosterChannelAsync(eventDto.CreateUpcomingRosterMessage());
-
-        return Ok();
-    }
+    #region event calendar
 
     [HttpGet]
-    [Route("retrieve/{id}.ics")]
+    [Route("retrieve/{userId}.ics")]
     [AllowAnonymous]
-    public async Task<IActionResult> GetEventIcal(string id)
+    public async Task<ActionResult> GetEventIcal(string userId)
     {
         try
         {
@@ -475,12 +344,12 @@ public class EventsController : AuthorizedController, IBaseCrudController<EventD
             var allEvents = await _eventService.GetAsync();
             if (allEvents is null || !allEvents.Any()) return NotFound();
 
-            var userEvents = allEvents.Where(ev =>
-                (ev.Occurrences != null &&
-                 ev.Occurrences.Any(oc => oc.Signups != null && oc.Signups.Any(s => s.DiscordUserId == id))) ||
-                (ev.Occurrences != null && ev.Occurrences.Any(oc =>
-                    oc.Participants != null && oc.Participants.Any(p => p.DiscordUserId == id)))
-            ).ToList();
+            var userEvents = new List<Event>();
+
+            foreach (var fcEvent in allEvents)
+            foreach (var fcEventGroup in fcEvent.Groups)
+                if (fcEventGroup.Participants.Any(x => x.DiscordUserId == userId))
+                    userEvents.Add(fcEvent);
 
             // It's okay to return an empty but valid calendar if there are no events
             var calendar = new Calendar
@@ -494,7 +363,7 @@ public class EventsController : AuthorizedController, IBaseCrudController<EventD
 
             // Best-effort absolute URL to this ICS
             var baseUrl = $"{Request.Scheme}://{Request.Host}";
-            calendar.AddProperty(new CalendarProperty("URL", $"{baseUrl}/api/Events/retrieve/{id}.ics"));
+            calendar.AddProperty(new CalendarProperty("URL", $"{baseUrl}/api/Events/retrieve/{userId}.ics"));
 
             foreach (var fcEvent in userEvents)
             {
@@ -521,7 +390,7 @@ public class EventsController : AuthorizedController, IBaseCrudController<EventD
             var serializer = new CalendarSerializer();
             var ics = serializer.SerializeToString(calendar);
             var file = Encoding.UTF8.GetBytes(ics);
-            return File(file, "text/calendar; charset=utf-8", $"{id}.ics");
+            return File(file, "text/calendar; charset=utf-8", $"{userId}.ics");
         }
         catch (Exception e)
         {
@@ -545,5 +414,20 @@ public class EventsController : AuthorizedController, IBaseCrudController<EventD
             Start = new CalDateTime(startUtc, TimeZoneInfo.Utc.Id),
             End = new CalDateTime(endUtc, TimeZoneInfo.Utc.Id)
         };
+    }
+
+    #endregion
+
+
+    [HttpPost("{id:length(24)}/extend")]
+    [AdminAuth]
+    public async Task<ActionResult<EventResponse>> ExtendEvent(string id, [FromBody] ExtendEventRequest request)
+    {
+        var (updatedEvent, errorMessage) = await _eventService.ExtendEventAsync(id, request.Count);
+
+        if (updatedEvent == null)
+            return BadRequest(errorMessage);
+
+        return Ok(updatedEvent.ToEventResponse());
     }
 }

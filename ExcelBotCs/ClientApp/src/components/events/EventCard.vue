@@ -169,20 +169,16 @@ async function handleSignupDialogClose(value: boolean) {
 }
 
 function getSignUpNumber(fcEvent: FCEvent) {
-  // Get signups from next occurrence
-  const occurrence = nextOccurrence.value
-  if (!occurrence || !occurrence.Signups)
+  if (!fcEvent.Signups)
     return 0
 
-  // count the number of signups where at least one role is selected
-  return occurrence.Signups.filter(signup => signup.Roles.length > 0).length
+  return fcEvent.Signups.filter(signup => signup.Roles.length > 0).length
 }
 
 function getParticipantCount(fcEvent: FCEvent) {
-  const occurrence = nextOccurrence.value
-  if (!occurrence || !occurrence.Participants)
+  if (!fcEvent.Groups || fcEvent.Groups.length === 0)
     return 0
-  return occurrence.Participants.length
+  return fcEvent.Groups.flatMap(g => g.Participants).length
 }
 
 function openFightResources(event: MouseEvent) {
@@ -255,7 +251,6 @@ onMounted(async () => {
   <EventOrganizationDialog
     v-model:fc-event="fcEventValue"
     v-model:is-open="isOrganizationOpen"
-    :occurrence="nextOccurrence"
     @event-planned="handleSignupDialogClose(false)"
   />
 

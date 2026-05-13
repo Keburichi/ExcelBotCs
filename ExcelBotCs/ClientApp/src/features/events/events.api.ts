@@ -1,43 +1,43 @@
 import type {
   ArchiveSearchParams,
-  EventParticipant,
+  EventGroupRequest,
   ExtendEventRequest,
   FCEvent,
   OccurrenceStatus,
+  PagedResult,
   Role,
 } from '@/features/events/events.types'
 import { http } from '@/services/http'
 
 export const EventsApi = {
-  list: (archived = false) => http<FCEvent[]>(`/api/events?archived=${archived}`),
+  list: (page = 1, pageSize = 50) =>
+    http<PagedResult<FCEvent>>(`/api/events?page=${page}&pageSize=${pageSize}`),
   get: (id: string) => http<FCEvent>(`/api/events/${id}`),
   create: (e: FCEvent) => http<FCEvent>('/api/events', { method: 'POST', body: JSON.stringify(e) }),
   update: (id: string, e: FCEvent) => http<void>(`/api/events/${id}`, { method: 'PUT', body: JSON.stringify(e) }),
   delete: (id: string) => http<void>(`/api/events/${id}`, { method: 'DELETE' }),
-  signUp: (event: FCEvent, role: Role) => http<void>(`/api/events/${event.Id}/signup`, { method: 'POST', body: JSON.stringify({ role }) }),
-  plan: (event: FCEvent) => http<void>(`/api/events/${event.Id}/plan`, { method: 'POST', body: JSON.stringify(event) }),
 
-  // Occurrence-specific signup endpoints
-  signUpForOccurrence: (eventId: string, occurrenceId: string, roles: Role[]) =>
-    http<void>(`/api/events/${eventId}/occurrences/${occurrenceId}/signup`, {
+  // Event-level signup
+  signUp: (eventId: string, roles: Role[]) =>
+    http<void>(`/api/events/${eventId}/signup`, {
       method: 'POST',
       body: JSON.stringify({ Roles: roles }),
     }),
 
-  cancelSignup: (eventId: string, occurrenceId: string) =>
-    http<void>(`/api/events/${eventId}/occurrences/${occurrenceId}/signup`, {
+  cancelSignup: (eventId: string) =>
+    http<void>(`/api/events/${eventId}/signup`, {
       method: 'DELETE',
     }),
 
-  // Participant selection endpoints
-  selectParticipants: (eventId: string, occurrenceId: string, participants: EventParticipant[]) =>
-    http<void>(`/api/events/${eventId}/occurrences/${occurrenceId}/participants`, {
+  // Group-based participant selection
+  selectParticipants: (eventId: string, groups: EventGroupRequest[]) =>
+    http<void>(`/api/events/${eventId}/participants`, {
       method: 'POST',
-      body: JSON.stringify(participants),
+      body: JSON.stringify(groups),
     }),
 
-  removeParticipant: (eventId: string, occurrenceId: string, userId: string) =>
-    http<void>(`/api/events/${eventId}/occurrences/${occurrenceId}/participants/${userId}`, {
+  removeParticipant: (eventId: string, userId: string) =>
+    http<void>(`/api/events/${eventId}/participants/${userId}`, {
       method: 'DELETE',
     }),
 
@@ -54,8 +54,10 @@ export const EventsApi = {
     }),
 
   // Archive/Restore endpoints
-  listArchived: (searchParams?: ArchiveSearchParams) => {
+  listArchived: (page = 1, pageSize = 20, searchParams?: ArchiveSearchParams) => {
     const params = new URLSearchParams()
+    params.append('page', String(page))
+    params.append('pageSize', String(pageSize))
     if (searchParams?.searchText)
       params.append('searchText', searchParams.searchText)
     if (searchParams?.startDate)
@@ -64,8 +66,7 @@ export const EventsApi = {
       params.append('endDate', searchParams.endDate)
     if (searchParams?.eventType !== undefined)
       params.append('eventType', String(searchParams.eventType))
-    const queryString = params.toString()
-    return http<FCEvent[]>(`/api/events/archived${queryString ? `?${queryString}` : ''}`)
+    return http<PagedResult<FCEvent>>(`/api/events/archived?${params.toString()}`)
   },
 
   archive: (eventId: string) =>

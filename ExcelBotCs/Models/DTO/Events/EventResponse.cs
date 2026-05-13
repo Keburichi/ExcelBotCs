@@ -1,10 +1,11 @@
-﻿using ExcelBotCs.Extensions;
+using ExcelBotCs.Extensions;
+using ExcelBotCs.Models.Database;
+using ExcelBotCs.Models.Database.Events;
 
-namespace ExcelBotCs.Models.Database;
+namespace ExcelBotCs.Models.DTO.Events;
 
-public class Event : BaseEntity
+public class EventResponse : BaseDto
 {
-    // Denormalized fields for efficient querying
     public string Name { get; set; }
     public string Description { get; set; }
     public EventType Type { get; set; } = EventType.Other;
@@ -39,8 +40,14 @@ public class Event : BaseEntity
     public string? Organizer { get; set; }
     public int MaxNumberOfParticipants { get; set; }
 
-    // Occurrences - always has at least one
-    public List<EventOccurrence> Occurrences { get; set; } = new();
+    // Occurrences
+    public List<EventOccurrenceDto> Occurrences { get; set; } = new();
+
+    // Signups for this event
+    public List<EventSignupDto> Signups { get; set; } = new();
+
+    // Selected groups with participants for this event
+    public List<EventGroupResponse> Groups { get; set; } = new();
 
     // Archive properties
     public bool IsArchived { get; set; } = false;
@@ -66,30 +73,40 @@ public class Event : BaseEntity
     {
         get
         {
-            // Event is available for signup if it has at least one occurrence that's available
             if (Occurrences == null || !Occurrences.Any())
                 return false;
 
-            // Get latest occurrence thats available
-            var latestAvailable = Occurrences.Where(o => o.Status == OccurrenceStatus.Scheduled)
-                .OrderByDescending(o => o.OccurrenceDate).FirstOrDefault();
-
-            if (latestAvailable == null)
+            if (GetCurrentOccurrence().Status != OccurrenceStatus.Scheduled)
                 return false;
 
-            // Check if the previous occurrence is actually in the past, if it isn't we don't allow signups for the next one yet
-            var previousOccurrence = Occurrences.Where(o => o.OccurrenceDate < latestAvailable.OccurrenceDate)
-                .OrderBy(o => o.OccurrenceDate).FirstOrDefault();
-
-            if (previousOccurrence != null && previousOccurrence.OccurrenceDate > DateTime.UtcNow)
-                return false;
-
-            // Check if the participants have already been selected for the next occurrence, then the roster 
-            // has already been decided
-            if (latestAvailable.Participants != null && latestAvailable.Participants.Any())
-                return false;
-
-            return true;
+            return Groups.IsNullOrEmpty();
         }
+    }
+
+    /// <summary>
+    ///     Can be used to get the current occurrence of an event to check if it has already been concluded.
+    ///     This info is useful for determining if lottery guesses have been awarded
+    /// </summary>
+    /// <returns></returns>
+    private EventOccurrenceDto GetCurrentOccurrence()
+    {
+        var occurrence = Occurrences
+                             ?.Where(o => o.OccurrenceDate >= DateTime.UtcNow)
+                             .OrderBy(o => o.OccurrenceDate)
+                             .FirstOrDefault()
+                         ?? Occurrences?.FirstOrDefault();
+
+        if (occurrence == null)
+        {
+            occurrence = new EventOccurrenceDto
+            {
+                OccurrenceDate = StartDate,
+                Status = OccurrenceStatus.Scheduled
+            };
+            Occurrences ??= new List<EventOccurrenceDto>();
+            Occurrences.Add(occurrence);
+        }
+
+        return occurrence;
     }
 }

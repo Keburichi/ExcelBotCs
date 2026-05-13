@@ -1,9 +1,9 @@
 using ExcelBotCs.Modules.TeamFormation;
 
-namespace ExcelBotCs.Models.Database;
+namespace ExcelBotCs.Models.Database.Events;
 
 /// <summary>
-///     Represents a selected participant for an event occurrence (embedded subdocument)
+///     Represents a selected participant for an event
 /// </summary>
 public class EventParticipant
 {

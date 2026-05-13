@@ -1,3 +1,11 @@
+export interface PagedResult<T> {
+  Items: T[]
+  TotalCount: number
+  Page: number
+  PageSize: number
+  HasMore: boolean
+}
+
 export interface FCEvent {
   Id: string
   Name: string
@@ -16,6 +24,8 @@ export interface FCEvent {
   Organizer: string
   AvailableForSignup: boolean
   MaxNumberOfParticipants: number
+  Signups: EventSignup[]
+  Groups: EventGroupResponse[]
   // Archive properties
   IsArchived: boolean
   ArchivedDate?: string
@@ -38,9 +48,6 @@ export interface EventOccurrence {
   Id: string
   OccurrenceDate: Date
   Status: OccurrenceStatus
-  DiscordMessageId?: string
-  Signups: EventSignup[]
-  Participants: EventParticipant[]
 }
 
 export interface EventParticipant {
@@ -53,6 +60,18 @@ export interface EventSignup {
   DiscordUserId: string
   Roles: Role[]
   SignupDate: Date
+}
+
+export interface EventGroupResponse {
+  Id: string
+  Name: string
+  Participants: EventParticipant[]
+}
+
+export interface EventGroupRequest {
+  Id?: string
+  Name: string
+  Participants: EventParticipant[]
 }
 
 export enum OccurrenceStatus {
@@ -81,17 +100,8 @@ export function isOccurrencePast(occurrence: EventOccurrence): boolean {
   return new Date(occurrence.OccurrenceDate) < new Date()
 }
 
-export function canSignUpForOccurrence(occurrence: EventOccurrence, maxParticipants: number): boolean {
-  return (
-    occurrence.Status === OccurrenceStatus.Scheduled
-    && !isOccurrencePast(occurrence)
-    && (occurrence.Participants?.length ?? 0) < maxParticipants
-  )
-}
-
 export enum SignupType {
   SingleEvent = 0,
-  IndependentSignups = 1,
   LockedGroup = 2,
 }
 
@@ -99,8 +109,6 @@ export function signupTypeToString(type: SignupType): string {
   switch (type) {
     case SignupType.SingleEvent:
       return 'Single Event'
-    case SignupType.IndependentSignups:
-      return 'Different Group Each Time'
     case SignupType.LockedGroup:
       return 'Same Group All Occurrences'
     default:
