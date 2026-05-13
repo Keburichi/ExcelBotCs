@@ -374,7 +374,7 @@ END:VCALENDAR";
         // Act
         var response = await Client.PatchAsJsonAsync(
             $"api/Events/{fcEvent.Id}/occurrences/{occurrenceId}/status",
-            new OccurrenceStatusUpdateDto { Status = OccurrenceStatus.Completed });
+            new UpdateOccurrenceStatusRequest { Status = OccurrenceStatus.Completed });
 
         // Assert
         response.EnsureSuccessStatusCode();
@@ -397,7 +397,7 @@ END:VCALENDAR";
         // Act
         var response = await Client.PatchAsJsonAsync(
             $"api/Events/{fcEvent.Id}/occurrences/{occurrenceId}/status",
-            new OccurrenceStatusUpdateDto { Status = OccurrenceStatus.Completed });
+            new UpdateOccurrenceStatusRequest { Status = OccurrenceStatus.Completed });
 
         // Assert
         response.StatusCode.ShouldBe(HttpStatusCode.BadRequest);
