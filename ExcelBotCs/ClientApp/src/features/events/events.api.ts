@@ -1,6 +1,6 @@
 import type {
   ArchiveSearchParams,
-  EventParticipant,
+  EventGroupRequest,
   ExtendEventRequest,
   FCEvent,
   OccurrenceStatus,
@@ -14,30 +14,28 @@ export const EventsApi = {
   create: (e: FCEvent) => http<FCEvent>('/api/events', { method: 'POST', body: JSON.stringify(e) }),
   update: (id: string, e: FCEvent) => http<void>(`/api/events/${id}`, { method: 'PUT', body: JSON.stringify(e) }),
   delete: (id: string) => http<void>(`/api/events/${id}`, { method: 'DELETE' }),
-  signUp: (event: FCEvent, role: Role) => http<void>(`/api/events/${event.Id}/signup`, { method: 'POST', body: JSON.stringify({ role }) }),
-  plan: (event: FCEvent) => http<void>(`/api/events/${event.Id}/plan`, { method: 'POST', body: JSON.stringify(event) }),
 
-  // Occurrence-specific signup endpoints
-  signUpForOccurrence: (eventId: string, occurrenceId: string, roles: Role[]) =>
-    http<void>(`/api/events/${eventId}/occurrences/${occurrenceId}/signup`, {
+  // Event-level signup
+  signUp: (eventId: string, roles: Role[]) =>
+    http<void>(`/api/events/${eventId}/signup`, {
       method: 'POST',
       body: JSON.stringify({ Roles: roles }),
     }),
 
-  cancelSignup: (eventId: string, occurrenceId: string) =>
-    http<void>(`/api/events/${eventId}/occurrences/${occurrenceId}/signup`, {
+  cancelSignup: (eventId: string) =>
+    http<void>(`/api/events/${eventId}/signup`, {
       method: 'DELETE',
     }),
 
-  // Participant selection endpoints
-  selectParticipants: (eventId: string, occurrenceId: string, participants: EventParticipant[]) =>
-    http<void>(`/api/events/${eventId}/occurrences/${occurrenceId}/participants`, {
+  // Group-based participant selection
+  selectParticipants: (eventId: string, groups: EventGroupRequest[]) =>
+    http<void>(`/api/events/${eventId}/participants`, {
       method: 'POST',
-      body: JSON.stringify(participants),
+      body: JSON.stringify(groups),
     }),
 
-  removeParticipant: (eventId: string, occurrenceId: string, userId: string) =>
-    http<void>(`/api/events/${eventId}/occurrences/${occurrenceId}/participants/${userId}`, {
+  removeParticipant: (eventId: string, userId: string) =>
+    http<void>(`/api/events/${eventId}/participants/${userId}`, {
       method: 'DELETE',
     }),
 

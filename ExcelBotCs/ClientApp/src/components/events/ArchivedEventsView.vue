@@ -73,19 +73,15 @@ async function handleRestore(event: FCEvent) {
 
 // Get total signups across all occurrences
 function getTotalSignups(event: FCEvent): number {
-  if (!event.Occurrences)
-    return 0
-  return event.Occurrences.reduce((total, occ) => {
-    return total + (occ.Signups?.length ?? 0)
-  }, 0)
+  return event.Signups?.length ?? 0
 }
 
-// Get total participants across all occurrences
+// Get total participants across all groups
 function getTotalParticipants(event: FCEvent): number {
-  if (!event.Occurrences)
+  if (!event.Groups || event.Groups.length === 0)
     return 0
-  return event.Occurrences.reduce((total, occ) => {
-    return total + (occ.Participants?.length ?? 0)
+  return event.Groups.reduce((total, group) => {
+    return total + (group.Participants?.length ?? 0)
   }, 0)
 }
 

@@ -22,11 +22,6 @@ const signupType = defineModel<SignupType>('signupType', {
 // Signup type options
 const signupTypeOptions = [
   {
-    value: SignupType.IndependentSignups,
-    label: signupTypeToString(SignupType.IndependentSignups),
-    description: 'Each occurrence has its own signup list',
-  },
-  {
     value: SignupType.LockedGroup,
     label: signupTypeToString(SignupType.LockedGroup),
     description: 'Same people participate in all occurrences',

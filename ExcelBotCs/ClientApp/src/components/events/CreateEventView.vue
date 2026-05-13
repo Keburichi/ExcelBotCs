@@ -63,7 +63,7 @@ const form = reactive<FCEvent>({
   ICalString: '',
   MaxNumberOfParticipants: 8,
   Signups: [],
-  Participants: [],
+  Groups: [],
   AvailableForSignup: false,
 })
 
@@ -82,9 +82,9 @@ const signupType = ref<SignupType>(SignupType.SingleEvent)
 // Watch recurrence.enabled and set appropriate default signup type
 watch(() => recurrence.value.enabled, (enabled) => {
   if (enabled) {
-    // When enabling recurrence, default to IndependentSignups
+    // When enabling recurrence, default to LockedGroup
     if (signupType.value === SignupType.SingleEvent) {
-      signupType.value = SignupType.IndependentSignups
+      signupType.value = SignupType.LockedGroup
     }
   }
   else {

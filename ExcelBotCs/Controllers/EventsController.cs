@@ -138,7 +138,7 @@ public class EventsController : AuthorizedController, IEventsController
     #region Signups
 
     [HttpPost]
-    [Route("{id}/signup")]
+    [Route("{eventId}/signup")]
     public async Task<ActionResult> SignupForEvent(string eventId, [FromBody] EventSignupDto signupRequest)
     {
         var fcEvent = await _eventService.GetAsync(eventId);
@@ -163,6 +163,29 @@ public class EventsController : AuthorizedController, IEventsController
                 SignupDate = DateTime.UtcNow
             });
 
+        await _eventService.UpdateAsync(fcEvent.Id, fcEvent);
+
+        return Ok();
+    }
+
+    [HttpDelete]
+    [Route("{eventId}/signup")]
+    public async Task<ActionResult> CancelSignup(string eventId)
+    {
+        var fcEvent = await _eventService.GetAsync(eventId);
+
+        if (fcEvent is null)
+            return NotFound();
+
+        var member = await _currentMemberAccessor.GetCurrentAsync();
+        if (member is null)
+            return BadRequest("Member not found for the current user");
+
+        var existing = fcEvent.Signups.FirstOrDefault(x => x.DiscordUserId == member.DiscordId);
+        if (existing == null)
+            return Ok();
+
+        fcEvent.Signups.Remove(existing);
         await _eventService.UpdateAsync(fcEvent.Id, fcEvent);
 
         return Ok();

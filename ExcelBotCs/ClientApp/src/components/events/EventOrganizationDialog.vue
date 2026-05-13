@@ -1,15 +1,12 @@
 <script setup lang="ts">
-import type { EventOccurrence, EventParticipant, FCEvent, Role } from '@/features/events/events.types'
+import type { EventGroupRequest, EventParticipant, EventSignup, FCEvent, Role } from '@/features/events/events.types'
 import { computed, onMounted, ref, watch } from 'vue'
+import draggable from 'vuedraggable'
 import BaseButton from '@/components/BaseButton.vue'
 import BaseModal from '@/components/BaseModal.vue'
 import { useMembers } from '@/composables/useMembers'
 import { EventsApi } from '@/features/events/events.api'
-import { ROLE, SignupType } from '@/features/events/events.types'
-
-const props = defineProps<{
-  occurrence: EventOccurrence | null
-}>()
+import { ROLE } from '@/features/events/events.types'
 
 const emit = defineEmits<{
   eventPlanned: []
@@ -19,49 +16,237 @@ const modelValue = defineModel<boolean>('isOpen', { required: true })
 const eventValue = defineModel<FCEvent>('fcEvent', { required: true })
 
 const { members, load: memberLoad } = useMembers()
-const participants = ref<EventParticipant[]>([])
 const saving = ref(false)
-const selectionMode = ref<'simple' | 'role'>('role') // Toggle between simple and role-based selection
 
-// Local modal state (avoid browser alert/confirm)
-const isConfirmOpen = ref(false)
-const confirmMessage = ref('')
-const pendingMode = ref<'simple' | 'role' | null>(null)
+// Group management state
+const groups = ref<EventGroupRequest[]>([])
 
+// Role picker state
+const rolePickerOpen = ref(false)
+const rolePickerTarget = ref<{
+  groupIndex: number
+  signup: EventSignup
+  element: HTMLElement | null
+} | null>(null)
+
+// Info/confirmation modals
 const isInfoOpen = ref(false)
 const infoMessage = ref('')
-
-// Confirmation for saving with fewer participants
 const isInsufficientParticipantsOpen = ref(false)
+
+interface UnassignedItem {
+  DiscordUserId: string
+  Roles: Role[]
+}
+
+// Compute unassigned signups (not yet placed in any group)
+const unassigned = computed((): UnassignedItem[] => {
+  const assignedIds = new Set(
+    groups.value.flatMap(g => g.Participants.map(p => p.DiscordUserId)),
+  )
+  return (eventValue.value.Signups ?? [])
+    .filter(s => !assignedIds.has(s.DiscordUserId) && s.Roles.length > 0)
+    .map(s => ({ DiscordUserId: s.DiscordUserId, Roles: [...s.Roles] }))
+})
+
+const uniqueSignupCount = computed(() => {
+  return (eventValue.value.Signups ?? []).filter(s => s.Roles.length > 0).length
+})
+
+const maxParticipants = computed(() => eventValue.value.MaxNumberOfParticipants)
+
+const canAddGroup = computed(() => {
+  return uniqueSignupCount.value >= (groups.value.length + 1) * maxParticipants.value
+})
+
+const totalAssigned = computed(() => {
+  return groups.value.reduce((sum, g) => sum + g.Participants.length, 0)
+})
+
+function getMemberName(discordId: string): string {
+  const member = members.value.find(m => m.DiscordId === discordId)
+  return member?.PlayerName || member?.DiscordName || discordId
+}
+
+function getMemberAvatar(discordId: string): string | null {
+  const member = members.value.find(m => m.DiscordId === discordId)
+  return member?.DiscordAvatar || null
+}
+
+function roleLabel(role: Role): string {
+  const labels: Record<number, string> = {
+    [ROLE.Tank]: 'Tank',
+    [ROLE.Healer]: 'Healer',
+    [ROLE.Melee]: 'Melee',
+    [ROLE.Caster]: 'Caster',
+    [ROLE.Ranged]: 'Ranged',
+  }
+  return labels[role] ?? 'Unknown'
+}
+
+function roleShort(role: Role): string {
+  const labels: Record<number, string> = {
+    [ROLE.Tank]: 'T',
+    [ROLE.Healer]: 'H',
+    [ROLE.Melee]: 'M',
+    [ROLE.Caster]: 'C',
+    [ROLE.Ranged]: 'R',
+  }
+  return labels[role] ?? '?'
+}
+
+// Get signup roles for a user
+function getSignupRoles(discordUserId: string): Role[] {
+  const signup = eventValue.value.Signups?.find(s => s.DiscordUserId === discordUserId)
+  return signup?.Roles ?? []
+}
+
+// Initialize from existing groups or empty
+function initGroups() {
+  if (eventValue.value.Groups && eventValue.value.Groups.length > 0) {
+    groups.value = eventValue.value.Groups.map(g => ({
+      Id: g.Id,
+      Name: g.Name,
+      Participants: [...g.Participants],
+    }))
+  }
+  else {
+    groups.value = []
+  }
+}
+
+function addGroup() {
+  if (!canAddGroup.value) {
+    openInfo(`Need at least ${(groups.value.length + 1) * maxParticipants.value} unique signups to create ${groups.value.length + 1} group(s). Currently have ${uniqueSignupCount.value}.`)
+    return
+  }
+  groups.value.push({
+    Name: `Group ${groups.value.length + 1}`,
+    Participants: [],
+  })
+}
+
+function removeGroup(index: number) {
+  groups.value.splice(index, 1)
+}
+
+// Handle drag from pool to group — intercept and show role picker
+function onGroupChange(groupIndex: number, evt: any) {
+  if (evt.added) {
+    const addedItem = evt.added.element as UnassignedItem
+    const group = groups.value[groupIndex]
+
+    if (group.Participants.length > maxParticipants.value) {
+      // Over capacity — remove the just-added item
+      const addedIndex = evt.added.newIndex
+      group.Participants.splice(addedIndex, 1)
+      openInfo(`This group already has ${maxParticipants.value} participants (maximum).`)
+      return
+    }
+
+    // The item was added as an UnassignedItem, but we need it as an EventParticipant with a role
+    // Remove it temporarily and show role picker
+    const addedIndex = evt.added.newIndex
+    group.Participants.splice(addedIndex, 1)
+
+    const signupRoles = getSignupRoles(addedItem.DiscordUserId)
+    if (signupRoles.length === 1) {
+      // Only one role — auto-assign
+      group.Participants.splice(addedIndex, 0, {
+        DiscordUserId: addedItem.DiscordUserId,
+        Role: signupRoles[0],
+        SelectionDate: new Date(),
+      })
+    }
+    else if (signupRoles.length > 1) {
+      // Multiple roles — show picker
+      rolePickerTarget.value = {
+        groupIndex,
+        signup: {
+          DiscordUserId: addedItem.DiscordUserId,
+          Roles: signupRoles,
+          SignupDate: new Date(),
+        },
+        element: null,
+      }
+      rolePickerOpen.value = true
+    }
+  }
+}
+
+function selectRoleForDrop(role: Role) {
+  if (!rolePickerTarget.value) return
+
+  const { groupIndex, signup } = rolePickerTarget.value
+  const group = groups.value[groupIndex]
+
+  group.Participants.push({
+    DiscordUserId: signup.DiscordUserId,
+    Role: role,
+    SelectionDate: new Date(),
+  })
+
+  rolePickerOpen.value = false
+  rolePickerTarget.value = null
+}
+
+function cancelRolePicker() {
+  rolePickerOpen.value = false
+  rolePickerTarget.value = null
+}
+
+// Remove participant from a group back to pool
+function removeFromGroup(groupIndex: number, participantIndex: number) {
+  groups.value[groupIndex].Participants.splice(participantIndex, 1)
+}
+
+// Handle moving between groups (participant already has a role)
+function onGroupMoveParticipant(groupIndex: number, evt: any) {
+  if (evt.added) {
+    const group = groups.value[groupIndex]
+    if (group.Participants.length > maxParticipants.value) {
+      const addedIndex = evt.added.newIndex
+      group.Participants.splice(addedIndex, 1)
+      openInfo(`This group already has ${maxParticipants.value} participants (maximum).`)
+    }
+  }
+}
 
 function openInfo(message: string) {
   infoMessage.value = message
   isInfoOpen.value = true
 }
 
-function closeInfo() {
-  isInfoOpen.value = false
-  infoMessage.value = ''
-}
-
-function requestModeSwitch(newMode: 'simple' | 'role') {
-  confirmMessage.value = `Switching to ${newMode} mode will clear current selections. Continue?`
-  pendingMode.value = newMode
-  isConfirmOpen.value = true
-}
-
-function cancelModeSwitch() {
-  isConfirmOpen.value = false
-  confirmMessage.value = ''
-  pendingMode.value = null
-}
-
-function confirmModeSwitch() {
-  if (pendingMode.value) {
-    participants.value = []
-    selectionMode.value = pendingMode.value
+function handleSave() {
+  if (groups.value.length === 0) {
+    openInfo('Please create at least one group and assign participants.')
+    return
   }
-  cancelModeSwitch()
+
+  const allFull = groups.value.every(g => g.Participants.length === maxParticipants.value)
+  if (!allFull) {
+    isInsufficientParticipantsOpen.value = true
+    return
+  }
+
+  doSave()
+}
+
+async function doSave() {
+  isInsufficientParticipantsOpen.value = false
+  saving.value = true
+  try {
+    await EventsApi.selectParticipants(eventValue.value.Id, groups.value)
+    modelValue.value = false
+    emit('eventPlanned')
+  }
+  catch (error) {
+    console.error('Error saving groups:', error)
+    openInfo('Failed to save groups. Please try again.')
+  }
+  finally {
+    saving.value = false
+  }
 }
 
 // Load members when component mounts
@@ -69,328 +254,185 @@ onMounted(() => {
   if (members.value.length === 0) {
     memberLoad()
   }
-  // Initialize participants from occurrence
-  if (props.occurrence) {
-    participants.value = [...(props.occurrence.Participants || [])]
-  }
+  initGroups()
 })
 
-// Watch for occurrence changes (when dialog opens with different occurrence)
-watch(() => props.occurrence, (newOccurrence) => {
-  if (newOccurrence) {
-    participants.value = [...(newOccurrence.Participants || [])]
-  }
-}, { immediate: true })
-
-// Format occurrence date for display
-const occurrenceDateFormatted = computed(() => {
-  if (!props.occurrence)
-    return ''
-  return new Date(props.occurrence.OccurrenceDate).toLocaleDateString(undefined, {
-    weekday: 'short',
-    year: 'numeric',
-    month: 'short',
-    day: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit',
-  })
-})
-
-// Check if this is a LockedGroup event
-const isLockedGroup = computed(() => eventValue.value.SignupType === SignupType.LockedGroup)
-
-// Get the role assigned to a member, or null if not assigned
-function getMemberRole(discordId: string): Role | null {
-  const participant = participants.value.find(p => p.DiscordUserId === discordId)
-  return participant?.Role ?? null
-}
-
-// Check if a member is selected (has any role assigned)
-function isMemberSelected(discordId: string): boolean {
-  return participants.value.some(p => p.DiscordUserId === discordId)
-}
-
-// Toggle selection mode
-function toggleSelectionMode() {
-  const newMode = selectionMode.value === 'simple' ? 'role' : 'simple'
-  // Ask for confirmation using modal
-  requestModeSwitch(newMode)
-}
-
-// Toggle simple selection (for simple mode)
-function toggleSimpleSelection(discordId: string) {
-  const existingIndex = participants.value.findIndex(p => p.DiscordUserId === discordId)
-
-  if (existingIndex >= 0) {
-    // Remove the participant
-    participants.value.splice(existingIndex, 1)
-  }
-  else {
-    // Check if we've reached the limit
-    if (participants.value.length >= eventValue.value.MaxNumberOfParticipants) {
-      openInfo(`You can only select up to ${eventValue.value.MaxNumberOfParticipants} members.`)
-      return
-    }
-    // Add new participant without a specific role (use Tank as default/placeholder)
-    participants.value.push({
-      DiscordUserId: discordId,
-      Role: ROLE.Tank, // Placeholder role for simple mode
-    })
-  }
-}
-
-// Toggle role for a member (for role-based mode)
-function toggleRole(discordId: string, role: Role) {
-  const existingIndex = participants.value.findIndex(p => p.DiscordUserId === discordId)
-
-  if (existingIndex >= 0) {
-    const currentRole = participants.value[existingIndex].Role
-    if (currentRole === role) {
-      // If clicking the same role, remove the participant
-      participants.value.splice(existingIndex, 1)
-    }
-    else {
-      // If clicking a different role, update it
-      participants.value[existingIndex].Role = role
-    }
-  }
-  else {
-    // Check if we've reached the limit
-    if (participants.value.length >= eventValue.value.MaxNumberOfParticipants) {
-      openInfo(`You can only select up to ${eventValue.value.MaxNumberOfParticipants} members.`)
-      return
-    }
-    // Add new participant with this role
-    participants.value.push({
-      DiscordUserId: discordId,
-      Role: role,
-    })
-  }
-}
-
-// Get the roles a member signed up for (from occurrence)
-function getMemberSignupRoles(discordId: string): Role[] {
-  const signup = props.occurrence?.Signups?.find(s => s.DiscordUserId === discordId)
-  return signup?.Roles ?? []
-}
-
-// Check if a member signed up for a specific role
-function hasSignedUpForRole(discordId: string, role: Role): boolean {
-  const signupRoles = getMemberSignupRoles(discordId)
-  return signupRoles.includes(role)
-}
-
-// Filter members to only show those who signed up (from occurrence)
-const signedUpMembers = computed(() => {
-  if (!props.occurrence?.Signups || props.occurrence.Signups.length === 0) {
-    return []
-  }
-
-  return members.value.filter(member =>
-    props.occurrence!.Signups.some(signup => signup.DiscordUserId === member.DiscordId),
-  )
-})
-
-// Count participants by role
-const roleCount = computed(() => {
-  return {
-    [ROLE.Tank]: participants.value.filter(p => p.Role === ROLE.Tank).length,
-    [ROLE.Healer]: participants.value.filter(p => p.Role === ROLE.Healer).length,
-    [ROLE.Melee]: participants.value.filter(p => p.Role === ROLE.Melee).length,
-    [ROLE.Caster]: participants.value.filter(p => p.Role === ROLE.Caster).length,
-    [ROLE.Ranged]: participants.value.filter(p => p.Role === ROLE.Ranged).length,
+// Reinitialize when dialog opens
+watch(modelValue, (isOpen) => {
+  if (isOpen) {
+    initGroups()
   }
 })
-
-// Check if we have enough participants and prompt if not
-function handleSave() {
-  if (!props.occurrence) {
-    console.error('No occurrence to save participants to')
-    return
-  }
-
-  // Check if we have fewer participants than required
-  if (participants.value.length < eventValue.value.MaxNumberOfParticipants) {
-    isInsufficientParticipantsOpen.value = true
-    return
-  }
-
-  // If we have enough, save directly
-  doSave()
-}
-
-// Actually save participants to occurrence
-async function doSave() {
-  if (!props.occurrence) {
-    console.error('No occurrence to save participants to')
-    return
-  }
-
-  isInsufficientParticipantsOpen.value = false
-  saving.value = true
-  try {
-    await EventsApi.selectParticipants(eventValue.value.Id, props.occurrence.Id, participants.value)
-    modelValue.value = false
-    emit('eventPlanned')
-  }
-  catch (error) {
-    console.error('Error saving participants:', error)
-  }
-  finally {
-    saving.value = false
-  }
-}
-
-function cancelInsufficientParticipants() {
-  isInsufficientParticipantsOpen.value = false
-}
 </script>
 
 <template>
-  <BaseModal v-model="modelValue" title="Organize Event" :close-on-outside-click="false">
+  <BaseModal v-model="modelValue" title="Organize Event" :close-on-outside-click="false" size="large">
     <template #image>
       <img v-if="eventValue.PictureUrl" :src="eventValue.PictureUrl" alt="avatar" class="card__image">
     </template>
     <template #body>
-      <!-- Occurrence info -->
-      <div v-if="occurrence" class="occurrence-info">
-        <span class="occurrence-label">Managing occurrence:</span>
-        <span class="occurrence-date">{{ occurrenceDateFormatted }}</span>
-      </div>
-
-      <!-- LockedGroup notice -->
-      <div v-if="isLockedGroup" class="locked-group-notice">
-        Participants will apply to <b>all occurrences</b> of this recurring event.
-      </div>
-
-      <!-- Mode Toggle Button -->
-      <div class="mode-toggle-container">
-        <BaseButton
-          :title="selectionMode === 'role' ? 'Switch to Simple Mode' : 'Switch to Role-Based Mode'"
-          :tooltip="selectionMode === 'role' ? 'Switch to Role-Unrestricted Mode' : 'Switch to Role-Based Mode'"
-          size="small"
-          @click="toggleSelectionMode"
-        />
-      </div>
-
-      <p v-if="selectionMode === 'role'">
-        Select up to <b>{{ eventValue.MaxNumberOfParticipants }}</b> members who should participate in the Event
-        '<b>{{ eventValue.Name }}</b>' and assign roles. Click '<b>Save</b>' once you are done.
-      </p>
-      <p v-else>
-        Select up to <b>{{ eventValue.MaxNumberOfParticipants }}</b> members who should participate in the Event
-        '<b>{{ eventValue.Name }}</b>'. Click '<b>Save</b>' once you are done.
+      <p>
+        Assign signups to groups for '<b>{{ eventValue.Name }}</b>'.
+        Each group can have up to <b>{{ maxParticipants }}</b> participants.
+        Drag members from the pool into groups.
       </p>
       <p class="muted" style="font-size: 0.9rem; margin-bottom: 1rem;">
         The bot will automatically post a new message in <b>#upcoming-roster</b>.
       </p>
 
-      <!-- Summary of selected participants -->
-      <div v-if="participants.length > 0" class="participants-summary">
-        <h4>Selected Participants ({{ participants.length }} / {{ eventValue.MaxNumberOfParticipants }})</h4>
-        <div v-if="selectionMode === 'role'" class="role-counts">
-          <span class="role-badge">Tank: {{ roleCount[ROLE.Tank] }}</span>
-          <span class="role-badge">Healer: {{ roleCount[ROLE.Healer] }}</span>
-          <span class="role-badge">Melee: {{ roleCount[ROLE.Melee] }}</span>
-          <span class="role-badge">Caster: {{ roleCount[ROLE.Caster] }}</span>
-          <span class="role-badge">Ranged: {{ roleCount[ROLE.Ranged] }}</span>
-        </div>
+      <!-- Summary -->
+      <div class="org-summary">
+        <span>Signups: <b>{{ uniqueSignupCount }}</b></span>
+        <span>Groups: <b>{{ groups.length }}</b></span>
+        <span>Assigned: <b>{{ totalAssigned }}</b></span>
+        <span>Unassigned: <b>{{ unassigned.length }}</b></span>
       </div>
 
-      <!-- Member selection list -->
-      <div class="member-list">
-        <div v-for="member in signedUpMembers" :key="member.DiscordId" class="member-item">
-          <div class="member-info">
-            <img v-if="member.DiscordAvatar" :src="member.DiscordAvatar" alt="avatar" class="avatar">
-            <div v-else class="avatar placeholder">
-              {{ (member.PlayerName || member.DiscordName).charAt(0).toUpperCase() }}
+      <div class="org-layout">
+        <!-- Left: Unassigned pool -->
+        <div class="pool-panel">
+          <h4 class="panel-title">Unassigned Pool ({{ unassigned.length }})</h4>
+          <draggable
+            :list="unassigned"
+            :group="{ name: 'participants', pull: 'clone', put: false }"
+            item-key="DiscordUserId"
+            class="pool-list"
+            :clone="(item: UnassignedItem) => ({ ...item })"
+            :sort="false"
+          >
+            <template #item="{ element }">
+              <div class="pool-item">
+                <img
+                  v-if="getMemberAvatar(element.DiscordUserId)"
+                  :src="getMemberAvatar(element.DiscordUserId)!"
+                  alt="avatar"
+                  class="avatar"
+                >
+                <div v-else class="avatar placeholder">
+                  {{ getMemberName(element.DiscordUserId).charAt(0).toUpperCase() }}
+                </div>
+                <div class="pool-item-info">
+                  <span class="member-name">{{ getMemberName(element.DiscordUserId) }}</span>
+                  <span class="role-tags">
+                    <span
+                      v-for="role in element.Roles"
+                      :key="role"
+                      class="role-tag"
+                    >{{ roleShort(role) }}</span>
+                  </span>
+                </div>
+              </div>
+            </template>
+          </draggable>
+          <div v-if="unassigned.length === 0" class="empty-pool">
+            All signups assigned
+          </div>
+        </div>
+
+        <!-- Right: Groups -->
+        <div class="groups-panel">
+          <div v-for="(group, gIdx) in groups" :key="gIdx" class="group-card">
+            <div class="group-header">
+              <input
+                v-model="group.Name"
+                class="group-name-input"
+                type="text"
+                placeholder="Group name..."
+              >
+              <span class="group-count">{{ group.Participants.length }}/{{ maxParticipants }}</span>
+              <button class="btn-remove-group" title="Remove group" @click="removeGroup(gIdx)">
+                &times;
+              </button>
             </div>
-            <span class="member-name">{{ member.PlayerName || member.DiscordName }}</span>
+
+            <draggable
+              :list="group.Participants"
+              :group="{ name: 'assigned-participants', put: true }"
+              item-key="DiscordUserId"
+              class="group-list"
+              @change="onGroupMoveParticipant(gIdx, $event)"
+            >
+              <template #item="{ element, index }">
+                <div class="group-member">
+                  <img
+                    v-if="getMemberAvatar(element.DiscordUserId)"
+                    :src="getMemberAvatar(element.DiscordUserId)!"
+                    alt="avatar"
+                    class="avatar-sm"
+                  >
+                  <div v-else class="avatar-sm placeholder">
+                    {{ getMemberName(element.DiscordUserId).charAt(0).toUpperCase() }}
+                  </div>
+                  <span class="member-name">{{ getMemberName(element.DiscordUserId) }}</span>
+                  <span class="assigned-role">{{ roleLabel(element.Role) }}</span>
+                  <button class="btn-remove-member" title="Remove" @click="removeFromGroup(gIdx, index)">
+                    &times;
+                  </button>
+                </div>
+              </template>
+            </draggable>
+
+            <!-- Drop zone for items from the unassigned pool -->
+            <draggable
+              :list="[]"
+              :group="{ name: 'participants', put: true }"
+              item-key="DiscordUserId"
+              class="group-dropzone"
+              @change="onGroupChange(gIdx, $event)"
+            >
+              <template #item="{ element }">
+                <div />
+              </template>
+              <template #header>
+                <div v-if="group.Participants.length < maxParticipants" class="dropzone-hint">
+                  Drop here to add
+                </div>
+              </template>
+            </draggable>
           </div>
 
-          <!-- Simple Mode: Single Select Button -->
-          <div v-if="selectionMode === 'simple'" class="simple-selection">
-            <button
-              :class="{ selected: isMemberSelected(member.DiscordId) }"
-              :disabled="!isMemberSelected(member.DiscordId) && participants.length >= eventValue.MaxNumberOfParticipants"
-              class="btn-select"
-              @click="toggleSimpleSelection(member.DiscordId)"
-            >
-              <span v-if="isMemberSelected(member.DiscordId)">✓ Selected</span>
-              <span v-else>Select</span>
-            </button>
-          </div>
-
-          <!-- Role Mode: Role Buttons -->
-          <div v-else class="role-buttons">
-            <button
-              :class="{ active: getMemberRole(member.DiscordId) === ROLE.Tank }"
-              :disabled="!hasSignedUpForRole(member.DiscordId, ROLE.Tank) || (!isMemberSelected(member.DiscordId) && participants.length >= eventValue.MaxNumberOfParticipants)"
-              class="btn-role"
-              title="Tank"
-              @click="toggleRole(member.DiscordId, ROLE.Tank)"
-            >
-              T
-            </button>
-            <button
-              :class="{ active: getMemberRole(member.DiscordId) === ROLE.Healer }"
-              :disabled="!hasSignedUpForRole(member.DiscordId, ROLE.Healer) || (!isMemberSelected(member.DiscordId) && participants.length >= eventValue.MaxNumberOfParticipants)"
-              class="btn-role"
-              title="Healer"
-              @click="toggleRole(member.DiscordId, ROLE.Healer)"
-            >
-              H
-            </button>
-            <button
-              :class="{ active: getMemberRole(member.DiscordId) === ROLE.Melee }"
-              :disabled="!hasSignedUpForRole(member.DiscordId, ROLE.Melee) || (!isMemberSelected(member.DiscordId) && participants.length >= eventValue.MaxNumberOfParticipants)"
-              class="btn-role"
-              title="Melee"
-              @click="toggleRole(member.DiscordId, ROLE.Melee)"
-            >
-              M
-            </button>
-            <button
-              :class="{ active: getMemberRole(member.DiscordId) === ROLE.Caster }"
-              :disabled="!hasSignedUpForRole(member.DiscordId, ROLE.Caster) || (!isMemberSelected(member.DiscordId) && participants.length >= eventValue.MaxNumberOfParticipants)"
-              class="btn-role"
-              title="Caster"
-              @click="toggleRole(member.DiscordId, ROLE.Caster)"
-            >
-              C
-            </button>
-            <button
-              :class="{ active: getMemberRole(member.DiscordId) === ROLE.Ranged }"
-              :disabled="!hasSignedUpForRole(member.DiscordId, ROLE.Ranged) || (!isMemberSelected(member.DiscordId) && participants.length >= eventValue.MaxNumberOfParticipants)"
-              class="btn-role"
-              title="Ranged"
-              @click="toggleRole(member.DiscordId, ROLE.Ranged)"
-            >
-              R
-            </button>
-          </div>
+          <BaseButton
+            :disabled="!canAddGroup"
+            :title="`+ Add Group`"
+            :tooltip="canAddGroup ? 'Create a new group' : `Need ${(groups.length + 1) * maxParticipants} signups to add another group`"
+            size="small"
+            state="secondary"
+            @clicked="addGroup"
+          />
         </div>
       </div>
     </template>
+
     <template #actions>
       <BaseButton :disabled="saving" state="secondary" title="Cancel" @clicked="modelValue = false" />
-      <BaseButton :disabled="saving" :title="saving ? 'Saving...' : 'Save'" state="primary" @click="handleSave" />
+      <BaseButton :disabled="saving || groups.length === 0" :title="saving ? 'Saving...' : 'Save'" state="primary" @click="handleSave" />
     </template>
   </BaseModal>
 
-  <!-- Confirm switch mode modal -->
+  <!-- Role Picker Modal -->
   <BaseModal
-    v-model="isConfirmOpen"
+    v-model="rolePickerOpen"
     :close-on-outside-click="false"
     size="small"
-    title="Switch Mode"
+    title="Select Role"
   >
     <template #body>
-      <p>{{ confirmMessage }}</p>
+      <p v-if="rolePickerTarget">
+        Assign a role for <b>{{ getMemberName(rolePickerTarget.signup.DiscordUserId) }}</b>:
+      </p>
+      <div v-if="rolePickerTarget" class="role-picker-options">
+        <button
+          v-for="role in rolePickerTarget.signup.Roles"
+          :key="role"
+          class="role-picker-btn"
+          @click="selectRoleForDrop(role)"
+        >
+          {{ roleLabel(role) }}
+        </button>
+      </div>
     </template>
     <template #actions>
-      <BaseButton state="secondary" title="Cancel" @clicked="cancelModeSwitch" />
-      <BaseButton state="primary" title="Confirm" @clicked="confirmModeSwitch" />
+      <BaseButton state="secondary" title="Cancel" @clicked="cancelRolePicker" />
     </template>
   </BaseModal>
 
@@ -405,7 +447,7 @@ function cancelInsufficientParticipants() {
       <p>{{ infoMessage }}</p>
     </template>
     <template #actions>
-      <BaseButton state="primary" title="OK" @clicked="closeInfo" />
+      <BaseButton state="primary" title="OK" @clicked="isInfoOpen = false" />
     </template>
   </BaseModal>
 
@@ -414,22 +456,21 @@ function cancelInsufficientParticipants() {
     v-model="isInsufficientParticipantsOpen"
     :close-on-outside-click="false"
     size="small"
-    title="Not Enough Participants"
+    title="Incomplete Groups"
   >
     <template #body>
       <div class="insufficient-warning">
         <p>
-          You have selected <strong>{{ participants.length }}</strong>
-          participant{{ participants.length === 1 ? '' : 's' }},
-          but this event requires <strong>{{ eventValue.MaxNumberOfParticipants }}</strong>.
+          Not all groups are full. Some groups have fewer than
+          <strong>{{ maxParticipants }}</strong> participants.
         </p>
         <p class="warning-question">
-          Do you want to continue anyway?
+          Do you want to save anyway?
         </p>
       </div>
     </template>
     <template #actions>
-      <BaseButton state="secondary" title="Go Back" @clicked="cancelInsufficientParticipants" />
+      <BaseButton state="secondary" title="Go Back" @clicked="isInsufficientParticipantsOpen = false" />
       <BaseButton state="warning" title="Save Anyway" @clicked="doSave" />
     </template>
   </BaseModal>
@@ -437,240 +478,283 @@ function cancelInsufficientParticipants() {
 
 <style scoped>
 .card__image {
-  /* zoom in on the image since the fight images have a small white gradient */
   transform: scale(1.1);
 }
 
-.occurrence-info {
+.org-summary {
   display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  margin-bottom: 1rem;
+  flex-wrap: wrap;
+  gap: 1rem;
   padding: 0.75rem 1rem;
   background: var(--muted-bg);
   border-radius: 8px;
   border: 1px solid var(--border);
-}
-
-.occurrence-label {
-  font-weight: 500;
-  color: var(--muted);
-}
-
-.occurrence-date {
-  font-weight: 600;
-  color: var(--fg);
-}
-
-.locked-group-notice {
   margin-bottom: 1rem;
-  padding: 0.75rem 1rem;
-  background: #fff3e0;
-  border: 1px solid #ffb74d;
-  border-radius: 8px;
-  color: #e65100;
   font-size: 0.9rem;
 }
 
-[data-theme="dark"] .locked-group-notice {
-  background: #3d2f1e;
-  border-color: #8d6e4d;
-  color: #ffcc80;
-}
-
-.participants-summary {
-  background: var(--muted-bg);
-  padding: 1rem;
-  border-radius: 8px;
-  margin-bottom: 1rem;
-}
-
-.participants-summary h4 {
-  margin: 0 0 0.5rem 0;
-  font-size: 0.95rem;
-  color: var(--fg);
-}
-
-.role-counts {
+.org-layout {
   display: flex;
-  flex-wrap: wrap;
-  gap: 0.5rem;
+  gap: 1rem;
+  min-height: 300px;
 }
 
-.role-badge {
-  background: var(--card);
-  border: 1px solid var(--border);
-  padding: 0.25rem 0.5rem;
-  border-radius: 6px;
-  font-size: 0.85rem;
-  color: var(--fg);
-}
-
-.member-list {
-  max-height: 400px;
-  overflow-y: auto;
+.pool-panel {
+  flex: 0 0 280px;
   border: 1px solid var(--border);
   border-radius: 8px;
   background: var(--card);
-}
-
-.member-item {
   display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 0.75rem;
-  border-bottom: 1px solid var(--border);
-  transition: background 0.2s;
+  flex-direction: column;
 }
 
-.member-item:last-child {
-  border-bottom: none;
-}
-
-.member-item:hover {
-  background: var(--muted-bg);
-}
-
-.member-info {
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
+.groups-panel {
   flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.panel-title {
+  margin: 0;
+  padding: 0.75rem 1rem;
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: var(--fg);
+  border-bottom: 1px solid var(--border);
+}
+
+.pool-list {
+  flex: 1;
+  overflow-y: auto;
+  max-height: 500px;
+  min-height: 100px;
+}
+
+.pool-item {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 0.75rem;
+  border-bottom: 1px solid var(--border);
+  cursor: grab;
+  transition: background 0.15s;
+}
+
+.pool-item:hover {
+  background: var(--muted-bg);
+}
+
+.pool-item:active {
+  cursor: grabbing;
+}
+
+.pool-item-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.role-tags {
+  display: flex;
+  gap: 3px;
+}
+
+.role-tag {
+  font-size: 0.7rem;
+  font-weight: 700;
+  padding: 1px 5px;
+  border-radius: 3px;
+  background: var(--muted-bg);
+  color: var(--muted);
+  border: 1px solid var(--border);
+}
+
+.empty-pool {
+  padding: 2rem;
+  text-align: center;
+  color: var(--muted);
+  font-style: italic;
+}
+
+.group-card {
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--card);
+  overflow: hidden;
+}
+
+.group-header {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 0.75rem;
+  background: var(--muted-bg);
+  border-bottom: 1px solid var(--border);
+}
+
+.group-name-input {
+  flex: 1;
+  padding: 0.35rem 0.5rem;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  background: var(--card);
+  color: var(--fg);
+  font-weight: 600;
+  font-size: 0.9rem;
+}
+
+.group-count {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--muted);
+  white-space: nowrap;
+}
+
+.btn-remove-group {
+  background: none;
+  border: none;
+  font-size: 1.3rem;
+  cursor: pointer;
+  color: var(--muted);
+  line-height: 1;
+  padding: 0 4px;
+}
+
+.btn-remove-group:hover {
+  color: #e53e3e;
+}
+
+.group-list {
+  min-height: 40px;
+}
+
+.group-member {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.4rem 0.75rem;
+  border-bottom: 1px solid var(--border);
+  cursor: grab;
+  transition: background 0.15s;
+}
+
+.group-member:hover {
+  background: var(--muted-bg);
+}
+
+.group-member:active {
+  cursor: grabbing;
+}
+
+.assigned-role {
+  margin-left: auto;
+  font-size: 0.8rem;
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: 4px;
+  background: var(--btn-primary-bg, #3b82f6);
+  color: var(--btn-primary-fg, #fff);
+}
+
+.btn-remove-member {
+  background: none;
+  border: none;
+  font-size: 1.1rem;
+  cursor: pointer;
+  color: var(--muted);
+  line-height: 1;
+  padding: 0 2px;
+  flex-shrink: 0;
+}
+
+.btn-remove-member:hover {
+  color: #e53e3e;
+}
+
+.group-dropzone {
+  min-height: 8px;
+}
+
+.dropzone-hint {
+  padding: 0.5rem;
+  text-align: center;
+  color: var(--muted);
+  font-size: 0.8rem;
+  font-style: italic;
+  border: 2px dashed var(--border);
+  border-radius: 4px;
+  margin: 0.5rem;
+}
+
+.avatar {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  object-fit: cover;
+  flex-shrink: 0;
+}
+
+.avatar.placeholder {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--muted-bg);
+  color: var(--muted);
+  font-weight: 700;
+  font-size: 0.85rem;
+  border: 1px solid var(--border);
+}
+
+.avatar-sm {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  object-fit: cover;
+  flex-shrink: 0;
+}
+
+.avatar-sm.placeholder {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--muted-bg);
+  color: var(--muted);
+  font-weight: 700;
+  font-size: 0.7rem;
+  border: 1px solid var(--border);
 }
 
 .member-name {
   font-weight: 500;
   color: var(--fg);
-}
-
-.role-buttons {
-  display: flex;
-  gap: 0.25rem;
-}
-
-.btn-role {
-  width: 32px;
-  height: 32px;
-  border-radius: 6px;
-  border: 1px solid var(--border);
-  background: var(--card);
-  color: var(--muted);
-  cursor: pointer;
-  font-weight: 600;
-  font-size: 0.85rem;
-  transition: all 0.2s;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.btn-role:hover {
-  background: var(--muted-bg);
-  border-color: var(--link);
-  color: var(--link);
-}
-
-.btn-role.active {
-  background: var(--btn-primary-bg, #3b82f6);
-  color: var(--btn-primary-fg, #fff);
-  border-color: var(--btn-primary-bg, #3b82f6);
-  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.3);
-}
-
-.btn-role:focus {
-  outline: none;
-  box-shadow: 0 0 0 3px var(--ring);
-}
-
-.btn-role:disabled {
-  opacity: 0.4;
-  cursor: not-allowed;
-  background: var(--muted-bg);
-  color: var(--muted);
-  border-color: var(--border);
-}
-
-.btn-role:disabled:hover {
-  background: var(--muted-bg);
-  border-color: var(--border);
-  color: var(--muted);
-  transform: none;
-}
-
-/* Scrollbar styling */
-.member-list::-webkit-scrollbar {
-  width: 8px;
-}
-
-.member-list::-webkit-scrollbar-track {
-  background: var(--muted-bg);
-  border-radius: 4px;
-}
-
-.member-list::-webkit-scrollbar-thumb {
-  background: var(--border);
-  border-radius: 4px;
-}
-
-.member-list::-webkit-scrollbar-thumb:hover {
-  background: var(--muted);
-}
-
-/* Mode Toggle Styles */
-.mode-toggle-container {
-  display: flex;
-  justify-content: center;
-  margin-bottom: 1rem;
-}
-
-.mode-toggle-btn {
   font-size: 0.9rem;
-  padding: 0.5rem 1rem;
 }
 
-/* Simple Selection Styles */
-.simple-selection {
+/* Role picker */
+.role-picker-options {
   display: flex;
-  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-top: 0.75rem;
 }
 
-.btn-select {
-  padding: 0.5rem 1rem;
-  border-radius: 6px;
-  border: 1px solid var(--border);
+.role-picker-btn {
+  padding: 0.6rem 1.2rem;
+  border: 2px solid var(--border);
+  border-radius: 8px;
   background: var(--card);
   color: var(--fg);
-  cursor: pointer;
   font-weight: 600;
-  font-size: 0.85rem;
+  font-size: 0.95rem;
+  cursor: pointer;
   transition: all 0.2s;
-  min-width: 100px;
 }
 
-.btn-select:hover:not(:disabled) {
-  background: var(--muted-bg);
-  border-color: var(--link);
-  color: var(--link);
-}
-
-.btn-select.selected {
-  background: var(--btn-primary-bg, #3b82f6);
-  color: var(--btn-primary-fg, #fff);
+.role-picker-btn:hover {
   border-color: var(--btn-primary-bg, #3b82f6);
-  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.3);
-}
-
-.btn-select:disabled {
-  opacity: 0.4;
-  cursor: not-allowed;
   background: var(--muted-bg);
-  color: var(--muted);
-  border-color: var(--border);
-}
-
-.btn-select:focus {
-  outline: none;
-  box-shadow: 0 0 0 3px var(--ring);
+  color: var(--btn-primary-bg, #3b82f6);
 }
 
 /* Insufficient participants warning */
@@ -692,5 +776,53 @@ function cancelInsufficientParticipants() {
 .insufficient-warning .warning-question {
   color: var(--muted);
   font-size: 0.95rem;
+}
+
+/* Scrollbar styling */
+.pool-list::-webkit-scrollbar {
+  width: 8px;
+}
+
+.pool-list::-webkit-scrollbar-track {
+  background: var(--muted-bg);
+  border-radius: 4px;
+}
+
+.pool-list::-webkit-scrollbar-thumb {
+  background: var(--border);
+  border-radius: 4px;
+}
+
+.pool-list::-webkit-scrollbar-thumb:hover {
+  background: var(--muted);
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .org-layout {
+    flex-direction: column;
+  }
+
+  .pool-panel {
+    flex: none;
+  }
+
+  .pool-list {
+    max-height: 200px;
+  }
+}
+
+.muted {
+  color: var(--muted);
+}
+
+/* Drag ghost styling */
+.sortable-ghost {
+  opacity: 0.5;
+  background: var(--muted-bg);
+}
+
+.sortable-chosen {
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
 }
 </style>
