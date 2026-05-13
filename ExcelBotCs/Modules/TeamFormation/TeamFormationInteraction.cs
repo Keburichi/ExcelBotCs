@@ -10,20 +10,11 @@ namespace ExcelBotCs.Modules.TeamFormation;
 [Group("event", "Event commands")]
 public class TeamFormationInteraction : InteractionModuleBase<SocketInteractionContext>
 {
-    private readonly Prng _rng;
-
-    private const string TankRoleEmote = "<:RoleTank:1380979172423499846>";
-    private const string HealerRoleEmote = "<:RoleHealer:1380979170787721368>";
-    private const string MeleeRoleEmote = "<:RoleMelee:873621778214318091>";
-    private const string CasterRoleEmote = "<:RoleCaster:873621778566635540>";
-    private const string RangedRoleEmote = "<:RoleRanged:873621778453368895>";
-
     private readonly IEventDetailsRepository _eventDetails;
     private readonly string _rootUrl;
 
     public TeamFormationInteraction(Prng rng, IEventDetailsRepository eventDetailsRepository)
     {
-        _rng = rng;
         _eventDetails = eventDetailsRepository;
         _rootUrl = Utils.GetEnvVar("EVENT_ENDPOINT_URL", nameof(TeamFormationInteraction));
     }
@@ -195,11 +186,11 @@ public class TeamFormationInteraction : InteractionModuleBase<SocketInteractionC
             $"## {eventName}\r\n" +
             $"<t:{startEpoch}:R>\r\n" +
             $"<t:{startEpoch}:F> - <t:{endEpoch}:F>\r\n\r\n" +
-            $"{(tankIds.Count > 0 ? $"<:RoleTank:1380979172423499846> {string.Join(" ", tankIds.Select(user => $"<@{user.Id}>"))}\r\n" : string.Empty)}" +
-            $"{(healerIds.Count > 0 ? $"<:RoleHealer:1380979170787721368> {string.Join(" ", healerIds.Select(user => $"<@{user.Id}>"))}\r\n" : string.Empty)}" +
-            $"{(meleeDpsIds.Count > 0 ? $"<:RoleMelee:873621778214318091> {string.Join(" ", meleeDpsIds.Select(user => $"<@{user.Id}>"))}\r\n" : string.Empty)}" +
-            $"{(casterDpsIds.Count > 0 ? $"<:RoleCaster:873621778566635540> {string.Join(" ", casterDpsIds.Select(user => $"<@{user.Id}>"))}\r\n" : string.Empty)}" +
-            $"{(rangedDpsIds.Count > 0 ? $"<:RoleRanged:873621778453368895> {string.Join(" ", rangedDpsIds.Select(user => $"<@{user.Id}>"))}\r\n" : string.Empty)}";
+            $"{(tankIds.Count > 0 ? $"{Constants.TankRoleEmote} {string.Join(" ", tankIds.Select(user => $"<@{user.Id}>"))}\r\n" : string.Empty)}" +
+            $"{(healerIds.Count > 0 ? $"{Constants.HealerRoleEmote} {string.Join(" ", healerIds.Select(user => $"<@{user.Id}>"))}\r\n" : string.Empty)}" +
+            $"{(meleeDpsIds.Count > 0 ? $"{Constants.MeleeRoleEmote} {string.Join(" ", meleeDpsIds.Select(user => $"<@{user.Id}>"))}\r\n" : string.Empty)}" +
+            $"{(casterDpsIds.Count > 0 ? $"{Constants.CasterRoleEmote}  {string.Join(" ", casterDpsIds.Select(user => $"<@{user.Id}>"))}\r\n" : string.Empty)}" +
+            $"{(rangedDpsIds.Count > 0 ? $"{Constants.RangedRoleEmote} {string.Join(" ", rangedDpsIds.Select(user => $"<@{user.Id}>"))}\r\n" : string.Empty)}";
         output = output.Trim();
 
         var rosterChannel = Context.Guild.GetTextChannel(1411293182133665792);

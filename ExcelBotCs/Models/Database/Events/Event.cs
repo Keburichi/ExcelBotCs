@@ -68,22 +68,7 @@ public class Event : BaseEntity
         }
     }
 
-    public bool AvailableForSignup
-    {
-        get
-        {
-            if (Occurrences == null || !Occurrences.Any())
-                return false;
-
-            // Signups are event-level: available if there's at least one scheduled occurrence
-            // and no groups have been created yet (roster not finalized)
-            var hasScheduledOccurrence = Occurrences.Any(o => o.Status == OccurrenceStatus.Scheduled);
-            if (!hasScheduledOccurrence)
-                return false;
-
-            return Groups.IsNullOrEmpty();
-        }
-    }
+    public bool AvailableForSignup => Groups.IsNullOrEmpty();
 
     /// <summary>
     ///     Can be used to get the current occurrence of an event to check if it has already been concluded.

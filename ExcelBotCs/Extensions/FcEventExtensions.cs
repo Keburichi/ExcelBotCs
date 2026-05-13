@@ -40,11 +40,11 @@ public static class FcEventExtensions
 
     private static void AppendRoleMentions(StringBuilder messageBuilder, List<EventParticipant> participants)
     {
-        messageBuilder.AppendLine($":RoleTank: {RoleMentions(participants, Role.Tank)}");
-        messageBuilder.AppendLine($":RoleHealer: {RoleMentions(participants, Role.Healer)}");
-        messageBuilder.AppendLine($":RoleMelee: {RoleMentions(participants, Role.Melee)}");
-        messageBuilder.AppendLine($":RoleCaster: {RoleMentions(participants, Role.Caster)}");
-        messageBuilder.AppendLine($":RoleRanged: {RoleMentions(participants, Role.Ranged)}");
+        messageBuilder.AppendLine($"{Constants.TankRoleEmote} {RoleMentions(participants, Role.Tank)}");
+        messageBuilder.AppendLine($"{Constants.HealerRoleEmote} {RoleMentions(participants, Role.Healer)}");
+        messageBuilder.AppendLine($"{Constants.MeleeRoleEmote} {RoleMentions(participants, Role.Melee)}");
+        messageBuilder.AppendLine($"{Constants.RangedRoleEmote} {RoleMentions(participants, Role.Ranged)}");
+        messageBuilder.AppendLine($"{Constants.CasterRoleEmote} {RoleMentions(participants, Role.Caster)}");
     }
 
     private static string RoleMentions(List<EventParticipant> eventParticipants, Role role)

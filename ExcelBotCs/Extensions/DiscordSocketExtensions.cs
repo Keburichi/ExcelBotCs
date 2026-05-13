@@ -89,27 +89,27 @@ public static class DiscordSocketExtensions
 
     public static Emote? GetTankEmote(this DiscordSocketClient client)
     {
-        return client.GetEmotes().FirstOrDefault(x => x.Id == 1380979172423499846);
+        return client.GetEmotes().FirstOrDefault(x => x.Id == Constants.TankRoleEmoteId);
     }
 
     public static Emote? GetHealerEmote(this DiscordSocketClient client)
     {
-        return client.GetEmotes().FirstOrDefault(x => x.Id == 1380979170787721368);
+        return client.GetEmotes().FirstOrDefault(x => x.Id == Constants.HealerRoleEmoteId);
     }
 
     public static Emote? GetMeleeEmote(this DiscordSocketClient client)
     {
-        return client.GetEmotes().FirstOrDefault(x => x.Id == 873621778214318091);
+        return client.GetEmotes().FirstOrDefault(x => x.Id == Constants.MeleeRoleEmoteId);
     }
 
     public static Emote? GetRangedEmote(this DiscordSocketClient client)
     {
-        return client.GetEmotes().FirstOrDefault(x => x.Id == 873621778453368895);
+        return client.GetEmotes().FirstOrDefault(x => x.Id == Constants.RangedRoleEmoteId);
     }
 
     public static Emote? GetCasterEmote(this DiscordSocketClient client)
     {
-        return client.GetEmotes().FirstOrDefault(x => x.Id == 873621778566635540);
+        return client.GetEmotes().FirstOrDefault(x => x.Id == Constants.CasterRoleEmoteId);
     }
 
     public static Emote? GetEmoteById(this DiscordSocketClient client, ulong id)
