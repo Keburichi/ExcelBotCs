@@ -69,5 +69,44 @@ public class EventResponse : BaseDto
         }
     }
 
-    public bool AvailableForSignup => Groups.IsNullOrEmpty();
+    public bool AvailableForSignup
+    {
+        get
+        {
+            if (Occurrences == null || !Occurrences.Any())
+                return false;
+
+            if (GetCurrentOccurrence().Status != OccurrenceStatus.Scheduled)
+                return false;
+
+            return Groups.IsNullOrEmpty();
+        }
+    }
+
+    /// <summary>
+    ///     Can be used to get the current occurrence of an event to check if it has already been concluded.
+    ///     This info is useful for determining if lottery guesses have been awarded
+    /// </summary>
+    /// <returns></returns>
+    private EventOccurrenceDto GetCurrentOccurrence()
+    {
+        var occurrence = Occurrences
+                             ?.Where(o => o.OccurrenceDate >= DateTime.UtcNow)
+                             .OrderBy(o => o.OccurrenceDate)
+                             .FirstOrDefault()
+                         ?? Occurrences?.FirstOrDefault();
+
+        if (occurrence == null)
+        {
+            occurrence = new EventOccurrenceDto
+            {
+                OccurrenceDate = StartDate,
+                Status = OccurrenceStatus.Scheduled
+            };
+            Occurrences ??= new List<EventOccurrenceDto>();
+            Occurrences.Add(occurrence);
+        }
+
+        return occurrence;
+    }
 }

@@ -68,7 +68,19 @@ public class Event : BaseEntity
         }
     }
 
-    public bool AvailableForSignup => Groups.IsNullOrEmpty();
+    public bool AvailableForSignup
+    {
+        get
+        {
+            if (Occurrences == null || !Occurrences.Any())
+                return false;
+
+            if (GetCurrentOccurrence().Status != OccurrenceStatus.Scheduled)
+                return false;
+
+            return Groups.IsNullOrEmpty();
+        }
+    }
 
     /// <summary>
     ///     Can be used to get the current occurrence of an event to check if it has already been concluded.
@@ -79,7 +91,7 @@ public class Event : BaseEntity
     {
         // Determine target occurrence: prefer next upcoming scheduled occurrence, fall back to the first; create if none exists
         var occurrence = Occurrences
-                             ?.Where(o => o.Status == OccurrenceStatus.Scheduled && o.OccurrenceDate >= DateTime.UtcNow)
+                             ?.Where(o => o.OccurrenceDate >= DateTime.UtcNow)
                              .OrderBy(o => o.OccurrenceDate)
                              .FirstOrDefault()
                          ?? Occurrences?.FirstOrDefault();

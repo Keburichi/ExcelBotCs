@@ -1,7 +1,6 @@
 ﻿using System.Text;
 using ExcelBotCs.Attributes;
 using ExcelBotCs.Controllers.Interfaces;
-using ExcelBotCs.Extensions;
 using ExcelBotCs.Mappers.Events;
 using ExcelBotCs.Models.Database;
 using ExcelBotCs.Models.Database.Events;
@@ -29,16 +28,18 @@ public class EventsController : AuthorizedController, IEventsController
     private readonly IDiscordMessageService _discordMessageService;
     private readonly IEventService _eventService;
     private readonly IICalService _iiCalService;
+    private readonly IDiscordMessageCreator _discordMessageCreator;
     private readonly string _rootUrl;
 
     public EventsController(ILogger<EventsController> logger, IEventService eventService,
         ICurrentMemberAccessor currentMemberAccessor, IDiscordMessageService discordMessageService,
-        IICalService iiCalService) : base(logger)
+        IICalService iiCalService, IDiscordMessageCreator discordMessageCreator) : base(logger)
     {
         _eventService = eventService;
         _currentMemberAccessor = currentMemberAccessor;
         _discordMessageService = discordMessageService;
         _iiCalService = iiCalService;
+        _discordMessageCreator = discordMessageCreator;
         _rootUrl = Utils.GetEnvVar("EVENT_ENDPOINT_URL", nameof(TeamFormationInteraction));
     }
 
@@ -221,7 +222,8 @@ public class EventsController : AuthorizedController, IEventsController
         await _eventService.UpdateAsync(fcEvent.Id, fcEvent);
 
         // Post the roster to Discord
-        await _discordMessageService.PostInUpcomingRosterChannelAsync(fcEvent.CreateUpcomingRosterMessage());
+        await _discordMessageService.PostInUpcomingRosterChannelAsync(
+            await _discordMessageCreator.CreateUpcomingRosterMessage(fcEvent));
 
         return Ok();
     }

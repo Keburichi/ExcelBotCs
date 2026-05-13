@@ -11,10 +11,10 @@ public class DiscordMessageService : IDiscordMessageService
 {
     private readonly DiscordSocketClient _discordSocketClient;
     private readonly IOptions<DiscordBotOptions> _config;
-    private readonly IComponentCreator _componentCreator;
+    private readonly IDiscordMessageCreator _componentCreator;
 
     public DiscordMessageService(DiscordSocketClient discordSocketClient, IOptions<DiscordBotOptions> config,
-        IComponentCreator componentCreator)
+        IDiscordMessageCreator componentCreator)
     {
         _discordSocketClient = discordSocketClient;
         _config = config;
@@ -74,6 +74,19 @@ public class DiscordMessageService : IDiscordMessageService
             return;
 
         await message.DeleteAsync();
+    }
+
+    public async Task<string> GetEventSignupMessageUrl(string discordMessageId)
+    {
+        var channel = await GetTextChannelFromChannelId(_config.Value.EventsChannel);
+        if (channel == null)
+            return string.Empty;
+
+        var message = await channel.GetMessageAsync(ulong.Parse(discordMessageId));
+        if (message == null)
+            return string.Empty;
+
+        return message.GetJumpUrl();
     }
 
     public async Task PostInUpcomingRosterChannelAsync(string message)
