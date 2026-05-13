@@ -288,16 +288,36 @@ public class EventServiceTests
     }
 
     [Fact]
-    public async Task DeleteAsync_CallsRepository()
+    public async Task DeleteAsync_DeletesDiscordMessage_WhenMessageIdExists()
     {
         // Arrange
         var id = Guid.NewGuid().ToString();
+        var fcEvent = new Event { DiscordMessageId = "123456789" }.PopulateWithRandomData();
+        _eventRepositoryMock.Setup(x => x.GetAsync(id)).ReturnsAsync(fcEvent);
         _eventRepositoryMock.Setup(x => x.DeleteAsync(id)).Returns(Task.CompletedTask);
 
         // Act
         await _eventService.DeleteAsync(id);
 
         // Assert
+        _discordMessageServiceMock.Verify(x => x.DeleteEventMessageAsync("123456789"), Times.Once());
+        _eventRepositoryMock.Verify(x => x.DeleteAsync(id), Times.Once());
+    }
+
+    [Fact]
+    public async Task DeleteAsync_SkipsDiscordDeletion_WhenMessageIdIsNull()
+    {
+        // Arrange
+        var id = Guid.NewGuid().ToString();
+        var fcEvent = new Event { DiscordMessageId = null }.PopulateWithRandomData();
+        _eventRepositoryMock.Setup(x => x.GetAsync(id)).ReturnsAsync(fcEvent);
+        _eventRepositoryMock.Setup(x => x.DeleteAsync(id)).Returns(Task.CompletedTask);
+
+        // Act
+        await _eventService.DeleteAsync(id);
+
+        // Assert
+        _discordMessageServiceMock.Verify(x => x.DeleteEventMessageAsync(It.IsAny<string>()), Times.Never());
         _eventRepositoryMock.Verify(x => x.DeleteAsync(id), Times.Once());
     }
 

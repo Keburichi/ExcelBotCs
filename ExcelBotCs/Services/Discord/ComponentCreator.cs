@@ -77,7 +77,18 @@ public class ComponentCreator : IComponentCreator
         componentBuilderV2.WithTextDisplay($"{fcEvent.Description}");
 
         componentBuilderV2.WithSeparator();
-        componentBuilderV2.WithActionRow(buttons);
+
+        var signupsClosed = !fcEvent.AvailableForSignup || fcEvent.IsArchived;
+
+        if (signupsClosed)
+        {
+            componentBuilderV2.WithTextDisplay("**Signups are closed for this event.**");
+        }
+        else
+        {
+            componentBuilderV2.WithActionRow(buttons);
+        }
+
         componentBuilderV2.WithSeparator(SeparatorSpacingSize.Large);
         componentBuilderV2.WithTextDisplay("**Current Signups**");
 

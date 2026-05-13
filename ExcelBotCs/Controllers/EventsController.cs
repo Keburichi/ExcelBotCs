@@ -81,10 +81,17 @@ public class EventsController : AuthorizedController, IEventsController
 
     [HttpPut("{id:length(24)}")]
     [AdminAuth]
-    public async Task<ActionResult<EventResponse>> UpdateEvent(UpdateEventRequest updateEvent)
+    public async Task<ActionResult<EventResponse>> UpdateEvent(string id, [FromBody] UpdateEventRequest updateEvent)
     {
-        // await _eventService.UpdateAsync(updateEvent.Id, updateEvent);
-        return NoContent();
+        var existingEvent = await _eventService.GetAsync(id);
+        if (existingEvent is null)
+            return NotFound();
+
+        existingEvent.ApplyUpdate(updateEvent);
+
+        await _eventService.UpdateAsync(id, existingEvent);
+
+        return Ok(existingEvent.ToEventResponse());
     }
 
     [HttpDelete("{eventId:length(24)}")]

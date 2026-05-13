@@ -9,6 +9,7 @@ public interface IDiscordMessageService
     Task PostInEventChannelAsync(string message);
     Task<IUserMessage?> PostEventSignupAsync(Event fcEvent);
     Task UpdateSignupMessage(Event fcEvent);
+    Task DeleteEventMessageAsync(string discordMessageId);
     Task PostInUpcomingRosterChannelAsync(string message);
     Task PostInLotteryChannelAsync(string message);
     Task<List<IMessage>> GetAnnouncementChannelMessagesAsync();

@@ -56,9 +56,24 @@ public class DiscordMessageService : IDiscordMessageService
             return;
 
         var message = await channel.GetMessageAsync(ulong.Parse(fcEvent.DiscordMessageId)) as IUserMessage;
+        if (message == null)
+            return;
 
         var component = await _componentCreator.CreateSignupComponents(fcEvent);
         await message.ModifyAsync(m => m.Components = component.Build());
+    }
+
+    public async Task DeleteEventMessageAsync(string discordMessageId)
+    {
+        var channel = await GetTextChannelFromChannelId(_config.Value.EventsChannel);
+        if (channel == null)
+            return;
+
+        var message = await channel.GetMessageAsync(ulong.Parse(discordMessageId));
+        if (message == null)
+            return;
+
+        await message.DeleteAsync();
     }
 
     public async Task PostInUpcomingRosterChannelAsync(string message)

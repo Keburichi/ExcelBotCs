@@ -102,6 +102,22 @@ public static class EventMappingExtensions
         };
     }
 
+    public static Event ApplyUpdate(this Event existing, UpdateEventRequest request)
+    {
+        existing.Name = request.Name;
+        existing.Description = request.Description;
+        existing.Type = request.Type;
+        existing.StartDate = request.StartDate;
+        existing.Duration = request.Duration;
+        existing.ICalString = request.ICalString;
+        existing.SignupType = request.SignupType;
+        existing.PictureUrl = request.PictureUrl;
+        existing.FightId = request.FightId;
+        existing.Organizer = request.Organizer;
+        existing.MaxNumberOfParticipants = request.MaxNumberOfParticipants;
+        return existing;
+    }
+
     public static Event ToFcEvent(this CreateEventRequest createEventRequest)
     {
         return new Event

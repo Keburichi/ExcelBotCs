@@ -1,17 +1,19 @@
 using Discord.Interactions;
-using ExcelBotCs.Models.Tasks;
 using ExcelBotCs.Modules.TeamFormation;
 using ExcelBotCs.Services.API.Interfaces;
+using ExcelBotCs.Services.Discord.Interfaces;
 
 namespace ExcelBotCs.Modules.Misc;
 
 public class SignupModule : InteractionModuleBase<SocketInteractionContext>
 {
-    private readonly IBotTaskService _botTaskService;
+    private readonly IEventService _eventService;
+    private readonly IDiscordMessageService _discordMessageService;
 
-    public SignupModule(IBotTaskService botTaskService)
+    public SignupModule(IEventService eventService, IDiscordMessageService discordMessageService)
     {
-        _botTaskService = botTaskService;
+        _eventService = eventService;
+        _discordMessageService = discordMessageService;
     }
 
     [ComponentInteraction("*-signup-*")]
@@ -35,12 +37,24 @@ public class SignupModule : InteractionModuleBase<SocketInteractionContext>
             return;
         }
 
-        await _botTaskService.EnqueueAsync(BotTaskTypes.PostEventSignup, new PostEventSignupPayload
+        var fcEvent = await _eventService.GetAsync(eventId);
+        if (fcEvent == null)
         {
-            EventId = eventId,
-            Role = role.Value,
-            DiscordUserId = Context.User.Id
-        });
+            await FollowupAsync("This event no longer exists.", ephemeral: true);
+            return;
+        }
+
+        if (!fcEvent.AvailableForSignup || fcEvent.IsArchived)
+        {
+            await FollowupAsync("Signups are closed for this event.", ephemeral: true);
+            return;
+        }
+
+        await _eventService.HandleSignupAsync(eventId, role.Value, Context.User.Id);
+
+        fcEvent = await _eventService.GetAsync(eventId);
+        if (fcEvent != null && !string.IsNullOrEmpty(fcEvent.DiscordMessageId))
+            await _discordMessageService.UpdateSignupMessage(fcEvent);
 
         await FollowupAsync("Your signup has been received!", ephemeral: true);
     }

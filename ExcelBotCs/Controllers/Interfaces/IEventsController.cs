@@ -10,7 +10,7 @@ public interface IEventsController
     public Task<ActionResult<List<EventResponse>>> GetEvents(int limit = 50, int page = 1);
     public Task<ActionResult<EventResponse>> GetEvent(string eventId);
     public Task<ActionResult<EventResponse>> CreateEvent(CreateEventRequest createEvent);
-    public Task<ActionResult<EventResponse>> UpdateEvent(UpdateEventRequest updateEvent);
+    public Task<ActionResult<EventResponse>> UpdateEvent(string id, UpdateEventRequest updateEvent);
     public Task<ActionResult> DeleteEvent(string eventId);
 
     // Archive operations

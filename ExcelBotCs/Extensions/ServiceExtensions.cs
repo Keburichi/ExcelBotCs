@@ -6,8 +6,6 @@ using ExcelBotCs.Services;
 using ExcelBotCs.Services.API;
 using ExcelBotCs.Services.API.Interfaces;
 using ExcelBotCs.Services.FFLogs;
-using ExcelBotCs.Services.Tasks;
-using ExcelBotCs.Services.Tasks.Handlers;
 
 namespace ExcelBotCs.Extensions;
 
@@ -27,7 +25,6 @@ public static class ServiceExtensions
         services.AddSingleton<IExtraLotteryGuessRepository, ExtraLotteryGuessRepository>();
         services.AddSingleton<ILotteryResultRepository, LotteryResultRepository>();
         services.AddSingleton<IEventDetailsRepository, EventDetailsRepository>();
-        services.AddSingleton<IBotTaskRepository, BotTaskRepository>();
     }
 
     public static void AddApiServices(this IServiceCollection services)
@@ -39,7 +36,6 @@ public static class ServiceExtensions
         services.AddSingleton<IMemberRoleService, MemberRoleService>();
         services.AddSingleton<ILodestoneDutyService, LodestoneDutyService>();
         services.AddSingleton<IRaidplanService, RaidplanService>();
-        services.AddSingleton<IBotTaskService, BotTaskService>();
     }
 
     public static void AddDomainServices(this IServiceCollection services)
@@ -72,10 +68,4 @@ public static class ServiceExtensions
         services.AddSingleton<FFLogsSyncService>();
     }
 
-    public static void AddTaskQueueServices(this IServiceCollection services)
-    {
-        services.AddSingleton<IBotTaskHandler, PostEventSignupHandler>();
-        services.AddSingleton<IBotTaskHandler, PostDiscordMessageHandler>();
-        services.AddSingleton<IBotTaskHandler, UpdateSignupMessageHandler>();
-    }
 }
