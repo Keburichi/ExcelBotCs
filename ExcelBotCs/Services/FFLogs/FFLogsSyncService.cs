@@ -67,7 +67,7 @@ public class FFLogsSyncService
 
             // Get existing fights with FFLogs IDs
             var existingFights = await _fightRepository.GetAsync();
-            
+
             var existingFFLogsIds = new HashSet<int>(
                 existingFights
                     .Where(f => f.FFLogsEncounterId.HasValue)
@@ -77,19 +77,18 @@ public class FFLogsSyncService
             // Process all expansions and zones in chronological order
             foreach (var expansion in worldData.worldData.expansions.OrderBy(x => x.id))
             {
-                var isLatestExpansion = !worldData.worldData.expansions.Any(x => x.id > expansion.id);
-
                 foreach (var zone in expansion.zones)
                 {
                     // Determine fight type early to filter
-                    var fightMapping = MapFightType(zone.name, zone.difficulties, isLatestExpansion);
+                    var fightMapping = MapFightType(zone.name, zone.difficulties);
 
                     // Skip non-high-end content (Normal, Chaotic, etc.)
                     if (fightMapping.fightType != FightType.Extreme &&
                         fightMapping.fightType != FightType.Savage &&
                         fightMapping.fightType != FightType.LegacySavage &&
-                        fightMapping.fightType != FightType.Ultimate && 
-                        fightMapping.fightType != FightType.Chaotic)
+                        fightMapping.fightType != FightType.Ultimate &&
+                        fightMapping.fightType != FightType.Chaotic &&
+                        fightMapping.fightType != FightType.Unreal)
                     {
                         _logger.LogDebug("Skipping non-high-end zone: {ZoneName} (Type: {FightType})",
                             zone.name, fightMapping.fightType);
@@ -107,10 +106,16 @@ public class FFLogsSyncService
                             continue;
                         }
 
+                        // Attach the suffix to the fight name, but don't propagate the
+                        // legacy part
+                        var fightName = fightMapping.fightType == FightType.LegacySavage
+                            ? $"{encounter.name} ({FightType.Savage})"
+                            : $"{encounter.name} ({fightMapping.fightType})";
+
                         // Create new fight
                         var fight = new Fight
                         {
-                            Name = encounter.name,
+                            Name = fightName,
                             Description = $"{zone.name} - {expansion.name}",
                             ImageUrl = string.Empty, // No image URL from FFLogs API
                             Type = fightMapping.fightType,
@@ -203,9 +208,9 @@ public class FFLogsSyncService
 
                 try
                 {
-                    if(member.LodestoneId.IsNullOrEmpty())
+                    if (member.LodestoneId.IsNullOrEmpty())
                         continue;
-                    
+
                     if (!long.TryParse(member.LodestoneId, out var lodestoneId))
                     {
                         _logger.LogWarning("Invalid Lodestone ID for member {MemberId}: {LodestoneId}",
@@ -216,8 +221,9 @@ public class FFLogsSyncService
 
                     // gather which fights haven't been cleared yet that still accepts logs
                     var unclearedFights = new List<Fight>();
-                    if(member.Experience != null && !member.Experience.IsNullOrEmpty())
-                        unclearedFights = allFights.Where(x => !x.IsFrozen && member.ExperienceIds.All(e => e != x.Id)).ToList();
+                    if (member.Experience != null && !member.Experience.IsNullOrEmpty())
+                        unclearedFights = allFights.Where(x => !x.IsFrozen && member.ExperienceIds.All(e => e != x.Id))
+                            .ToList();
                     else
                         unclearedFights = allFights;
 
@@ -251,7 +257,7 @@ public class FFLogsSyncService
                         // Process each cleared encounter
                         foreach (var encounterRanking in zoneRankings.rankings)
                         {
-                            if(encounterRanking.totalKills == 0)
+                            if (encounterRanking.totalKills == 0)
                                 continue;
 
                             if (fightsByFFLogsId.TryGetValue(encounterRanking.encounter.id, out var fight))
@@ -266,12 +272,13 @@ public class FFLogsSyncService
 
                                     _logger.LogInformation(
                                         "Member {MemberName} cleared {FightName} - Best: {BestAmount:F2}, Rank: {RankPercent:F2}%",
-                                        member.DiscordName, fight.Name, encounterRanking.bestAmount, encounterRanking.rankPercent);
+                                        member.DiscordName, fight.Name, encounterRanking.bestAmount,
+                                        encounterRanking.rankPercent);
                                 }
                             }
                         }
                     }
-                    
+
                     // Update member experience if there are new clears
                     if (newClears > 0)
                     {
@@ -293,7 +300,7 @@ public class FFLogsSyncService
                         log.ItemsSkipped++;
                         _logger.LogDebug("No new clears for member {MemberId}", member.Id);
                     }
-                    
+
                     // Add delay between members
                     await Task.Delay(_options.DelayBetweenRequestsMs);
                 }
@@ -325,36 +332,34 @@ public class FFLogsSyncService
     /// <summary>
     /// Maps FFLogs zone and difficulty information to FightType enum
     /// </summary>
-    private static (FightType fightType, Difficulty difficulty) MapFightType(string zoneName, List<Difficulty> difficulties, bool isLatestExpansion)
+    private static (FightType fightType, Difficulty difficulty) MapFightType(string zoneName,
+        List<Difficulty> difficulties)
     {
         var lowerZoneName = zoneName.ToLowerInvariant();
         var lowerDifficultyNames = difficulties.Select(x => x.name.ToLowerInvariant()).ToList();
 
         // If the difficulty for savage exists, we know this is a savage fight
         if (lowerDifficultyNames.Contains("savage"))
-        {
-            return isLatestExpansion
-                ? (FightType.Savage, difficulties.First(x => x.name.ToLowerInvariant() == "savage"))
-                : (FightType.LegacySavage, difficulties.First(x => x.name.ToLowerInvariant() == "savage"));
-        }
+            return (FightType.Savage, difficulties.First(x => x.name.ToLowerInvariant() == "savage"));
 
         // Check for Ultimate (highest priority)
         if (lowerZoneName.Contains("ultimate"))
             return (FightType.Ultimate, difficulties.First());
-        
+
+        if (lowerZoneName.Contains("unreal"))
+            return (FightType.Unreal, difficulties.First());
+
         // Check for Extreme
         if (lowerZoneName.Contains("extreme") || lowerZoneName.Contains("minstrel"))
-            return (FightType.Extreme,  difficulties.First());
-        
+            return (FightType.Extreme, difficulties.First());
+
         // Check for chaotic
-        if(lowerZoneName.Contains("chaotic"))
+        if (lowerZoneName.Contains("chaotic"))
             return (FightType.Chaotic, difficulties.First());
-        
+
         // Check for savage
-        if(lowerZoneName.Contains("savage"))
-            return isLatestExpansion
-                ? (FightType.Savage, difficulties.First())
-                : (FightType.LegacySavage, difficulties.First());
+        if (lowerZoneName.Contains("savage"))
+            return (FightType.Savage, difficulties.First());
 
         // This is a last ditch effort since the FFLogs API is kinda shite to identify 
         // special fights that do not have their difficulty mentioned in the name or zone

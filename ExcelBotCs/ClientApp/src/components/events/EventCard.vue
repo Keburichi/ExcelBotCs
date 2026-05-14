@@ -42,17 +42,19 @@ const isConcludeOpen = ref(false)
 const isRaidplanDialogOpen = ref(false)
 const isExtendOpen = ref(false)
 
+const { getNextOccurrence, getOccurrenceToComplete, getEvent, updateOccurrenceStatusById } = useEvents()
+
 // Fights data for lookup
 const fights = ref<Fight[]>([])
 
 // Get next occurrence for display (future scheduled occurrences only)
 const nextOccurrence = computed((): EventOccurrence | null => {
-  return useEvents().getNextOccurrence(fcEventValue.value)
+  return getNextOccurrence(fcEventValue.value)
 })
 
 // Get occurrence that can be completed (prioritizes past scheduled occurrences)
 const occurrenceToComplete = computed((): EventOccurrence | null => {
-  return useEvents().getOccurrenceToComplete(fcEventValue.value)
+  return getOccurrenceToComplete(fcEventValue.value)
 })
 
 // Get past scheduled occurrence (for skip functionality)
@@ -161,7 +163,7 @@ async function handleSignupDialogClose(value: boolean) {
 
   // When dialog closes (value becomes false), fetch updated event data
   if (!value) {
-    const updatedEvent = await useEvents().getEvent(fcEventValue.value.Id)
+    const updatedEvent = await getEvent(fcEventValue.value.Id)
     if (updatedEvent) {
       fcEventValue.value = updatedEvent
     }
@@ -181,14 +183,13 @@ function getParticipantCount(fcEvent: FCEvent) {
   return fcEvent.Groups.flatMap(g => g.Participants).length
 }
 
-function openFightResources(event: MouseEvent) {
-  event.stopPropagation() // Prevent event card click
+function openFightResources() {
   isRaidplanDialogOpen.value = true
 }
 
 // Handle event concluded - reload event data and check for auto-archive
 async function handleEventConcluded() {
-  const updatedEvent = await useEvents().getEvent(fcEventValue.value.Id)
+  const updatedEvent = await getEvent(fcEventValue.value.Id)
   if (updatedEvent) {
     fcEventValue.value = updatedEvent
 
@@ -205,14 +206,14 @@ async function skipPastOccurrence() {
     return
 
   try {
-    await useEvents().updateOccurrenceStatusById(
+    await updateOccurrenceStatusById(
       fcEventValue.value.Id,
       pastScheduledOccurrence.value.Id,
       OccurrenceStatus.Cancelled,
     )
 
     // Reload event data
-    const updatedEvent = await useEvents().getEvent(fcEventValue.value.Id)
+    const updatedEvent = await getEvent(fcEventValue.value.Id)
     if (updatedEvent) {
       fcEventValue.value = updatedEvent
 
@@ -246,7 +247,7 @@ onMounted(async () => {
 </script>
 
 <template>
-  <EventSignupDialog v-model="isOpen" :event="fcEventValue" @update:model-value="handleSignupDialogClose" />
+  <EventSignupDialog :event="fcEventValue" :model-value="isOpen" @update:model-value="handleSignupDialogClose" />
 
   <EventOrganizationDialog
     v-model:fc-event="fcEventValue"

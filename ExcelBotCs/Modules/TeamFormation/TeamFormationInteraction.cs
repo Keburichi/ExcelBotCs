@@ -4,6 +4,8 @@ using Discord;
 using Discord.Interactions;
 using ExcelBotCs.Database.Interfaces;
 using ExcelBotCs.Extensions;
+using ExcelBotCs.Models.Config;
+using Microsoft.Extensions.Options;
 
 namespace ExcelBotCs.Modules.TeamFormation;
 
@@ -11,11 +13,14 @@ namespace ExcelBotCs.Modules.TeamFormation;
 public class TeamFormationInteraction : InteractionModuleBase<SocketInteractionContext>
 {
     private readonly IEventDetailsRepository _eventDetails;
+    private readonly DiscordBotOptions _discordBotOptions;
     private readonly string _rootUrl;
 
-    public TeamFormationInteraction(Prng rng, IEventDetailsRepository eventDetailsRepository)
+    public TeamFormationInteraction(Prng rng, IEventDetailsRepository eventDetailsRepository,
+        IOptions<DiscordBotOptions> discordBotOptions)
     {
         _eventDetails = eventDetailsRepository;
+        _discordBotOptions = discordBotOptions.Value;
         _rootUrl = Utils.GetEnvVar("EVENT_ENDPOINT_URL", nameof(TeamFormationInteraction));
     }
 
@@ -55,7 +60,7 @@ public class TeamFormationInteraction : InteractionModuleBase<SocketInteractionC
     [SlashCommand("list", "Get a list of signups from the post provided")]
     public async Task GetSignups(string postUrl, string? checkEmoji = null)
     {
-        if (!Context.GuildUser().Roles.IsOfficer())
+        if (!Context.GuildUser().IsOfficer(_discordBotOptions))
         {
             await RespondAsync("Only officers can use this command!", ephemeral: true);
             return;
@@ -138,7 +143,7 @@ public class TeamFormationInteraction : InteractionModuleBase<SocketInteractionC
         [MinValue(0)] [MaxValue(59)] int startMinuteSt = 0,
         [MinValue(0)] [MaxValue(59)] int endMinuteSt = 0)
     {
-        if (!Context.GuildUser().Roles.IsOfficer())
+        if (!Context.GuildUser().IsOfficer(_discordBotOptions))
         {
             await RespondAsync("Only officers can use this command!", ephemeral: true);
             return;

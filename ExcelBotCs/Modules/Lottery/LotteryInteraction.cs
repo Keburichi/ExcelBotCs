@@ -2,10 +2,12 @@ using Discord;
 using Discord.Interactions;
 using Discord.WebSocket;
 using ExcelBotCs.Extensions;
+using ExcelBotCs.Models.Config;
 using ExcelBotCs.Services.Lottery;
 using ExcelBotCs.Services.Lottery.Enums;
 using ExcelBotCs.Services.Lottery.Interfaces;
 using ExcelBotCs.Services.Lottery.Records;
+using Microsoft.Extensions.Options;
 
 namespace ExcelBotCs.Modules.Lottery;
 
@@ -13,10 +15,12 @@ namespace ExcelBotCs.Modules.Lottery;
 public class LotteryInteraction : InteractionModuleBase<SocketInteractionContext>
 {
     private readonly ILotteryService _lotteryService;
+    private readonly DiscordBotOptions _discordBotOptions;
 
-    public LotteryInteraction(ILotteryService lotteryService)
+    public LotteryInteraction(ILotteryService lotteryService, IOptions<DiscordBotOptions> discordBotOptions)
     {
         _lotteryService = lotteryService;
+        _discordBotOptions = discordBotOptions.Value;
     }
 
     [SlashCommand("guess", "Pick a number and have a chance to win!")]
@@ -86,7 +90,7 @@ public class LotteryInteraction : InteractionModuleBase<SocketInteractionContext
     [SlashCommand("run", "Runs the lottery.")]
     public async Task Run()
     {
-        if (!Context.GuildUser().Roles.IsOfficer())
+        if (!Context.GuildUser().IsOfficer(_discordBotOptions))
         {
             await RespondAsync("Only officers can use this command!", ephemeral: true);
             return;
@@ -100,7 +104,7 @@ public class LotteryInteraction : InteractionModuleBase<SocketInteractionContext
     [SlashCommand("remind", "Reminds users to use any remaining guesses")]
     public async Task Remind()
     {
-        if (!Context.GuildUser().Roles.IsOfficer())
+        if (!Context.GuildUser().IsOfficer(_discordBotOptions))
         {
             await RespondAsync("Only officers can use this command!", ephemeral: true);
             return;
@@ -114,7 +118,7 @@ public class LotteryInteraction : InteractionModuleBase<SocketInteractionContext
     [SlashCommand("award", "Grants extra guesses for the current lottery period")]
     public async Task Award(string reason, string? postUrl = null)
     {
-        if (!Context.GuildUser().Roles.IsOfficer())
+        if (!Context.GuildUser().IsOfficer(_discordBotOptions))
         {
             await RespondAsync("Only officers can use this command!", ephemeral: true);
             return;

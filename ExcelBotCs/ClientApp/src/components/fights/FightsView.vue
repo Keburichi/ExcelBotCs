@@ -46,6 +46,7 @@ const fightTypeOptions = [
   { label: 'Extreme', value: FightType.Extreme.valueOf() },
   { label: 'Savage', value: FightType.Savage },
   { label: 'Ultimate', value: FightType.Ultimate },
+  { label: 'Unreal', value: FightType.Unreal },
 ]
 
 // Make filters computed so they update when options change
@@ -110,7 +111,7 @@ const searchFiltered = computed(() => {
   <section class="home">
     <div class="page-header">
       <h2 class="page-title">
-        Fights
+        Fights & Resources
       </h2>
     </div>
 
@@ -130,8 +131,8 @@ const searchFiltered = computed(() => {
     </p>
 
     <CardList
-      :items="searchFiltered"
       :columns="2"
+      :items="searchFiltered"
       item-key="Id"
     >
       <template #item="{ item }">

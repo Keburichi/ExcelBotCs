@@ -7,6 +7,7 @@ const props = withDefaults(defineProps<{
   closeOnOutsideClick?: boolean
   showCloseButton?: boolean
   size?: 'small' | 'medium' | 'large'
+  closeGuard?: () => boolean
 }>(), {
   closeOnOutsideClick: true,
   showCloseButton: true,
@@ -30,6 +31,9 @@ const sizeClasses = computed(() => {
 const isOpen = defineModel<boolean>({ required: true })
 
 function close() {
+  if (props.closeGuard && !props.closeGuard()) {
+    return
+  }
   isOpen.value = false
   emit('close')
 }
