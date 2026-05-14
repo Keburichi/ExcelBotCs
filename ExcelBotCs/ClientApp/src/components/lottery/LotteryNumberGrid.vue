@@ -23,50 +23,41 @@ function isGuessed(num: number): boolean {
 }
 
 function handleNumberClick(num: number) {
-  // If user clicks on their own guess, select it for reassignment
   if (isMyGuess(num)) {
     emit('select', num)
     return
   }
 
-  // If a guess is selected (an existing guess to change) and the target is available, perform change
   if (props.selectedNumber !== null) {
     if (!isGuessed(num)) {
       emit('change', props.selectedNumber, num)
     }
-    // If target is taken, ignore single click (user can try another available number)
     return
   }
 
-  // If no selection yet and user can add a guess (no guesses made) and target is available, make a guess
   if (props.myGuesses.length === 0 && !isGuessed(num)) {
     emit('guess', num)
     return
   }
 
-  // Otherwise just toggle selection state on available numbers
   emit('select', num)
 }
 
 function handleGuessClick(num: number) {
   if (isMyGuess(num)) {
-    // Can't guess a number you already have
     return
   }
 
   if (props.myGuesses.length > 0 && props.selectedNumber === null) {
-    // If user has guesses but hasn't selected one to change, just add a new guess
     emit('guess', num)
     return
   }
 
   if (props.selectedNumber !== null) {
-    // Change guess
     emit('change', props.selectedNumber, num)
     return
   }
 
-  // First guess
   emit('guess', num)
 }
 
@@ -93,7 +84,7 @@ function getTooltip(num: number): string | undefined {
 </script>
 
 <template>
-  <div class="number-grid-container">
+  <div class="grid-wrap">
     <div class="number-grid">
       <BaseButton
         v-for="num in 100"
@@ -108,43 +99,42 @@ function getTooltip(num: number): string | undefined {
     </div>
     <div class="grid-legend">
       <div class="legend-item">
-        <div class="legend-box legend-box--available" />
+        <div class="legend-dot legend-dot--available" />
         <span>Available</span>
       </div>
       <div class="legend-item">
-        <div class="legend-box legend-box--my-guess" />
+        <div class="legend-dot legend-dot--my-guess" />
         <span>Your Guess</span>
       </div>
       <div class="legend-item">
-        <div class="legend-box legend-box--selected" />
+        <div class="legend-dot legend-dot--selected" />
         <span>Selected</span>
       </div>
       <div class="legend-item">
-        <div class="legend-box legend-box--taken" />
+        <div class="legend-dot legend-dot--taken" />
         <span>Taken</span>
       </div>
     </div>
     <p class="grid-help">
-      Click your existing guess, then click an available number to reassign. On first pick, click an available number to
-      guess.
+      Click your guess to select it, then click an available number to reassign.
     </p>
   </div>
 </template>
 
 <style scoped>
-.number-grid-container {
+.grid-wrap {
   display: flex;
   flex-direction: column;
-  gap: 1rem;
+  gap: 0.75rem;
 }
 
 .number-grid {
   display: grid;
   grid-template-columns: repeat(10, 1fr);
-  gap: 0.5rem;
+  gap: 0.375rem;
 }
 
-@media (max-width: 768px) {
+@media (max-width: 640px) {
   .number-grid {
     grid-template-columns: repeat(5, 1fr);
   }
@@ -154,53 +144,43 @@ function getTooltip(num: number): string | undefined {
   display: flex;
   flex-wrap: wrap;
   gap: 1rem;
-  padding: 1rem;
-  background: rgba(0, 0, 0, 0.02);
-  border-radius: 0.5rem;
-  border: 1px solid var(--border);
-}
-
-[data-theme="dark"] .grid-legend {
-  background: rgba(255, 255, 255, 0.05);
+  padding-top: 0.25rem;
 }
 
 .legend-item {
   display: flex;
   align-items: center;
-  gap: 0.5rem;
+  gap: 0.375rem;
+  font-size: 0.8rem;
+  color: var(--muted);
 }
 
-.legend-box {
-  width: 24px;
-  height: 24px;
-  border-radius: 8px;
-  border: 2px solid;
+.legend-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  flex-shrink: 0;
 }
 
-.legend-box--available {
+.legend-dot--available {
   background: var(--lot-available);
-  border-color: var(--lot-available-border);
 }
 
-.legend-box--my-guess {
+.legend-dot--my-guess {
   background: var(--lot-mine);
-  border-color: var(--lot-mine-border);
 }
 
-.legend-box--selected {
+.legend-dot--selected {
   background: var(--lot-selected);
-  border-color: var(--lot-selected-border);
 }
 
-.legend-box--taken {
+.legend-dot--taken {
   background: var(--lot-taken);
-  border-color: var(--lot-taken-border);
 }
 
 .grid-help {
-  text-align: center;
   color: var(--muted);
-  font-size: 0.875rem;
+  font-size: 0.8rem;
   margin: 0;
 }
 </style>
