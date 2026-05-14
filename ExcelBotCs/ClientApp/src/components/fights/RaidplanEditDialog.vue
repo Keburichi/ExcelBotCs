@@ -1,6 +1,6 @@
 <script lang="ts" setup>
 import type { Raidplan } from '@/features/fights/fights.types'
-import { computed, reactive, watch } from 'vue'
+import { computed, reactive, ref, watch } from 'vue'
 import BaseButton from '@/components/BaseButton.vue'
 import BaseModal from '@/components/BaseModal.vue'
 
@@ -45,14 +45,41 @@ watch(() => props.raidplan, (newRaidplan) => {
   }
 }, { immediate: true })
 
+const showDiscardConfirm = ref(false)
+
+const isDirty = computed(() => {
+  const original = props.raidplan
+  if (original) {
+    return formData.Name !== original.Name
+      || formData.Description !== original.Description
+      || formData.Url !== original.Url
+  }
+  return formData.Name !== '' || formData.Description !== '' || formData.Url !== ''
+})
+
+function guardClose(): boolean {
+  if (isDirty.value) {
+    showDiscardConfirm.value = true
+    return false
+  }
+  return true
+}
+
 function handleSave() {
   emit('save', { ...formData })
-  closeDialog()
+  forceClose()
+}
+
+function forceClose() {
+  showDiscardConfirm.value = false
+  emit('update:isOpen', false)
+  emit('close')
 }
 
 function closeDialog() {
-  emit('update:isOpen', false)
-  emit('close')
+  if (!guardClose())
+    return
+  forceClose()
 }
 
 const isEditing = computed(() => !!props.raidplan?.Id)
@@ -62,6 +89,7 @@ const isEditing = computed(() => !!props.raidplan?.Id)
   <BaseModal
     :model-value="isOpen"
     :title="isEditing ? 'Edit Raidplan' : 'Create Raidplan'"
+    :close-guard="guardClose"
     size="medium"
     @close="closeDialog"
     @update:model-value="(v) => emit('update:isOpen', v)"
@@ -104,6 +132,16 @@ const isEditing = computed(() => !!props.raidplan?.Id)
           >
         </div>
       </form>
+
+      <div v-if="showDiscardConfirm" class="discard-confirm">
+        <p class="discard-confirm__message">
+          You have unsaved changes. Do you want to discard them?
+        </p>
+        <div class="discard-confirm__actions">
+          <BaseButton size="small" state="secondary" title="Continue editing" @clicked="showDiscardConfirm = false" />
+          <BaseButton size="small" state="danger" title="Discard changes" @clicked="forceClose" />
+        </div>
+      </div>
     </template>
 
     <template #actions>
@@ -150,5 +188,25 @@ const isEditing = computed(() => !!props.raidplan?.Id)
 .form-textarea {
   resize: vertical;
   min-height: 100px;
+}
+
+.discard-confirm {
+  margin-top: 1.25rem;
+  padding: 1rem;
+  border-radius: 0.5rem;
+  background: color-mix(in srgb, #ef4444 10%, var(--card));
+  border: 1px solid color-mix(in srgb, #ef4444 40%, transparent);
+}
+
+.discard-confirm__message {
+  margin: 0 0 0.75rem;
+  font-size: 0.9rem;
+  color: var(--fg);
+}
+
+.discard-confirm__actions {
+  display: flex;
+  gap: 0.5rem;
+  justify-content: flex-end;
 }
 </style>
