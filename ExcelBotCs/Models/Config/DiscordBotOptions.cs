@@ -24,4 +24,5 @@ public class DiscordBotOptions
 
     public List<ulong> AdminRoleIds { get; set; } = [];
     public List<ulong> MemberRoleIds { get; set; } = [];
+    public List<ulong> FriendOfFcRoleIds { get; set; } = [];
 }
