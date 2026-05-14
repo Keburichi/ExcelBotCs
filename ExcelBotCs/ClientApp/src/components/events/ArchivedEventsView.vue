@@ -311,10 +311,6 @@ onMounted(() => {
   font-weight: 700;
   margin: 0;
   color: var(--fg);
-  background: linear-gradient(135deg, #3b82f6 0%, #8b5cf6 50%, #ec4899 100%);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
   letter-spacing: -0.02em;
 }
 

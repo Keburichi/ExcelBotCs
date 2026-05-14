@@ -4,7 +4,6 @@ import { computed, onMounted, ref } from 'vue'
 import VueCal from 'vue-cal'
 import { useRouter } from 'vue-router'
 import BaseButton from '@/components/BaseButton.vue'
-import CardList from '@/components/CardList.vue'
 import EventCard from '@/components/events/EventCard.vue'
 import { useAuth } from '@/composables/useAuth'
 import { useEvents } from '@/composables/useEvents'
@@ -34,23 +33,18 @@ function goArchived() {
 }
 
 function handleEventArchived(event: any) {
-  // Remove the archived event from the list
   e.events.value = e.events.value.filter(ev => ev.Id !== event.Id)
 }
 
-// Subscription / download calendar URL for the current user (Discord user id)
 const calendarUrl = computed(() => {
   const discordId = user.value?.DiscordId
-  if (!discordId)
-    return ''
+  if (!discordId) return ''
   const origin = typeof window !== 'undefined' ? window.location.origin : ''
   return `${origin}/api/Events/retrieve/${discordId}.ics`
 })
 
 function subscribeCalendar() {
-  if (!calendarUrl.value)
-    return
-  // Open in a new tab so users can download or copy the URL to subscribe in external apps
+  if (!calendarUrl.value) return
   window.open(calendarUrl.value, '_blank')
 }
 
@@ -62,8 +56,7 @@ const freqMap = {
 }
 
 const calendarEvents = computed(() => {
-  if (!e.events.value)
-    return []
+  if (!e.events.value) return []
   const events: any[] = []
   e.events.value.forEach((event) => {
     if (event.ICalString && event.ICalString.includes('RRULE:')) {
@@ -93,7 +86,6 @@ const calendarEvents = computed(() => {
 
           const cleanedOptions = Object.fromEntries(Object.entries(options).filter(([, v]) => v != null))
           const rule = new RRule(cleanedOptions)
-          // Compute occurrences within the current year using `between` (all() doesn't accept range args)
           const rangeStart = new Date(new Date().getFullYear(), 0, 1)
           const rangeEnd = new Date(new Date().getFullYear() + 1, 0, 1)
           const occurrences = rule.between(rangeStart, rangeEnd, true)
@@ -109,8 +101,8 @@ const calendarEvents = computed(() => {
             })
           })
         }
-        catch (e) {
-          console.error('Could not parse rrule string', e)
+        catch (err) {
+          console.error('Could not parse rrule string', err)
         }
       }
     }
@@ -136,7 +128,6 @@ function onViewChange({ view, startDate, endDate }: { view: string, startDate: D
     })
 
     if (eventsInView.length > 0) {
-      // Use minute precision for tighter vertical bounds.
       const startMinutes = eventsInView.map((event) => {
         const d = new Date(event.start)
         return d.getHours() * 60 + d.getMinutes()
@@ -150,9 +141,7 @@ function onViewChange({ view, startDate, endDate }: { view: string, startDate: D
       const earliestStartMin = Math.min(...startMinutes)
       const latestEndMin = Math.max(...endMinutes)
 
-      // Start one hour earlier than the earliest event, clamp to 00:00.
       timeFrom.value = Math.max(0, earliestStartMin - 60)
-      // Keep an extra hour after last event for readability, clamp to 24:00.
       timeTo.value = Math.min(24 * 60, latestEndMin + 60)
     }
     else {
@@ -166,13 +155,12 @@ onMounted(e.load)
 </script>
 
 <template>
-  <section class="home">
-    <div class="page-header">
-      <h2 class="page-title">
-        Events
-      </h2>
-    </div>
+  <section>
+    <p v-if="e.error" class="error">
+      {{ e.error }}
+    </p>
 
+    <!-- Calendar (developer-only) -->
     <template v-if="isDeveloper">
       <div class="calendar-header">
         <h3 class="calendar-header__title">
@@ -207,24 +195,9 @@ onMounted(e.load)
         />
       </div>
     </template>
-    <template v-else>
-      <div class="calendar-placeholder">
-        <h3>
-          Calendar coming soon
-        </h3>
-        <p>We're working on the calendar experience. It's currently visible only to developers.</p>
-      </div>
-    </template>
 
-    <h3 class="section-subheading">
-      Events List ({{ e.events.value.length }})
-    </h3>
-    <p v-if="e.error" class="error">
-      {{ e.error }}
-    </p>
-
-    <div class="container">
-      <div class="events-actions">
+    <div class="events-toolbar">
+      <div class="events-toolbar__actions">
         <BaseButton
           v-if="isMember"
           :disabled="!calendarUrl"
@@ -232,11 +205,12 @@ onMounted(e.load)
           state="pressed"
           title="Subscribe to Calendar"
           variant="outlined"
+          size="small"
           @clicked="subscribeCalendar"
         />
         <BaseButton
           v-if="isAdmin"
-          size="medium"
+          size="small"
           state="secondary"
           title="View Archive"
           tooltip="View archived events"
@@ -244,7 +218,7 @@ onMounted(e.load)
         />
         <BaseButton
           v-if="isAdmin"
-          size="medium"
+          size="small"
           state="primary"
           title="Create Event"
           @clicked="goCreate"
@@ -252,142 +226,109 @@ onMounted(e.load)
       </div>
     </div>
 
-    <CardList :columns="2" :items="e.events.value" item-key="Id">
-      <template #item="{ item }">
-        <EventCard
-          :fc-event="item"
-          :is-admin="isAdmin?.valueOf()"
-          :is-developer="isDeveloper?.valueOf()"
-          :is-member="isMember?.valueOf()"
-          @archived="handleEventArchived"
-          @start-edit="goEdit"
-          @cancel-edit="e.cancelEdit"
-          @save-edit="e.save"
-          @delete-event="e.deleteEvent"
-        />
-      </template>
-    </CardList>
+    <div v-if="!e.events.value.length && !e.error" class="events-empty muted">
+      No upcoming events scheduled.
+    </div>
+
+    <div class="events-grid">
+      <EventCard
+        v-for="(item, idx) in e.events.value"
+        :key="item.Id"
+        v-model:fc-event="e.events.value[idx]"
+        :is-admin="isAdmin?.valueOf()"
+        :is-developer="isDeveloper?.valueOf()"
+        :is-member="isMember?.valueOf()"
+        @archived="handleEventArchived"
+        @start-edit="goEdit"
+        @cancel-edit="e.cancelEdit"
+        @save-edit="e.save"
+        @delete-event="e.deleteEvent"
+      />
+    </div>
   </section>
 </template>
 
-<style>
-.calendar-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; }
-.calendar-header__title { font-size: 1.25rem; font-weight: 600; }
-.calendar-header__controls { display: flex; gap: 0.5rem; align-items: center; }
-.calendar-container { margin-bottom: 2rem; }
-.calendar-placeholder {
-  margin-bottom: 2rem; padding: 1.5rem; border-radius: 8px;
-  border: 1px dashed var(--border); color: var(--muted);
+<style scoped>
+.calendar-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1rem;
 }
-.calendar-placeholder h3 { font-size: 1.25rem; font-weight: 600; margin-bottom: 0.5rem; color: var(--fg); }
-.events-actions { display: flex; gap: 0.5rem; align-items: center; }
 
-/* Page header */
-.page-header {
+.calendar-header__title {
+  font-size: 1.125rem;
+  font-weight: 600;
+}
+
+.calendar-header__controls {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+.calendar-container {
   margin-bottom: 2rem;
 }
 
-.page-title {
-  font-size: 2rem;
-  font-weight: 700;
-  margin: 0;
-  background: linear-gradient(135deg, #3b82f6 0%, #8b5cf6 50%, #ec4899 100%);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
-  color: transparent;
-  letter-spacing: -0.02em;
+.events-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  margin-bottom: 1rem;
 }
 
-.section-subheading {
-  font-size: 1.5rem;
-  font-weight: 600;
-  color: var(--fg);
-  margin: 2rem 0 1rem 0;
+.events-toolbar__actions {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
 }
 
-.vuecal__event {
-  cursor: pointer;
+.events-empty {
+  text-align: center;
+  padding: 3rem 1rem;
 }
 
-.event-type--raid {
-  background-color: var(--cat-blue-bg);
-  border: 1px solid var(--cat-blue-fg);
+.events-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(420px, 1fr));
+  gap: 1rem;
 }
 
-.event-type--social {
-  background-color: var(--cat-purple-bg);
-  border: 1px solid var(--cat-purple-fg);
-}
+@media (max-width: 520px) {
+  .events-grid {
+    grid-template-columns: 1fr;
+  }
 
-.event-type--farming {
-  background-color: var(--cat-green-bg);
-  border: 1px solid var(--cat-green-fg);
-}
+  .events-toolbar {
+    justify-content: flex-start;
+  }
 
-.event-type--maps {
-  background-color: var(--cat-orange-bg);
-  border: 1px solid var(--cat-orange-fg);
+  .events-toolbar__actions {
+    flex-wrap: wrap;
+  }
 }
+</style>
 
-.event-type--blu {
-  background-color: var(--cat-teal-bg);
-  border: 1px solid var(--cat-teal-fg);
-}
-
-.event-type--academy {
-  background-color: var(--cat-rose-bg);
-  border: 1px solid var(--cat-rose-fg);
-}
-
-.event-type--minilvl {
-  background-color: var(--cat-amber-bg);
-  border: 1px solid var(--cat-amber-fg);
-}
-
-.event-type--downsynced {
-  background-color: var(--cat-indigo-bg);
-  border: 1px solid var(--cat-indigo-fg);
-}
-
-.event-type--other {
-  background-color: var(--cat-slate-bg);
-  border: 1px solid var(--cat-slate-fg);
-}
-
-.vuecal--dark .event-type--raid {
-  background-color: var(--cat-blue-fg);
-}
-
-.vuecal--dark .event-type--social {
-  background-color: var(--cat-purple-fg);
-}
-
-.vuecal--dark .event-type--farming {
-  background-color: var(--cat-green-fg);
-}
-
-.vuecal--dark .event-type--maps {
-  background-color: var(--cat-orange-fg);
-}
-
-.vuecal--dark .event-type--blu {
-  background-color: var(--cat-teal-fg);
-}
-
-.vuecal--dark .event-type--academy {
-  background-color: var(--cat-rose-fg);
-}
-
-.vuecal--dark .event-type--minilvl {
-  background-color: var(--cat-amber-fg);
-}
-
-.vuecal--dark .event-type--downsynced {
-  background-color: var(--cat-indigo-fg);
-}
-
-.vuecal--dark .event-type--other {
-  background-color: var(--cat-slate-fg);
-}
+<!-- Unscoped: calendar event type colors must reach into VueCal -->
+<style>
+.vuecal__event { cursor: pointer; }
+.event-type--raid { background-color: var(--cat-blue-bg); border: 1px solid var(--cat-blue-fg); }
+.event-type--social { background-color: var(--cat-purple-bg); border: 1px solid var(--cat-purple-fg); }
+.event-type--farming { background-color: var(--cat-green-bg); border: 1px solid var(--cat-green-fg); }
+.event-type--maps { background-color: var(--cat-orange-bg); border: 1px solid var(--cat-orange-fg); }
+.event-type--blu { background-color: var(--cat-teal-bg); border: 1px solid var(--cat-teal-fg); }
+.event-type--academy { background-color: var(--cat-rose-bg); border: 1px solid var(--cat-rose-fg); }
+.event-type--minilvl { background-color: var(--cat-amber-bg); border: 1px solid var(--cat-amber-fg); }
+.event-type--downsynced { background-color: var(--cat-indigo-bg); border: 1px solid var(--cat-indigo-fg); }
+.event-type--other { background-color: var(--cat-slate-bg); border: 1px solid var(--cat-slate-fg); }
+.vuecal--dark .event-type--raid { background-color: var(--cat-blue-fg); }
+.vuecal--dark .event-type--social { background-color: var(--cat-purple-fg); }
+.vuecal--dark .event-type--farming { background-color: var(--cat-green-fg); }
+.vuecal--dark .event-type--maps { background-color: var(--cat-orange-fg); }
+.vuecal--dark .event-type--blu { background-color: var(--cat-teal-fg); }
+.vuecal--dark .event-type--academy { background-color: var(--cat-rose-fg); }
+.vuecal--dark .event-type--minilvl { background-color: var(--cat-amber-fg); }
+.vuecal--dark .event-type--downsynced { background-color: var(--cat-indigo-fg); }
+.vuecal--dark .event-type--other { background-color: var(--cat-slate-fg); }
 </style>
