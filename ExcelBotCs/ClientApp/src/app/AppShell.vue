@@ -325,43 +325,23 @@ const isLoginPage = computed(() => route.path === '/login')
   position: relative;
   z-index: 1;
   flex: 1;
-  padding-bottom: 3rem;
+  padding-bottom: 2rem;
 }
 
-/* Subtle glassmorphism footer */
 .app-footer {
   position: relative;
   z-index: 1;
   margin-top: auto;
-  padding: 2rem;
+  padding: 1.25rem 1.5rem;
   text-align: center;
-  background: rgba(255, 255, 255, 0.08);
-  backdrop-filter: blur(12px);
-  border-radius: 16px;
-  border: 1px solid rgba(255, 255, 255, 0.15);
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.06);
-}
-
-:root[data-theme='dark'] .app-footer {
-  background: rgba(18, 26, 45, 0.12);
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.15);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root:not([data-theme='light']) .app-footer {
-    background: rgba(18, 26, 45, 0.12);
-    border: 1px solid rgba(255, 255, 255, 0.08);
-    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.15);
-  }
+  border-top: 1px solid var(--border);
 }
 
 .copyright-text {
-  font-size: 0.875rem;
-  font-weight: 500;
-  letter-spacing: 0.5px;
+  font-size: 0.8125rem;
+  font-weight: 400;
   color: var(--muted);
-  line-height: 1.6;
+  line-height: 1.4;
 }
 
 /* Responsive design */
