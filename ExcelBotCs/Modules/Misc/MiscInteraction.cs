@@ -1,6 +1,8 @@
 using Discord.Interactions;
 using Discord.WebSocket;
 using ExcelBotCs.Extensions;
+using ExcelBotCs.Models.Config;
+using Microsoft.Extensions.Options;
 
 namespace ExcelBotCs.Modules.Misc;
 
@@ -8,17 +10,19 @@ public class MiscInteraction : InteractionModuleBase<SocketInteractionContext>
 {
     private readonly DiscordSocketClient _discord;
     private readonly Prng _rng;
+    private readonly DiscordBotOptions _discordBotOptions;
 
-    public MiscInteraction(DiscordSocketClient discord, Prng rng)
+    public MiscInteraction(DiscordSocketClient discord, Prng rng, IOptions<DiscordBotOptions> discordBotOptions)
     {
         _discord = discord;
         _rng = rng;
+        _discordBotOptions = discordBotOptions.Value;
     }
 
     [SlashCommand("whoisingame", "Tells you who is currently in-game")]
     public async Task WhoIsInGame()
     {
-        var guild = _discord.ExcelGuild();
+        var guild = _discord.ExcelGuild(_discordBotOptions);
         await guild.DownloadUsersAsync();
 
         var presenceUsers = guild

@@ -2,6 +2,7 @@ using System.Text.RegularExpressions;
 using Discord;
 using Discord.Interactions;
 using Discord.WebSocket;
+using ExcelBotCs.Models.Config;
 using ExcelBotCs.Modules.TeamFormation;
 
 namespace ExcelBotCs.Extensions;
@@ -15,27 +16,39 @@ public static class DiscordSocketExtensions
         Success
     }
 
-    public static SocketGuild ExcelGuild(this DiscordSocketClient client)
+    public static SocketGuild ExcelGuild(this DiscordSocketClient client, DiscordBotOptions discordBotOptions)
     {
-        return client.Guilds.First(x => x.Id == Constants.GuildId);
+        return client.Guilds.First(x => x.Id == discordBotOptions.GuildId);
     }
 
-    public static bool IsMember(this IReadOnlyCollection<SocketRole> roles)
+    public static bool IsMember(this SocketGuildUser user, DiscordBotOptions discordBotOptions)
     {
-        return roles.Any(role => role.Id == Constants.FcRoleId);
+        return user.Roles.Any(role => discordBotOptions.MemberRoleIds.Contains(role.Id));
     }
 
-    // public static bool IsOfficer(this IReadOnlyCollection<SocketRole> roles) =>
-    // 	roles.Any(role => role.Id == Constants.OfficerRoleId);
-
-    public static bool IsOfficer(this IReadOnlyCollection<SocketRole> roles)
+    public static bool IsMember(this IReadOnlyCollection<SocketRole> roles, DiscordBotOptions discordBotOptions)
     {
-        return true;
+        return roles.Any(role => discordBotOptions.MemberRoleIds.Contains(role.Id));
     }
 
-    public static bool IsFriendOfFc(this IReadOnlyCollection<SocketRole> roles)
+    public static bool IsOfficer(this SocketGuildUser user, DiscordBotOptions discordBotOptions)
     {
-        return roles.Any(role => role.Id == Constants.FcFriendRoleId);
+        return user.Roles.Any(role => discordBotOptions.AdminRoleIds.Contains(role.Id));
+    }
+
+    public static bool IsOfficer(this IReadOnlyCollection<SocketRole> roles, DiscordBotOptions discordBotOptions)
+    {
+        return roles.Any(role => discordBotOptions.AdminRoleIds.Contains(role.Id));
+    }
+
+    public static bool IsFriendOfFc(this SocketGuildUser user, DiscordBotOptions discordBotOptions)
+    {
+        return user.Roles.Any(role => discordBotOptions.FriendOfFcRoleIds.Contains(role.Id));
+    }
+
+    public static bool IsFriendOfFc(this IReadOnlyCollection<SocketRole> roles, DiscordBotOptions discordBotOptions)
+    {
+        return roles.Any(role => discordBotOptions.FriendOfFcRoleIds.Contains(role.Id));
     }
 
     public static SocketGuildUser GuildUser(this SocketInteractionContext context)
