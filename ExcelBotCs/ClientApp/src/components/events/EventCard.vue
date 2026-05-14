@@ -272,9 +272,11 @@ onMounted(async () => {
         <div class="event-card__time-primary">
           <span class="event-card__date">{{ formattedDate }}</span>
           <span class="event-card__time-range">{{ formattedTimeRange }}</span>
+        </div>
+        <div class="event-card__time-secondary">
+          <span class="event-card__server-time">{{ serverTimeRange }}</span>
           <span class="event-card__duration">{{ formattedDuration }}</span>
         </div>
-        <span class="event-card__server-time">{{ serverTimeRange }}</span>
       </div>
 
       <!-- Recurrence -->
@@ -293,9 +295,9 @@ onMounted(async () => {
           {{ occurrenceStatusToString(nextOccurrence.Status) }}
         </span>
         <span v-if="nextOccurrence" class="event-card__participants">
-          {{ getParticipantCount(fcEventValue) }}/{{ fcEventValue.MaxNumberOfParticipants }} selected
+          {{ getParticipantCount(fcEventValue) }}/{{ fcEventValue.MaxNumberOfParticipants }} participants
         </span>
-        <span class="event-card__organizer">{{ fcEventValue.Organizer }}</span>
+        <span class="event-card__organizer">Organized by {{ fcEventValue.Organizer }}</span>
         <span v-if="associatedFight" class="event-card__fight">
           <BaseButton
             :title="associatedFight.Name"
@@ -494,15 +496,21 @@ onMounted(async () => {
 /* Time block */
 .event-card__time {
   display: flex;
-  flex-wrap: wrap;
-  align-items: baseline;
-  gap: 0.25rem 0.75rem;
+  flex-direction: column;
+  gap: 0.25rem;
 }
 
 .event-card__time-primary {
   display: flex;
   align-items: baseline;
   gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.event-card__time-secondary {
+  display: flex;
+  align-items: baseline;
+  gap: 0.75rem;
   flex-wrap: wrap;
 }
 
@@ -516,14 +524,16 @@ onMounted(async () => {
   color: var(--fg);
 }
 
-.event-card__duration {
-  font-size: 0.8125rem;
-  color: var(--muted);
+.event-card__server-time {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--fg);
 }
 
-.event-card__server-time {
-  font-size: 0.8125rem;
-  color: var(--muted);
+.event-card__duration {
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: var(--fg);
 }
 
 /* Recurrence */
@@ -572,11 +582,6 @@ onMounted(async () => {
 
 .event-card__participants {
   font-weight: 500;
-}
-
-.event-card__organizer::before {
-  content: 'by ';
-  font-weight: 400;
 }
 
 .event-card__fight {

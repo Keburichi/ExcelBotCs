@@ -323,14 +323,11 @@ const isLoginPage = computed(() => route.path === '/login')
 
 .app-content {
   position: relative;
-  z-index: 1;
   flex: 1;
   padding-bottom: 2rem;
 }
 
 .app-footer {
-  position: relative;
-  z-index: 1;
   margin-top: auto;
   padding: 1.25rem 1.5rem;
   text-align: center;
