@@ -120,7 +120,7 @@ public class MemberServiceTests
 
         // Assert
         updatedMember.LodestoneId.ShouldBe("existing-lodestone-id");
-        updatedMember.LodestoneVerificationToken.ShouldBe("existing-token");
+        updatedMember.LodestoneVerificationToken.ShouldBe("new-token");
 
         _memberRepositoryMock.Verify(x => x.GetAsync(id), Times.Once());
         _memberRepositoryMock.Verify(x => x.UpdateAsync(id, updatedMember), Times.Once());
