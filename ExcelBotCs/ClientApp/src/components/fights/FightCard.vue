@@ -1,7 +1,6 @@
 <script lang="ts" setup>
 import type { Fight } from '@/features/fights/fights.types'
 import { ref } from 'vue'
-import BaseCard from '@/components/BaseCard.vue'
 import RaidplanDialog from '@/components/fights/RaidplanDialog.vue'
 import { fightTypeToString } from '@/features/fights/fights.types'
 
@@ -12,171 +11,304 @@ const props = defineProps<{
 
 const showRaidplanDialog = ref(false)
 
-function cardClick(fight: Fight) {
+function cardClick() {
   showRaidplanDialog.value = true
+}
+
+function difficultyClass(fight: Fight) {
+  return `difficulty-${fightTypeToString(fight.Type).toLowerCase()}`
 }
 </script>
 
 <template>
-  <BaseCard :clickable="true" :title="props.fight.Name" variant="outlined" @click="cardClick(props.fight)">
-    <template #body>
-      <div class="fight-info">
-        <p class="fight-description">
-          {{ props.fight.Description }}
-        </p>
-      </div>
-    </template>
-    <template #image>
+  <article
+    class="fight-card"
+    tabindex="0"
+    role="button"
+    @click="cardClick"
+    @keydown.enter.space.prevent="cardClick"
+  >
+    <div class="fight-card__image-wrap">
       <img
-        v-if="props.fight.ImageUrl" :alt="props.fight.Name" :src="props.fight.ImageUrl" class="card__image"
+        v-if="fight.ImageUrl"
+        :alt="fight.Name"
+        :src="fight.ImageUrl"
+        class="fight-card__image"
         referrerpolicy="no-referrer"
+        loading="lazy"
       >
-      <div v-else :title="`No image available for ${props.fight.Name}`" class="card__image card__image--placeholder" />
-    </template>
-    <template #footer>
-      <div class="fight-metadata">
-        <span
-          :class="`difficulty-${fightTypeToString(props.fight.Type).toLowerCase()}`"
-          class="fight-badge difficulty-badge"
-        >
-          {{ fightTypeToString(props.fight.Type) }}
-        </span>
-        <span v-if="props.fight.FFLogsExpansionName" class="fight-badge expansion-badge">
-          {{ props.fight.FFLogsExpansionName }}
-        </span>
-        <span v-if="props.fight.FFLogsZoneName" class="fight-badge zone-badge">
-          {{ props.fight.FFLogsZoneName }}
+      <div v-else class="fight-card__image fight-card__placeholder" :class="difficultyClass(fight)">
+        <svg class="fight-card__placeholder-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M14.5 3.5C14.5 3.5 14.5 5.5 12 5.5C9.5 5.5 9.5 3.5 9.5 3.5" />
+          <path d="M4.5 8.5L8 10.5V14L4.5 17.5" />
+          <path d="M19.5 8.5L16 10.5V14L19.5 17.5" />
+          <path d="M8 10.5L12 8L16 10.5" />
+          <path d="M12 8V3.5" />
+          <path d="M8 14H16" />
+          <path d="M10 14V20.5H14V14" />
+        </svg>
+      </div>
+
+      <div class="fight-card__image-overlay">
+        <span v-if="fight.Raidplans?.length" class="fight-card__resource-count">
+          {{ fight.Raidplans.length }} {{ fight.Raidplans.length === 1 ? 'resource' : 'resources' }}
         </span>
       </div>
-    </template>
-  </BaseCard>
+    </div>
 
-  <!-- Raidplan Dialog -->
+    <div class="fight-card__body">
+      <h3 class="fight-card__name">
+        {{ fight.Name }}
+      </h3>
+      <div class="fight-card__meta">
+        <span class="fight-card__badge" :class="difficultyClass(fight)">
+          {{ fightTypeToString(fight.Type) }}
+        </span>
+        <span v-if="fight.FFLogsExpansionName" class="fight-card__badge fight-card__badge--expansion">
+          {{ fight.FFLogsExpansionName }}
+        </span>
+      </div>
+    </div>
+  </article>
+
   <RaidplanDialog
     v-model:is-open="showRaidplanDialog"
-    :fight="props.fight"
+    :fight="fight"
     @close="showRaidplanDialog = false"
   />
 </template>
 
 <style scoped>
-/* Override BaseCard title styling for fights */
-.card :deep(.card__title) {
-  font-size: 1.25rem;
-  font-weight: 700;
-  color: var(--fg);
-  margin-bottom: 0.75rem;
-  line-height: 1.3;
-}
-
-.card :deep(.card__header) {
-  padding-bottom: 0.5rem;
-  border-bottom: 2px solid var(--border);
-  margin-bottom: 1rem;
-}
-
-.fight-info {
+.fight-card {
+  position: relative;
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.7);
+  backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08),
+    inset 0 1px 0 rgba(255, 255, 255, 0.5);
+  overflow: hidden;
+  cursor: pointer;
+  transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
   display: flex;
   flex-direction: column;
 }
 
-.fight-description {
-  color: var(--muted);
-  line-height: 1.6;
-  font-size: 0.95rem;
-  font-weight: 400;
+:root[data-theme='dark'] .fight-card {
+  background: rgba(18, 26, 45, 0.7);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3),
+    inset 0 1px 0 rgba(255, 255, 255, 0.08);
 }
 
-.fight-metadata {
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme='light']) .fight-card {
+    background: rgba(18, 26, 45, 0.7);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3),
+      inset 0 1px 0 rgba(255, 255, 255, 0.08);
+  }
+}
+
+.fight-card:hover {
+  transform: translateY(-2px);
+  border-color: rgba(59, 130, 246, 0.3);
+  box-shadow: 0 8px 32px rgba(59, 130, 246, 0.15),
+    0 4px 16px rgba(0, 0, 0, 0.1),
+    inset 0 1px 0 rgba(255, 255, 255, 0.6);
+}
+
+:root[data-theme='dark'] .fight-card:hover {
+  border-color: rgba(59, 130, 246, 0.4);
+  box-shadow: 0 8px 32px rgba(59, 130, 246, 0.25),
+    0 4px 16px rgba(0, 0, 0, 0.4),
+    inset 0 1px 0 rgba(255, 255, 255, 0.12);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme='light']) .fight-card:hover {
+    border-color: rgba(59, 130, 246, 0.4);
+    box-shadow: 0 8px 32px rgba(59, 130, 246, 0.25),
+      0 4px 16px rgba(0, 0, 0, 0.4),
+      inset 0 1px 0 rgba(255, 255, 255, 0.12);
+  }
+}
+
+.fight-card:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px var(--ring);
+}
+
+/* Image area */
+.fight-card__image-wrap {
+  position: relative;
+  overflow: hidden;
+  aspect-ratio: 16 / 9;
+}
+
+.fight-card__image {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transform: scale(1.05);
+  transition: transform 0.3s ease;
+}
+
+.fight-card:hover .fight-card__image {
+  transform: scale(1.1);
+}
+
+/* Placeholder */
+.fight-card__placeholder {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.fight-card__placeholder.difficulty-extreme {
+  background: linear-gradient(135deg, oklch(0.40 0.10 165), oklch(0.30 0.08 185));
+}
+
+.fight-card__placeholder.difficulty-savage {
+  background: linear-gradient(135deg, oklch(0.38 0.12 25), oklch(0.28 0.10 10));
+}
+
+.fight-card__placeholder.difficulty-legacysavage {
+  background: linear-gradient(135deg, oklch(0.38 0.12 295), oklch(0.28 0.10 310));
+}
+
+.fight-card__placeholder.difficulty-ultimate {
+  background: linear-gradient(135deg, oklch(0.38 0.12 265), oklch(0.30 0.10 300));
+}
+
+.fight-card__placeholder.difficulty-chaotic {
+  background: linear-gradient(135deg, oklch(0.40 0.10 280), oklch(0.30 0.08 260));
+}
+
+.fight-card__placeholder.difficulty-normal {
+  background: linear-gradient(135deg, oklch(0.42 0.08 250), oklch(0.32 0.06 230));
+}
+
+.fight-card__placeholder.difficulty-unreal {
+  background: linear-gradient(135deg, oklch(0.40 0.10 70), oklch(0.30 0.08 50));
+}
+
+.fight-card__placeholder-icon {
+  width: 48px;
+  height: 48px;
+  color: rgba(255, 255, 255, 0.3);
+}
+
+/* Hover overlay with resource count */
+.fight-card__image-overlay {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(to top, rgba(0, 0, 0, 0.5) 0%, transparent 50%);
+  opacity: 0;
+  transition: opacity 0.2s ease;
+  display: flex;
+  align-items: flex-end;
+  justify-content: flex-end;
+  padding: 0.75rem;
+}
+
+.fight-card:hover .fight-card__image-overlay {
+  opacity: 1;
+}
+
+.fight-card__resource-count {
+  font-size: 0.8rem;
+  font-weight: 500;
+  color: rgba(255, 255, 255, 0.95);
+  background: rgba(0, 0, 0, 0.4);
+  backdrop-filter: blur(8px);
+  padding: 0.25rem 0.625rem;
+  border-radius: 999px;
+}
+
+/* Body */
+.fight-card__body {
+  padding: 0.875rem 1rem 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.fight-card__name {
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--fg);
+  line-height: 1.3;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+}
+
+.fight-card__meta {
   display: flex;
   flex-wrap: wrap;
-  gap: 8px;
+  gap: 6px;
   align-items: center;
 }
 
-.fight-badge {
+.fight-card__badge {
   display: inline-block;
-  padding: 4px 12px;
-  border-radius: 16px;
-  font-size: 0.75rem;
+  padding: 2px 10px;
+  border-radius: 999px;
+  font-size: 0.7rem;
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.5px;
   white-space: nowrap;
 }
 
-/* Difficulty badges */
-.difficulty-badge.difficulty-normal {
+.fight-card__badge.difficulty-normal {
   background: var(--cat-blue-bg);
   color: var(--cat-blue-fg);
 }
 
-.difficulty-badge.difficulty-extreme {
+.fight-card__badge.difficulty-extreme {
   background: var(--cat-purple-bg);
   color: var(--cat-purple-fg);
 }
 
-.difficulty-badge.difficulty-savage {
+.fight-card__badge.difficulty-savage {
   background: var(--cat-red-bg);
   color: var(--cat-red-fg);
 }
 
-.difficulty-badge.difficulty-legacysavage {
+.fight-card__badge.difficulty-legacysavage {
   background: var(--cat-rose-bg);
   color: var(--cat-rose-fg);
 }
 
-.difficulty-badge.difficulty-ultimate {
+.fight-card__badge.difficulty-ultimate {
   background: var(--cat-orange-bg);
   color: var(--cat-orange-fg);
 }
 
-.difficulty-badge.difficulty-chaotic {
+.fight-card__badge.difficulty-chaotic {
   background: var(--cat-indigo-bg);
   color: var(--cat-indigo-fg);
 }
 
-/* Expansion badge */
-.expansion-badge {
+.fight-card__badge.difficulty-unreal {
+  background: var(--cat-amber-bg);
+  color: var(--cat-amber-fg);
+}
+
+.fight-card__badge--expansion {
   background: var(--cat-green-bg);
   color: var(--cat-green-fg);
 }
 
-/* Zone badge */
-.zone-badge {
-  background: var(--cat-teal-bg);
-  color: var(--cat-teal-fg);
-}
-
-.card__image {
-  /* zoom in on the image since the fight images have a small white gradient */
-  transform: scale(1.1);
-}
-
-.card__image--placeholder {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: linear-gradient(135deg, var(--exp-ultimate-from) 0%, var(--exp-ultimate-to) 100%);
-  position: relative;
-  overflow: hidden;
-}
-
-.card__image--placeholder::before {
-  content: '';
-  position: absolute;
-  inset: 0;
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='800' height='450' viewBox='0 0 800 450'%3E%3Crect width='800' height='450' fill='%23667eea' opacity='0.3'/%3E%3Cg fill='%23ffffff' opacity='0.4'%3E%3Ccircle cx='200' cy='150' r='80'/%3E%3Ccircle cx='600' cy='300' r='100'/%3E%3Ccircle cx='400' cy='200' r='60'/%3E%3C/g%3E%3C/svg%3E");
-  background-size: cover;
-  background-position: center;
-}
-
-.card__image--placeholder::after {
-  content: '🎮';
-  font-size: 4rem;
-  position: relative;
-  z-index: 1;
-  opacity: 0.6;
-  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.3));
+@media (prefers-reduced-motion: reduce) {
+  .fight-card,
+  .fight-card__image,
+  .fight-card__image-overlay {
+    transition: none !important;
+  }
 }
 </style>
