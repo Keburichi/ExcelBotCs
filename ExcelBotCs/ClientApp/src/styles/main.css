@@ -1,10 +1,16 @@
-﻿@import "tailwindcss";
+﻿/* Minimal reset (replaces Tailwind preflight) */
+h1, h2, h3, h4, h5, h6 { font-size: inherit; font-weight: inherit; margin: 0; }
+p { margin: 0; }
+button, input, select, textarea { font: inherit; color: inherit; }
+button { cursor: pointer; background: transparent; border: none; }
+img, svg, video { display: block; max-width: 100%; }
+ol, ul { list-style: none; margin: 0; padding: 0; }
 
 :root {
     /* Prefer system, can be overridden by [data-theme] on html */
     color-scheme: light dark;
 
-    /* Semantic palette - RGB format for TailwindCSS opacity support */
+    /* Semantic palette */
     --bg: #ffffff;
     --fg: #0f172a; /* slate-900 */
     --muted: #64748b; /* slate-500 */
@@ -21,7 +27,6 @@
     --input-border: #d1d5db;
     --muted-bg: #f8fafc;
 
-    /* TailwindCSS-compatible RGB values (for opacity support like bg-primary/50) */
     --color-background: 255 255 255; /* #ffffff */
     --color-foreground: 15 23 42; /* #0f172a */
     --color-muted: 100 116 139; /* #64748b */
@@ -123,7 +128,6 @@
     --input-border: #334155;
     --muted-bg: #0f172a;
 
-    /* TailwindCSS-compatible RGB values for dark theme */
     --color-background: 11 16 32; /* #0b1020 */
     --color-foreground: 229 231 235; /* #e5e7eb */
     --color-muted: 148 163 184; /* #94a3b8 */
@@ -225,7 +229,6 @@
         --input-border: #334155;
         --muted-bg: #0f172a;
 
-        /* TailwindCSS-compatible RGB values for dark theme */
         --color-background: 11 16 32;
         --color-foreground: 229 231 235;
         --color-muted: 148 163 184;

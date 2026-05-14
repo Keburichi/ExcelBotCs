@@ -174,11 +174,11 @@ onMounted(e.load)
     </div>
 
     <template v-if="isDeveloper">
-      <div class="flex justify-between items-center mb-4">
-        <h3 class="text-xl font-semibold">
+      <div class="calendar-header">
+        <h3 class="calendar-header__title">
           Calendar
         </h3>
-        <div class="flex gap-2 items-center">
+        <div class="calendar-header__controls">
           <BaseButton
             :state="activeView === 'month' ? 'primary' : 'secondary'" title="Month"
             @clicked="activeView = 'month'"
@@ -190,7 +190,7 @@ onMounted(e.load)
         </div>
       </div>
 
-      <div class="mb-8" style="height: 600px">
+      <div class="calendar-container" style="height: 600px">
         <VueCal
           :active-view="activeView"
           :dark="isDark"
@@ -208,8 +208,8 @@ onMounted(e.load)
       </div>
     </template>
     <template v-else>
-      <div class="mb-8 p-6 rounded-lg border border-dashed border-gray-400 text-gray-600 dark:text-gray-300">
-        <h3 class="text-xl font-semibold mb-2">
+      <div class="calendar-placeholder">
+        <h3>
           Calendar coming soon
         </h3>
         <p>We're working on the calendar experience. It's currently visible only to developers.</p>
@@ -224,7 +224,7 @@ onMounted(e.load)
     </p>
 
     <div class="container">
-      <div class="flex gap-2 items-center">
+      <div class="events-actions">
         <BaseButton
           v-if="isMember"
           :disabled="!calendarUrl"
@@ -271,6 +271,17 @@ onMounted(e.load)
 </template>
 
 <style>
+.calendar-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; }
+.calendar-header__title { font-size: 1.25rem; font-weight: 600; }
+.calendar-header__controls { display: flex; gap: 0.5rem; align-items: center; }
+.calendar-container { margin-bottom: 2rem; }
+.calendar-placeholder {
+  margin-bottom: 2rem; padding: 1.5rem; border-radius: 8px;
+  border: 1px dashed var(--border); color: var(--muted);
+}
+.calendar-placeholder h3 { font-size: 1.25rem; font-weight: 600; margin-bottom: 0.5rem; color: var(--fg); }
+.events-actions { display: flex; gap: 0.5rem; align-items: center; }
+
 /* Page header */
 .page-header {
   margin-bottom: 2rem;

@@ -9,7 +9,7 @@ import AnnouncementsView from '@/components/announcements/AnnouncementsView.vue'
     <div class="container">
       <div class="card intro-card">
         <div class="card__body">
-          <h2 class="intro-title text-2xl sm:text-3xl font-bold tracking-tight text-slate-900 dark:text-slate-100">
+          <h2 class="intro-title">
             Welcome!
           </h2>
           <p class="intro-text">
@@ -39,6 +39,12 @@ import AnnouncementsView from '@/components/announcements/AnnouncementsView.vue'
   margin: 0 0 .25rem 0;
   color: var(--fg) !important;
   font-weight: 700;
+  font-size: 1.5rem;
+  letter-spacing: -0.025em;
+}
+
+@media (min-width: 640px) {
+  .intro-title { font-size: 1.875rem; }
 }
 
 .intro-text {

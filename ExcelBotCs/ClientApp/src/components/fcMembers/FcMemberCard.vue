@@ -35,7 +35,7 @@ const rankBadgeClass = computed(() => {
 <template>
   <BaseCard
     :subtitle="props.member.Title == '' ? '<none>' : props.member.Title" :title="props.member.Name"
-    title-class="text-2xl font-bold"
+    title-class="card__title--lg"
     variant="elevated"
   >
     <template #avatar>

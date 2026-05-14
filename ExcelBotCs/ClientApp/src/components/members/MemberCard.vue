@@ -23,7 +23,7 @@ function goEdit(member: Member) {
   <!--  <MemberEditDialog v-model="isEditOpen" :member="props.member" @update:model-value="handleMemberEdit" /> -->
 
   <BaseCard
-    :subtitle="props.member.DiscordName" :title="props.member.PlayerName" title-class="text-2xl font-bold"
+    :subtitle="props.member.DiscordName" :title="props.member.PlayerName" title-class="card__title--lg"
     variant="elevated"
   >
     <template #avatar>
