@@ -41,12 +41,14 @@ function handleSelect(num: number) {
 
     <div class="lottery-columns">
       <div class="lottery-primary">
-        <div class="status-bar">
-          <p class="status-text">{{ lottery.view.value }}</p>
-          <p v-if="lottery.selectedNumber.value" class="status-selection">
-            Selected: <strong>{{ lottery.selectedNumber.value }}</strong>
-          </p>
-        </div>
+        <LotteryNumberGrid
+          :all-guesses="lottery.allGuesses.value"
+          :my-guesses="lottery.myGuesses.value"
+          :selected-number="lottery.selectedNumber.value"
+          @change="handleChange"
+          @guess="handleGuess"
+          @select="handleSelect"
+        />
 
         <div class="toolbar">
           <span class="toolbar-label">Quick Pick</span>
@@ -73,15 +75,6 @@ function handleSelect(num: number) {
             />
           </div>
         </div>
-
-        <LotteryNumberGrid
-          :all-guesses="lottery.allGuesses.value"
-          :my-guesses="lottery.myGuesses.value"
-          :selected-number="lottery.selectedNumber.value"
-          @change="handleChange"
-          @guess="handleGuess"
-          @select="handleSelect"
-        />
       </div>
 
       <div class="lottery-secondary">
@@ -142,27 +135,7 @@ function handleSelect(num: number) {
 .lottery-primary {
   display: flex;
   flex-direction: column;
-  gap: 1rem;
-}
-
-.status-bar {
-  display: flex;
-  align-items: baseline;
-  gap: 1rem;
-  flex-wrap: wrap;
-}
-
-.status-text {
-  margin: 0;
-  color: var(--fg);
-  line-height: 1.5;
-  font-size: 0.9rem;
-}
-
-.status-selection {
-  margin: 0;
-  font-size: 0.85rem;
-  color: var(--link);
+  gap: 1.25rem;
 }
 
 .toolbar {
@@ -170,10 +143,12 @@ function handleSelect(num: number) {
   align-items: center;
   gap: 0.75rem;
   flex-wrap: wrap;
+  padding-top: 0.25rem;
+  border-top: 1px solid var(--border);
 }
 
 .toolbar-label {
-  font-size: 0.85rem;
+  font-size: 0.8rem;
   font-weight: 600;
   color: var(--muted);
   text-transform: uppercase;
