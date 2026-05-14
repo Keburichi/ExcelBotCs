@@ -284,6 +284,11 @@ onMounted(async () => {
         {{ recurrenceDescription }}
       </div>
 
+      <!-- Associated fight -->
+      <a v-if="associatedFight" class="event-card__fight-link" role="button" @click="openFightResources">
+        {{ associatedFight.Name }}
+      </a>
+
       <!-- Description -->
       <div v-if="fcEventValue.Description" class="event-card__description">
         <DiscordMessageRenderer :content="fcEventValue.Description" />
@@ -298,15 +303,6 @@ onMounted(async () => {
           {{ getParticipantCount(fcEventValue) }}/{{ fcEventValue.MaxNumberOfParticipants }} participants
         </span>
         <span class="event-card__organizer">Organized by {{ fcEventValue.Organizer }}</span>
-        <span v-if="associatedFight" class="event-card__fight">
-          <BaseButton
-            :title="associatedFight.Name"
-            :tooltip="`View ${associatedFight.Name} resources`"
-            variant="text"
-            size="small"
-            @clicked="openFightResources"
-          />
-        </span>
       </div>
 
       <!-- Actions -->
@@ -584,8 +580,17 @@ onMounted(async () => {
   font-weight: 500;
 }
 
-.event-card__fight {
-  margin-left: auto;
+/* Fight link */
+.event-card__fight-link {
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: var(--link);
+  cursor: pointer;
+  text-decoration: none;
+}
+
+.event-card__fight-link:hover {
+  text-decoration: underline;
 }
 
 /* Actions */
