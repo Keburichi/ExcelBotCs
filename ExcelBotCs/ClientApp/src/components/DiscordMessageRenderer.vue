@@ -482,6 +482,7 @@ function isImage(filename: string): boolean {
 /* Individual line */
 .discord-line {
   margin: 0.25rem 0;
+  white-space: normal;
 }
 
 .discord-line:empty {
@@ -646,10 +647,11 @@ function isImage(filename: string): boolean {
 /* Custom emotes */
 .discord-emote {
   display: inline;
-  height: 1.375em;
-  width: 1.375em;
+  height: 1.2em;
+  width: 1.2em;
   object-fit: contain;
-  vertical-align: bottom;
+  vertical-align: text-bottom;
+  margin: 0;
 }
 
 /* Links */
