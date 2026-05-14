@@ -108,6 +108,9 @@ ol, ul { list-style: none; margin: 0; padding: 0; }
     --msg-success-bg: oklch(0.95 0.03 155);
     --msg-success-fg: oklch(0.38 0.12 155);
     --msg-success-border: oklch(0.85 0.06 155);
+    --msg-info-bg: oklch(0.95 0.03 250);
+    --msg-info-fg: oklch(0.42 0.12 250);
+    --msg-info-border: oklch(0.88 0.06 250);
 }
 
 :root[data-theme='dark'] {
@@ -208,6 +211,9 @@ ol, ul { list-style: none; margin: 0; padding: 0; }
     --msg-success-bg: oklch(0.22 0.05 155);
     --msg-success-fg: oklch(0.82 0.08 155);
     --msg-success-border: oklch(0.30 0.08 155);
+    --msg-info-bg: oklch(0.22 0.05 250);
+    --msg-info-fg: oklch(0.82 0.08 250);
+    --msg-info-border: oklch(0.30 0.08 250);
 }
 
 @media (prefers-color-scheme: dark) {
@@ -297,6 +303,9 @@ ol, ul { list-style: none; margin: 0; padding: 0; }
         --msg-success-bg: oklch(0.22 0.05 155);
         --msg-success-fg: oklch(0.82 0.08 155);
         --msg-success-border: oklch(0.30 0.08 155);
+        --msg-info-bg: oklch(0.22 0.05 250);
+        --msg-info-fg: oklch(0.82 0.08 250);
+        --msg-info-border: oklch(0.30 0.08 250);
     }
 }
 

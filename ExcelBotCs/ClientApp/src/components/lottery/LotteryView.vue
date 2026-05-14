@@ -35,7 +35,7 @@ function handleSelect(num: number) {
       {{ lottery.error.value }}
     </div>
 
-    <div v-if="lottery.response.value && lottery.response.value.trim().length > 0" class="message message--success">
+    <div v-if="lottery.response.value && lottery.response.value.trim().length > 0" class="message message--info">
       {{ lottery.response.value }}
     </div>
 
@@ -123,6 +123,12 @@ function handleSelect(num: number) {
   background: var(--msg-success-bg);
   color: var(--msg-success-fg);
   border: 1px solid var(--msg-success-border);
+}
+
+.message--info {
+  background: var(--msg-info-bg);
+  color: var(--msg-info-fg);
+  border: 1px solid var(--msg-info-border);
 }
 
 .lottery-columns {
