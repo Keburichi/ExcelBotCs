@@ -527,7 +527,7 @@ watch(modelValue, (isOpen) => {
   padding: 0.5rem 0.75rem;
   border-bottom: 1px solid var(--border);
   cursor: grab;
-  transition: background 0.15s;
+  transition: background 0.2s;
 }
 
 .pool-item:hover {
@@ -553,7 +553,7 @@ watch(modelValue, (isOpen) => {
   font-size: 0.7rem;
   font-weight: 700;
   padding: 1px 5px;
-  border-radius: 3px;
+  border-radius: 8px;
   background: var(--muted-bg);
   color: var(--muted);
   border: 1px solid var(--border);
@@ -565,7 +565,7 @@ watch(modelValue, (isOpen) => {
   color: var(--muted);
   background: var(--muted-bg);
   border: 1px solid var(--border);
-  border-radius: 6px;
+  border-radius: 8px;
 }
 
 .empty-pool {
@@ -595,7 +595,7 @@ watch(modelValue, (isOpen) => {
   flex: 1;
   padding: 0.35rem 0.5rem;
   border: 1px solid var(--border);
-  border-radius: 4px;
+  border-radius: 8px;
   background: var(--card);
   color: var(--fg);
   font-weight: 600;
@@ -620,7 +620,7 @@ watch(modelValue, (isOpen) => {
 }
 
 .btn-remove-group:hover {
-  color: #e53e3e;
+  color: var(--danger);
 }
 
 .group-list {
@@ -634,7 +634,7 @@ watch(modelValue, (isOpen) => {
   padding: 0.4rem 0.75rem;
   border-bottom: 1px solid var(--border);
   cursor: grab;
-  transition: background 0.15s;
+  transition: background 0.2s;
 }
 
 .group-member:hover {
@@ -650,9 +650,9 @@ watch(modelValue, (isOpen) => {
   font-size: 0.8rem;
   font-weight: 600;
   padding: 2px 8px;
-  border-radius: 4px;
-  background: var(--btn-primary-bg, #3b82f6);
-  color: var(--btn-primary-fg, #fff);
+  border-radius: 8px;
+  background: var(--link);
+  color: var(--bg);
 }
 
 .btn-remove-member {
@@ -667,7 +667,7 @@ watch(modelValue, (isOpen) => {
 }
 
 .btn-remove-member:hover {
-  color: #e53e3e;
+  color: var(--danger);
 }
 
 .dropzone-hint {
@@ -677,7 +677,7 @@ watch(modelValue, (isOpen) => {
   font-size: 0.8rem;
   font-style: italic;
   border: 2px dashed var(--border);
-  border-radius: 4px;
+  border-radius: 8px;
   margin: 0.5rem;
 }
 
@@ -746,9 +746,9 @@ watch(modelValue, (isOpen) => {
 }
 
 .role-picker-btn:hover {
-  border-color: var(--btn-primary-bg, #3b82f6);
+  border-color: var(--link);
   background: var(--muted-bg);
-  color: var(--btn-primary-bg, #3b82f6);
+  color: var(--link);
 }
 
 /* Insufficient participants warning */
@@ -779,12 +779,12 @@ watch(modelValue, (isOpen) => {
 
 .pool-list::-webkit-scrollbar-track {
   background: var(--muted-bg);
-  border-radius: 4px;
+  border-radius: 8px;
 }
 
 .pool-list::-webkit-scrollbar-thumb {
   background: var(--border);
-  border-radius: 4px;
+  border-radius: 8px;
 }
 
 .pool-list::-webkit-scrollbar-thumb:hover {

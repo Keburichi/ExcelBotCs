@@ -9,99 +9,85 @@ const props = defineProps<{
 }>()
 
 const rankBadgeClass = computed(() => {
-  if (!props.member.FcRank) {
-    return ''
-  }
+  if (!props.member.FcRank) return ''
   const rank = props.member.FcRank.toLowerCase()
-  if (rank.includes('master')) {
-    return 'rank-master'
-  }
-  else if (rank.includes('living memory')) {
-    return 'rank-living-memory'
-  }
-  else if (rank.includes('leader')) {
-    return 'rank-leader'
-  }
-  else if (rank.includes('officer')) {
-    return 'rank-officer'
-  }
-  else if (rank.includes('member')) {
-    return 'rank-member'
-  }
+  if (rank.includes('master')) return 'rank-master'
+  if (rank.includes('living memory')) return 'rank-living-memory'
+  if (rank.includes('leader')) return 'rank-leader'
+  if (rank.includes('officer')) return 'rank-officer'
+  if (rank.includes('member')) return 'rank-member'
   return ''
 })
 </script>
 
 <template>
   <BaseCard
-    :subtitle="props.member.Title == '' ? '<none>' : props.member.Title" :title="props.member.Name"
-    title-class="text-2xl font-bold"
+    :subtitle="props.member.Title || undefined"
+    :title="props.member.Name"
+    title-class="card__title--lg"
     variant="elevated"
   >
     <template #avatar>
       <img
-        v-if="props.member.Avatar" :alt="props.member.Name" :src="props.member.Avatar"
+        v-if="props.member.Avatar"
+        :alt="props.member.Name"
+        :src="props.member.Avatar"
         class="card__avatar"
         referrerpolicy="no-referrer"
       >
-      <span v-else class="avatar card">?</span>
+      <span v-else class="card__avatar--placeholder" />
     </template>
     <template #body>
-      <p>{{ props.member.Bio }}</p>
+      <p v-if="props.member.Bio" class="member-bio">{{ props.member.Bio }}</p>
     </template>
     <template #footer>
-      <div class="member-rank">
-        <span>Rank:</span>
-        <span :class="rankBadgeClass" class="member-rank-badge">{{ props.member.FcRank }}</span>
-      </div>
+      <span :class="rankBadgeClass" class="member-rank-badge">{{ props.member.FcRank }}</span>
     </template>
     <slot :member="member" />
   </BaseCard>
 </template>
 
 <style scoped>
-.member-rank {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  margin-bottom: 12px;
+.member-bio {
+  color: var(--muted);
+  font-size: 0.875rem;
+  line-height: 1.5;
 }
 
 .member-rank-badge {
   display: inline-block;
-  padding: 4px 12px;
-  border-radius: 16px;
-  font-size: 0.85rem;
+  padding: 0.1875rem 0.625rem;
+  border-radius: 999px;
+  font-size: 0.75rem;
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.5px;
-  background: var(--muted-bg, #e0e0e0);
-  color: var(--fg, #333);
+  background: var(--muted-bg);
+  color: var(--muted);
 }
 
-/* Rank specific colors */
 .member-rank-badge.rank-master {
-  background: #ede7f6;
-  color: #4527a0;
+  background: var(--cat-indigo-bg);
+  color: var(--cat-indigo-fg);
 }
 
 .member-rank-badge.rank-living-memory {
-  background: #e0f2f1;
-  color: #00695c;
+  background: var(--cat-teal-bg);
+  color: var(--cat-teal-fg);
 }
 
 .member-rank-badge.rank-leader {
-  background: #ffecb3; /* Light amber */
-  color: #ff6f00; /* Dark amber */
+  background: var(--cat-amber-bg);
+  color: var(--cat-amber-fg);
 }
 
 .member-rank-badge.rank-officer {
-  background: #c8e6c9; /* Light green */
-  color: #2e7d32; /* Dark green */
+  background: var(--cat-green-bg);
+  color: var(--cat-green-fg);
 }
 
 .member-rank-badge.rank-member {
-  background: #e3f2fd; /* Light blue */
-  color: #1565c0; /* Dark blue */
+  background: var(--cat-blue-bg);
+  color: var(--cat-blue-fg);
 }
 </style>

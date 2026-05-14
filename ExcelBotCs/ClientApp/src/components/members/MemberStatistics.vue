@@ -69,7 +69,13 @@ const contentStats = computed(() => {
   }
 })
 
+function cssVar(name: string): string {
+  return getComputedStyle(document.documentElement).getPropertyValue(name).trim()
+}
+
 function initCharts() {
+  const fg = cssVar('--fg')
+
   // Subscription Chart
   if (subscriptionChartCanvas.value) {
     const subCtx = subscriptionChartCanvas.value.getContext('2d')
@@ -80,8 +86,8 @@ function initCharts() {
           labels: ['Subscribed', 'Not Subscribed'],
           datasets: [{
             data: [subscriptionStats.value.subscribed, subscriptionStats.value.notSubscribed],
-            backgroundColor: ['#10b981', '#ef4444'],
-            borderColor: ['#059669', '#dc2626'],
+            backgroundColor: [cssVar('--exp-extreme'), cssVar('--exp-savage')],
+            borderColor: [cssVar('--exp-extreme-border'), cssVar('--exp-savage-border')],
             borderWidth: 2,
           }],
         },
@@ -92,7 +98,7 @@ function initCharts() {
             legend: {
               position: 'bottom',
               labels: {
-                color: getComputedStyle(document.documentElement).getPropertyValue('--fg').trim() || '#111827',
+                color: fg,
                 padding: 15,
                 font: {
                   size: 12,
@@ -102,7 +108,7 @@ function initCharts() {
             title: {
               display: true,
               text: 'Subscription Status',
-              color: getComputedStyle(document.documentElement).getPropertyValue('--fg').trim() || '#111827',
+              color: fg,
               font: {
                 size: 16,
                 weight: 'bold',
@@ -146,8 +152,20 @@ function initCharts() {
               contentStats.value.Ultimate,
               contentStats.value.Chaotic,
             ],
-            backgroundColor: ['#10b981', '#ef4444', '#8b5cf6', '#f59e0b', '#f97316'],
-            borderColor: ['#059669', '#dc2626', '#7c3aed', '#d97706', '#ea580c'],
+            backgroundColor: [
+              cssVar('--exp-extreme'),
+              cssVar('--exp-savage'),
+              cssVar('--exp-legacy-savage'),
+              cssVar('--exp-chaotic'),
+              cssVar('--exp-chaotic-border'),
+            ],
+            borderColor: [
+              cssVar('--exp-extreme-border'),
+              cssVar('--exp-savage-border'),
+              cssVar('--exp-legacy-savage-border'),
+              cssVar('--exp-chaotic-border'),
+              cssVar('--exp-chaotic'),
+            ],
             borderWidth: 2,
           }],
         },
@@ -158,7 +176,7 @@ function initCharts() {
             legend: {
               position: 'bottom',
               labels: {
-                color: getComputedStyle(document.documentElement).getPropertyValue('--fg').trim() || '#111827',
+                color: fg,
                 padding: 15,
                 font: {
                   size: 12,
@@ -168,7 +186,7 @@ function initCharts() {
             title: {
               display: true,
               text: 'Members with Cleared Content by Type',
-              color: getComputedStyle(document.documentElement).getPropertyValue('--fg').trim() || '#111827',
+              color: fg,
               font: {
                 size: 16,
                 weight: 'bold',

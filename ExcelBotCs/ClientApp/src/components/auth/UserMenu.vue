@@ -1,19 +1,32 @@
 <script setup lang="ts">
-import { onMounted, ref } from 'vue'
+import { onBeforeUnmount, onMounted, ref, nextTick } from 'vue'
 import { useRouter } from 'vue-router'
-import BaseButton from '@/components/BaseButton.vue'
 import { useAuth } from '@/composables/useAuth'
 
-const { authorized, user, ensureAuth, logout, loadMe } = useAuth()
+const { authorized, user, logout, loadMe } = useAuth()
 const open = ref(false)
 const router = useRouter()
+const menuRef = ref<HTMLElement | null>(null)
 
 onMounted(() => {
   void loadMe()
+  document.addEventListener('click', onClickOutside)
+  document.addEventListener('keydown', onKeydown)
+})
+
+onBeforeUnmount(() => {
+  document.removeEventListener('click', onClickOutside)
+  document.removeEventListener('keydown', onKeydown)
 })
 
 function toggle() {
   open.value = !open.value
+  if (open.value) {
+    nextTick(() => {
+      const first = menuRef.value?.querySelector<HTMLElement>('[role="menuitem"]')
+      first?.focus()
+    })
+  }
 }
 
 function goProfile() {
@@ -21,24 +34,39 @@ function goProfile() {
   router.push('/profile')
 }
 
+function handleLogout() {
+  open.value = false
+  logout()
+}
+
 function onClickOutside(e: MouseEvent) {
   const target = e.target as HTMLElement | null
-  if (!target)
-    return
-  // close if click is outside the menu root
+  if (!target) return
   if (!(target.closest && target.closest('.user-menu'))) {
     open.value = false
   }
 }
 
-if (typeof window !== 'undefined') {
-  window.addEventListener('click', onClickOutside)
+function onKeydown(e: KeyboardEvent) {
+  if (e.key === 'Escape' && open.value) {
+    open.value = false
+  }
+}
+
+function initial(name: string | null | undefined): string {
+  if (!name) return '?'
+  return name.charAt(0).toUpperCase()
 }
 </script>
 
 <template>
   <div v-if="authorized" class="user-menu">
-    <button class="avatar-btn" aria-haspopup="menu" :aria-expanded="open" @click.stop="toggle">
+    <button
+      class="avatar-btn"
+      aria-haspopup="menu"
+      :aria-expanded="open"
+      @click.stop="toggle"
+    >
       <img
         v-if="user?.DiscordAvatar"
         :src="user!.DiscordAvatar"
@@ -47,108 +75,112 @@ if (typeof window !== 'undefined') {
         referrerpolicy="no-referrer"
       >
       <span v-else class="avatar placeholder">{{
-        user?.PlayerName !== null ? user?.PlayerName : user?.DiscordName
+        initial(user?.PlayerName ?? user?.DiscordName)
       }}</span>
     </button>
 
-    <div v-if="open" class="menu" role="menu">
+    <div v-if="open" ref="menuRef" class="menu" role="menu">
       <div class="menu-header">
-        <strong>{{ user?.PlayerName !== null ? user?.PlayerName : user?.DiscordName }}</strong>
+        <strong>{{ user?.PlayerName ?? user?.DiscordName }}</strong>
       </div>
-      <BaseButton title="Profile" variant="text" @clicked="goProfile" />
-      <BaseButton title="Logout" variant="text" @clicked="logout" />
+      <button role="menuitem" class="menu-item" @click="goProfile">
+        Profile
+      </button>
+      <div class="menu-divider" />
+      <button role="menuitem" class="menu-item menu-item--danger" @click="handleLogout">
+        Logout
+      </button>
     </div>
   </div>
 
-  <div v-else>
-    <RouterLink to="/login">
-      Login
-    </RouterLink>
-  </div>
+  <RouterLink v-else to="/login" class="login-link">
+    Login
+  </RouterLink>
 </template>
 
 <style scoped>
 .user-menu {
   position: relative;
-  z-index: 9998;
+  z-index: 1001;
 }
 
 .avatar-btn {
   background: transparent;
   border: 0;
-  padding: 0;
+  padding: 2px;
   cursor: pointer;
-  transition: transform 0.2s ease;
+  border-radius: 9999px;
+  transition: box-shadow 0.2s ease;
 }
 
 .avatar-btn:hover {
-  transform: scale(1.05);
+  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.4);
+}
+
+.avatar-btn:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px var(--ring);
 }
 
 .avatar {
-  width: 32px;
-  height: 32px;
+  width: 36px;
+  height: 36px;
   border-radius: 9999px;
   display: block;
-  border: 2px solid transparent;
-  transition: border-color 0.2s ease;
-}
-
-.avatar-btn:hover .avatar {
-  border-color: rgba(59, 130, 246, 0.5);
+  object-fit: cover;
 }
 
 .avatar.placeholder {
-  width: 32px;
-  height: 32px;
+  width: 36px;
+  height: 36px;
   border-radius: 9999px;
   background: linear-gradient(135deg, #3b82f6 0%, #8b5cf6 50%, #ec4899 100%);
-  color: white;
+  color: #fff;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  font-weight: 600;
-  font-size: 0.75rem;
+  font-weight: 700;
+  font-size: 0.875rem;
+  line-height: 1;
 }
 
-/* Glass morphism dropdown menu */
 .menu {
   position: absolute;
   right: 0;
-  top: calc(100% + 12px);
+  top: calc(100% + 8px);
   background: rgba(255, 255, 255, 0.85);
   backdrop-filter: blur(20px);
   color: var(--fg);
-  border: 1px solid rgba(255, 255, 255, 0.3);
+  border: 2px solid rgba(255, 255, 255, 0.4);
   border-radius: 12px;
-  min-width: 220px;
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15),
-  inset 0 1px 0 rgba(255, 255, 255, 0.5);
-  padding: 0.5rem;
-  z-index: 9999;
+  min-width: 200px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12),
+    inset 0 1px 0 rgba(255, 255, 255, 0.5);
+  padding: 0.375rem;
+  z-index: 1002;
   animation: menuAppear 0.2s ease-out;
 }
 
 :root[data-theme='dark'] .menu {
   background: rgba(18, 26, 45, 0.9);
-  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-color: rgba(255, 255, 255, 0.15);
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4),
-  inset 0 1px 0 rgba(255, 255, 255, 0.1);
+    inset 0 1px 0 rgba(255, 255, 255, 0.08);
 }
 
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme='light']) .menu {
     background: rgba(18, 26, 45, 0.9);
-    border: 1px solid rgba(255, 255, 255, 0.15);
+    border-color: rgba(255, 255, 255, 0.15);
     box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4),
-    inset 0 1px 0 rgba(255, 255, 255, 0.1);
+      inset 0 1px 0 rgba(255, 255, 255, 0.08);
   }
 }
 
 @keyframes menuAppear {
   from {
     opacity: 0;
-    transform: translateY(-8px);
+    transform: translateY(-6px);
   }
   to {
     opacity: 1;
@@ -157,11 +189,9 @@ if (typeof window !== 'undefined') {
 }
 
 .menu-header {
-  padding: 0.75rem 1rem;
-  color: var(--fg);
-  border-bottom: 1px solid rgba(var(--color-border), 0.3);
-  margin-bottom: 0.5rem;
-  font-size: 0.9rem;
+  padding: 0.5rem 0.625rem;
+  margin-bottom: 0.25rem;
+  font-size: 0.875rem;
 }
 
 .menu-header strong {
@@ -171,7 +201,88 @@ if (typeof window !== 'undefined') {
   background-clip: text;
 }
 
-/* Respect reduced motion */
+.menu-divider {
+  height: 1px;
+  background: var(--border);
+  margin: 0.25rem 0.625rem;
+  opacity: 0.6;
+}
+
+.menu-item {
+  display: block;
+  width: 100%;
+  padding: 0.5rem 0.625rem;
+  border: none;
+  background: transparent;
+  color: var(--fg);
+  font-size: 0.875rem;
+  font-weight: 500;
+  text-align: left;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+
+.menu-item:hover {
+  background: rgba(59, 130, 246, 0.08);
+}
+
+.menu-item:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 2px var(--ring);
+}
+
+:root[data-theme='dark'] .menu-item:hover {
+  background: rgba(59, 130, 246, 0.15);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme='light']) .menu-item:hover {
+    background: rgba(59, 130, 246, 0.15);
+  }
+}
+
+.menu-item--danger {
+  color: var(--danger);
+}
+
+.menu-item--danger:hover {
+  background: rgba(220, 38, 38, 0.08);
+}
+
+:root[data-theme='dark'] .menu-item--danger:hover {
+  background: rgba(248, 113, 113, 0.12);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme='light']) .menu-item--danger:hover {
+    background: rgba(248, 113, 113, 0.12);
+  }
+}
+
+.login-link {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.375rem 1rem;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--link);
+  border: 2px solid var(--link);
+  border-radius: 8px;
+  text-decoration: none;
+  transition: all 0.2s ease;
+}
+
+.login-link:hover {
+  background: rgba(59, 130, 246, 0.06);
+  text-decoration: none;
+}
+
+.login-link:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px var(--ring);
+}
+
 @media (prefers-reduced-motion: reduce) {
   .menu,
   .avatar-btn {

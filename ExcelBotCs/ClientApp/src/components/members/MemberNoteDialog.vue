@@ -169,7 +169,7 @@ function formatDate(date?: string): string {
 }
 
 .dialog {
-  background: var(--card, #fff);
+  background: var(--card);
   border-radius: 0.5rem;
   box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
   max-width: 600px;
@@ -184,7 +184,7 @@ function formatDate(date?: string): string {
   align-items: center;
   justify-content: space-between;
   padding: 1.5rem;
-  border-bottom: 1px solid var(--border, #e5e7eb);
+  border-bottom: 1px solid var(--border);
 }
 
 .dialog__header h2 {
@@ -199,7 +199,7 @@ function formatDate(date?: string): string {
   font-size: 2rem;
   line-height: 1;
   cursor: pointer;
-  color: var(--muted, #6b7280);
+  color: var(--muted);
   padding: 0;
   width: 2rem;
   height: 2rem;
@@ -211,7 +211,7 @@ function formatDate(date?: string): string {
 }
 
 .dialog__close:hover {
-  background: var(--border, #e5e7eb);
+  background: var(--border);
 }
 
 .dialog__body {
@@ -222,8 +222,8 @@ function formatDate(date?: string): string {
 
 .note-metadata {
   background: rgba(0, 0, 0, 0.02);
-  border: 1px solid var(--border, #e5e7eb);
-  border-radius: 0.375rem;
+  border: 1px solid var(--border);
+  border-radius: 8px;
   padding: 1rem;
   margin-bottom: 1.5rem;
 }
@@ -244,12 +244,12 @@ function formatDate(date?: string): string {
 
 .metadata-label {
   font-weight: 600;
-  color: var(--muted, #6b7280);
+  color: var(--muted);
   min-width: 100px;
 }
 
 .metadata-value {
-  color: var(--fg, #111827);
+  color: var(--fg);
 }
 
 .form-group {
@@ -260,25 +260,25 @@ function formatDate(date?: string): string {
 
 .form-group label {
   font-weight: 500;
-  color: var(--fg, #111827);
+  color: var(--fg);
 }
 
 .form-group textarea {
   width: 100%;
   padding: 0.75rem;
-  border: 1px solid var(--border, #d1d5db);
-  border-radius: 0.375rem;
+  border: 1px solid var(--border);
+  border-radius: 8px;
   font-family: inherit;
   font-size: 0.875rem;
   resize: vertical;
   min-height: 120px;
-  background: var(--card, #fff);
-  color: var(--fg, #111827);
+  background: var(--card);
+  color: var(--fg);
 }
 
 .form-group textarea:focus {
   outline: none;
-  border-color: #3b82f6;
+  border-color: var(--link);
   box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
 }
 
@@ -290,12 +290,12 @@ function formatDate(date?: string): string {
 .delete-warning {
   font-size: 1.125rem;
   font-weight: 600;
-  color: #dc2626;
+  color: var(--danger);
   margin: 0 0 0.5rem 0;
 }
 
 .delete-details {
-  color: var(--muted, #6b7280);
+  color: var(--muted);
   margin: 0;
 }
 
@@ -304,7 +304,7 @@ function formatDate(date?: string): string {
   justify-content: space-between;
   align-items: center;
   padding: 1.5rem;
-  border-top: 1px solid var(--border, #e5e7eb);
+  border-top: 1px solid var(--border);
 }
 
 .footer-left {

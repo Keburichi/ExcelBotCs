@@ -8,26 +8,22 @@ const activeSection = ref<'imports' | 'buttons'>('imports')
 
 <template>
   <section class="dev-resources-view">
-    <h2 class="text-3xl font-bold text-gray-900 dark:text-white mb-6">
+    <h2 class="section-heading">
       Developer Resources
     </h2>
 
     <!-- Section Toggle -->
-    <div class="flex gap-4 mb-6">
+    <div class="section-toggle">
       <button
-        :class="activeSection === 'imports'
-          ? 'bg-blue-600 text-white shadow-md'
-          : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'"
-        class="px-4 py-2 rounded-lg font-medium transition-all"
+        :class="{ 'toggle-btn--active': activeSection === 'imports' }"
+        class="toggle-btn"
         @click="activeSection = 'imports'"
       >
         Manual Imports
       </button>
       <button
-        :class="activeSection === 'buttons'
-          ? 'bg-blue-600 text-white shadow-md'
-          : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'"
-        class="px-4 py-2 rounded-lg font-medium transition-all"
+        :class="{ 'toggle-btn--active': activeSection === 'buttons' }"
+        class="toggle-btn"
         @click="activeSection = 'buttons'"
       >
         Button Showcase
@@ -49,6 +45,18 @@ const activeSection = ref<'imports' | 'buttons'>('imports')
 .dev-resources-view {
   width: 100%;
 }
+
+.section-heading { font-size: 1.875rem; font-weight: 700; color: var(--fg); margin-bottom: 1.5rem; }
+
+.section-toggle { display: flex; gap: 1rem; margin-bottom: 1.5rem; }
+
+.toggle-btn {
+  padding: 0.5rem 1rem; border-radius: 8px; font-weight: 500;
+  transition: all 0.2s ease; border: none; cursor: pointer;
+  background: var(--muted-bg); color: var(--fg);
+}
+.toggle-btn:hover { background: var(--border); }
+.toggle-btn--active { background: #2563eb; color: #fff; box-shadow: 0 4px 6px -1px rgba(37,99,235,.3); }
 
 .section-content {
   animation: fadeIn 0.2s ease-in;

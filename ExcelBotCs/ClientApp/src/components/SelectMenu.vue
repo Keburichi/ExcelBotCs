@@ -201,7 +201,7 @@ onUnmounted(() => document.removeEventListener('mousedown', onClickOutside))
   gap: 0.5rem;
   padding: 0.5rem 0.625rem;
   border: 1px solid rgb(var(--color-input-border));
-  border-radius: 0.5rem;
+  border-radius: 8px;
   background: rgb(var(--color-input-bg));
   color: rgb(var(--color-input-fg));
   box-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.05);
@@ -237,7 +237,7 @@ onUnmounted(() => document.removeEventListener('mousedown', onClickOutside))
   overflow: auto;
   background: rgb(var(--color-card));
   border: 1px solid rgb(var(--color-card-border));
-  border-radius: 0.5rem;
+  border-radius: 8px;
   box-shadow: var(--elev);
   padding: 0.25rem;
   inset-inline: 0;
@@ -248,7 +248,7 @@ onUnmounted(() => document.removeEventListener('mousedown', onClickOutside))
   align-items: center;
   gap: 0.5rem;
   padding: 0.375rem 0.5rem;
-  border-radius: 0.375rem;
+  border-radius: 8px;
   cursor: default;
 }
 

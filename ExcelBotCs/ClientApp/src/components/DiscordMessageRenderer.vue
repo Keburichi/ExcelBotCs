@@ -482,6 +482,7 @@ function isImage(filename: string): boolean {
 /* Individual line */
 .discord-line {
   margin: 0.25rem 0;
+  white-space: normal;
 }
 
 .discord-line:empty {
@@ -493,7 +494,7 @@ function isImage(filename: string): boolean {
   background: var(--muted-bg);
   color: var(--fg);
   padding: 0.15rem 0.35rem;
-  border-radius: 4px;
+  border-radius: 8px;
   font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
   font-size: 0.9em;
   border: 1px solid var(--border);
@@ -535,7 +536,7 @@ function isImage(filename: string): boolean {
   background: var(--muted);
   color: transparent;
   padding: 0 0.25rem;
-  border-radius: 4px;
+  border-radius: 8px;
   cursor: pointer;
   transition: all 0.2s ease;
   user-select: none;
@@ -577,7 +578,7 @@ function isImage(filename: string): boolean {
   background: var(--muted-bg);
   color: var(--fg);
   padding: 0.1rem 0.3rem;
-  border-radius: 4px;
+  border-radius: 8px;
   font-size: 0.95em;
   white-space: nowrap;
 }
@@ -627,7 +628,7 @@ function isImage(filename: string): boolean {
 /* Mentions */
 .discord-mention {
   padding: 0 0.25rem;
-  border-radius: 4px;
+  border-radius: 8px;
   font-weight: 500;
   white-space: nowrap;
 }
@@ -646,10 +647,11 @@ function isImage(filename: string): boolean {
 /* Custom emotes */
 .discord-emote {
   display: inline;
-  height: 1.375em;
-  width: 1.375em;
+  height: 1.2em;
+  width: 1.2em;
   object-fit: contain;
-  vertical-align: bottom;
+  vertical-align: text-bottom;
+  margin: 0;
 }
 
 /* Links */

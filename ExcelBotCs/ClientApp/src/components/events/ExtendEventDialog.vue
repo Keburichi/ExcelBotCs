@@ -247,10 +247,10 @@ async function extendEvent() {
 
 .error-section {
   padding: 16px;
-  background: #fee2e2;
-  border: 1px solid #ef4444;
+  background: var(--msg-error-bg);
+  border: 1px solid var(--msg-error-border);
   border-radius: 8px;
-  color: #dc2626;
+  color: var(--msg-error-fg);
   font-weight: 500;
 }
 
@@ -260,9 +260,9 @@ async function extendEvent() {
 
 .event-info {
   padding: 16px;
-  background: var(--muted-bg, #f9f9f9);
+  background: var(--muted-bg);
   border-radius: 8px;
-  border: 1px solid var(--border, #e0e0e0);
+  border: 1px solid var(--border);
 }
 
 .info-row {
@@ -273,24 +273,24 @@ async function extendEvent() {
 }
 
 .info-row:not(:last-child) {
-  border-bottom: 1px solid var(--border, #e0e0e0);
+  border-bottom: 1px solid var(--border);
 }
 
 .info-label {
   font-weight: 500;
-  color: var(--muted, #666);
+  color: var(--muted);
   font-size: 0.9rem;
 }
 
 .info-value {
   font-weight: 600;
-  color: var(--fg, #333);
+  color: var(--fg);
   font-size: 0.95rem;
 }
 
 .info-value.recurrence {
   text-transform: capitalize;
-  color: var(--link, #3b82f6);
+  color: var(--link);
 }
 
 .input-section {
@@ -301,7 +301,7 @@ async function extendEvent() {
 
 .input-label {
   font-weight: 600;
-  color: var(--fg, #333);
+  color: var(--fg);
   font-size: 1rem;
 }
 
@@ -317,27 +317,27 @@ async function extendEvent() {
   font-size: 1.1rem;
   font-weight: 600;
   text-align: center;
-  border: 2px solid var(--border, #e0e0e0);
+  border: 2px solid var(--border);
   border-radius: 8px;
-  background: white;
-  color: var(--fg, #333);
+  background: var(--card);
+  color: var(--fg);
   outline: none;
   transition: border-color 0.2s;
 }
 
 .count-input:focus {
-  border-color: var(--link, #3b82f6);
+  border-color: var(--link);
 }
 
 .input-suffix {
   font-size: 1rem;
-  color: var(--muted, #666);
+  color: var(--muted);
 }
 
 .preview-section {
   padding: 16px;
-  background: #ecfdf5;
-  border: 1px solid #10b981;
+  background: var(--msg-success-bg);
+  border: 1px solid var(--msg-success-border);
   border-radius: 8px;
 }
 
@@ -345,7 +345,7 @@ async function extendEvent() {
   margin: 0 0 12px 0;
   font-size: 0.95rem;
   font-weight: 600;
-  color: #047857;
+  color: var(--msg-success-fg);
 }
 
 .preview-list {
@@ -361,7 +361,7 @@ async function extendEvent() {
 
 .preview-item {
   font-size: 0.9rem;
-  color: #047857;
+  color: var(--msg-success-fg);
   font-weight: 500;
   padding: 4px 0;
 }
@@ -369,7 +369,7 @@ async function extendEvent() {
 .preview-note {
   margin: 12px 0 0 0;
   font-size: 0.8rem;
-  color: #059669;
+  color: var(--msg-success-fg);
   font-style: italic;
 }
 </style>

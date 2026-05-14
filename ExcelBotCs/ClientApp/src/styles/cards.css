@@ -120,9 +120,14 @@
     font-size: 1.1rem;
 }
 
+.card__title--lg {
+    font-size: 1.5rem;
+    font-weight: 700;
+}
+
 .card__subtitle {
     margin: 0;
-    color: var(--muted, #6b7280);
+    color: var(--muted);
     font-size: .9rem;
 }
 
@@ -163,7 +168,7 @@
 .card__footer {
     padding: .75rem 1rem 1rem;
     border-top: 1px solid rgba(var(--color-border), 0.3);
-    color: var(--muted, #6b7280);
+    color: var(--muted);
 }
 
 /* Image container - remove any spacing that would show card background */
@@ -181,7 +186,7 @@
     background-image: var(--event-image, url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='800' height='450' viewBox='0 0 800 450'><rect width='800' height='450' fill='%23f3f4f6'/><g fill='%2399a1a8' font-family='Segoe UI, Roboto, Arial, sans-serif' text-anchor='middle'><text x='400' y='230' font-size='28'>No image</text></g></svg>"));
     background-size: cover;
     background-position: center;
-    background-color: #f3f4f6;
+    background-color: var(--muted-bg);
     /*min-height: 294px;*/
     min-height: 166px;
     min-width: 100%;
@@ -200,7 +205,7 @@
     margin: 0 auto;
     border-width: 2px;
     border-style: solid;
-    border-color: #3f4c6b;
+    border-color: var(--border);
 }
 
 .card__avatar--placeholder {
@@ -210,7 +215,7 @@
     margin: 0 auto;
     border-width: 2px;
     border-style: solid;
-    border-color: #3f4c6b;
+    border-color: var(--border);
     display: flex;
     align-items: center;
     justify-content: center;

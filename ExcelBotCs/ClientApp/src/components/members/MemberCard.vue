@@ -23,7 +23,7 @@ function goEdit(member: Member) {
   <!--  <MemberEditDialog v-model="isEditOpen" :member="props.member" @update:model-value="handleMemberEdit" /> -->
 
   <BaseCard
-    :subtitle="props.member.DiscordName" :title="props.member.PlayerName" title-class="text-2xl font-bold"
+    :subtitle="props.member.DiscordName" :title="props.member.PlayerName" title-class="card__title--lg"
     variant="elevated"
   >
     <template #avatar>
@@ -85,38 +85,38 @@ function goEdit(member: Member) {
 
 .sub-badge--active {
   background: rgba(34, 197, 94, 0.15);
-  color: #16a34a;
+  color: rgb(var(--color-success));
   border: 1px solid rgba(34, 197, 94, 0.3);
 }
 
 .sub-badge--inactive {
   background: rgba(239, 68, 68, 0.15);
-  color: #dc2626;
+  color: var(--danger);
   border: 1px solid rgba(239, 68, 68, 0.3);
 }
 
 :root[data-theme='dark'] .sub-badge--active {
   background: rgba(34, 197, 94, 0.2);
-  color: #4ade80;
+  color: rgb(var(--color-success));
   border-color: rgba(34, 197, 94, 0.4);
 }
 
 :root[data-theme='dark'] .sub-badge--inactive {
   background: rgba(239, 68, 68, 0.2);
-  color: #f87171;
+  color: var(--danger);
   border-color: rgba(239, 68, 68, 0.4);
 }
 
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme='light']) .sub-badge--active {
     background: rgba(34, 197, 94, 0.2);
-    color: #4ade80;
+    color: rgb(var(--color-success));
     border-color: rgba(34, 197, 94, 0.4);
   }
 
   :root:not([data-theme='light']) .sub-badge--inactive {
     background: rgba(239, 68, 68, 0.2);
-    color: #f87171;
+    color: var(--danger);
     border-color: rgba(239, 68, 68, 0.4);
   }
 }
@@ -142,7 +142,7 @@ function goEdit(member: Member) {
 }
 
 .muted {
-  color: var(--muted, #6b7280);
+  color: var(--muted);
   font-size: 0.875rem;
   font-style: italic;
 }

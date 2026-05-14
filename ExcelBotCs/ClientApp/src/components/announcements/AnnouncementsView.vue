@@ -9,146 +9,181 @@ onMounted(announcements.load)
 </script>
 
 <template>
-  <section class="home container">
-    <h2>Announcements</h2>
-    <p v-if="announcements.error" class="error">
-      {{ announcements.error }}
-    </p>
-    <p v-if="announcements.loading.value">
-      Loading...
+  <section>
+    <h2 class="heading">Announcements</h2>
+
+    <p v-if="announcements.error.value" class="error">
+      {{ announcements.error.value }}
     </p>
 
-    <div
-      v-for="announcement in announcements.announcements.value" :key="announcement.Timestamp"
-      class="announcement-card"
-    >
-      <div class="announcement-header">
-        <div class="announcement-author">
-          <img
-            v-if="announcement.AuthorAvatarUrl"
-            :alt="announcement.Author"
-            :src="announcement.AuthorAvatarUrl"
-            class="announcement-avatar"
-          >
-          <div v-else class="announcement-avatar announcement-avatar--fallback">
-            {{ announcement.Author.charAt(0) }}
-          </div>
-          <span class="announcement-author-name">{{ announcement.Author }}</span>
+    <div v-if="announcements.loading.value" class="feed">
+      <div v-for="i in 3" :key="i" class="entry">
+        <div class="entry-meta">
+          <div class="skel skel-avatar" />
+          <div class="skel skel-name" />
+          <div class="skel skel-time" />
         </div>
-        <span class="announcement-timestamp">{{ new Date(announcement.Timestamp).toLocaleString() }}</span>
+        <div class="skel skel-line skel-line--full" />
+        <div class="skel skel-line skel-line--mid" />
+        <div class="skel skel-line skel-line--short" />
       </div>
+    </div>
 
-      <DiscordMessageRenderer
-        :attachments="announcement.Attachments"
-        :content="announcement.Content"
-        :mentions="announcement.Mentions"
-      />
+    <div v-else class="feed">
+      <article
+        v-for="a in announcements.announcements.value"
+        :key="a.Timestamp"
+        class="entry"
+      >
+        <div class="entry-meta">
+          <img
+            v-if="a.AuthorAvatarUrl"
+            :alt="a.Author"
+            :src="a.AuthorAvatarUrl"
+            class="entry-avatar"
+          >
+          <span v-else class="entry-avatar entry-avatar--fallback">
+            {{ a.Author.charAt(0) }}
+          </span>
+          <span class="entry-author">{{ a.Author }}</span>
+          <span class="entry-time">{{ new Date(a.Timestamp).toLocaleString() }}</span>
+        </div>
+
+        <div class="entry-body">
+          <DiscordMessageRenderer
+            :attachments="a.Attachments"
+            :content="a.Content"
+            :mentions="a.Mentions"
+          />
+        </div>
+      </article>
     </div>
   </section>
 </template>
 
 <style scoped>
-.announcement-card {
-  background: rgba(255, 255, 255, 0.7);
-  backdrop-filter: blur(20px);
-  border: 1px solid rgba(255, 255, 255, 0.3);
-  border-radius: 16px;
-  padding: 1.5rem;
+.heading {
+  font-size: 1.125rem;
+  font-weight: 600;
+  color: var(--fg);
+  margin-bottom: 1.25rem;
+  letter-spacing: -0.01em;
+  line-height: 1.4;
+}
+
+.error {
+  color: var(--danger);
   margin-bottom: 1rem;
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08),
-  inset 0 1px 0 rgba(255, 255, 255, 0.5);
-  transition: transform 0.2s ease, box-shadow 0.2s ease;
 }
 
-:root[data-theme='dark'] .announcement-card {
-  background: rgba(18, 26, 45, 0.7);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3),
-  inset 0 1px 0 rgba(255, 255, 255, 0.08);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root:not([data-theme='light']) .announcement-card {
-    background: rgba(18, 26, 45, 0.7);
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3),
-    inset 0 1px 0 rgba(255, 255, 255, 0.08);
-  }
-}
-
-.announcement-card:hover {
-  backdrop-filter: blur(24px);
-  border-color: rgba(59, 130, 246, 0.3);
-  box-shadow: 0 8px 32px rgba(59, 130, 246, 0.15),
-  0 4px 16px rgba(0, 0, 0, 0.1),
-  inset 0 1px 0 rgba(255, 255, 255, 0.6);
-}
-
-:root[data-theme='dark'] .announcement-card:hover {
-  border-color: rgba(59, 130, 246, 0.4);
-  box-shadow: 0 8px 32px rgba(59, 130, 246, 0.25),
-  0 4px 16px rgba(0, 0, 0, 0.4),
-  inset 0 1px 0 rgba(255, 255, 255, 0.12);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root:not([data-theme='light']) .announcement-card:hover {
-    border-color: rgba(59, 130, 246, 0.4);
-    box-shadow: 0 8px 32px rgba(59, 130, 246, 0.25),
-    0 4px 16px rgba(0, 0, 0, 0.4),
-    inset 0 1px 0 rgba(255, 255, 255, 0.12);
-  }
-}
-
-.announcement-header {
+.feed {
   display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 0.75rem;
-  padding-bottom: 0.5rem;
-  border-bottom: 1px solid rgba(var(--color-border), 0.3);
+  flex-direction: column;
 }
 
-.announcement-author {
+.entry {
+  padding: 1.25rem 0;
+  border-bottom: 1px solid var(--border);
+}
+
+.entry:first-child {
+  padding-top: 0;
+}
+
+.entry:last-child {
+  border-bottom: none;
+}
+
+.entry-meta {
   display: flex;
   align-items: center;
-  gap: 0.6rem;
+  gap: 0.5rem;
+  margin-bottom: 0.625rem;
 }
 
-.announcement-avatar {
-  width: 2.25rem;
-  height: 2.25rem;
+.entry-avatar {
+  width: 1.75rem;
+  height: 1.75rem;
   border-radius: 50%;
   object-fit: cover;
   flex-shrink: 0;
 }
 
-.announcement-avatar--fallback {
-  display: flex;
+.entry-avatar--fallback {
+  display: inline-flex;
   align-items: center;
   justify-content: center;
-  background: rgba(59, 130, 246, 0.2);
-  color: rgb(59, 130, 246);
+  background: color-mix(in oklab, var(--link) 20%, var(--bg) 80%);
+  color: var(--link);
   font-weight: 700;
-  font-size: 1rem;
+  font-size: 0.75rem;
 }
 
-.announcement-author-name {
-  font-weight: 700;
+.entry-author {
+  font-weight: 600;
+  font-size: 0.9rem;
   color: var(--fg);
-  font-size: 1.1rem;
 }
 
-.announcement-timestamp {
+.entry-time {
   color: var(--muted);
-  font-size: 0.85rem;
+  font-size: 0.9rem;
+  margin-left: auto;
+}
+
+.entry-body {
+  line-height: 1.6;
+  color: var(--fg);
+}
+
+/* Skeleton loading */
+.skel {
+  background: var(--border);
+  border-radius: 6px;
+  animation: pulse 1.5s ease-in-out infinite;
+}
+
+.skel-avatar {
+  width: 1.75rem;
+  height: 1.75rem;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.skel-name {
+  width: 7rem;
+  height: 0.85rem;
+}
+
+.skel-time {
+  width: 3.5rem;
+  height: 0.7rem;
+  margin-left: auto;
+}
+
+.skel-line {
+  height: 0.85rem;
+  margin-top: 0.5rem;
+}
+
+.skel-line--full { width: 100%; }
+.skel-line--mid { width: 85%; }
+.skel-line--short { width: 55%; }
+
+@keyframes pulse {
+  0%, 100% { opacity: 0.4; }
+  50% { opacity: 0.7; }
 }
 
 @media (max-width: 640px) {
-  .announcement-header {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 0.25rem;
+  .entry-meta {
+    flex-wrap: wrap;
+  }
+
+  .entry-time {
+    margin-left: 0;
+    flex-basis: 100%;
+    padding-left: 2.25rem;
   }
 }
 </style>

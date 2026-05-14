@@ -3,7 +3,6 @@ import type { EventOccurrence, FCEvent } from '@/features/events/events.types'
 import type { Fight } from '@/features/fights/fights.types'
 import { computed, onMounted, ref } from 'vue'
 import BaseButton from '@/components/BaseButton.vue'
-import BaseCard from '@/components/BaseCard.vue'
 import BaseModal from '@/components/BaseModal.vue'
 import DiscordMessageRenderer from '@/components/DiscordMessageRenderer.vue'
 import ConcludeEventDialog from '@/components/events/ConcludeEventDialog.vue'
@@ -44,24 +43,18 @@ const isExtendOpen = ref(false)
 
 const { getNextOccurrence, getOccurrenceToComplete, getEvent, updateOccurrenceStatusById } = useEvents()
 
-// Fights data for lookup
 const fights = ref<Fight[]>([])
 
-// Get next occurrence for display (future scheduled occurrences only)
 const nextOccurrence = computed((): EventOccurrence | null => {
   return getNextOccurrence(fcEventValue.value)
 })
 
-// Get occurrence that can be completed (prioritizes past scheduled occurrences)
 const occurrenceToComplete = computed((): EventOccurrence | null => {
   return getOccurrenceToComplete(fcEventValue.value)
 })
 
-// Get past scheduled occurrence (for skip functionality)
 const pastScheduledOccurrence = computed((): EventOccurrence | null => {
-  if (!fcEventValue.value.Occurrences)
-    return null
-
+  if (!fcEventValue.value.Occurrences) return null
   const now = new Date()
   return fcEventValue.value.Occurrences
     .filter(o =>
@@ -71,60 +64,51 @@ const pastScheduledOccurrence = computed((): EventOccurrence | null => {
     .sort((a, b) => new Date(a.OccurrenceDate).getTime() - new Date(b.OccurrenceDate).getTime())[0] || null
 })
 
-// Computed properties for display
 const eventTypeLabel = computed(() => {
   return fcEventValue.value.Type !== undefined ? eventTypeToString(fcEventValue.value.Type) : null
 })
 
 const associatedFight = computed(() => {
-  if (!fcEventValue.value.FightId || fights.value.length === 0) {
-    return null
-  }
+  if (!fcEventValue.value.FightId || fights.value.length === 0) return null
   return fights.value.find(f => f.Id === fcEventValue.value.FightId)
 })
 
-// Duration and time formatting
 const formattedDuration = computed(() => {
   const minutes = fcEventValue.value.Duration
-  if (minutes < 60) {
-    return `${minutes} min`
-  }
+  if (minutes < 60) return `${minutes} min`
   const hours = Math.floor(minutes / 60)
   const remainingMinutes = minutes % 60
-  if (remainingMinutes === 0) {
-    return `${hours}h`
-  }
+  if (remainingMinutes === 0) return `${hours}h`
   return `${hours}h ${remainingMinutes}min`
 })
 
-// Compact local time display: "Mon, Jan 15, 2025, 8:00 PM - 10:00 PM (2h)"
-const localTimeRange = computed(() => {
-  // Use next occurrence date if available, otherwise fall back to event start date
+const formattedDate = computed(() => {
   const occurrenceDate = nextOccurrence.value?.OccurrenceDate ?? fcEventValue.value.StartDate
   const startDate = new Date(occurrenceDate)
-  const endDate = new Date(startDate.getTime() + fcEventValue.value.Duration * 60 * 1000)
-
-  const dateStr = startDate.toLocaleString(undefined, {
+  return startDate.toLocaleString(undefined, {
     weekday: 'short',
-    year: 'numeric',
     month: 'short',
     day: 'numeric',
   })
+})
+
+const formattedTimeRange = computed(() => {
+  const occurrenceDate = nextOccurrence.value?.OccurrenceDate ?? fcEventValue.value.StartDate
+  const startDate = new Date(occurrenceDate)
+  const endDate = new Date(startDate.getTime() + fcEventValue.value.Duration * 60 * 1000)
 
   const startTime = startDate.toLocaleString(undefined, {
     hour: '2-digit',
     minute: '2-digit',
   })
-
   const endTime = endDate.toLocaleString(undefined, {
     hour: '2-digit',
     minute: '2-digit',
   })
 
-  return `${dateStr}, ${startTime} - ${endTime} (${formattedDuration.value})`
+  return `${startTime} - ${endTime}`
 })
 
-// Compact server time display: "8:00 PM - 10:00 PM (ST)"
 const serverTimeRange = computed(() => {
   const occurrenceDate = nextOccurrence.value?.OccurrenceDate ?? fcEventValue.value.StartDate
   const startDate = new Date(occurrenceDate)
@@ -135,51 +119,40 @@ const serverTimeRange = computed(() => {
     minute: '2-digit',
     timeZone: 'UTC',
   })
-
   const endTime = endDate.toLocaleString('en-US', {
     hour: '2-digit',
     minute: '2-digit',
     timeZone: 'UTC',
   })
 
-  return `${startTime} - ${endTime} (ST)`
+  return `${startTime} - ${endTime} ST`
 })
 
-// Recurrence information
 const eventIsRecurring = computed(() => {
   return fcEventValue.value.ICalString && isRecurring(fcEventValue.value.ICalString)
 })
 
 const recurrenceDescription = computed(() => {
-  if (!eventIsRecurring.value)
-    return ''
+  if (!eventIsRecurring.value) return ''
   const config = parseICalString(fcEventValue.value.ICalString)
   return config ? describeRecurrence(config, fcEventValue.value.ICalString) : ''
 })
 
-// Handle EventSignupDialog close - fetch updated event data
 async function handleSignupDialogClose(value: boolean) {
   isOpen.value = value
-
-  // When dialog closes (value becomes false), fetch updated event data
   if (!value) {
     const updatedEvent = await getEvent(fcEventValue.value.Id)
-    if (updatedEvent) {
-      fcEventValue.value = updatedEvent
-    }
+    if (updatedEvent) fcEventValue.value = updatedEvent
   }
 }
 
 function getSignUpNumber(fcEvent: FCEvent) {
-  if (!fcEvent.Signups)
-    return 0
-
+  if (!fcEvent.Signups) return 0
   return fcEvent.Signups.filter(signup => signup.Roles.length > 0).length
 }
 
 function getParticipantCount(fcEvent: FCEvent) {
-  if (!fcEvent.Groups || fcEvent.Groups.length === 0)
-    return 0
+  if (!fcEvent.Groups || fcEvent.Groups.length === 0) return 0
   return fcEvent.Groups.flatMap(g => g.Participants).length
 }
 
@@ -187,55 +160,38 @@ function openFightResources() {
   isRaidplanDialogOpen.value = true
 }
 
-// Handle event concluded - reload event data and check for auto-archive
 async function handleEventConcluded() {
   const updatedEvent = await getEvent(fcEventValue.value.Id)
   if (updatedEvent) {
     fcEventValue.value = updatedEvent
-
-    // If the event was auto-archived, notify parent to remove from list
-    if (updatedEvent.IsArchived) {
-      emit('archived', updatedEvent)
-    }
+    if (updatedEvent.IsArchived) emit('archived', updatedEvent)
   }
 }
 
-// Skip past occurrence
 async function skipPastOccurrence() {
-  if (!pastScheduledOccurrence.value)
-    return
-
+  if (!pastScheduledOccurrence.value) return
   try {
     await updateOccurrenceStatusById(
       fcEventValue.value.Id,
       pastScheduledOccurrence.value.Id,
       OccurrenceStatus.Cancelled,
     )
-
-    // Reload event data
     const updatedEvent = await getEvent(fcEventValue.value.Id)
     if (updatedEvent) {
       fcEventValue.value = updatedEvent
-
-      // If the event was auto-archived, notify parent to remove from list
-      if (updatedEvent.IsArchived) {
-        emit('archived', updatedEvent)
-      }
+      if (updatedEvent.IsArchived) emit('archived', updatedEvent)
     }
   }
   catch (error) {
     console.error('Error skipping occurrence:', error)
-    alert('Failed to skip occurrence. Please try again.')
   }
 }
 
-// Handle extend event
 function handleExtended(updatedEvent: FCEvent) {
   fcEventValue.value = updatedEvent
   emit('extended', updatedEvent)
 }
 
-// Load fights on mount for lookup
 onMounted(async () => {
   try {
     fights.value = await FightsApi.list()
@@ -247,14 +203,13 @@ onMounted(async () => {
 </script>
 
 <template>
+  <!-- Dialogs -->
   <EventSignupDialog :event="fcEventValue" :model-value="isOpen" @update:model-value="handleSignupDialogClose" />
-
   <EventOrganizationDialog
     v-model:fc-event="fcEventValue"
     v-model:is-open="isOrganizationOpen"
     @event-planned="handleSignupDialogClose(false)"
   />
-
   <ConcludeEventDialog
     v-if="occurrenceToComplete"
     v-model="isConcludeOpen"
@@ -263,7 +218,6 @@ onMounted(async () => {
     @concluded="handleEventConcluded"
     @skipped="handleEventConcluded"
   />
-
   <BaseModal v-model="isDeleteOpen" :title="`Deleting Event - ${fcEventValue.Name}`">
     <template #body>
       <p>Are you sure you want to delete this event?</p>
@@ -273,66 +227,86 @@ onMounted(async () => {
       <BaseButton state="danger" title="Yes, delete this!" @clicked="emit('deleteEvent', fcEventValue)" />
     </template>
   </BaseModal>
-
   <ExtendEventDialog
     v-if="eventIsRecurring && !props.isArchiveView"
     v-model="isExtendOpen"
     :event="fcEventValue"
     @extended="handleExtended"
   />
+  <RaidplanDialog
+    v-if="associatedFight"
+    v-model:is-open="isRaidplanDialogOpen"
+    :fight="associatedFight"
+    @close="isRaidplanDialogOpen = false"
+  />
 
-  <BaseCard :title="fcEventValue.Name" size="large" title-class="text-2xl font-bold" variant="elevated">
-    <template #image>
+  <!-- Card -->
+  <article class="event-card">
+    <!-- Image banner -->
+    <div v-if="fcEventValue.PictureUrl" class="event-card__image-wrap">
       <img
-        v-if="fcEventValue.PictureUrl" :src="fcEventValue.PictureUrl" alt="avatar" class="card__image"
+        :src="fcEventValue.PictureUrl"
+        :alt="fcEventValue.Name"
+        class="event-card__image"
         referrerpolicy="no-referrer"
       >
-      <span v-else class="card__image placeholder">?</span>
-    </template>
-    <template #body>
-      <DiscordMessageRenderer :content="fcEventValue.Description" />
-    </template>
-    <template #footer>
-      <div v-if="eventTypeLabel || associatedFight || fcEventValue.IsArchived" class="event-metadata">
-        <span v-if="fcEventValue.IsArchived" class="archived-badge">
-          ARCHIVED
-        </span>
-        <span v-if="eventTypeLabel" :class="`type-${eventTypeLabel.toLowerCase()}`" class="event-type-badge">
-          {{ eventTypeLabel }}
-        </span>
-        <span v-if="associatedFight" class="fight-info">
-          <strong>Fight:</strong>
-          <BaseButton
-            :title="associatedFight.Name"
-            :tooltip="`View ${associatedFight.Name} resources`"
-            variant="text"
-            @clicked="openFightResources"
-          />
-        </span>
-      </div>
-      <div class="event-datetime">
-        <div class="datetime-row">
-          <span class="datetime-label">Local Time:</span>
-          <span class="datetime-value">{{ localTimeRange }}</span>
-        </div>
-        <div class="datetime-row">
-          <span class="datetime-label">Server Time:</span>
-          <span class="datetime-value">{{ serverTimeRange }}</span>
+      <div class="event-card__image-fade" />
+    </div>
+
+    <div class="event-card__content">
+      <!-- Header: title + badges -->
+      <div class="event-card__header">
+        <h3 class="event-card__title">{{ fcEventValue.Name }}</h3>
+        <div class="event-card__badges">
+          <span v-if="fcEventValue.IsArchived" class="event-badge event-badge--archived">Archived</span>
+          <span
+            v-if="eventTypeLabel"
+            :class="`event-badge--${eventTypeLabel.toLowerCase()}`"
+            class="event-badge"
+          >{{ eventTypeLabel }}</span>
         </div>
       </div>
-      <div v-if="eventIsRecurring" class="recurrence-info">
-        <span class="recurrence-icon">🔄</span>
-        <span class="recurrence-text">{{ recurrenceDescription }}</span>
+
+      <!-- Time block -->
+      <div class="event-card__time">
+        <div class="event-card__time-primary">
+          <span class="event-card__date">{{ formattedDate }}</span>
+          <span class="event-card__time-range">{{ formattedTimeRange }}</span>
+        </div>
+        <div class="event-card__time-secondary">
+          <span class="event-card__server-time">{{ serverTimeRange }}</span>
+          <span class="event-card__duration">{{ formattedDuration }}</span>
+        </div>
       </div>
-      <div v-if="nextOccurrence" class="occurrence-status">
-        <span class="status-label">Status:</span>
-        <span class="status-value">{{ occurrenceStatusToString(nextOccurrence.Status) }}</span>
-        <span class="participants-info">{{ getParticipantCount(fcEventValue) }}/{{
-          fcEventValue.MaxNumberOfParticipants
-        }} selected</span>
+
+      <!-- Recurrence -->
+      <div v-if="eventIsRecurring" class="event-card__recurrence">
+        {{ recurrenceDescription }}
       </div>
-      <p>Organized by: {{ fcEventValue.Organizer }}</p>
-      <div v-if="!props.isArchiveView" class="actions">
+
+      <!-- Associated fight -->
+      <a v-if="associatedFight" class="event-card__fight-link" role="button" @click="openFightResources">
+        {{ associatedFight.Name }}
+      </a>
+
+      <!-- Description -->
+      <div v-if="fcEventValue.Description" class="event-card__description">
+        <DiscordMessageRenderer :content="fcEventValue.Description" />
+      </div>
+
+      <!-- Metadata row -->
+      <div class="event-card__meta">
+        <span v-if="nextOccurrence" class="event-card__status">
+          {{ occurrenceStatusToString(nextOccurrence.Status) }}
+        </span>
+        <span v-if="nextOccurrence" class="event-card__participants">
+          {{ getParticipantCount(fcEventValue) }}/{{ fcEventValue.MaxNumberOfParticipants }} participants
+        </span>
+        <span class="event-card__organizer">Organized by {{ fcEventValue.Organizer }}</span>
+      </div>
+
+      <!-- Actions -->
+      <div v-if="!props.isArchiveView" class="event-card__actions">
         <BaseButton
           :disabled="!props.isMember || !fcEventValue.AvailableForSignup"
           :title="`Sign up (${getSignUpNumber(fcEventValue)})`"
@@ -341,21 +315,24 @@ onMounted(async () => {
           @clicked="isOpen = true"
         />
         <BaseButton
-          v-if="props.isAdmin && fcEventValue.AvailableForSignup && nextOccurrence" size="small" state="secondary"
-          title="Select Participants" @clicked="isOrganizationOpen = true"
+          v-if="props.isAdmin && fcEventValue.AvailableForSignup && nextOccurrence"
+          size="small"
+          state="secondary"
+          title="Select Participants"
+          @clicked="isOrganizationOpen = true"
         />
         <BaseButton
           v-if="props.isAdmin && pastScheduledOccurrence"
           :tooltip="`Skip occurrence from ${new Date(pastScheduledOccurrence.OccurrenceDate).toLocaleDateString()}`"
           size="small"
-          state="warning"
-          title="Skip Past Occurrence"
+          state="secondary"
+          title="Skip Past"
           @clicked="skipPastOccurrence"
         />
         <BaseButton
           v-if="props.isAdmin && occurrenceToComplete && occurrenceToComplete.Status !== OccurrenceStatus.Completed && occurrenceToComplete.Status !== OccurrenceStatus.Cancelled"
           size="small"
-          title="Conclude Event"
+          title="Conclude"
           tooltip="Mark occurrence as completed and optionally award lottery guesses"
           @clicked="isConcludeOpen = true"
         />
@@ -368,212 +345,259 @@ onMounted(async () => {
           @clicked="isExtendOpen = true"
         />
         <BaseButton
-          v-if="props.isAdmin" size="small" state="danger" title="Delete"
+          v-if="props.isAdmin"
+          size="small"
+          title="Edit"
+          tooltip="Edit event"
+          @clicked="emit('startEdit', fcEventValue)"
+        />
+        <BaseButton
+          v-if="props.isAdmin"
+          size="small"
+          state="danger"
+          title="Delete"
           @clicked="isDeleteOpen = true"
         />
       </div>
-    </template>
-    <template #actions>
-      <BaseButton
-        v-if="props.isAdmin" size="medium" title="Edit" tooltip="Edit event"
-        @clicked="emit('startEdit', fcEventValue)"
-      />
-    </template>
-  </BaseCard>
-
-  <!-- Raidplan Dialog -->
-  <RaidplanDialog
-    v-if="associatedFight"
-    v-model:is-open="isRaidplanDialogOpen"
-    :fight="associatedFight"
-    @close="isRaidplanDialogOpen = false"
-  />
+    </div>
+  </article>
 </template>
 
 <style scoped>
-.card__image {
-  /* zoom in on the image since the fight images have a small white gradient */
-  transform: scale(1.1);
+.event-card {
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.7);
+  backdrop-filter: blur(20px);
+  border: 2px solid rgba(255, 255, 255, 0.4);
+  box-shadow:
+    0 4px 16px rgba(0, 0, 0, 0.08),
+    inset 0 1px 0 rgba(255, 255, 255, 0.5);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
 }
 
-.event-metadata {
+:root[data-theme='dark'] .event-card {
+  background: rgba(18, 26, 45, 0.7);
+  border-color: rgba(255, 255, 255, 0.15);
+  box-shadow:
+    0 4px 16px rgba(0, 0, 0, 0.3),
+    inset 0 1px 0 rgba(255, 255, 255, 0.08);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme='light']) .event-card {
+    background: rgba(18, 26, 45, 0.7);
+    border-color: rgba(255, 255, 255, 0.15);
+    box-shadow:
+      0 4px 16px rgba(0, 0, 0, 0.3),
+      inset 0 1px 0 rgba(255, 255, 255, 0.08);
+  }
+}
+
+/* Image banner */
+.event-card__image-wrap {
+  position: relative;
+  overflow: hidden;
+  max-height: 180px;
+}
+
+.event-card__image {
+  width: 100%;
+  height: 180px;
+  object-fit: cover;
+  display: block;
+}
+
+.event-card__image-fade {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 40px;
+  background: linear-gradient(to top, rgba(255, 255, 255, 0.7), transparent);
+  pointer-events: none;
+}
+
+:root[data-theme='dark'] .event-card__image-fade {
+  background: linear-gradient(to top, rgba(18, 26, 45, 0.7), transparent);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme='light']) .event-card__image-fade {
+    background: linear-gradient(to top, rgba(18, 26, 45, 0.7), transparent);
+  }
+}
+
+/* Content area */
+.event-card__content {
+  padding: 1rem 1.25rem 1.25rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  flex: 1;
+}
+
+/* Header */
+.event-card__header {
   display: flex;
   flex-wrap: wrap;
-  gap: 12px;
-  align-items: center;
-  margin-bottom: 12px;
-  padding-bottom: 8px;
-  border-bottom: 1px solid var(--border, #e0e0e0);
+  align-items: baseline;
+  gap: 0.5rem;
 }
 
-.event-type-badge {
-  display: inline-block;
-  padding: 4px 12px;
-  border-radius: 12px;
-  font-size: 0.85rem;
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-  background: var(--muted-bg, #f5f5f5);
-  color: var(--fg, #333);
+.event-card__title {
+  font-size: 1.25rem;
+  font-weight: 700;
+  line-height: 1.3;
+  margin: 0;
+  flex: 1;
+  min-width: 0;
 }
 
-/* Event type specific colors */
-.event-type-badge.type-raid {
-  background: #e3f2fd;
-  color: #1565c0;
-}
-
-.event-type-badge.type-social {
-  background: #f3e5f5;
-  color: #7b1fa2;
-}
-
-.event-type-badge.type-farming {
-  background: #e8f5e9;
-  color: #2e7d32;
-}
-
-.event-type-badge.type-maps {
-  background: #fff3e0;
-  color: #e65100;
-}
-
-.event-type-badge.type-blu {
-  background: #e0f2f1;
-  color: #00695c;
-}
-
-.event-type-badge.type-academy {
-  background: #fce4ec;
-  color: #c2185b;
-}
-
-.event-type-badge.type-minilvl {
-  background: #fff9c4;
-  color: #f57f17;
-}
-
-.event-type-badge.type-downsynced {
-  background: #ede7f6;
-  color: #4527a0;
-}
-
-.event-type-badge.type-other {
-  background: #eceff1;
-  color: #455a64;
-}
-
-.fight-info {
-  font-size: 0.9rem;
-  color: var(--fg, #333);
+.event-card__badges {
   display: flex;
-  align-items: center;
-  gap: 4px;
-}
-
-.fight-info strong {
-  color: var(--muted, #666);
-  font-weight: 500;
-}
-
-.event-datetime {
-  margin-bottom: 12px;
-  padding: 12px;
-  background: var(--muted-bg, #f9f9f9);
-  border-radius: 8px;
-  border: 1px solid var(--border, #e0e0e0);
-}
-
-.datetime-row {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 4px 0;
-}
-
-.datetime-row:not(:last-child) {
-  margin-bottom: 6px;
-}
-
-.datetime-label {
-  font-weight: 600;
-  color: var(--muted, #666);
-  font-size: 0.9rem;
-}
-
-.datetime-value {
-  font-size: 0.95rem;
-  color: var(--fg, #333);
-  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-}
-
-.recurrence-info {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  margin-bottom: 12px;
-  padding: 10px 12px;
-  background: var(--muted-bg, #f9f9f9);
-  border-radius: 8px;
-  border: 1px solid var(--border, #e0e0e0);
-}
-
-.recurrence-icon {
-  font-size: 1.2rem;
+  gap: 0.375rem;
   flex-shrink: 0;
 }
 
-.recurrence-text {
-  font-size: 0.9rem;
+/* Badges */
+.event-badge {
+  display: inline-block;
+  padding: 0.125rem 0.5rem;
+  border-radius: 999px;
+  font-size: 0.6875rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  background: var(--muted-bg);
+  color: var(--muted);
+}
+
+.event-badge--archived {
+  background: var(--cat-amber-bg);
+  color: var(--cat-amber-fg);
+}
+
+.event-badge--raid { background: var(--cat-blue-bg); color: var(--cat-blue-fg); }
+.event-badge--social { background: var(--cat-purple-bg); color: var(--cat-purple-fg); }
+.event-badge--farming { background: var(--cat-green-bg); color: var(--cat-green-fg); }
+.event-badge--maps { background: var(--cat-orange-bg); color: var(--cat-orange-fg); }
+.event-badge--blu { background: var(--cat-teal-bg); color: var(--cat-teal-fg); }
+.event-badge--academy { background: var(--cat-rose-bg); color: var(--cat-rose-fg); }
+.event-badge--minilvl { background: var(--cat-amber-bg); color: var(--cat-amber-fg); }
+.event-badge--downsynced { background: var(--cat-indigo-bg); color: var(--cat-indigo-fg); }
+.event-badge--other { background: var(--cat-slate-bg); color: var(--cat-slate-fg); }
+
+/* Time block */
+.event-card__time {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.event-card__time-primary {
+  display: flex;
+  align-items: baseline;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.event-card__time-secondary {
+  display: flex;
+  align-items: baseline;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.event-card__date {
+  font-weight: 600;
+  font-size: 0.9375rem;
+}
+
+.event-card__time-range {
+  font-size: 0.9375rem;
+  color: var(--fg);
+}
+
+.event-card__server-time {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--fg);
+}
+
+.event-card__duration {
+  font-size: 0.875rem;
   font-weight: 500;
-  color: var(--fg, #333);
+  color: var(--fg);
+}
+
+/* Recurrence */
+.event-card__recurrence {
+  font-size: 0.8125rem;
+  font-weight: 500;
+  color: var(--muted);
   font-style: italic;
 }
 
-.occurrence-status {
+/* Description */
+.event-card__description {
+  font-size: 0.875rem;
+  line-height: 1.6;
+  color: var(--fg);
+  border-top: 1px solid var(--border);
+  padding-top: 0.75rem;
+}
+
+.event-card__description :deep(.discord-message__content) {
+  white-space: normal;
+}
+
+.event-card__description :deep(.discord-headline) {
+  font-size: 1.125rem;
+  margin: 0.5rem 0 0.25rem;
+}
+
+/* Metadata row */
+.event-card__meta {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
-  gap: 12px;
-  margin-bottom: 12px;
-  padding: 10px 12px;
-  background: var(--muted-bg, #f9f9f9);
-  border-radius: 8px;
-  border: 1px solid var(--border, #e0e0e0);
+  gap: 0.25rem 0.75rem;
+  font-size: 0.8125rem;
+  color: var(--muted);
+  margin-top: auto;
+  padding-top: 0.5rem;
+  border-top: 1px solid var(--border);
 }
 
-.status-label {
+.event-card__status {
   font-weight: 600;
-  color: var(--muted, #666);
-  font-size: 0.9rem;
+  color: var(--fg);
 }
 
-.status-value {
-  font-size: 0.9rem;
-  font-weight: 500;
-  color: var(--fg, #333);
-  padding: 2px 8px;
-  border-radius: 4px;
-  background: var(--muted-bg, #e8f5e9);
-}
-
-.participants-info {
-  margin-left: auto;
-  font-size: 0.9rem;
-  color: var(--muted, #666);
+.event-card__participants {
   font-weight: 500;
 }
 
-.archived-badge {
-  display: inline-block;
-  padding: 4px 12px;
-  border-radius: 12px;
-  font-size: 0.75rem;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-  background: #fef3c7;
-  color: #92400e;
-  border: 1px solid #fbbf24;
+/* Fight link */
+.event-card__fight-link {
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: var(--link);
+  cursor: pointer;
+  text-decoration: none;
+}
+
+.event-card__fight-link:hover {
+  text-decoration: underline;
+}
+
+/* Actions */
+.event-card__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.375rem;
+  padding-top: 0.5rem;
 }
 </style>

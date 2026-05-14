@@ -2,7 +2,6 @@
 import type { Fight } from '@/features/fights/fights.types'
 import type { FilterDef } from '@/utils/filters.types'
 import { computed, onMounted, ref } from 'vue'
-import CardList from '@/components/CardList.vue'
 import FightCard from '@/components/fights/FightCard.vue'
 import FilterBar from '@/components/FilterBar.vue'
 import { useAuth } from '@/composables/useAuth'
@@ -17,7 +16,6 @@ onMounted(f.getFights)
 
 const searchText = ref('')
 
-// Get unique expansions and zones for filter options
 const expansionOptions = computed(() => {
   const expansions = new Set<string>()
   f.fights.value.forEach((fight) => {
@@ -49,7 +47,6 @@ const fightTypeOptions = [
   { label: 'Unreal', value: FightType.Unreal },
 ]
 
-// Make filters computed so they update when options change
 const filters = computed<FilterDef<Fight>[]>(() => [
   {
     id: 'expansion',
@@ -92,7 +89,6 @@ const filters = computed<FilterDef<Fight>[]>(() => [
 
 const { selected, filtered } = useFilters(f.fights, filters.value)
 
-// Apply text search on top of other filters
 const searchFiltered = computed(() => {
   if (!searchText.value.trim())
     return filtered.value
@@ -108,87 +104,88 @@ const searchFiltered = computed(() => {
 </script>
 
 <template>
-  <section class="home">
-    <div class="page-header">
-      <h2 class="page-title">
-        Fights & Resources
-      </h2>
-    </div>
-
-    <div class="search-section">
+  <section>
+    <div class="fights-toolbar">
       <input
         v-model="searchText"
-        class="search-input"
-        placeholder="Search by name, description, zone, or expansion..."
+        class="fights-search"
+        placeholder="Search fights..."
         type="text"
       >
+      <FilterBar v-model="selected" :filters="filters" />
+      <span class="fights-count">{{ searchFiltered.length }} fights</span>
     </div>
 
-    <FilterBar v-model="selected" :filters="filters" />
+    <div v-if="f.loading.value" class="fights-empty muted">
+      Loading...
+    </div>
 
-    <p class="results-count">
-      {{ searchFiltered.length }} Fights are being shown
-    </p>
+    <div v-else-if="f.error.value" class="fights-empty error">
+      {{ f.error.value }}
+    </div>
 
-    <CardList
-      :columns="2"
-      :items="searchFiltered"
-      item-key="Id"
-    >
-      <template #item="{ item }">
-        <FightCard :fight="item" :is-member="isMember?.valueOf()" />
-      </template>
-    </CardList>
+    <div v-else-if="searchFiltered.length === 0" class="fights-empty muted">
+      No fights found.
+    </div>
+
+    <div v-else class="fights-grid">
+      <FightCard
+        v-for="fight in searchFiltered"
+        :key="fight.Id"
+        :fight="fight"
+        :is-member="isMember?.valueOf()"
+      />
+    </div>
   </section>
 </template>
 
 <style scoped>
-/* Page header */
-.page-header {
-  margin-bottom: 2rem;
+.fights-toolbar {
+  display: flex;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+  align-items: center;
+  margin-bottom: 1.5rem;
 }
 
-.page-title {
-  font-size: 2rem;
-  font-weight: 700;
-  margin: 0;
-  color: var(--fg);
-  background: linear-gradient(135deg, #3b82f6 0%, #8b5cf6 50%, #ec4899 100%);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
-  letter-spacing: -0.02em;
+.fights-search {
+  flex: 0 1 320px;
 }
 
-.search-section {
-  margin-bottom: 1rem;
-}
-
-.search-input {
-  width: 100%;
-  max-width: 600px;
-  padding: 0.75rem 1rem;
-  font-size: 1rem;
-  border: 1px solid var(--border);
-  border-radius: 0.5rem;
-  background: var(--card);
-  color: var(--fg);
-  transition: border-color 0.2s, box-shadow 0.2s;
-}
-
-.search-input:focus {
-  outline: none;
-  border-color: var(--link);
-  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
-}
-
-.search-input::placeholder {
-  color: var(--muted);
-}
-
-.results-count {
-  margin: 1rem 0;
+.fights-count {
   color: var(--muted);
   font-size: 0.875rem;
+  margin-left: auto;
+  white-space: nowrap;
+}
+
+.fights-empty {
+  text-align: center;
+  padding: 3rem 1rem;
+}
+
+.fights-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 1rem;
+}
+
+@media (max-width: 640px) {
+  .fights-toolbar {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .fights-search {
+    flex: 1;
+  }
+
+  .fights-count {
+    margin-left: 0;
+  }
+
+  .fights-grid {
+    grid-template-columns: 1fr;
+  }
 }
 </style>

@@ -119,42 +119,38 @@ const totalButtons = computed(() => buttonConfigurations.value.length)
 </script>
 
 <template>
-  <div class="min-h-screen bg-gray-50 dark:bg-gray-900 py-8 px-4">
-    <div class="max-w-7xl mx-auto">
+  <div class="showcase">
+    <div class="showcase__inner">
       <!-- Header -->
-      <div class="mb-8">
-        <h1 class="text-4xl font-bold text-gray-900 dark:text-white mb-2">
+      <div class="showcase__header">
+        <h1 class="showcase__title">
           Button Showcase
         </h1>
-        <p class="text-gray-600 dark:text-gray-400">
+        <p class="showcase__subtitle">
           Interactive display of BaseButton component variations
         </p>
       </div>
 
       <!-- Controls Panel -->
-      <div class="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6 mb-8">
-        <h2 class="text-xl font-semibold text-gray-900 dark:text-white mb-4">
+      <div class="showcase__panel">
+        <h2 class="showcase__panel-title">
           Filters
-          <span class="text-sm font-normal text-gray-500 ml-2">
+          <span class="showcase__panel-count">
             ({{ totalButtons }} buttons displayed)
           </span>
         </h2>
 
         <!-- States Filter -->
-        <div class="mb-6">
-          <h3 class="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+        <div class="filter-section">
+          <h3 class="filter-section__label">
             States
           </h3>
-          <div class="flex flex-wrap gap-2">
+          <div class="filter-section__options">
             <button
               v-for="state in states"
               :key="state"
-              :class="
-                selectedStates.includes(state)
-                  ? 'bg-blue-600 text-white shadow-md'
-                  : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
-              "
-              class="px-4 py-2 rounded-lg font-medium transition-all"
+              :class="{ 'filter-btn--active': selectedStates.includes(state) }"
+              class="filter-btn"
               @click="toggleState(state)"
             >
               {{ state }}
@@ -163,20 +159,16 @@ const totalButtons = computed(() => buttonConfigurations.value.length)
         </div>
 
         <!-- Variants Filter -->
-        <div class="mb-6">
-          <h3 class="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+        <div class="filter-section">
+          <h3 class="filter-section__label">
             Variants
           </h3>
-          <div class="flex flex-wrap gap-2">
+          <div class="filter-section__options">
             <button
               v-for="variant in variants"
               :key="variant"
-              :class="
-                selectedVariants.includes(variant)
-                  ? 'bg-blue-600 text-white shadow-md'
-                  : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
-              "
-              class="px-4 py-2 rounded-lg font-medium transition-all"
+              :class="{ 'filter-btn--active': selectedVariants.includes(variant) }"
+              class="filter-btn"
               @click="toggleVariant(variant)"
             >
               {{ variant }}
@@ -185,20 +177,16 @@ const totalButtons = computed(() => buttonConfigurations.value.length)
         </div>
 
         <!-- Sizes Filter -->
-        <div class="mb-6">
-          <h3 class="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+        <div class="filter-section">
+          <h3 class="filter-section__label">
             Sizes
           </h3>
-          <div class="flex flex-wrap gap-2">
+          <div class="filter-section__options">
             <button
               v-for="size in sizes"
               :key="size"
-              :class="
-                selectedSizes.includes(size)
-                  ? 'bg-blue-600 text-white shadow-md'
-                  : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
-              "
-              class="px-4 py-2 rounded-lg font-medium transition-all"
+              :class="{ 'filter-btn--active': selectedSizes.includes(size) }"
+              class="filter-btn"
               @click="toggleSize(size)"
             >
               {{ size }}
@@ -207,56 +195,47 @@ const totalButtons = computed(() => buttonConfigurations.value.length)
         </div>
 
         <!-- Additional Options -->
-        <div class="border-t border-gray-200 dark:border-gray-700 pt-4">
-          <h3 class="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+        <div class="options-section">
+          <h3 class="filter-section__label">
             Additional Options
           </h3>
-          <div class="flex flex-wrap gap-4">
-            <label class="flex items-center cursor-pointer">
+          <div class="options-row">
+            <label class="checkbox-label">
               <input
                 v-model="showWithIcon"
-                class="w-4 h-4 text-blue-600 rounded focus:ring-blue-500"
                 type="checkbox"
               >
-              <span class="ml-2 text-gray-700 dark:text-gray-300">
-                With Icon
-              </span>
+              With Icon
             </label>
-            <label class="flex items-center cursor-pointer">
+            <label class="checkbox-label">
               <input
                 v-model="showWithoutIcon"
-                class="w-4 h-4 text-blue-600 rounded focus:ring-blue-500"
                 type="checkbox"
               >
-              <span class="ml-2 text-gray-700 dark:text-gray-300">
-                Without Icon
-              </span>
+              Without Icon
             </label>
-            <label class="flex items-center cursor-pointer">
+            <label class="checkbox-label">
               <input
                 v-model="showDisabled"
-                class="w-4 h-4 text-blue-600 rounded focus:ring-blue-500"
                 type="checkbox"
               >
-              <span class="ml-2 text-gray-700 dark:text-gray-300">
-                Show Disabled
-              </span>
+              Show Disabled
             </label>
           </div>
         </div>
       </div>
 
       <!-- Buttons Display -->
-      <div class="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6">
-        <h2 class="text-xl font-semibold text-gray-900 dark:text-white mb-6">
+      <div class="showcase__panel">
+        <h2 class="showcase__panel-title" style="margin-bottom: 1.5rem;">
           Button Variations
         </h2>
 
-        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+        <div class="buttons-grid">
           <div
             v-for="(config, index) in buttonConfigurations"
             :key="index"
-            class="flex flex-col items-center justify-center p-4 border border-gray-200 dark:border-gray-700 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+            class="button-cell"
           >
             <BaseButton
               :disabled="config.disabled"
@@ -267,19 +246,19 @@ const totalButtons = computed(() => buttonConfigurations.value.length)
               :title="config.title"
               :variant="config.variant"
             />
-            <div class="mt-2 text-xs text-center text-gray-500 dark:text-gray-400">
+            <div class="button-cell__meta">
               <div>{{ config.size }}</div>
               <div v-if="config.icon">
                 icon: {{ config.iconPosition }}
               </div>
-              <div v-if="config.disabled" class="text-red-500">
+              <div v-if="config.disabled" class="button-cell__disabled">
                 disabled
               </div>
             </div>
           </div>
         </div>
 
-        <div v-if="buttonConfigurations.length === 0" class="text-center py-12 text-gray-500 dark:text-gray-400">
+        <div v-if="buttonConfigurations.length === 0" class="showcase__empty">
           No buttons to display. Please select at least one option from each filter category.
         </div>
       </div>
@@ -288,4 +267,53 @@ const totalButtons = computed(() => buttonConfigurations.value.length)
 </template>
 
 <style scoped>
+.showcase { padding: 2rem 1rem; min-height: 100vh; background: var(--bg); }
+.showcase__inner { max-width: 80rem; margin: 0 auto; }
+.showcase__header { margin-bottom: 2rem; }
+.showcase__title { font-size: 2.25rem; font-weight: 700; color: var(--fg); margin-bottom: 0.5rem; }
+.showcase__subtitle { color: var(--muted); }
+
+.showcase__panel {
+  background: var(--card); border-radius: 8px;
+  box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); padding: 1.5rem; margin-bottom: 2rem;
+}
+.showcase__panel-title { font-size: 1.25rem; font-weight: 600; color: var(--fg); margin-bottom: 1rem; }
+.showcase__panel-count { font-size: 0.875rem; font-weight: 400; color: var(--muted); margin-left: 0.5rem; }
+
+.filter-section { margin-bottom: 1.5rem; }
+.filter-section__label { font-size: 0.875rem; font-weight: 500; color: var(--muted); margin-bottom: 0.5rem; }
+.filter-section__options { display: flex; flex-wrap: wrap; gap: 0.5rem; }
+
+.filter-btn {
+  padding: 0.5rem 1rem; border-radius: 8px; font-weight: 500;
+  transition: all 0.2s ease; border: none; cursor: pointer;
+  background: var(--muted-bg); color: var(--fg);
+}
+.filter-btn:hover { background: var(--border); }
+.filter-btn--active { background: #2563eb; color: #fff; box-shadow: 0 4px 6px -1px rgba(37,99,235,.3); }
+
+.options-section { border-top: 1px solid var(--border); padding-top: 1rem; }
+.options-row { display: flex; flex-wrap: wrap; gap: 1rem; }
+.checkbox-label {
+  display: flex; align-items: center; cursor: pointer; gap: 0.5rem;
+  color: var(--fg); flex-direction: row;
+}
+
+.buttons-grid {
+  display: grid; grid-template-columns: repeat(1, 1fr); gap: 1rem;
+}
+@media (min-width: 768px) { .buttons-grid { grid-template-columns: repeat(2, 1fr); } }
+@media (min-width: 1024px) { .buttons-grid { grid-template-columns: repeat(3, 1fr); } }
+@media (min-width: 1280px) { .buttons-grid { grid-template-columns: repeat(4, 1fr); } }
+
+.button-cell {
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  padding: 1rem; border: 1px solid var(--border); border-radius: 8px;
+  transition: background 0.15s ease;
+}
+.button-cell:hover { background: var(--muted-bg); }
+.button-cell__meta { margin-top: 0.5rem; font-size: 0.75rem; text-align: center; color: var(--muted); }
+.button-cell__disabled { color: var(--danger); }
+
+.showcase__empty { text-align: center; padding: 3rem 0; color: var(--muted); }
 </style>

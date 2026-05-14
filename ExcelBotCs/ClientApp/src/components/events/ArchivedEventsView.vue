@@ -3,7 +3,6 @@ import type { ArchiveSearchParams, FCEvent } from '@/features/events/events.type
 import { computed, onMounted, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import BaseButton from '@/components/BaseButton.vue'
-import CardList from '@/components/CardList.vue'
 import EventCard from '@/components/events/EventCard.vue'
 import SelectMenu from '@/components/SelectMenu.vue'
 import { useAuth } from '@/composables/useAuth'
@@ -214,55 +213,49 @@ onMounted(() => {
       Loading archived events...
     </div>
 
-    <CardList
-      v-else
-      :columns="2"
-      :items="e.archivedEvents.value"
-      item-key="Id"
-    >
-      <template #item="{ item }">
-        <div class="archived-event-card">
-          <EventCard
-            :fc-event="item"
-            :is-admin="isAdmin?.valueOf()"
-            :is-archive-view="true"
-            :is-member="false"
-            @start-edit="goEdit"
-          />
+    <div v-else class="events-grid">
+      <div v-for="item in e.archivedEvents.value" :key="item.Id" class="archived-event-card">
+        <EventCard
+          :fc-event="item"
+          :is-admin="isAdmin?.valueOf()"
+          :is-archive-view="true"
+          :is-member="false"
+          @start-edit="goEdit"
+        />
 
-          <div class="archive-info">
-            <div class="archive-stats">
-              <span class="stat">
-                <strong>{{ item.Occurrences?.length ?? 0 }}</strong> occurrences
-              </span>
-              <span class="stat">
-                <strong>{{ getTotalSignups(item) }}</strong> total signups
-              </span>
-              <span class="stat">
-                <strong>{{ getTotalParticipants(item) }}</strong> total participants
-              </span>
-            </div>
-            <div class="archive-dates">
-              <span class="date-info">
-                Last occurrence: {{ getLastOccurrenceDate(item) }}
-              </span>
-              <span class="date-info">
-                Archived: {{ formatArchivedDate(item.ArchivedDate) }}
-              </span>
-            </div>
-            <div class="archive-actions">
-              <BaseButton
-                v-if="isAdmin"
-                state="secondary"
-                title="Restore Event"
-                tooltip="Restore this event back to active status"
-                @clicked="handleRestore(item)"
-              />
-            </div>
+        <div class="archive-info">
+          <div class="archive-stats">
+            <span class="stat">
+              <strong>{{ item.Occurrences?.length ?? 0 }}</strong> occurrences
+            </span>
+            <span class="stat">
+              <strong>{{ getTotalSignups(item) }}</strong> total signups
+            </span>
+            <span class="stat">
+              <strong>{{ getTotalParticipants(item) }}</strong> total participants
+            </span>
+          </div>
+          <div class="archive-dates">
+            <span class="date-info">
+              Last occurrence: {{ getLastOccurrenceDate(item) }}
+            </span>
+            <span class="date-info">
+              Archived: {{ formatArchivedDate(item.ArchivedDate) }}
+            </span>
+          </div>
+          <div class="archive-actions">
+            <BaseButton
+              v-if="isAdmin"
+              size="small"
+              state="secondary"
+              title="Restore Event"
+              tooltip="Restore this event back to active status"
+              @clicked="handleRestore(item)"
+            />
           </div>
         </div>
-      </template>
-    </CardList>
+      </div>
+    </div>
 
     <div v-if="totalPages > 1 && !e.archiveLoading.value" class="pagination">
       <button
@@ -311,10 +304,6 @@ onMounted(() => {
   font-weight: 700;
   margin: 0;
   color: var(--fg);
-  background: linear-gradient(135deg, #3b82f6 0%, #8b5cf6 50%, #ec4899 100%);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
   letter-spacing: -0.02em;
 }
 
@@ -375,7 +364,7 @@ onMounted(() => {
   padding: 0.5rem 0.75rem;
   font-size: 0.9rem;
   border: 1px solid var(--border);
-  border-radius: 0.375rem;
+  border-radius: 8px;
   background: var(--bg);
   color: var(--fg);
 }
@@ -410,7 +399,7 @@ onMounted(() => {
   padding: 0.375rem 0.5rem;
   font-size: 0.875rem;
   border: 1px solid var(--border);
-  border-radius: 0.375rem;
+  border-radius: 8px;
   background: var(--bg);
   color: var(--fg);
 }
@@ -433,11 +422,11 @@ onMounted(() => {
   font-size: 0.875rem;
   font-weight: 500;
   border: 1px solid var(--border);
-  border-radius: 0.375rem;
+  border-radius: 8px;
   background: var(--card);
   color: var(--fg);
   cursor: pointer;
-  transition: background-color 0.15s, border-color 0.15s;
+  transition: background-color 0.2s, border-color 0.2s;
 }
 
 .page-btn:hover:not(:disabled) {
@@ -461,6 +450,12 @@ onMounted(() => {
   color: var(--muted);
 }
 
+.events-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(420px, 1fr));
+  gap: 1rem;
+}
+
 .archived-event-card {
   display: flex;
   flex-direction: column;
@@ -468,11 +463,11 @@ onMounted(() => {
 }
 
 .archive-info {
-  padding: 1rem;
-  background: var(--muted-bg, #f9f9f9);
-  border: 1px solid var(--border);
+  padding: 1rem 1.25rem;
+  background: var(--muted-bg);
+  border: 2px solid var(--border);
   border-top: none;
-  border-radius: 0 0 0.5rem 0.5rem;
+  border-radius: 0 0 16px 16px;
 }
 
 .archive-stats {
@@ -509,10 +504,20 @@ onMounted(() => {
   margin-top: 0.5rem;
 }
 
+.archived-event-card :deep(.event-card) {
+  border-radius: 16px 16px 0 0;
+}
+
 .empty-state {
   text-align: center;
   padding: 3rem;
   color: var(--muted);
+}
+
+@media (max-width: 520px) {
+  .events-grid {
+    grid-template-columns: 1fr;
+  }
 }
 
 .empty-hint {
@@ -521,7 +526,7 @@ onMounted(() => {
 }
 
 .error {
-  color: var(--danger, #ef4444);
+  color: var(--danger);
   margin-bottom: 1rem;
 }
 </style>

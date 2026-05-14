@@ -8,7 +8,6 @@ import { MembersApi } from '@/features/members/members.api'
 
 const auth = useAuth()
 
-// Local editable copy of the user
 const form = reactive<Partial<Member>>({})
 
 const saving = ref(false)
@@ -37,9 +36,15 @@ function hydrateForm() {
 
 const avatarUrl = computed(() => auth.user.value?.DiscordAvatar || '')
 const displayName = computed(() => auth.user.value?.PlayerName || auth.user.value?.DiscordName || 'My Profile')
+const discordName = computed(() => auth.user.value?.DiscordName || null)
 const verificationToken = computed(() => auth.user.value?.LodestoneVerificationToken || '')
 const hasLodestone = computed(() => !!auth.user.value?.LodestoneId)
 const experience = computed(() => auth.user.value?.Experience || [])
+
+function initial(name: string | null | undefined): string {
+  if (!name) return '?'
+  return name.charAt(0).toUpperCase()
+}
 
 function startEdit() {
   editMode.value = true
@@ -61,7 +66,6 @@ async function save() {
   error.value = null
   success.value = null
   try {
-    // Build updated payload: keep non-editable fields from current user
     const current = auth.user.value!
     const payload: Member = {
       ...current,
@@ -72,7 +76,7 @@ async function save() {
     await MembersApi.update(form.Id, payload)
     success.value = 'Profile updated successfully.'
     editMode.value = false
-    await auth.loadMe() // refresh local user
+    await auth.loadMe()
   }
   catch (e: any) {
     error.value = e?.message ?? 'Failed to update profile.'
@@ -130,13 +134,22 @@ async function verifyClaim() {
 </script>
 
 <template>
-  <section class="profile container">
+  <section class="profile">
     <div class="profile__header">
-      <img v-if="avatarUrl" :src="avatarUrl" alt="avatar" class="profile__avatar">
+      <img
+        v-if="avatarUrl"
+        :src="avatarUrl"
+        alt="avatar"
+        class="profile__avatar"
+        referrerpolicy="no-referrer"
+      >
+      <span v-else class="profile__avatar profile__avatar--placeholder">{{
+        initial(displayName)
+      }}</span>
       <div class="profile__title">
-        <h1>{{ displayName }}</h1>
-        <p class="profile__subtitle">
-          @{{ auth.user.value?.DiscordName }}
+        <h1 class="profile__name">{{ displayName }}</h1>
+        <p v-if="discordName" class="profile__subtitle">
+          @{{ discordName }}
         </p>
         <div class="badges">
           <span v-if="auth.user.value?.IsAdmin" class="badge admin">Admin</span>
@@ -167,48 +180,48 @@ async function verifyClaim() {
       {{ success }}
     </div>
 
-    <div class="cards_container--large">
-      <div class="card">
-        <h2>Profile Details</h2>
+    <div class="profile__cards">
+      <div class="profile__card">
+        <h2 class="profile__section-title">Profile Details</h2>
 
         <div class="kv-row">
-          <label>Discord</label>
-          <div class="kv-value muted">
+          <span class="kv-label">Discord</span>
+          <span class="kv-value muted">
             {{ auth.user.value?.DiscordName }}
-          </div>
+          </span>
         </div>
 
-        <div :class="{ editable: editMode }" class="kv-row">
-          <label for="playerName">Player Name</label>
+        <div class="kv-row">
+          <label for="playerName" class="kv-label">Player Name</label>
           <template v-if="editMode">
             <input id="playerName" v-model="form.PlayerName" placeholder="Your in-game name">
           </template>
-          <div v-else class="kv-value">
+          <span v-else class="kv-value">
             {{ auth.user.value?.PlayerName }}
-          </div>
+          </span>
         </div>
 
-        <div :class="{ editable: editMode }" class="kv-row">
-          <label for="lodestoneId">Lodestone ID</label>
+        <div class="kv-row">
+          <label for="lodestoneId" class="kv-label">Lodestone ID</label>
           <template v-if="editMode">
             <input id="lodestoneId" v-model="form.LodestoneId" placeholder="Character ID or Lodestone URL">
           </template>
-          <div v-else class="kv-value">
-            {{ auth.user.value?.LodestoneId || '—' }}
-          </div>
+          <span v-else class="kv-value">
+            {{ auth.user.value?.LodestoneId || 'Not linked' }}
+          </span>
         </div>
 
-        <div v-if="editMode && !auth.user.value?.LodestoneId" class="kv-row">
-          <label>Verification</label>
-          <div>
-            <p class="muted">
-              To prove ownership: 1) Click "Generate message" 2) Paste it into your Lodestone Bio 3) Click "Verify now".
-            </p>
-            <div class="alert">
-              <div><strong>Message to place in your Lodestone Bio:</strong></div>
-              <div class="kv-value">
-                <code>{{ verificationToken || 'ExcelsiorFc-XXXXXXXX...' }}</code>
-              </div>
+        <div v-if="editMode && !auth.user.value?.LodestoneId" class="kv-row kv-row--verification">
+          <span class="kv-label">Verification</span>
+          <div class="verification-flow">
+            <ol class="verification-steps">
+              <li>Click "Generate message"</li>
+              <li>Paste the message into your Lodestone Bio</li>
+              <li>Click "Verify now"</li>
+            </ol>
+            <div class="verification-token">
+              <span class="verification-token__label">Message for your Lodestone Bio:</span>
+              <code class="verification-token__code">{{ verificationToken || 'ExcelsiorFc-XXXXXXXX...' }}</code>
             </div>
             <div class="form-actions">
               <BaseButton
@@ -228,20 +241,20 @@ async function verifyClaim() {
           </div>
         </div>
 
-        <div :class="{ editable: editMode }" class="kv-row">
-          <label>Subbed</label>
+        <div class="kv-row">
+          <span class="kv-label">Subbed</span>
           <template v-if="editMode">
             <label class="switch">
               <input v-model="form.Subbed" type="checkbox">
               <span class="slider" />
             </label>
           </template>
-          <div v-else class="kv-value">
+          <span v-else class="kv-value">
             <span
               :class="[auth.user.value?.Subbed ? 'on' : 'off']"
               class="pill"
             >{{ auth.user.value?.Subbed ? 'Yes' : 'No' }}</span>
-          </div>
+          </span>
         </div>
 
         <div v-if="editMode" class="form-actions">
@@ -254,8 +267,8 @@ async function verifyClaim() {
         </div>
       </div>
 
-      <div v-if="auth.user.value?.IsAdmin" class="card">
-        <h2>Experience</h2>
+      <div v-if="auth.user.value?.IsAdmin" class="profile__card">
+        <h2 class="profile__section-title">Experience</h2>
         <template v-if="hasLodestone">
           <ExperienceTags :experience="experience" />
           <p v-if="!experience.length" class="muted">
@@ -269,8 +282,8 @@ async function verifyClaim() {
         </template>
       </div>
 
-      <div class="card">
-        <h2>Roles</h2>
+      <div class="profile__card">
+        <h2 class="profile__section-title">Roles</h2>
         <div class="chips">
           <span v-for="r in auth.user.value?.Roles" :key="r.Id || r.Name" class="chip">{{ r.Name }}</span>
           <span v-if="!auth.user.value?.Roles?.length" class="muted">No roles assigned</span>
@@ -281,143 +294,221 @@ async function verifyClaim() {
 </template>
 
 <style scoped>
-/* Profile layout helpers */
 .profile {
   max-width: 900px;
   margin: 0 auto;
-  padding: 28px 24px;
 }
 
+/* Header */
 .profile__header {
   display: flex;
   align-items: center;
-  gap: 20px;
-  margin-bottom: 24px;
+  gap: 1.25rem;
+  margin-bottom: 1.5rem;
 }
 
 .profile__avatar {
-  width: 96px;
-  height: 96px;
+  width: 80px;
+  height: 80px;
   border-radius: 50%;
   object-fit: cover;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+  flex-shrink: 0;
+  box-shadow:
+    0 4px 12px rgba(0, 0, 0, 0.1),
+    inset 0 0 0 2px rgba(255, 255, 255, 0.3);
+}
+
+.profile__avatar--placeholder {
+  background: linear-gradient(135deg, #3b82f6 0%, #8b5cf6 50%, #ec4899 100%);
+  color: #fff;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-size: 1.75rem;
+  line-height: 1;
 }
 
 .profile__title {
   flex: 1;
+  min-width: 0;
 }
 
-.profile__title h1 {
-  margin: 0 0 2px;
-  font-size: 28px;
+.profile__name {
+  font-size: 1.5rem;
+  font-weight: 600;
+  line-height: 1.3;
+  margin: 0 0 0.125rem;
 }
 
 .profile__subtitle {
-  margin: 2px 0 10px;
+  margin: 0 0 0.5rem;
   color: var(--muted);
+  font-size: 0.9rem;
 }
 
 .profile__actions {
+  flex-shrink: 0;
+  align-self: flex-start;
+  margin-top: 0.25rem;
+}
+
+/* Cards stack */
+.profile__cards {
   display: flex;
-  gap: 8px;
+  flex-direction: column;
+  gap: 1rem;
 }
 
-/* Improve spacing inside profile cards that don't use card__body wrappers */
-.profile .card {
-  padding: 16px;
+.profile__card {
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.7);
+  backdrop-filter: blur(20px);
+  border: 2px solid rgba(255, 255, 255, 0.4);
+  box-shadow:
+    0 4px 16px rgba(0, 0, 0, 0.08),
+    inset 0 1px 0 rgba(255, 255, 255, 0.5);
+  padding: 1.25rem 1.5rem;
 }
 
-.profile .card h2 {
-  margin: 0 0 12px;
+:root[data-theme='dark'] .profile__card {
+  background: rgba(18, 26, 45, 0.7);
+  border-color: rgba(255, 255, 255, 0.15);
+  box-shadow:
+    0 4px 16px rgba(0, 0, 0, 0.3),
+    inset 0 1px 0 rgba(255, 255, 255, 0.08);
 }
 
-/* Make each key/value row more breathable */
-.profile .kv-row {
-  padding: 12px 0;
-  border-bottom: 1px dashed var(--border);
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme='light']) .profile__card {
+    background: rgba(18, 26, 45, 0.7);
+    border-color: rgba(255, 255, 255, 0.15);
+    box-shadow:
+      0 4px 16px rgba(0, 0, 0, 0.3),
+      inset 0 1px 0 rgba(255, 255, 255, 0.08);
+  }
 }
 
-.profile .kv-row + .kv-row {
-  margin-top: 6px;
-}
-
-.profile .kv-row:last-child {
-  border-bottom: none;
-}
-
-/* Experience list on profile */
-.experience-list {
-  list-style: none;
-  padding: 0;
-  margin: 0;
-  display: grid;
-  gap: 8px;
-}
-
-.experience-item {
-  padding: 10px 12px;
-  border: 1px dashed var(--border);
-  border-radius: 10px;
-  background: color-mix(in oklab, var(--card) 96%, transparent 4%);
-}
-
-.experience-item__main {
-  display: flex;
-  align-items: baseline;
-  gap: 8px;
-}
-
-.experience-item__name {
+.profile__section-title {
+  font-size: 1.125rem;
   font-weight: 600;
+  line-height: 1.4;
+  margin: 0 0 1rem;
 }
 
-.experience-item__type {
-  color: var(--muted);
-  font-size: 12px;
-}
-
-.experience-item__meta {
-  margin-top: 6px;
-  display: flex;
-  gap: 6px;
-  flex-wrap: wrap;
-}
-
-/* Key-value row specific to detail views */
+/* Key-value rows */
 .kv-row {
   display: grid;
-  grid-template-columns: 160px 1fr;
+  grid-template-columns: 140px 1fr;
   align-items: center;
-  gap: 12px;
-  padding: 10px 0;
-  border-bottom: 1px dashed var(--border);
+  gap: 1rem;
+  padding: 0.75rem 0;
+  border-bottom: 1px solid var(--border);
 }
 
 .kv-row:last-child {
   border-bottom: none;
 }
 
-.kv-row label {
+.kv-row--verification {
+  align-items: start;
+}
+
+.kv-label {
   color: var(--muted);
-  font-size: 14px;
+  font-size: 0.875rem;
+  font-weight: 500;
 }
 
 .kv-value {
   font-weight: 500;
 }
 
-.kv-value.muted, .muted {
-  color: #9ca3af;
-  font-weight: 400;
+/* Verification flow */
+.verification-flow {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
 }
 
-.kv-row input {
-  width: 100%;
-  padding: 8px 10px;
-  border: 1px solid var(--input-border);
+.verification-steps {
+  margin: 0;
+  padding-left: 1.25rem;
+  list-style: decimal;
+  color: var(--muted);
+  font-size: 0.875rem;
+  line-height: 1.6;
+}
+
+.verification-token {
+  padding: 0.75rem 1rem;
   border-radius: 8px;
-  font-size: 14px;
-  background: var(--input-bg);
-  color: var(--input-fg);
+  background: var(--muted-bg);
+  border: 1px solid var(--border);
+}
+
+:root[data-theme='dark'] .verification-token {
+  background: rgba(15, 23, 42, 0.5);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme='light']) .verification-token {
+    background: rgba(15, 23, 42, 0.5);
+  }
+}
+
+.verification-token__label {
+  display: block;
+  font-size: 0.8125rem;
+  font-weight: 500;
+  color: var(--muted);
+  margin-bottom: 0.375rem;
+}
+
+.verification-token__code {
+  display: block;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 0.8125rem;
+  color: var(--fg);
+  word-break: break-all;
+  user-select: all;
+}
+
+/* Responsive */
+@media (max-width: 640px) {
+  .profile__header {
+    flex-wrap: wrap;
+    gap: 1rem;
+  }
+
+  .profile__avatar {
+    width: 64px;
+    height: 64px;
+  }
+
+  .profile__avatar--placeholder {
+    font-size: 1.5rem;
+  }
+
+  .profile__name {
+    font-size: 1.25rem;
+  }
+
+  .profile__actions {
+    width: 100%;
+  }
+
+  .profile__actions :deep(.base-btn) {
+    width: 100%;
+  }
+
+  .profile__card {
+    padding: 1rem;
+  }
+
+  .kv-row {
+    grid-template-columns: 1fr;
+    gap: 0.25rem;
+  }
 }
 </style>

@@ -690,9 +690,9 @@ label {
 /* Error message */
 .error {
   padding: 1rem;
-  background: var(--alert-error-bg, rgba(220, 38, 38, 0.1));
-  color: var(--alert-error-fg, #c62828);
-  border: 1px solid var(--alert-error-border, rgba(220, 38, 38, 0.3));
+  background: var(--alert-error-bg);
+  color: var(--alert-error-fg);
+  border: 1px solid var(--alert-error-border);
   border-radius: 12px;
   margin-bottom: 1.5rem;
 }

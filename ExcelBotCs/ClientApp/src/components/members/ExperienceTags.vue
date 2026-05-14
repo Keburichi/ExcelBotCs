@@ -102,7 +102,7 @@ const experienceSummary = computed(() => {
   display: inline-flex;
   align-items: center;
   padding: 0.25rem 0.5rem;
-  border-radius: 0.375rem;
+  border-radius: 8px;
   font-size: 0.75rem;
   font-weight: 600;
   line-height: 1;
@@ -111,33 +111,33 @@ const experienceSummary = computed(() => {
 }
 
 .tag--extreme {
-  background: #10b981;
-  color: white;
-  border-color: #059669;
+  background: var(--exp-extreme);
+  color: var(--bg);
+  border-color: var(--exp-extreme-border);
 }
 
 .tag--legacy-savage {
-  background: #8b5cf6;
-  color: white;
-  border-color: #7c3aed;
+  background: var(--exp-legacy-savage);
+  color: var(--bg);
+  border-color: var(--exp-legacy-savage-border);
 }
 
 .tag--savage {
-  background: #ef4444;
-  color: white;
-  border-color: #dc2626;
+  background: var(--exp-savage);
+  color: var(--bg);
+  border-color: var(--exp-savage-border);
 }
 
 .tag--chaotic {
-  background: #f59e0b;
-  color: white;
-  border-color: #d97706;
+  background: var(--exp-chaotic);
+  color: var(--bg);
+  border-color: var(--exp-chaotic-border);
 }
 
 .tag--ultimate {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  color: white;
-  border-color: #5a67d8;
+  background: linear-gradient(135deg, var(--exp-ultimate-from) 0%, var(--exp-ultimate-to) 100%);
+  color: var(--bg);
+  border-color: var(--exp-ultimate-border);
   font-weight: 700;
   text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
 }

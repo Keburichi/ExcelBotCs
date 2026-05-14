@@ -85,9 +85,9 @@ public class DiscordController : ControllerBase
                 DiscordName = discordName,
                 DiscordAvatar = discordAvatar
             });
-
-            await _importService.ImportMembers(_discordBotOptions.Value.GuildId);
         }
+
+        await _importService.ImportMembers(_discordBotOptions.Value.GuildId);
 
         // Redirect to SPA home where the cookie will authorize API calls
         return Results.Redirect("/");

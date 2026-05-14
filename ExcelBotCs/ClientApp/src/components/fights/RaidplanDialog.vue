@@ -188,7 +188,7 @@ function closeDialog() {
 }
 
 .raidplan-error {
-  color: #ef4444;
+  color: var(--danger);
 }
 
 .raidplan-empty-hint {

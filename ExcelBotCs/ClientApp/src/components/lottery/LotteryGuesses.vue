@@ -7,146 +7,70 @@ defineProps<{
 </script>
 
 <template>
-  <div class="guesses-container">
+  <div>
     <h3 class="guesses-title">
-      All Current Guesses
+      All Guesses
     </h3>
     <div v-if="guesses.length === 0" class="no-guesses">
-      No guesses yet. Be the first to make a guess!
+      No guesses yet. Be the first!
     </div>
-    <div v-else class="guesses-table-container">
-      <table class="guesses-table">
-        <thead>
-          <tr>
-            <th>Number</th>
-            <th>Guessed By</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr v-for="guess in guesses" :key="guess.Number">
-            <td class="number-cell">
-              {{ guess.Number }}
-            </td>
-            <td>{{ guess.Guessers.map(u => u.DiscordName).join(', ') }}</td>
-          </tr>
-        </tbody>
-      </table>
+    <div v-else class="guesses-list">
+      <div
+        v-for="guess in guesses"
+        :key="guess.Number"
+        class="guess-row"
+      >
+        <span class="guess-num">{{ guess.Number }}</span>
+        <span class="guess-names">{{ guess.Guessers.map(u => u.DiscordName).join(', ') }}</span>
+      </div>
     </div>
   </div>
 </template>
 
 <style scoped>
-.guesses-container {
-  background: rgba(255, 255, 255, 0.7);
-  backdrop-filter: blur(20px);
-  border: 1px solid rgba(255, 255, 255, 0.3);
-  border-radius: 16px;
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08),
-  inset 0 1px 0 rgba(255, 255, 255, 0.5);
-  padding: 1.5rem;
-  transition: transform 0.2s ease, box-shadow 0.2s ease;
-}
-
-:root[data-theme='dark'] .guesses-container {
-  background: rgba(18, 26, 45, 0.7);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3),
-  inset 0 1px 0 rgba(255, 255, 255, 0.08);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root:not([data-theme='light']) .guesses-container {
-    background: rgba(18, 26, 45, 0.7);
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3),
-    inset 0 1px 0 rgba(255, 255, 255, 0.08);
-  }
-}
-
-.guesses-container:hover {
-  backdrop-filter: blur(24px);
-  border-color: rgba(59, 130, 246, 0.3);
-  box-shadow: 0 8px 32px rgba(59, 130, 246, 0.15),
-  0 4px 16px rgba(0, 0, 0, 0.1),
-  inset 0 1px 0 rgba(255, 255, 255, 0.6);
-}
-
-:root[data-theme='dark'] .guesses-container:hover {
-  border-color: rgba(59, 130, 246, 0.4);
-  box-shadow: 0 8px 32px rgba(59, 130, 246, 0.25),
-  0 4px 16px rgba(0, 0, 0, 0.4),
-  inset 0 1px 0 rgba(255, 255, 255, 0.12);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root:not([data-theme='light']) .guesses-container:hover {
-    border-color: rgba(59, 130, 246, 0.4);
-    box-shadow: 0 8px 32px rgba(59, 130, 246, 0.25),
-    0 4px 16px rgba(0, 0, 0, 0.4),
-    inset 0 1px 0 rgba(255, 255, 255, 0.12);
-  }
-}
-
 .guesses-title {
-  margin: 0 0 1rem 0;
-  font-size: 1.25rem;
+  margin: 0 0 0.75rem 0;
+  font-size: 1rem;
   font-weight: 600;
-  color: var(--fg, #111827);
+  color: var(--fg);
 }
 
 .no-guesses {
-  text-align: center;
-  padding: 2rem;
-  color: var(--muted, #6b7280);
-  font-style: italic;
-}
-
-.guesses-table-container {
-  overflow-x: auto;
-  border: 1px solid var(--border, #e5e7eb);
-  border-radius: 16px;
-}
-
-.guesses-table {
-  width: 100%;
-  border-collapse: collapse;
+  padding: 1.5rem 0;
+  color: var(--muted);
   font-size: 0.875rem;
 }
 
-.guesses-table thead {
-  background: var(--card, #fff);
-  border-bottom: 2px solid var(--border, #e5e7eb);
+.guesses-list {
+  display: flex;
+  flex-direction: column;
+  max-height: 28rem;
+  overflow-y: auto;
 }
 
-.guesses-table th {
-  padding: 0.75rem;
-  text-align: left;
-  font-weight: 600;
-  color: var(--fg, #111827);
-  border-bottom: 2px solid var(--border, #e5e7eb);
-  white-space: nowrap;
+.guess-row {
+  display: flex;
+  gap: 0.75rem;
+  align-items: baseline;
+  padding: 0.375rem 0;
+  border-bottom: 1px solid var(--border);
+  font-size: 0.875rem;
 }
 
-.guesses-table td {
-  padding: 0.75rem;
-  border-bottom: 1px solid var(--border, #e5e7eb);
-  color: var(--fg, #111827);
-}
-
-.guesses-table tbody tr:last-child td {
+.guess-row:last-child {
   border-bottom: none;
 }
 
-.guesses-table tbody tr:hover {
-  background: rgba(0, 0, 0, 0.02);
-}
-
-[data-theme="dark"] .guesses-table tbody tr:hover {
-  background: rgba(255, 255, 255, 0.05);
-}
-
-.number-cell {
+.guess-num {
   font-weight: 600;
-  color: #3b82f6;
+  color: var(--link);
+  min-width: 2rem;
+  text-align: right;
+  flex-shrink: 0;
+}
+
+.guess-names {
+  color: var(--fg);
+  line-height: 1.4;
 }
 </style>

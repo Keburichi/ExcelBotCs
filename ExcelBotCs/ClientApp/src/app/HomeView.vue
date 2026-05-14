@@ -1,49 +1,96 @@
 <script lang="ts" setup>
+import { useAuth } from '@/composables/useAuth'
 import RulesView from '@/app/RulesView.vue'
 import AnnouncementsView from '@/components/announcements/AnnouncementsView.vue'
+
+const { isMember } = useAuth()
 </script>
 
 <template>
-  <section class="home">
-    <!-- Intro card -->
-    <div class="container">
-      <div class="card intro-card">
-        <div class="card__body">
-          <h2 class="intro-title text-2xl sm:text-3xl font-bold tracking-tight text-slate-900 dark:text-slate-100">
-            Welcome!
-          </h2>
-          <p class="intro-text">
-            On this website you can find upcoming FC Events, helpful resources for fights and interact with our Discord
-            Bot in a graphical way.
-          </p>
-        </div>
-      </div>
+  <div class="home">
+    <div class="home-columns">
+      <RulesView class="home-rules" />
+      <AnnouncementsView class="home-feed" />
     </div>
 
-    <RulesView />
-    <AnnouncementsView />
-  </section>
+    <nav v-if="isMember" class="home-nav">
+      <RouterLink to="/events" class="home-nav-item">
+        <span class="home-nav-label">Events</span>
+        <span class="home-nav-desc">Upcoming FC gatherings</span>
+      </RouterLink>
+      <RouterLink to="/members" class="home-nav-item">
+        <span class="home-nav-label">Members</span>
+        <span class="home-nav-desc">FC directory</span>
+      </RouterLink>
+      <RouterLink to="/fights" class="home-nav-item">
+        <span class="home-nav-label">Fights</span>
+        <span class="home-nav-desc">Guides and resources</span>
+      </RouterLink>
+      <RouterLink to="/lottery" class="home-nav-item">
+        <span class="home-nav-label">Lottery</span>
+        <span class="home-nav-desc">Weekly drawings</span>
+      </RouterLink>
+    </nav>
+  </div>
 </template>
 
 <style scoped>
-/* Subtle spacing between sections to improve visual rhythm */
-.home :deep(.container) {
-  /* no-op: ensures specificity without altering base container */
+.home-columns {
+  display: grid;
+  grid-template-columns: 1fr 1.6fr;
+  gap: 2.5rem;
+  align-items: start;
 }
 
-.intro-card {
-  margin-bottom: 1rem;
+.home-nav {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 0.5rem;
+  margin-top: 3rem;
+  padding-top: 2rem;
+  border-top: 1px solid var(--border);
 }
 
-.intro-title {
-  margin: 0 0 .25rem 0;
-  color: var(--fg) !important;
-  font-weight: 700;
+.home-nav-item {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  padding: 0.75rem 1rem;
+  border-radius: 12px;
+  text-decoration: none;
+  transition: background 200ms ease;
 }
 
-.intro-text {
-  margin: 0;
-  color: var(--fg);
-  opacity: 0.8;
+.home-nav-item:hover {
+  background: color-mix(in oklab, var(--link) 8%, transparent);
+  text-decoration: none;
+}
+
+.home-nav-label {
+  font-weight: 600;
+  font-size: 0.95rem;
+  color: var(--link);
+}
+
+.home-nav-desc {
+  font-size: 0.85rem;
+  color: var(--muted);
+  line-height: 1.4;
+}
+
+@media (max-width: 768px) {
+  .home-columns {
+    grid-template-columns: 1fr;
+    gap: 2.5rem;
+  }
+
+  .home-feed { order: 1; }
+  .home-rules { order: 2; }
+
+  .home-nav {
+    grid-template-columns: repeat(2, 1fr);
+    margin-top: 2rem;
+    padding-top: 1.5rem;
+  }
 }
 </style>

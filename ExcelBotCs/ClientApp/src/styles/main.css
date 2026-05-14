@@ -1,10 +1,16 @@
-﻿@import "tailwindcss";
+﻿/* Minimal reset (replaces Tailwind preflight) */
+h1, h2, h3, h4, h5, h6 { font-size: inherit; font-weight: inherit; margin: 0; }
+p { margin: 0; }
+button, input, select, textarea { font: inherit; color: inherit; }
+button { cursor: pointer; background: transparent; border: none; }
+img, svg, video { display: block; max-width: 100%; }
+ol, ul { list-style: none; margin: 0; padding: 0; }
 
 :root {
     /* Prefer system, can be overridden by [data-theme] on html */
     color-scheme: light dark;
 
-    /* Semantic palette - RGB format for TailwindCSS opacity support */
+    /* Semantic palette */
     --bg: #ffffff;
     --fg: #0f172a; /* slate-900 */
     --muted: #64748b; /* slate-500 */
@@ -21,7 +27,6 @@
     --input-border: #d1d5db;
     --muted-bg: #f8fafc;
 
-    /* TailwindCSS-compatible RGB values (for opacity support like bg-primary/50) */
     --color-background: 255 255 255; /* #ffffff */
     --color-foreground: 15 23 42; /* #0f172a */
     --color-muted: 100 116 139; /* #64748b */
@@ -49,6 +54,63 @@
     --color-tank: 59 130 246; /* blue */
     --color-healer: 34 197 94; /* green */
     --color-dps: 239 68 68; /* red */
+
+    /* Category colors: bg / fg pairs for badges, tags, calendar dots.
+       Hues chosen to be distinguishable, slate-tinted to match the palette. */
+    --cat-blue-bg: oklch(0.93 0.04 250);
+    --cat-blue-fg: oklch(0.42 0.12 250);
+    --cat-purple-bg: oklch(0.93 0.04 300);
+    --cat-purple-fg: oklch(0.42 0.12 300);
+    --cat-green-bg: oklch(0.93 0.04 155);
+    --cat-green-fg: oklch(0.42 0.12 155);
+    --cat-orange-bg: oklch(0.93 0.05 70);
+    --cat-orange-fg: oklch(0.45 0.14 50);
+    --cat-teal-bg: oklch(0.93 0.04 185);
+    --cat-teal-fg: oklch(0.42 0.12 185);
+    --cat-rose-bg: oklch(0.93 0.04 10);
+    --cat-rose-fg: oklch(0.42 0.12 10);
+    --cat-amber-bg: oklch(0.93 0.06 90);
+    --cat-amber-fg: oklch(0.48 0.13 70);
+    --cat-indigo-bg: oklch(0.93 0.04 280);
+    --cat-indigo-fg: oklch(0.42 0.12 280);
+    --cat-slate-bg: oklch(0.93 0.01 260);
+    --cat-slate-fg: oklch(0.45 0.03 260);
+    --cat-red-bg: oklch(0.93 0.04 25);
+    --cat-red-fg: oklch(0.45 0.15 25);
+
+    /* Lottery legend: solid fill colors */
+    --lot-available: oklch(0.62 0.16 250);
+    --lot-available-border: oklch(0.52 0.18 250);
+    --lot-mine: oklch(0.58 0.18 295);
+    --lot-mine-border: oklch(0.48 0.20 295);
+    --lot-selected: oklch(0.62 0.16 165);
+    --lot-selected-border: oklch(0.52 0.18 165);
+    --lot-taken: oklch(0.62 0.16 25);
+    --lot-taken-border: oklch(0.52 0.18 25);
+
+    /* Experience tag fills (saturated, white-on-color) */
+    --exp-extreme: oklch(0.60 0.16 165);
+    --exp-extreme-border: oklch(0.50 0.18 165);
+    --exp-savage: oklch(0.58 0.18 25);
+    --exp-savage-border: oklch(0.48 0.20 25);
+    --exp-legacy-savage: oklch(0.55 0.20 295);
+    --exp-legacy-savage-border: oklch(0.45 0.22 295);
+    --exp-chaotic: oklch(0.68 0.16 80);
+    --exp-chaotic-border: oklch(0.58 0.18 80);
+    --exp-ultimate-from: oklch(0.55 0.16 265);
+    --exp-ultimate-to: oklch(0.50 0.18 310);
+    --exp-ultimate-border: oklch(0.45 0.18 280);
+
+    /* Message feedback */
+    --msg-error-bg: oklch(0.95 0.03 25);
+    --msg-error-fg: oklch(0.42 0.15 25);
+    --msg-error-border: oklch(0.88 0.06 25);
+    --msg-success-bg: oklch(0.95 0.03 155);
+    --msg-success-fg: oklch(0.38 0.12 155);
+    --msg-success-border: oklch(0.85 0.06 155);
+    --msg-info-bg: oklch(0.95 0.03 250);
+    --msg-info-fg: oklch(0.42 0.12 250);
+    --msg-info-border: oklch(0.88 0.06 250);
 }
 
 :root[data-theme='dark'] {
@@ -69,7 +131,6 @@
     --input-border: #334155;
     --muted-bg: #0f172a;
 
-    /* TailwindCSS-compatible RGB values for dark theme */
     --color-background: 11 16 32; /* #0b1020 */
     --color-foreground: 229 231 235; /* #e5e7eb */
     --color-muted: 148 163 184; /* #94a3b8 */
@@ -97,6 +158,62 @@
     --color-tank: 96 165 250; /* brighter blue */
     --color-healer: 74 222 128; /* brighter green */
     --color-dps: 248 113 113; /* brighter red */
+
+    /* Category colors - dark mode: deeper bg, brighter fg */
+    --cat-blue-bg: oklch(0.25 0.06 250);
+    --cat-blue-fg: oklch(0.78 0.10 250);
+    --cat-purple-bg: oklch(0.25 0.06 300);
+    --cat-purple-fg: oklch(0.78 0.10 300);
+    --cat-green-bg: oklch(0.25 0.06 155);
+    --cat-green-fg: oklch(0.78 0.10 155);
+    --cat-orange-bg: oklch(0.25 0.06 70);
+    --cat-orange-fg: oklch(0.80 0.12 70);
+    --cat-teal-bg: oklch(0.25 0.06 185);
+    --cat-teal-fg: oklch(0.78 0.10 185);
+    --cat-rose-bg: oklch(0.25 0.06 10);
+    --cat-rose-fg: oklch(0.78 0.10 10);
+    --cat-amber-bg: oklch(0.25 0.06 90);
+    --cat-amber-fg: oklch(0.80 0.12 80);
+    --cat-indigo-bg: oklch(0.25 0.06 280);
+    --cat-indigo-fg: oklch(0.78 0.10 280);
+    --cat-slate-bg: oklch(0.22 0.01 260);
+    --cat-slate-fg: oklch(0.75 0.03 260);
+    --cat-red-bg: oklch(0.25 0.06 25);
+    --cat-red-fg: oklch(0.80 0.12 25);
+
+    /* Lottery legend - slightly brighter for dark */
+    --lot-available: oklch(0.68 0.14 250);
+    --lot-available-border: oklch(0.58 0.16 250);
+    --lot-mine: oklch(0.64 0.16 295);
+    --lot-mine-border: oklch(0.54 0.18 295);
+    --lot-selected: oklch(0.68 0.14 165);
+    --lot-selected-border: oklch(0.58 0.16 165);
+    --lot-taken: oklch(0.68 0.14 25);
+    --lot-taken-border: oklch(0.58 0.16 25);
+
+    /* Experience tag fills - brighter for dark */
+    --exp-extreme: oklch(0.65 0.14 165);
+    --exp-extreme-border: oklch(0.55 0.16 165);
+    --exp-savage: oklch(0.63 0.16 25);
+    --exp-savage-border: oklch(0.53 0.18 25);
+    --exp-legacy-savage: oklch(0.60 0.18 295);
+    --exp-legacy-savage-border: oklch(0.50 0.20 295);
+    --exp-chaotic: oklch(0.73 0.14 80);
+    --exp-chaotic-border: oklch(0.63 0.16 80);
+    --exp-ultimate-from: oklch(0.60 0.14 265);
+    --exp-ultimate-to: oklch(0.55 0.16 310);
+    --exp-ultimate-border: oklch(0.50 0.16 280);
+
+    /* Message feedback - dark */
+    --msg-error-bg: oklch(0.22 0.05 25);
+    --msg-error-fg: oklch(0.82 0.08 25);
+    --msg-error-border: oklch(0.30 0.08 25);
+    --msg-success-bg: oklch(0.22 0.05 155);
+    --msg-success-fg: oklch(0.82 0.08 155);
+    --msg-success-border: oklch(0.30 0.08 155);
+    --msg-info-bg: oklch(0.22 0.05 250);
+    --msg-info-fg: oklch(0.82 0.08 250);
+    --msg-info-border: oklch(0.30 0.08 250);
 }
 
 @media (prefers-color-scheme: dark) {
@@ -118,7 +235,6 @@
         --input-border: #334155;
         --muted-bg: #0f172a;
 
-        /* TailwindCSS-compatible RGB values for dark theme */
         --color-background: 11 16 32;
         --color-foreground: 229 231 235;
         --color-muted: 148 163 184;
@@ -141,25 +257,61 @@
         --color-tank: 96 165 250;
         --color-healer: 74 222 128;
         --color-dps: 248 113 113;
+
+        --cat-blue-bg: oklch(0.25 0.06 250);
+        --cat-blue-fg: oklch(0.78 0.10 250);
+        --cat-purple-bg: oklch(0.25 0.06 300);
+        --cat-purple-fg: oklch(0.78 0.10 300);
+        --cat-green-bg: oklch(0.25 0.06 155);
+        --cat-green-fg: oklch(0.78 0.10 155);
+        --cat-orange-bg: oklch(0.25 0.06 70);
+        --cat-orange-fg: oklch(0.80 0.12 70);
+        --cat-teal-bg: oklch(0.25 0.06 185);
+        --cat-teal-fg: oklch(0.78 0.10 185);
+        --cat-rose-bg: oklch(0.25 0.06 10);
+        --cat-rose-fg: oklch(0.78 0.10 10);
+        --cat-amber-bg: oklch(0.25 0.06 90);
+        --cat-amber-fg: oklch(0.80 0.12 80);
+        --cat-indigo-bg: oklch(0.25 0.06 280);
+        --cat-indigo-fg: oklch(0.78 0.10 280);
+        --cat-slate-bg: oklch(0.22 0.01 260);
+        --cat-slate-fg: oklch(0.75 0.03 260);
+        --cat-red-bg: oklch(0.25 0.06 25);
+        --cat-red-fg: oklch(0.80 0.12 25);
+        --lot-available: oklch(0.68 0.14 250);
+        --lot-available-border: oklch(0.58 0.16 250);
+        --lot-mine: oklch(0.64 0.16 295);
+        --lot-mine-border: oklch(0.54 0.18 295);
+        --lot-selected: oklch(0.68 0.14 165);
+        --lot-selected-border: oklch(0.58 0.16 165);
+        --lot-taken: oklch(0.68 0.14 25);
+        --lot-taken-border: oklch(0.58 0.16 25);
+        --exp-extreme: oklch(0.65 0.14 165);
+        --exp-extreme-border: oklch(0.55 0.16 165);
+        --exp-savage: oklch(0.63 0.16 25);
+        --exp-savage-border: oklch(0.53 0.18 25);
+        --exp-legacy-savage: oklch(0.60 0.18 295);
+        --exp-legacy-savage-border: oklch(0.50 0.20 295);
+        --exp-chaotic: oklch(0.73 0.14 80);
+        --exp-chaotic-border: oklch(0.63 0.16 80);
+        --exp-ultimate-from: oklch(0.60 0.14 265);
+        --exp-ultimate-to: oklch(0.55 0.16 310);
+        --exp-ultimate-border: oklch(0.50 0.16 280);
+        --msg-error-bg: oklch(0.22 0.05 25);
+        --msg-error-fg: oklch(0.82 0.08 25);
+        --msg-error-border: oklch(0.30 0.08 25);
+        --msg-success-bg: oklch(0.22 0.05 155);
+        --msg-success-fg: oklch(0.82 0.08 155);
+        --msg-success-border: oklch(0.30 0.08 155);
+        --msg-info-bg: oklch(0.22 0.05 250);
+        --msg-info-fg: oklch(0.82 0.08 250);
+        --msg-info-border: oklch(0.30 0.08 250);
     }
 }
 
 html {
     height: 100%;
-    /* Solid background color - consistent across entire page */
-    background-color: #ffffff; /* Light theme default */
-}
-
-/* Dark theme background - data-theme is ON the html element */
-html[data-theme='dark'] {
-    background-color: #0b1020; /* Deep slate */
-}
-
-/* Respect system preference for dark mode */
-@media (prefers-color-scheme: dark) {
-    html:not([data-theme='light']) {
-        background-color: #0b1020;
-    }
+    background-color: var(--bg);
 }
 
 body, #app {
@@ -198,7 +350,7 @@ a:hover {
 }
 
 .home h2 {
-    margin-top: 0;
+    margin: 0;
 }
 
 .error {
@@ -373,25 +525,6 @@ th {
     text-align: left;
 }
 
-/* Alerts */
-.alert {
-    padding: 10px 12px;
-    border-radius: 8px;
-    margin: 8px 0;
-    font-size: 14px;
-}
-
-.alert.error {
-    background: #fef2f2;
-    color: #991b1b;
-    border: 1px solid #fecaca;
-}
-
-.alert.success {
-    background: #ecfdf5;
-    color: #065f46;
-    border: 1px solid #a7f3d0;
-}
 
 /* Badges */
 .badges {
@@ -404,18 +537,6 @@ th {
     padding: 2px 8px;
     border-radius: 999px;
     font-size: 12px;
-    background: #e5e7eb;
-    color: #374151;
-}
-
-.badge.admin {
-    background: #fee2e2;
-    color: #991b1b;
-}
-
-.badge.member {
-    background: #d1fae5;
-    color: #065f46;
 }
 
 /* Chips */
@@ -426,8 +547,6 @@ th {
 }
 
 .chip {
-    background: #f3f4f6;
-    color: #374151;
     border-radius: 999px;
     padding: 4px 10px;
     font-size: 12px;
@@ -441,15 +560,6 @@ th {
     font-size: 12px;
 }
 
-.pill.on {
-    background: #d1fae5;
-    color: #065f46;
-}
-
-.pill.off {
-    background: #fee2e2;
-    color: #991b1b;
-}
 
 /* Switch */
 .switch {
@@ -472,7 +582,7 @@ th {
     left: 0;
     right: 0;
     bottom: 0;
-    background-color: #d1d5db;
+    background-color: var(--border);
     transition: .2s;
     border-radius: 999px;
 }
@@ -484,14 +594,14 @@ th {
     width: 18px;
     left: 3px;
     bottom: 3px;
-    background-color: white;
+    background-color: var(--bg);
     transition: .2s;
     border-radius: 50%;
     box-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
 }
 
 .switch input:checked + .slider {
-    background-color: #10b981;
+    background-color: rgb(var(--color-success));
 }
 
 .switch input:checked + .slider:before {
@@ -506,9 +616,9 @@ th {
 }
 
 .btn.primary {
-    background: #111827;
-    color: white;
-    border-color: #111827;
+    background: rgb(var(--color-primary));
+    color: var(--bg);
+    border-color: rgb(var(--color-primary));
 }
 
 .btn.primary[disabled] {
@@ -732,7 +842,7 @@ tr:hover td {
     background: var(--card);
     color: var(--fg);
     border: 1px solid var(--card-border);
-    border-radius: 8px;
+    border-radius: 12px;
     font-size: 13px;
     opacity: 0;
     pointer-events: none;
