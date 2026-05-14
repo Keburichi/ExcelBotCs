@@ -1,13 +1,13 @@
 using ExcelBotCs.Models.Database;
-using ExcelBotCs.Models.DTO;
+using ExcelBotCs.Models.DTO.Members;
 
 namespace ExcelBotCs.Mappers;
 
 public static class MemberNoteMapper
 {
-    public static MemberNoteDto ToDto(MemberNote note)
+    public static NoteResponse ToDto(MemberNote note)
     {
-        return new MemberNoteDto()
+        return new NoteResponse
         {
             Id = note.Id,
             DateCreated = note.DateCreated,
@@ -17,7 +17,7 @@ public static class MemberNoteMapper
         };
     }
 
-    public static MemberNote ToEntity(MemberNoteDto note)
+    public static MemberNote ToEntity(NoteResponse note)
     {
         return new MemberNote()
         {

@@ -1,4 +1,4 @@
-namespace ExcelBotCs.Models.DTO;
+namespace ExcelBotCs.Models.DTO.Members;
 
 public class MemberRoleDto : BaseDto
 {

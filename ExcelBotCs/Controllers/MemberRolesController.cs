@@ -1,7 +1,7 @@
 using ExcelBotCs.Attributes;
 using ExcelBotCs.Controllers.Interfaces;
 using ExcelBotCs.Mappers;
-using ExcelBotCs.Models.DTO;
+using ExcelBotCs.Models.DTO.Members;
 using ExcelBotCs.Services.API.Interfaces;
 using Microsoft.AspNetCore.Mvc;
 

@@ -2,7 +2,7 @@
 using ExcelBotCs.Controllers.Interfaces;
 using ExcelBotCs.Mappers;
 using ExcelBotCs.Models.Database;
-using ExcelBotCs.Models.DTO;
+using ExcelBotCs.Models.DTO.Members;
 using ExcelBotCs.Services;
 using ExcelBotCs.Services.API.Interfaces;
 using ExcelBotCs.Services.Lodestone;
@@ -14,7 +14,7 @@ namespace ExcelBotCs.Controllers;
 [ApiController]
 [MemberAuth]
 [Route("api/[controller]")]
-public class MembersController : AuthorizedController, IBaseCrudController<MemberDto>
+public class MembersController : AuthorizedController, IMembersController
 {
     private readonly IMemberService _memberService;
     private readonly ICurrentMemberAccessor _currentMemberAccessor;
@@ -29,12 +29,12 @@ public class MembersController : AuthorizedController, IBaseCrudController<Membe
     }
 
     [HttpGet]
-    public async Task<ActionResult<List<MemberDto>>> GetEntities()
+    public async Task<ActionResult<List<MemberResponse>>> GetMembers()
     {
         var entities = await _memberService.GetAsync();
 
         if (entities is null)
-            return new List<MemberDto>();
+            return new List<MemberResponse>();
 
         var dtos = entities.Select(MemberMapper.ToDto).ToList();
 
@@ -42,7 +42,7 @@ public class MembersController : AuthorizedController, IBaseCrudController<Membe
     }
 
     [HttpGet("{id:length(24)}")]
-    public async Task<ActionResult<MemberDto>> GetEntity(string id)
+    public async Task<ActionResult<MemberResponse>> GetMemberById(string id)
     {
         var entity = await _memberService.GetAsync(id);
 
@@ -52,33 +52,25 @@ public class MembersController : AuthorizedController, IBaseCrudController<Membe
         return MemberMapper.ToDto(entity);
     }
 
-    [HttpPost]
-    [AdminAuth]
-    public async Task<ActionResult<MemberDto>> CreateEntity(MemberDto entity)
-    {
-        await _memberService.CreateAsync(MemberMapper.ToEntity(entity));
-        return CreatedAtAction(nameof(CreateEntity), new { id = entity.Id }, entity);
-    }
-
     [HttpPut("{id:length(24)}")]
-    public async Task<ActionResult<MemberDto>> UpdateEntity(string id, MemberDto updatedEntity)
+    public async Task<ActionResult<MemberResponse>> UpdateMember(string id, UpdateMemberRequest updateMember)
     {
         // Only allow users to update their own profile, unless they are an admin
         var me = await _currentMemberAccessor.GetCurrentAsync();
 
-        if (me is null || (me.Id != updatedEntity.Id && !me.IsAdmin.GetValueOrDefault()))
+        if (me is null || (me.Id != id && !me.IsAdmin.GetValueOrDefault()))
             return Forbid();
 
         Logger.LogInformation("Updating entity with id: {id}", id);
 
-        await _memberService.UpdateAsync(id, MemberMapper.ToEntity(updatedEntity));
+        await _memberService.UpdateMemberProfileAsync(id, updateMember);
 
         return NoContent();
     }
 
     [HttpDelete("{id:length(24)}")]
     [AdminAuth]
-    public async Task<ActionResult<MemberDto>> DeleteEntity(string id)
+    public async Task<ActionResult> DeleteMember(string id)
     {
         var entity = await _memberService.GetAsync(id);
 
@@ -89,10 +81,8 @@ public class MembersController : AuthorizedController, IBaseCrudController<Membe
         return NoContent();
     }
 
-    public record LodestoneVerifyRequest(string LodestoneInput);
-
     [HttpPost("{id:length(24)}/lodestone-token")]
-    public async Task<ActionResult<object>> GenerateLodestoneToken(string id)
+    public async Task<ActionResult<string>> GenerateLodestoneToken(string id)
     {
         var me = await _currentMemberAccessor.GetCurrentAsync();
         if (me is null || me.Id != id)
@@ -184,7 +174,7 @@ public class MembersController : AuthorizedController, IBaseCrudController<Membe
     // Note management endpoints
     [HttpPost("{memberId:length(24)}/notes")]
     [AdminAuth]
-    public async Task<ActionResult<MemberNoteDto>> AddNote(string memberId, [FromBody] AddNoteRequest request)
+    public async Task<ActionResult<NoteResponse>> AddNote(string memberId, [FromBody] AddNoteRequest request)
     {
         var currentUser = await _currentMemberAccessor.GetCurrentAsync();
         if (currentUser is null)

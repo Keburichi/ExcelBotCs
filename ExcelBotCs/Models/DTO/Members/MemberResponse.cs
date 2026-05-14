@@ -1,8 +1,8 @@
 using ExcelBotCs.Attributes;
 
-namespace ExcelBotCs.Models.DTO;
+namespace ExcelBotCs.Models.DTO.Members;
 
-public class MemberDto : BaseDto
+public class MemberResponse : BaseDto
 {
     [RequiresMemberRole] public string DiscordId { get; set; }
 
@@ -21,7 +21,7 @@ public class MemberDto : BaseDto
 
     [RequiresAdminRole] public List<FightDto>? Experience { get; set; }
 
-    [RequiresAdminRole] public List<MemberNoteDto>? Notes { get; set; }
+    [RequiresAdminRole] public List<NoteResponse>? Notes { get; set; }
 
     [RequiresMemberRole] public List<MemberRoleDto> Roles { get; set; }
 

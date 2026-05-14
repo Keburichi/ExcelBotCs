@@ -1,6 +1,6 @@
 using ExcelBotCs.Mappers;
 using ExcelBotCs.Models.Database;
-using ExcelBotCs.Models.DTO;
+using ExcelBotCs.Models.DTO.Members;
 using ExcelBotCs.TestFramework.Utils;
 
 namespace ExcelBotCs.Tests.Mappers;
@@ -29,7 +29,7 @@ public class MemberNoteMapperTests
     public void ToEntity()
     {
         // Arrange
-        var entityDto = new MemberNoteDto().PopulateWithRandomData();
+        var entityDto = new NoteResponse().PopulateWithRandomData();
 
         // Act
         var entity = MemberNoteMapper.ToEntity(entityDto);

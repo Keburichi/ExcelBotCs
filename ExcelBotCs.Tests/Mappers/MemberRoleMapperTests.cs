@@ -1,6 +1,6 @@
 using ExcelBotCs.Mappers;
 using ExcelBotCs.Models.Database;
-using ExcelBotCs.Models.DTO;
+using ExcelBotCs.Models.DTO.Members;
 using ExcelBotCs.TestFramework.Utils;
 
 namespace ExcelBotCs.Tests.Mappers;

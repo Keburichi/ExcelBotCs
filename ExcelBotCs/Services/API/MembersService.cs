@@ -1,6 +1,7 @@
 using ExcelBotCs.Database.Interfaces;
 using ExcelBotCs.Exceptions;
 using ExcelBotCs.Models.Database;
+using ExcelBotCs.Models.DTO.Members;
 using ExcelBotCs.Services.API.Interfaces;
 
 namespace ExcelBotCs.Services.API;
@@ -32,9 +33,6 @@ public class MemberService : BaseEntityService<Member, IMemberRepository>, IMemb
         // Prevent any modifications to LodestoneId through generic PUT updates
         updatedEntity.LodestoneId = dbEntity.LodestoneId;
 
-        // Also prevent clients from tampering with the verification token via generic PUT
-        updatedEntity.LodestoneVerificationToken = dbEntity.LodestoneVerificationToken;
-
         await Repository.UpdateAsync(id, updatedEntity);
     }
 
@@ -46,6 +44,20 @@ public class MemberService : BaseEntityService<Member, IMemberRepository>, IMemb
             throw new NotFoundException();
 
         dbEntity.RoleIds = roleIds;
+
+        await Repository.UpdateAsync(id, dbEntity);
+    }
+
+    public async Task UpdateMemberProfileAsync(string id, UpdateMemberRequest request)
+    {
+        // Load the current DB state
+        var dbEntity = await Repository.GetAsync(id);
+        if (dbEntity is null)
+            throw new NotFoundException();
+
+        dbEntity.PlayerName = request.PlayerName;
+        dbEntity.Subbed = request.Subbed;
+        dbEntity.LodestoneId = request.LodestoneId;
 
         await Repository.UpdateAsync(id, dbEntity);
     }

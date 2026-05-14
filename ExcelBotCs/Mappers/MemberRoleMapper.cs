@@ -1,5 +1,5 @@
 using ExcelBotCs.Models.Database;
-using ExcelBotCs.Models.DTO;
+using ExcelBotCs.Models.DTO.Members;
 
 namespace ExcelBotCs.Mappers;
 

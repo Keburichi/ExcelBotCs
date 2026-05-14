@@ -1,7 +1,7 @@
 using System.Net;
 using System.Net.Http.Json;
 using ExcelBotCs.Models.Database;
-using ExcelBotCs.Models.DTO;
+using ExcelBotCs.Models.DTO.Members;
 using ExcelBotCs.Services.API.Interfaces;
 using ExcelBotCs.TestFramework.Database;
 using ExcelBotCs.Tests.Utils;
@@ -14,6 +14,7 @@ public class MemberRolesControllerIntegrationTests : IntegrationTestBase
     public MemberRolesControllerIntegrationTests(MongoDbFixture fixture) : base(fixture)
     {
     }
+
     [Fact]
     public async Task GetEntities_CheckPermissions()
     {

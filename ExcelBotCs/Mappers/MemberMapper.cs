@@ -1,13 +1,13 @@
 using ExcelBotCs.Models.Database;
-using ExcelBotCs.Models.DTO;
+using ExcelBotCs.Models.DTO.Members;
 
 namespace ExcelBotCs.Mappers;
 
 public static class MemberMapper
 {
-    public static MemberDto ToDto(Member member)
+    public static MemberResponse ToDto(Member member)
     {
-        return new MemberDto()
+        return new MemberResponse
         {
             Id = member.Id,
             DiscordId = member.DiscordId,
@@ -17,13 +17,13 @@ public static class MemberMapper
             LodestoneVerificationToken = member.LodestoneVerificationToken,
             Experience = member.Experience?.Select(FightMapper.ToDto).ToList(),
             Notes = member.Notes?.Select(MemberNoteMapper.ToDto).ToList(),
-            PlayerName =  member.PlayerName,
+            PlayerName = member.PlayerName,
             Subbed = member.Subbed,
             Roles = member.Roles.Select(MemberRoleMapper.ToDto).ToList(),
         };
     }
 
-    public static Member ToEntity(MemberDto member)
+    public static Member ToEntity(MemberResponse member)
     {
         return new Member()
         {
@@ -35,7 +35,7 @@ public static class MemberMapper
             LodestoneVerificationToken = member.LodestoneVerificationToken,
             Experience = member.Experience?.Select(FightMapper.ToEntity).ToList(),
             Notes = member.Notes?.Select(MemberNoteMapper.ToEntity).ToList(),
-            PlayerName =  member.PlayerName,
+            PlayerName = member.PlayerName,
             Subbed = member.Subbed,
             Roles = member.Roles.Select(MemberRoleMapper.ToEntity).ToList()
         };

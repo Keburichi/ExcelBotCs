@@ -30,10 +30,6 @@ export function useAuth() {
   }
 
   async function loadMe() {
-    // We don't have to query the server if we already have the user info
-    if (me.value)
-      return
-
     try {
       const res = await fetch('/api/auth/me', { credentials: 'same-origin' })
 

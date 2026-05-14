@@ -37,12 +37,14 @@ function hydrateForm() {
 const avatarUrl = computed(() => auth.user.value?.DiscordAvatar || '')
 const displayName = computed(() => auth.user.value?.PlayerName || auth.user.value?.DiscordName || 'My Profile')
 const discordName = computed(() => auth.user.value?.DiscordName || null)
-const verificationToken = computed(() => auth.user.value?.LodestoneVerificationToken || '')
+const localToken = ref('')
+const verificationToken = computed(() => localToken.value || auth.user.value?.LodestoneVerificationToken || '')
 const hasLodestone = computed(() => !!auth.user.value?.LodestoneId)
 const experience = computed(() => auth.user.value?.Experience || [])
 
 function initial(name: string | null | undefined): string {
-  if (!name) return '?'
+  if (!name)
+    return '?'
   return name.charAt(0).toUpperCase()
 }
 
@@ -93,7 +95,8 @@ async function generateVerificationToken() {
   error.value = null
   success.value = null
   try {
-    await MembersApi.generateLodestoneToken(form.Id)
+    const { token } = await MembersApi.generateLodestoneToken(form.Id)
+    localToken.value = token
     await auth.loadMe()
     success.value = 'Generated verification message. Copy it and place it in your Lodestone Bio.'
   }
@@ -147,7 +150,9 @@ async function verifyClaim() {
         initial(displayName)
       }}</span>
       <div class="profile__title">
-        <h1 class="profile__name">{{ displayName }}</h1>
+        <h1 class="profile__name">
+          {{ displayName }}
+        </h1>
         <p v-if="discordName" class="profile__subtitle">
           @{{ discordName }}
         </p>
@@ -182,7 +187,9 @@ async function verifyClaim() {
 
     <div class="profile__cards">
       <div class="profile__card">
-        <h2 class="profile__section-title">Profile Details</h2>
+        <h2 class="profile__section-title">
+          Profile Details
+        </h2>
 
         <div class="kv-row">
           <span class="kv-label">Discord</span>
@@ -215,6 +222,7 @@ async function verifyClaim() {
           <span class="kv-label">Verification</span>
           <div class="verification-flow">
             <ol class="verification-steps">
+              <li>Enter your Character Id or Lodestone Url</li>
               <li>Click "Generate message"</li>
               <li>Paste the message into your Lodestone Bio</li>
               <li>Click "Verify now"</li>
@@ -268,7 +276,9 @@ async function verifyClaim() {
       </div>
 
       <div v-if="auth.user.value?.IsAdmin" class="profile__card">
-        <h2 class="profile__section-title">Experience</h2>
+        <h2 class="profile__section-title">
+          Experience
+        </h2>
         <template v-if="hasLodestone">
           <ExperienceTags :experience="experience" />
           <p v-if="!experience.length" class="muted">
@@ -283,7 +293,9 @@ async function verifyClaim() {
       </div>
 
       <div class="profile__card">
-        <h2 class="profile__section-title">Roles</h2>
+        <h2 class="profile__section-title">
+          Roles
+        </h2>
         <div class="chips">
           <span v-for="r in auth.user.value?.Roles" :key="r.Id || r.Name" class="chip">{{ r.Name }}</span>
           <span v-if="!auth.user.value?.Roles?.length" class="muted">No roles assigned</span>
@@ -313,9 +325,8 @@ async function verifyClaim() {
   border-radius: 50%;
   object-fit: cover;
   flex-shrink: 0;
-  box-shadow:
-    0 4px 12px rgba(0, 0, 0, 0.1),
-    inset 0 0 0 2px rgba(255, 255, 255, 0.3);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1),
+  inset 0 0 0 2px rgba(255, 255, 255, 0.3);
 }
 
 .profile__avatar--placeholder {
@@ -365,27 +376,24 @@ async function verifyClaim() {
   background: rgba(255, 255, 255, 0.7);
   backdrop-filter: blur(20px);
   border: 2px solid rgba(255, 255, 255, 0.4);
-  box-shadow:
-    0 4px 16px rgba(0, 0, 0, 0.08),
-    inset 0 1px 0 rgba(255, 255, 255, 0.5);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08),
+  inset 0 1px 0 rgba(255, 255, 255, 0.5);
   padding: 1.25rem 1.5rem;
 }
 
 :root[data-theme='dark'] .profile__card {
   background: rgba(18, 26, 45, 0.7);
   border-color: rgba(255, 255, 255, 0.15);
-  box-shadow:
-    0 4px 16px rgba(0, 0, 0, 0.3),
-    inset 0 1px 0 rgba(255, 255, 255, 0.08);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3),
+  inset 0 1px 0 rgba(255, 255, 255, 0.08);
 }
 
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme='light']) .profile__card {
     background: rgba(18, 26, 45, 0.7);
     border-color: rgba(255, 255, 255, 0.15);
-    box-shadow:
-      0 4px 16px rgba(0, 0, 0, 0.3),
-      inset 0 1px 0 rgba(255, 255, 255, 0.08);
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3),
+    inset 0 1px 0 rgba(255, 255, 255, 0.08);
   }
 }
 
