@@ -39,7 +39,7 @@ const isLoginPage = computed(() => route.path === '/login')
               Members
             </RouterLink>
             <RouterLink to="/fights">
-              Fights
+              Fights & Resources
             </RouterLink>
             <RouterLink to="/lottery">
               Lottery

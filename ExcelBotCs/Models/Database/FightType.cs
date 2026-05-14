@@ -7,5 +7,6 @@ public enum FightType
     Savage,
     LegacySavage,
     Ultimate,
-    Chaotic
+    Chaotic,
+    Unreal
 }
