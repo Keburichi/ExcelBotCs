@@ -39,7 +39,7 @@ public class FightService : BaseEntityService<Fight, IFightRepository>, IFightSe
 
         return filteredFights
             .OrderByDescending(x => x.FFLogsZoneId)
-            .ThenBy(x => x.FFLogsEncounterId).ToList();
+            .ThenByDescending(x => x.FFLogsEncounterId).ToList();
     }
 
     private void HandleSpecialFights(Fight fight)

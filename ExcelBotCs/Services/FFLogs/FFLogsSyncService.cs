@@ -77,12 +77,10 @@ public class FFLogsSyncService
             // Process all expansions and zones in chronological order
             foreach (var expansion in worldData.worldData.expansions.OrderBy(x => x.id))
             {
-                var isLatestExpansion = !worldData.worldData.expansions.Any(x => x.id > expansion.id);
-
                 foreach (var zone in expansion.zones)
                 {
                     // Determine fight type early to filter
-                    var fightMapping = MapFightType(zone.name, zone.difficulties, isLatestExpansion);
+                    var fightMapping = MapFightType(zone.name, zone.difficulties);
 
                     // Skip non-high-end content (Normal, Chaotic, etc.)
                     if (fightMapping.fightType != FightType.Extreme &&
@@ -108,10 +106,16 @@ public class FFLogsSyncService
                             continue;
                         }
 
+                        // Attach the suffix to the fight name, but don't propagate the
+                        // legacy part
+                        var fightName = fightMapping.fightType == FightType.LegacySavage
+                            ? $"{encounter.name} ({FightType.Savage})"
+                            : $"{encounter.name} ({fightMapping.fightType})";
+
                         // Create new fight
                         var fight = new Fight
                         {
-                            Name = encounter.name,
+                            Name = fightName,
                             Description = $"{zone.name} - {expansion.name}",
                             ImageUrl = string.Empty, // No image URL from FFLogs API
                             Type = fightMapping.fightType,
@@ -329,18 +333,14 @@ public class FFLogsSyncService
     /// Maps FFLogs zone and difficulty information to FightType enum
     /// </summary>
     private static (FightType fightType, Difficulty difficulty) MapFightType(string zoneName,
-        List<Difficulty> difficulties, bool isLatestExpansion)
+        List<Difficulty> difficulties)
     {
         var lowerZoneName = zoneName.ToLowerInvariant();
         var lowerDifficultyNames = difficulties.Select(x => x.name.ToLowerInvariant()).ToList();
 
         // If the difficulty for savage exists, we know this is a savage fight
         if (lowerDifficultyNames.Contains("savage"))
-        {
-            return isLatestExpansion
-                ? (FightType.Savage, difficulties.First(x => x.name.ToLowerInvariant() == "savage"))
-                : (FightType.LegacySavage, difficulties.First(x => x.name.ToLowerInvariant() == "savage"));
-        }
+            return (FightType.Savage, difficulties.First(x => x.name.ToLowerInvariant() == "savage"));
 
         // Check for Ultimate (highest priority)
         if (lowerZoneName.Contains("ultimate"))
@@ -359,9 +359,7 @@ public class FFLogsSyncService
 
         // Check for savage
         if (lowerZoneName.Contains("savage"))
-            return isLatestExpansion
-                ? (FightType.Savage, difficulties.First())
-                : (FightType.LegacySavage, difficulties.First());
+            return (FightType.Savage, difficulties.First());
 
         // This is a last ditch effort since the FFLogs API is kinda shite to identify 
         // special fights that do not have their difficulty mentioned in the name or zone
