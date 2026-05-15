@@ -317,8 +317,8 @@ function cancel() {
       {{ error }}
     </p>
     <form class="event-form" @submit.prevent="submit">
-      <!-- Basic Information Section -->
-      <section class="form-section">
+      <!-- Basic Information -->
+      <section class="form-section info-section">
         <h3 class="section-header">
           Basic Information
         </h3>
@@ -346,10 +346,10 @@ function cancel() {
         </div>
       </section>
 
-      <!-- Fight & Media Section -->
-      <section v-if="showFightSelection || form.PictureUrl" class="form-section">
+      <!-- Media -->
+      <section class="form-section media-section">
         <h3 class="section-header">
-          Fight & Media
+          {{ showFightSelection ? 'Fight & Media' : 'Media' }}
         </h3>
         <div v-if="showFightSelection" class="form-row">
           <label>Select Fight (Optional)</label>
@@ -364,7 +364,11 @@ function cancel() {
         <div class="media-row">
           <div class="form-row media-input">
             <label>Picture URL (optional)</label>
-            <input v-model="form.PictureUrl" placeholder="https://... (auto-filled from fight if selected)" type="url">
+            <input
+              v-model="form.PictureUrl"
+              :placeholder="showFightSelection ? 'https://... (auto-filled from fight if selected)' : 'https://...'"
+              type="url"
+            >
           </div>
           <div v-if="form.PictureUrl" class="image-preview">
             <img
@@ -375,27 +379,8 @@ function cancel() {
         </div>
       </section>
 
-      <!-- Standalone Picture URL if no fight section -->
-      <section v-else class="form-section">
-        <h3 class="section-header">
-          Media
-        </h3>
-        <div class="media-row">
-          <div class="form-row media-input">
-            <label>Picture URL (optional)</label>
-            <input v-model="form.PictureUrl" placeholder="https://..." type="url">
-          </div>
-          <div v-if="form.PictureUrl" class="image-preview">
-            <img
-              :src="form.PictureUrl" alt="Event preview"
-              @error="(e) => (e.target as HTMLImageElement).style.display = 'none'"
-            >
-          </div>
-        </div>
-      </section>
-
-      <!-- Schedule Section -->
-      <section class="form-section">
+      <!-- Schedule -->
+      <section class="form-section schedule-section">
         <h3 class="section-header">
           Schedule
         </h3>
@@ -408,45 +393,49 @@ function cancel() {
         </div>
         <div class="form-row">
           <label>Duration (minutes)</label>
-          <div class="preset-buttons-compact">
-            <BaseButton
-              :state="form.Duration === 60 ? 'primary' : 'secondary'"
-              :variant="form.Duration === 60 ? 'elevated' : 'outlined'"
-              title="60 min"
-              tooltip="Set duration to 60 minutes"
-              type="button"
-              @clicked="setDuration(60)"
-            />
-            <BaseButton
-              :state="form.Duration === 120 ? 'primary' : 'secondary'"
-              :variant="form.Duration === 120 ? 'elevated' : 'outlined'"
-              title="120 min"
-              tooltip="Set duration to 120 minutes"
-              type="button"
-              @clicked="setDuration(120)"
-            />
-            <BaseButton
-              :state="form.Duration === 180 ? 'primary' : 'secondary'"
-              :variant="form.Duration === 180 ? 'elevated' : 'outlined'"
-              title="180 min"
-              tooltip="Set duration to 180 minutes"
-              type="button"
-              @clicked="setDuration(180)"
-            />
+          <div class="duration-controls">
+            <div class="duration-presets">
+              <BaseButton
+                :state="form.Duration === 60 ? 'primary' : 'secondary'"
+                :variant="form.Duration === 60 ? 'elevated' : 'outlined'"
+                size="small"
+                title="60 min"
+                tooltip="Set duration to 60 minutes"
+                type="button"
+                @clicked="setDuration(60)"
+              />
+              <BaseButton
+                :state="form.Duration === 120 ? 'primary' : 'secondary'"
+                :variant="form.Duration === 120 ? 'elevated' : 'outlined'"
+                size="small"
+                title="120 min"
+                tooltip="Set duration to 120 minutes"
+                type="button"
+                @clicked="setDuration(120)"
+              />
+              <BaseButton
+                :state="form.Duration === 180 ? 'primary' : 'secondary'"
+                :variant="form.Duration === 180 ? 'elevated' : 'outlined'"
+                size="small"
+                title="180 min"
+                tooltip="Set duration to 180 minutes"
+                type="button"
+                @clicked="setDuration(180)"
+              />
+            </div>
+            <input
+              v-model.number="form.Duration" class="duration-input" inputmode="numeric" min="0"
+              pattern="[0-9]*" placeholder="Custom" required type="number"
+            >
           </div>
-          <input
-            v-model.number="form.Duration" inputmode="numeric" min="0" pattern="[0-9]*"
-            placeholder="e.g. 120 for 2 hours"
-            required type="number"
-          >
         </div>
         <div class="form-row">
           <RecurrenceOptions v-model="recurrence" v-model:signup-type="signupType" />
         </div>
       </section>
 
-      <!-- Participants Section -->
-      <section class="form-section">
+      <!-- Participants -->
+      <section class="form-section participants-section">
         <h3 class="section-header">
           Participants
         </h3>
@@ -456,6 +445,7 @@ function cancel() {
             <BaseButton
               :state="partyPreset === 'light-party' ? 'primary' : 'secondary'"
               :variant="partyPreset === 'light-party' ? 'elevated' : 'outlined'"
+              size="small"
               title="Light Party (4)"
               type="button"
               @clicked="setPartyPreset('light-party')"
@@ -463,6 +453,7 @@ function cancel() {
             <BaseButton
               :state="partyPreset === 'full-party' ? 'primary' : 'secondary'"
               :variant="partyPreset === 'full-party' ? 'elevated' : 'outlined'"
+              size="small"
               title="Full Party (8)"
               type="button"
               @clicked="setPartyPreset('full-party')"
@@ -470,6 +461,7 @@ function cancel() {
             <BaseButton
               :state="partyPreset === 'alliance-raid' ? 'primary' : 'secondary'"
               :variant="partyPreset === 'alliance-raid' ? 'elevated' : 'outlined'"
+              size="small"
               title="Alliance Raid (24)"
               type="button"
               @clicked="setPartyPreset('alliance-raid')"
@@ -477,6 +469,7 @@ function cancel() {
             <BaseButton
               :state="partyPreset === 'any' ? 'primary' : 'secondary'"
               :variant="partyPreset === 'any' ? 'elevated' : 'outlined'"
+              size="small"
               title="Any (99)"
               type="button"
               @clicked="setPartyPreset('any')"
@@ -484,6 +477,7 @@ function cancel() {
             <BaseButton
               :state="partyPreset === 'custom' ? 'primary' : 'secondary'"
               :variant="partyPreset === 'custom' ? 'elevated' : 'outlined'"
+              size="small"
               title="Custom"
               type="button"
               @clicked="setPartyPreset('custom')"
@@ -522,13 +516,12 @@ function cancel() {
 
 <style scoped>
 .page {
-  max-width: 800px;
+  max-width: 780px;
   margin: 0 auto;
 }
 
-/* Page header */
 .page-header {
-  margin-bottom: 2rem;
+  margin-bottom: 2.5rem;
 }
 
 .page-title {
@@ -546,18 +539,33 @@ function cancel() {
 .event-form {
   display: flex;
   flex-direction: column;
-  gap: 1.5rem;
+  gap: 0;
 }
 
-/* Section containers with glassmorphism */
+.info-section {
+  margin-bottom: 0.75rem;
+}
+
+.media-section {
+  margin-bottom: 2.25rem;
+}
+
+.schedule-section {
+  margin-bottom: 0.75rem;
+}
+
+.participants-section {
+  margin-bottom: 0;
+}
+
 .form-section {
   background: rgba(255, 255, 255, 0.7);
   backdrop-filter: blur(20px);
   border: 2px solid rgba(255, 255, 255, 0.4);
   border-radius: 16px;
-  padding: 1.5rem;
+  padding: 1.25rem 1.5rem 1.5rem;
   box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08),
-  inset 0 1px 0 rgba(255, 255, 255, 0.5);
+    inset 0 1px 0 rgba(255, 255, 255, 0.5);
   transition: border-color 0.2s ease, box-shadow 0.2s ease;
 }
 
@@ -565,7 +573,7 @@ function cancel() {
   background: rgba(18, 26, 45, 0.7);
   border: 2px solid rgba(255, 255, 255, 0.15);
   box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3),
-  inset 0 1px 0 rgba(255, 255, 255, 0.08);
+    inset 0 1px 0 rgba(255, 255, 255, 0.08);
 }
 
 @media (prefers-color-scheme: dark) {
@@ -573,48 +581,44 @@ function cancel() {
     background: rgba(18, 26, 45, 0.7);
     border: 2px solid rgba(255, 255, 255, 0.15);
     box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3),
-    inset 0 1px 0 rgba(255, 255, 255, 0.08);
+      inset 0 1px 0 rgba(255, 255, 255, 0.08);
   }
 }
 
 .form-section:hover {
   border-color: rgba(59, 130, 246, 0.4);
   box-shadow: 0 6px 20px rgba(59, 130, 246, 0.12),
-  0 4px 16px rgba(0, 0, 0, 0.1),
-  inset 0 1px 0 rgba(255, 255, 255, 0.6);
+    0 4px 16px rgba(0, 0, 0, 0.1),
+    inset 0 1px 0 rgba(255, 255, 255, 0.6);
 }
 
 :root[data-theme='dark'] .form-section:hover {
   border-color: rgba(59, 130, 246, 0.5);
   box-shadow: 0 6px 20px rgba(59, 130, 246, 0.2),
-  0 4px 16px rgba(0, 0, 0, 0.4),
-  inset 0 1px 0 rgba(255, 255, 255, 0.12);
+    0 4px 16px rgba(0, 0, 0, 0.4),
+    inset 0 1px 0 rgba(255, 255, 255, 0.12);
 }
 
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme='light']) .form-section:hover {
     border-color: rgba(59, 130, 246, 0.5);
     box-shadow: 0 6px 20px rgba(59, 130, 246, 0.2),
-    0 4px 16px rgba(0, 0, 0, 0.4),
-    inset 0 1px 0 rgba(255, 255, 255, 0.12);
+      0 4px 16px rgba(0, 0, 0, 0.4),
+      inset 0 1px 0 rgba(255, 255, 255, 0.12);
   }
 }
 
-/* Section headers */
 .section-header {
   margin: 0 0 1.25rem 0;
   font-size: 1.125rem;
   font-weight: 600;
   color: var(--fg);
-  padding-bottom: 0.75rem;
-  border-bottom: 1px solid rgba(var(--color-border), 0.3);
 }
 
-/* Form rows */
 .form-row {
   display: flex;
   flex-direction: column;
-  gap: 0.5rem;
+  gap: 0.375rem;
   margin-bottom: 1rem;
 }
 
@@ -622,7 +626,6 @@ function cancel() {
   margin-bottom: 0;
 }
 
-/* Two-column layout for shorter fields */
 .form-row-group {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
@@ -630,11 +633,29 @@ function cancel() {
   margin-bottom: 1rem;
 }
 
-/* Media row with side-by-side layout */
+/* Duration: presets + input on one line */
+.duration-controls {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.duration-presets {
+  display: flex;
+  gap: 0.375rem;
+  flex-shrink: 0;
+}
+
+.duration-input {
+  width: 5.5rem;
+  flex-shrink: 0;
+}
+
+/* Media: input + preview side by side */
 .media-row {
   display: grid;
   grid-template-columns: 1fr auto;
-  gap: 1.5rem;
+  gap: 1.25rem;
   align-items: start;
 }
 
@@ -643,10 +664,10 @@ function cancel() {
 }
 
 .image-preview {
-  width: 200px;
-  height: 112px;
+  width: 180px;
+  height: 100px;
   border: 1px solid rgba(var(--color-border), 0.5);
-  border-radius: 12px;
+  border-radius: 10px;
   overflow: hidden;
   background: var(--muted-bg);
   flex-shrink: 0;
@@ -659,37 +680,32 @@ function cancel() {
   display: block;
 }
 
-/* Preset buttons */
-.party-preset-buttons,
-.preset-buttons-compact {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
-  gap: 0.5rem;
-  margin-bottom: 0.75rem;
+/* Party presets: flex-wrap for natural sizing */
+.party-preset-buttons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.375rem;
+  margin-bottom: 0.625rem;
 }
 
-.preset-buttons-compact {
-  grid-template-columns: repeat(3, 1fr);
-}
-
-/* Actions */
+/* Actions: anchored with a divider */
 .actions {
   display: flex;
-  gap: 1rem;
+  gap: 0.75rem;
   justify-content: flex-end;
-  padding-top: 1rem;
+  padding-top: 1.5rem;
+  margin-top: 0.5rem;
+  border-top: 1px solid var(--border);
 }
 
-/* Labels */
 label {
   font-weight: 500;
   font-size: 0.9rem;
   color: var(--fg);
 }
 
-/* Error message */
 .error {
-  padding: 1rem;
+  padding: 0.875rem 1rem;
   background: var(--alert-error-bg);
   color: var(--alert-error-fg);
   border: 1px solid var(--alert-error-border);
@@ -697,22 +713,23 @@ label {
   margin-bottom: 1.5rem;
 }
 
-/* Hint text */
 .hint {
-  font-size: 0.875rem;
+  font-size: 0.8125rem;
   color: var(--muted);
-  font-style: italic;
-  margin-top: 0.25rem;
+  margin-top: 0.125rem;
 }
 
-/* Responsive adjustments */
 @media (max-width: 768px) {
   .page {
     max-width: 100%;
   }
 
   .form-section {
-    padding: 1.25rem;
+    padding: 1rem 1.25rem 1.25rem;
+  }
+
+  .duration-controls {
+    flex-wrap: wrap;
   }
 
   .media-row {
@@ -729,28 +746,24 @@ label {
   .form-row-group {
     grid-template-columns: 1fr;
   }
-
-  .party-preset-buttons {
-    grid-template-columns: repeat(2, 1fr);
-  }
-
-  .preset-buttons-compact {
-    grid-template-columns: repeat(3, 1fr);
-  }
 }
 
 @media (max-width: 480px) {
+  .page-header {
+    margin-bottom: 1.75rem;
+  }
+
   .form-section {
-    padding: 1rem;
+    padding: 0.875rem 1rem 1rem;
   }
 
   .section-header {
     font-size: 1rem;
+    margin-bottom: 1rem;
   }
 
-  .party-preset-buttons,
-  .preset-buttons-compact {
-    grid-template-columns: 1fr;
+  .duration-presets {
+    flex-wrap: wrap;
   }
 
   .actions {
