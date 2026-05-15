@@ -10,12 +10,17 @@ export function useLottery() {
   const allGuesses = ref<GuessInfo[]>([])
   const myGuesses = ref<number[]>([])
   const selectedNumber = ref<number | null>(null)
+  const usedGuesses = ref(0)
+  const totalGuesses = ref(0)
 
   async function load() {
     loading.value = true
     error.value = ''
     try {
-      view.value = await LotteryApi.view()
+      const viewData = await LotteryApi.view()
+      view.value = viewData.view
+      usedGuesses.value = viewData.usedGuesses
+      totalGuesses.value = viewData.totalGuesses
       allGuesses.value = await LotteryApi.allGuesses()
       parseMyGuesses()
     }
@@ -149,6 +154,8 @@ export function useLottery() {
     allGuesses,
     myGuesses,
     selectedNumber,
+    usedGuesses,
+    totalGuesses,
     load,
     guess,
     changeGuess,

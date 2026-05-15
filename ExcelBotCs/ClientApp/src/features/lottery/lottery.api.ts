@@ -4,8 +4,8 @@ import { http } from '@/services/http'
 
 export const LotteryApi = {
   view: async () => {
-    const response = await http<{ view: string }>('/api/lottery/view')
-    return response.view
+    const response = await http<{ view: string, usedGuesses: number, totalGuesses: number }>('/api/lottery/view')
+    return response
   },
   guess: async (guess: number) => {
     const response = await http<{ guessResponse: string }>(`/api/lottery/guess/${guess}`, {

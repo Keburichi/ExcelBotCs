@@ -47,7 +47,21 @@ public class LotteryController : AuthorizedController
     public async Task<IActionResult> View()
     {
         var view = await _lotteryService.ViewAsync(await GetCurrentUserDiscordId());
-        return Ok(new { view = LotteryResponseFormatter.FormatViewResponse(view) });
+
+        if (view is ViewResponse r)
+            return Ok(new
+            {
+                view = LotteryResponseFormatter.FormatViewResponse(view),
+                usedGuesses = r.UsedGuesses,
+                totalGuesses = r.TotalGuesses
+            });
+
+        return Ok(new
+        {
+            view = LotteryResponseFormatter.FormatViewResponse(view),
+            usedGuesses = 0,
+            totalGuesses = 0
+        });
     }
 
     [HttpPost]

@@ -1,5 +1,5 @@
 <script lang="ts" setup>
-import { onMounted } from 'vue'
+import { computed, onMounted } from 'vue'
 import BaseButton from '@/components/BaseButton.vue'
 import { useAuth } from '@/composables/useAuth'
 import { useLottery } from '@/composables/useLottery'
@@ -9,6 +9,10 @@ import LotteryNumberGrid from './LotteryNumberGrid.vue'
 
 const { isAdmin } = useAuth()
 const lottery = useLottery()
+
+const remainingGuesses = computed(() =>
+  Math.max(0, lottery.totalGuesses.value - lottery.usedGuesses.value),
+)
 
 onMounted(lottery.load)
 
@@ -30,6 +34,29 @@ function handleSelect(num: number) {
     <h2 class="lottery-title">
       Lottery
     </h2>
+
+    <div class="lottery-intro">
+      <p class="lottery-desc">
+        Every member gets one free guess each week. Attend FC events to earn additional guesses.
+        Pick a number between 1 and 99. The jackpot starts at 1,000,000 gil and grows by another
+        1,000,000 each week nobody hits the winning number.
+      </p>
+
+      <div v-if="!lottery.loading.value" class="lottery-status">
+        <span class="status-label">Your guesses</span>
+        <span class="status-pips">
+          <span
+            v-for="i in lottery.totalGuesses.value"
+            :key="i"
+            class="pip"
+            :class="i <= lottery.usedGuesses.value ? 'pip--used' : 'pip--available'"
+          />
+        </span>
+        <span class="status-count">
+          {{ remainingGuesses }} of {{ lottery.totalGuesses.value }} remaining
+        </span>
+      </div>
+    </div>
 
     <div v-if="lottery.error.value && lottery.error.value.trim().length > 0" class="message message--error">
       {{ lottery.error.value }}
@@ -106,6 +133,63 @@ function handleSelect(num: number) {
   letter-spacing: -0.02em;
 }
 
+.lottery-intro {
+  display: flex;
+  align-items: flex-start;
+  gap: 2rem;
+  margin-bottom: 1.5rem;
+  padding-bottom: 1.5rem;
+  border-bottom: 1px solid var(--border);
+}
+
+.lottery-desc {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.9rem;
+  line-height: 1.6;
+  max-width: 52ch;
+}
+
+.lottery-status {
+  display: flex;
+  flex-direction: column;
+  gap: 0.375rem;
+  flex-shrink: 0;
+}
+
+.status-label {
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--muted);
+}
+
+.status-pips {
+  display: flex;
+  gap: 0.375rem;
+}
+
+.pip {
+  width: 1.25rem;
+  height: 1.25rem;
+  border-radius: 6px;
+  transition: background 200ms ease;
+}
+
+.pip--available {
+  background: var(--link);
+}
+
+.pip--used {
+  background: var(--border);
+}
+
+.status-count {
+  font-size: 0.8rem;
+  color: var(--muted);
+}
+
 .message {
   padding: 0.75rem 1rem;
   border-radius: 12px;
@@ -179,6 +263,11 @@ function handleSelect(num: number) {
 }
 
 @media (max-width: 900px) {
+  .lottery-intro {
+    flex-direction: column;
+    gap: 1rem;
+  }
+
   .lottery-columns {
     grid-template-columns: 1fr;
     gap: 2rem;

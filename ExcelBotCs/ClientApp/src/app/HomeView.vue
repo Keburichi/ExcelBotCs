@@ -10,6 +10,7 @@ const { isMember } = useAuth()
   <div class="home">
     <div class="home-columns">
       <RulesView class="home-rules" />
+      <div class="home-divider" />
       <AnnouncementsView class="home-feed" />
     </div>
 
@@ -37,9 +38,15 @@ const { isMember } = useAuth()
 <style scoped>
 .home-columns {
   display: grid;
-  grid-template-columns: 1fr 1.6fr;
-  gap: 2.5rem;
+  grid-template-columns: 1fr auto 1.6fr;
+  gap: 1.5rem;
   align-items: start;
+}
+
+.home-divider {
+  width: 1px;
+  align-self: stretch;
+  background: var(--border);
 }
 
 .home-nav {
@@ -84,6 +91,7 @@ const { isMember } = useAuth()
     gap: 2.5rem;
   }
 
+  .home-divider { display: none; }
   .home-feed { order: 1; }
   .home-rules { order: 2; }
 
