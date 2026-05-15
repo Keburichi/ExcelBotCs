@@ -74,19 +74,39 @@ const recurrence = ref<RecurrenceConfig>({
 })
 
 // Signup button configuration
-type ButtonMode = 'standard' | 'custom'
+type ButtonMode = 'standard' | 'roles-helper' | 'custom'
 const buttonMode = ref<ButtonMode>('standard')
 const signupButtonConfigs = ref<SignupButtonConfig[]>([])
 const guildEmojis = ref<GuildEmoji[]>([])
+const emojiSearchQuery = ref('')
+const emojiDropdownOpenIndex = ref<number | null>(null)
 
-const roleOptions = [
-  { value: undefined, label: 'None' },
-  { value: ROLE.Tank, label: 'Tank' },
-  { value: ROLE.Healer, label: 'Healer' },
-  { value: ROLE.Melee, label: 'Melee' },
-  { value: ROLE.Caster, label: 'Caster' },
-  { value: ROLE.Ranged, label: 'Ranged' },
-]
+// Known role emoji IDs (used for "Roles + Helper" preset)
+const ROLE_EMOJI_IDS: Record<string, string> = {
+  tank: '1380979172423499846',
+  healer: '1380979170787721368',
+  melee: '873621778214318091',
+  ranged: '873621778453368895',
+  caster: '873621778566635540',
+}
+
+const filteredEmojis = computed(() => {
+  const query = emojiSearchQuery.value.trim().toLowerCase()
+  if (!query) return guildEmojis.value
+  return guildEmojis.value.filter(e => e.Name.toLowerCase().includes(query))
+})
+
+function getEmojiById(id?: string): GuildEmoji | undefined {
+  if (!id) return undefined
+  return guildEmojis.value.find(e => e.Id === id)
+}
+
+function getEmojiUrl(id?: string): string | null {
+  if (!id) return null
+  const emoji = getEmojiById(id)
+  if (emoji) return emoji.Url
+  return `https://cdn.discordapp.com/emojis/${id}.webp?size=20`
+}
 
 function slugify(text: string): string {
   return text.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')
@@ -111,18 +131,44 @@ function onLabelChange(index: number) {
   config.Slug = slugify(config.Label)
 }
 
-function applyPreset(preset: 'standard-helper' | 'interested' | 'interested-helper') {
+function openEmojiDropdown(index: number) {
+  emojiSearchQuery.value = ''
+  emojiDropdownOpenIndex.value = index
+}
+
+function selectEmoji(index: number, emoji: GuildEmoji) {
+  signupButtonConfigs.value[index].EmojiId = emoji.Id
+  emojiDropdownOpenIndex.value = null
+}
+
+function clearEmoji(index: number) {
+  signupButtonConfigs.value[index].EmojiId = undefined
+  emojiDropdownOpenIndex.value = null
+}
+
+function closeEmojiDropdown() {
+  emojiDropdownOpenIndex.value = null
+}
+
+function setButtonMode(mode: ButtonMode) {
+  buttonMode.value = mode
+  if (mode === 'roles-helper') {
+    signupButtonConfigs.value = [
+      { Slug: 'tank', Label: 'Tank', EmojiId: ROLE_EMOJI_IDS.tank, IsHelper: false, MappedRole: ROLE.Tank },
+      { Slug: 'healer', Label: 'Healer', EmojiId: ROLE_EMOJI_IDS.healer, IsHelper: false, MappedRole: ROLE.Healer },
+      { Slug: 'melee', Label: 'Melee', EmojiId: ROLE_EMOJI_IDS.melee, IsHelper: false, MappedRole: ROLE.Melee },
+      { Slug: 'caster', Label: 'Caster', EmojiId: ROLE_EMOJI_IDS.caster, IsHelper: false, MappedRole: ROLE.Caster },
+      { Slug: 'ranged', Label: 'Ranged', EmojiId: ROLE_EMOJI_IDS.ranged, IsHelper: false, MappedRole: ROLE.Ranged },
+      { Slug: 'helper', Label: 'Helper', EmojiId: undefined, IsHelper: true, MappedRole: undefined },
+    ]
+  }
+  else if (mode === 'standard') {
+    signupButtonConfigs.value = []
+  }
+}
+
+function applyPreset(preset: 'interested' | 'interested-helper') {
   switch (preset) {
-    case 'standard-helper':
-      signupButtonConfigs.value = [
-        { Slug: 'tank', Label: 'Tank', IsHelper: false, MappedRole: ROLE.Tank },
-        { Slug: 'healer', Label: 'Healer', IsHelper: false, MappedRole: ROLE.Healer },
-        { Slug: 'melee', Label: 'Melee', IsHelper: false, MappedRole: ROLE.Melee },
-        { Slug: 'caster', Label: 'Caster', IsHelper: false, MappedRole: ROLE.Caster },
-        { Slug: 'ranged', Label: 'Ranged', IsHelper: false, MappedRole: ROLE.Ranged },
-        { Slug: 'helper', Label: 'Helper', IsHelper: true, MappedRole: undefined },
-      ]
-      break
     case 'interested':
       signupButtonConfigs.value = [
         { Slug: 'interested', Label: 'Interested', IsHelper: false, MappedRole: undefined },
@@ -263,7 +309,16 @@ onMounted(async () => {
           }
         }
         if (eventData.SignupButtonConfigs && eventData.SignupButtonConfigs.length > 0) {
-          buttonMode.value = 'custom'
+          // Detect if it's the "roles + helper" preset
+          const hasHelper = eventData.SignupButtonConfigs.some(c => c.IsHelper)
+          const hasAllRoles = ['tank', 'healer', 'melee', 'caster', 'ranged']
+            .every(slug => eventData.SignupButtonConfigs!.some(c => c.Slug === slug))
+          if (hasHelper && hasAllRoles) {
+            buttonMode.value = 'roles-helper'
+          }
+          else {
+            buttonMode.value = 'custom'
+          }
           signupButtonConfigs.value = eventData.SignupButtonConfigs
         }
       }
@@ -361,7 +416,7 @@ function cancel() {
 
     <div class="create-event-layout">
       <!-- Form Column -->
-      <form class="event-form" @submit.prevent="submit">
+      <form class="event-form" @submit.prevent="submit" @click="closeEmojiDropdown">
         <div class="form-surface">
           <!-- Basic Information -->
           <div class="form-group">
@@ -521,7 +576,15 @@ function cancel() {
                   title="Standard Roles"
                   size="small"
                   type="button"
-                  @clicked="buttonMode = 'standard'"
+                  @clicked="setButtonMode('standard')"
+                />
+                <BaseButton
+                  :state="buttonMode === 'roles-helper' ? 'primary' : 'secondary'"
+                  :variant="buttonMode === 'roles-helper' ? 'elevated' : 'outlined'"
+                  title="Roles + Helper"
+                  size="small"
+                  type="button"
+                  @clicked="setButtonMode('roles-helper')"
                 />
                 <BaseButton
                   :state="buttonMode === 'custom' ? 'primary' : 'secondary'"
@@ -529,23 +592,72 @@ function cancel() {
                   title="Custom Buttons"
                   size="small"
                   type="button"
-                  @clicked="buttonMode = 'custom'"
+                  @clicked="setButtonMode('custom')"
                 />
               </div>
             </div>
 
+            <!-- Roles + Helper: only configure the helper button -->
+            <template v-if="buttonMode === 'roles-helper'">
+              <p class="field-hint">The 5 standard role buttons (Tank, Healer, Melee, Caster, Ranged) will be shown with their emotes. Configure the helper button below:</p>
+              <div v-if="signupButtonConfigs.find(c => c.IsHelper)" class="button-config-row">
+                <div class="button-config-fields">
+                  <input
+                    v-model="signupButtonConfigs[signupButtonConfigs.length - 1].Label"
+                    class="button-config-input"
+                    placeholder="Helper label"
+                    type="text"
+                    @input="signupButtonConfigs[signupButtonConfigs.length - 1].Slug = slugify(signupButtonConfigs[signupButtonConfigs.length - 1].Label)"
+                  >
+                  <div class="emoji-picker-wrapper">
+                    <button
+                      type="button"
+                      class="emoji-picker-trigger"
+                      @click.stop="openEmojiDropdown(signupButtonConfigs.length - 1)"
+                    >
+                      <img v-if="getEmojiUrl(signupButtonConfigs[signupButtonConfigs.length - 1].EmojiId)" :src="getEmojiUrl(signupButtonConfigs[signupButtonConfigs.length - 1].EmojiId)!" alt="" class="emoji-preview-img">
+                      <span v-else class="emoji-picker-placeholder">Select emoji</span>
+                    </button>
+                    <div v-if="emojiDropdownOpenIndex === signupButtonConfigs.length - 1" class="emoji-dropdown" @click.stop>
+                      <input
+                        v-model="emojiSearchQuery"
+                        class="emoji-search-input"
+                        placeholder="Search emojis..."
+                        type="text"
+                        @click.stop
+                      >
+                      <button type="button" class="emoji-option emoji-option--clear" @click="clearEmoji(signupButtonConfigs.length - 1)">
+                        No emoji
+                      </button>
+                      <div class="emoji-grid">
+                        <button
+                          v-for="emoji in filteredEmojis"
+                          :key="emoji.Id"
+                          type="button"
+                          class="emoji-option-img"
+                          :title="emoji.Name"
+                          @click="selectEmoji(signupButtonConfigs.length - 1, emoji)"
+                        >
+                          <img :src="emoji.Url" :alt="emoji.Name" class="emoji-grid-img">
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                <div class="button-preview">
+                  <span class="button-preview-btn">
+                    <img v-if="getEmojiUrl(signupButtonConfigs[signupButtonConfigs.length - 1].EmojiId)" :src="getEmojiUrl(signupButtonConfigs[signupButtonConfigs.length - 1].EmojiId)!" alt="" class="button-preview-emoji">
+                    {{ signupButtonConfigs[signupButtonConfigs.length - 1].Label || 'Helper' }}
+                  </span>
+                </div>
+              </div>
+            </template>
+
+            <!-- Custom buttons: full config -->
             <template v-if="buttonMode === 'custom'">
               <div class="form-field">
                 <label>Presets</label>
                 <div class="party-presets">
-                  <BaseButton
-                    title="Roles + Helper"
-                    size="small"
-                    state="secondary"
-                    variant="outlined"
-                    type="button"
-                    @clicked="applyPreset('standard-helper')"
-                  />
                   <BaseButton
                     title="Interested Only"
                     size="small"
@@ -580,31 +692,53 @@ function cancel() {
                     placeholder="slug"
                     type="text"
                   >
-                  <select v-model="config.EmojiId" class="button-config-input">
-                    <option :value="undefined">
-                      No emoji
-                    </option>
-                    <option v-for="emoji in guildEmojis" :key="emoji.Id" :value="emoji.Id">
-                      {{ emoji.Name }}
-                    </option>
-                  </select>
-                  <select v-model="config.MappedRole" class="button-config-input">
-                    <option v-for="opt in roleOptions" :key="String(opt.value)" :value="opt.value">
-                      {{ opt.label }}
-                    </option>
-                  </select>
-                  <label class="button-config-checkbox">
-                    <input v-model="config.IsHelper" type="checkbox">
-                    Helper
-                  </label>
+                  <div class="emoji-picker-wrapper">
+                    <button
+                      type="button"
+                      class="emoji-picker-trigger"
+                      @click.stop="openEmojiDropdown(index)"
+                    >
+                      <img v-if="getEmojiUrl(config.EmojiId)" :src="getEmojiUrl(config.EmojiId)!" alt="" class="emoji-preview-img">
+                      <span v-else class="emoji-picker-placeholder">Select emoji</span>
+                    </button>
+                    <div v-if="emojiDropdownOpenIndex === index" class="emoji-dropdown" @click.stop>
+                      <input
+                        v-model="emojiSearchQuery"
+                        class="emoji-search-input"
+                        placeholder="Search emojis..."
+                        type="text"
+                        @click.stop
+                      >
+                      <button type="button" class="emoji-option emoji-option--clear" @click="clearEmoji(index)">
+                        No emoji
+                      </button>
+                      <div class="emoji-grid">
+                        <button
+                          v-for="emoji in filteredEmojis"
+                          :key="emoji.Id"
+                          type="button"
+                          class="emoji-option-img"
+                          :title="emoji.Name"
+                          @click="selectEmoji(index, emoji)"
+                        >
+                          <img :src="emoji.Url" :alt="emoji.Name" class="emoji-grid-img">
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                <div class="button-preview">
+                  <span class="button-preview-btn">
+                    <img v-if="getEmojiUrl(config.EmojiId)" :src="getEmojiUrl(config.EmojiId)!" alt="" class="button-preview-emoji">
+                    {{ config.Label || '...' }}
+                  </span>
                 </div>
                 <BaseButton
-                  icon-only
-                  rounded
+                  icon="✕"
                   size="small"
                   state="danger"
-                  title="X"
-                  variant="outlined"
+                  variant="text"
+                  tooltip="Remove button"
                   type="button"
                   @clicked="removeButton(index)"
                 />
@@ -824,7 +958,7 @@ function cancel() {
   display: flex;
   align-items: center;
   gap: 0.5rem;
-  padding: 0.5rem;
+  padding: 0.5rem 0.75rem;
   border: 1px solid var(--border);
   border-radius: 8px;
 }
@@ -855,13 +989,139 @@ function cancel() {
   font-size: 0.75rem;
 }
 
-.button-config-checkbox {
+/* Emoji picker */
+.emoji-picker-wrapper {
+  position: relative;
+}
+
+.emoji-picker-trigger {
   display: flex;
   align-items: center;
   gap: 0.25rem;
+  padding: 0.25rem 0.5rem;
   font-size: 0.8125rem;
-  white-space: nowrap;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--bg);
+  color: var(--fg);
   cursor: pointer;
+  min-width: 6rem;
+  height: 1.75rem;
+}
+
+.emoji-picker-trigger:hover {
+  border-color: var(--link);
+}
+
+.emoji-preview-img {
+  width: 18px;
+  height: 18px;
+}
+
+.emoji-picker-placeholder {
+  color: var(--muted);
+  font-size: 0.75rem;
+}
+
+.emoji-dropdown {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  z-index: 100;
+  width: 240px;
+  max-height: 240px;
+  overflow-y: auto;
+  background: var(--card, #fff);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.15);
+  padding: 0.375rem;
+  margin-top: 4px;
+}
+
+.emoji-search-input {
+  width: 100%;
+  padding: 0.25rem 0.5rem;
+  font-size: 0.8125rem;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--bg);
+  color: var(--fg);
+  margin-bottom: 0.375rem;
+}
+
+.emoji-option {
+  display: block;
+  width: 100%;
+  text-align: left;
+  padding: 0.25rem 0.5rem;
+  border: none;
+  background: none;
+  color: var(--fg);
+  font-size: 0.75rem;
+  cursor: pointer;
+  border-radius: 4px;
+}
+
+.emoji-option:hover {
+  background: var(--muted-bg);
+}
+
+.emoji-option--clear {
+  color: var(--muted);
+  border-bottom: 1px solid var(--border);
+  margin-bottom: 0.25rem;
+  padding-bottom: 0.375rem;
+  border-radius: 0;
+}
+
+.emoji-grid {
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  gap: 2px;
+}
+
+.emoji-option-img {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 4px;
+  border: none;
+  background: none;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.emoji-option-img:hover {
+  background: var(--muted-bg);
+}
+
+.emoji-grid-img {
+  width: 24px;
+  height: 24px;
+}
+
+/* Button preview */
+.button-preview {
+  flex-shrink: 0;
+}
+
+.button-preview-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.25rem 0.625rem;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  border-radius: 6px;
+  background: #5865f2;
+  color: #fff;
+  white-space: nowrap;
+}
+
+.button-preview-emoji {
+  width: 16px;
+  height: 16px;
 }
 
 /* Form actions */
