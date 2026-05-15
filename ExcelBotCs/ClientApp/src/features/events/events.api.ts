@@ -29,6 +29,12 @@ export const EventsApi = {
       method: 'DELETE',
     }),
 
+  manualSignup: (eventId: string, discordUserId: string, roles: Role[]) =>
+    http<void>(`/api/events/${eventId}/signup/manual`, {
+      method: 'POST',
+      body: JSON.stringify({ DiscordUserId: discordUserId, Roles: roles }),
+    }),
+
   // Group-based participant selection
   selectParticipants: (eventId: string, groups: EventGroupRequest[]) =>
     http<void>(`/api/events/${eventId}/participants`, {

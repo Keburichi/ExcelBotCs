@@ -34,6 +34,12 @@ const isInfoOpen = ref(false)
 const infoMessage = ref('')
 const isInsufficientParticipantsOpen = ref(false)
 
+// Manual signup state
+const manualSearchQuery = ref('')
+const manualRolePickerOpen = ref(false)
+const manualRolePickerMember = ref<{ DiscordId: string, DiscordName: string, PlayerName: string } | null>(null)
+const manualSelectedRoles = ref<Role[]>([])
+
 interface UnassignedItem {
   DiscordUserId: string
   Roles: Role[]
@@ -66,6 +72,26 @@ const signupsNeededForNextGroup = computed(() => {
 
 const totalAssigned = computed(() => {
   return groups.value.reduce((sum, g) => sum + g.Participants.length, 0)
+})
+
+const manualSearchResults = computed(() => {
+  const query = manualSearchQuery.value.trim().toLowerCase()
+  if (!query)
+    return []
+
+  const signedUpIds = new Set(
+    (eventValue.value.Signups ?? []).map(s => s.DiscordUserId),
+  )
+
+  return members.value
+    .filter((m) => {
+      if (signedUpIds.has(m.DiscordId))
+        return false
+      const playerName = (m.PlayerName || '').toLowerCase()
+      const discordName = (m.DiscordName || '').toLowerCase()
+      return playerName.includes(query) || discordName.includes(query)
+    })
+    .slice(0, 10)
 })
 
 function getMemberName(discordId: string): string {
@@ -199,6 +225,70 @@ function cancelRolePicker() {
   rolePickerTarget.value = null
 }
 
+function openManualRolePicker(member: { DiscordId: string, DiscordName: string, PlayerName: string }) {
+  manualRolePickerMember.value = member
+  manualSelectedRoles.value = []
+  manualRolePickerOpen.value = true
+  manualSearchQuery.value = ''
+}
+
+function toggleManualRole(role: Role) {
+  const idx = manualSelectedRoles.value.indexOf(role)
+  if (idx >= 0) {
+    manualSelectedRoles.value.splice(idx, 1)
+  }
+  else {
+    manualSelectedRoles.value.push(role)
+  }
+}
+
+async function confirmManualSignup() {
+  if (!manualRolePickerMember.value || manualSelectedRoles.value.length === 0)
+    return
+
+  try {
+    await EventsApi.manualSignup(
+      eventValue.value.Id,
+      manualRolePickerMember.value.DiscordId,
+      [...manualSelectedRoles.value],
+    )
+
+    if (!eventValue.value.Signups) {
+      eventValue.value.Signups = []
+    }
+
+    eventValue.value.Signups.push({
+      DiscordUserId: manualRolePickerMember.value.DiscordId,
+      Roles: [...manualSelectedRoles.value],
+      SignupDate: new Date(),
+    })
+
+    manualRolePickerOpen.value = false
+    manualRolePickerMember.value = null
+    manualSelectedRoles.value = []
+  }
+  catch (error) {
+    console.error('Error adding manual signup:', error)
+    openInfo('Failed to add member. Please try again.')
+    manualRolePickerOpen.value = false
+    manualRolePickerMember.value = null
+    manualSelectedRoles.value = []
+  }
+}
+
+function cancelManualRolePicker() {
+  manualRolePickerOpen.value = false
+  manualRolePickerMember.value = null
+  manualSelectedRoles.value = []
+}
+
+function onManualSearchKeydown(event: KeyboardEvent) {
+  if (event.key === 'Enter' && manualSearchResults.value.length > 0) {
+    const first = manualSearchResults.value[0]
+    openManualRolePicker({ DiscordId: first.DiscordId, DiscordName: first.DiscordName, PlayerName: first.PlayerName })
+  }
+}
+
 // Remove participant from a group back to pool
 function removeFromGroup(groupIndex: number, participantIndex: number) {
   groups.value[groupIndex].Participants.splice(participantIndex, 1)
@@ -253,6 +343,7 @@ onMounted(() => {
 watch(modelValue, (isOpen) => {
   if (isOpen) {
     initGroups()
+    manualSearchQuery.value = ''
   }
 })
 </script>
@@ -318,6 +409,44 @@ watch(modelValue, (isOpen) => {
           </draggable>
           <div v-if="unassigned.length === 0" class="empty-pool">
             All signups assigned
+          </div>
+
+          <!-- Manual member add -->
+          <div class="manual-add-section">
+            <label class="manual-add-label">Add member manually:</label>
+            <div class="manual-add-wrapper">
+              <input
+                v-model="manualSearchQuery"
+                class="manual-add-input"
+                placeholder="Search by name..."
+                type="text"
+                @keydown="onManualSearchKeydown"
+              >
+              <div v-if="manualSearchResults.length > 0" class="manual-add-dropdown">
+                <div
+                  v-for="member in manualSearchResults"
+                  :key="member.DiscordId"
+                  class="manual-add-result"
+                  @click="openManualRolePicker(member)"
+                >
+                  <img
+                    v-if="member.DiscordAvatar"
+                    :src="member.DiscordAvatar"
+                    alt="avatar"
+                    class="avatar-sm"
+                  >
+                  <div v-else class="avatar-sm placeholder">
+                    {{ (member.PlayerName || member.DiscordName).charAt(0).toUpperCase() }}
+                  </div>
+                  <div class="manual-add-result-info">
+                    <span class="member-name">{{ member.PlayerName || member.DiscordName }}</span>
+                    <span v-if="member.PlayerName && member.DiscordName" class="manual-add-discord-name">
+                      {{ member.DiscordName }}
+                    </span>
+                  </div>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
 
@@ -422,6 +551,43 @@ watch(modelValue, (isOpen) => {
     </template>
     <template #actions>
       <BaseButton state="secondary" title="Cancel" @clicked="cancelRolePicker" />
+    </template>
+  </BaseModal>
+
+  <!-- Manual Signup Role Picker Modal -->
+  <BaseModal
+    v-model="manualRolePickerOpen"
+    :close-on-outside-click="false"
+    size="small"
+    title="Select Roles"
+  >
+    <template #body>
+      <p v-if="manualRolePickerMember">
+        Select role(s) for <b>{{ manualRolePickerMember.PlayerName || manualRolePickerMember.DiscordName }}</b>:
+      </p>
+      <div class="role-picker-options">
+        <button
+          v-for="role in [ROLE.Tank, ROLE.Healer, ROLE.Melee, ROLE.Caster, ROLE.Ranged]"
+          :key="role"
+          class="role-picker-btn"
+          :class="{ 'role-picker-btn--selected': manualSelectedRoles.includes(role) }"
+          @click="toggleManualRole(role)"
+        >
+          {{ roleLabel(role) }}
+        </button>
+      </div>
+      <p v-if="manualSelectedRoles.length === 0" class="manual-role-hint">
+        Select at least one role.
+      </p>
+    </template>
+    <template #actions>
+      <BaseButton state="secondary" title="Cancel" @clicked="cancelManualRolePicker" />
+      <BaseButton
+        :disabled="manualSelectedRoles.length === 0"
+        state="primary"
+        title="Add to Pool"
+        @clicked="confirmManualSignup"
+      />
     </template>
   </BaseModal>
 
@@ -818,5 +984,104 @@ watch(modelValue, (isOpen) => {
 
 .sortable-chosen {
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+}
+
+/* Manual add section */
+.manual-add-section {
+  padding: 0.75rem;
+  border-top: 1px solid var(--border);
+}
+
+.manual-add-label {
+  display: block;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--muted);
+  margin-bottom: 0.4rem;
+}
+
+.manual-add-wrapper {
+  position: relative;
+}
+
+.manual-add-input {
+  width: 100%;
+  padding: 0.5rem 0.6rem;
+  font-size: 0.85rem;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--card);
+  color: var(--fg);
+  outline: none;
+  transition: border-color 0.2s;
+  box-sizing: border-box;
+}
+
+.manual-add-input:focus {
+  border-color: var(--link);
+}
+
+.manual-add-dropdown {
+  position: absolute;
+  bottom: 100%;
+  left: 0;
+  right: 0;
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  margin-bottom: 4px;
+  max-height: 240px;
+  overflow-y: auto;
+  box-shadow: 0 -4px 12px rgba(0, 0, 0, 0.12);
+  z-index: 1000;
+}
+
+.manual-add-result {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.45rem 0.6rem;
+  cursor: pointer;
+  font-size: 0.85rem;
+  transition: background 0.2s;
+}
+
+.manual-add-result:hover {
+  background: var(--muted-bg);
+}
+
+.manual-add-result:not(:last-child) {
+  border-bottom: 1px solid var(--border);
+}
+
+.manual-add-result-info {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.manual-add-discord-name {
+  font-size: 0.75rem;
+  color: var(--muted);
+}
+
+.manual-role-hint {
+  font-size: 0.85rem;
+  color: var(--muted);
+  font-style: italic;
+  margin-top: 0.5rem;
+}
+
+.role-picker-btn--selected {
+  border-color: var(--link);
+  background: var(--link);
+  color: var(--bg);
+}
+
+.role-picker-btn--selected:hover {
+  opacity: 0.9;
+  border-color: var(--link);
+  background: var(--link);
+  color: var(--bg);
 }
 </style>
