@@ -31,10 +31,6 @@ function handleSelect(num: number) {
 
 <template>
   <section class="lottery">
-    <h2 class="lottery-title">
-      Lottery
-    </h2>
-
     <div class="lottery-intro">
       <p class="lottery-desc">
         Every member gets one free guess each week. Attend FC events to earn additional guesses.
@@ -44,17 +40,21 @@ function handleSelect(num: number) {
 
       <div v-if="!lottery.loading.value" class="lottery-status">
         <span class="status-label">Your guesses</span>
-        <span class="status-pips">
-          <span
-            v-for="i in lottery.totalGuesses.value"
-            :key="i"
-            class="pip"
-            :class="i <= lottery.usedGuesses.value ? 'pip--used' : 'pip--available'"
-          />
-        </span>
-        <span class="status-count">
-          {{ remainingGuesses }} of {{ lottery.totalGuesses.value }} remaining
-        </span>
+        <template v-if="lottery.totalGuesses.value > 0">
+          <span class="status-pips">
+            <span
+              v-for="i in lottery.totalGuesses.value"
+              :key="i"
+              class="pip"
+              :class="i <= lottery.usedGuesses.value ? 'pip--used' : 'pip--available'"
+            />
+          </span>
+          <span v-if="remainingGuesses > 0" class="status-count">
+            {{ remainingGuesses }} of {{ lottery.totalGuesses.value }} remaining
+          </span>
+          <span v-else class="status-count">All guesses used</span>
+        </template>
+        <span v-else class="status-count">No guesses available</span>
       </div>
     </div>
 
@@ -121,21 +121,9 @@ function handleSelect(num: number) {
   margin: 0 auto;
 }
 
-.lottery-title {
-  font-size: 2rem;
-  font-weight: 700;
-  margin: 0 0 1.5rem 0;
-  color: var(--fg);
-  background: linear-gradient(135deg, #3b82f6 0%, #8b5cf6 50%, #ec4899 100%);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
-  letter-spacing: -0.02em;
-}
-
 .lottery-intro {
   display: flex;
-  align-items: flex-start;
+  align-items: stretch;
   gap: 2rem;
   margin-bottom: 1.5rem;
   padding-bottom: 1.5rem;
@@ -153,15 +141,20 @@ function handleSelect(num: number) {
 .lottery-status {
   display: flex;
   flex-direction: column;
-  gap: 0.375rem;
+  justify-content: center;
+  gap: 0.5rem;
   flex-shrink: 0;
+  padding: 0.875rem 1.25rem;
+  border-radius: 12px;
+  background: color-mix(in oklab, var(--link) 6%, var(--card));
+  border: 1px solid color-mix(in oklab, var(--link) 12%, var(--border));
 }
 
 .status-label {
-  font-size: 0.75rem;
+  font-size: 0.7rem;
   font-weight: 600;
   text-transform: uppercase;
-  letter-spacing: 0.04em;
+  letter-spacing: 0.05em;
   color: var(--muted);
 }
 

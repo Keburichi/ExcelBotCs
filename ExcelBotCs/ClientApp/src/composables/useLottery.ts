@@ -19,8 +19,8 @@ export function useLottery() {
     try {
       const viewData = await LotteryApi.view()
       view.value = viewData.view
-      usedGuesses.value = viewData.usedGuesses
-      totalGuesses.value = viewData.totalGuesses
+      usedGuesses.value = viewData.usedGuesses ?? 0
+      totalGuesses.value = viewData.totalGuesses ?? 0
       allGuesses.value = await LotteryApi.allGuesses()
       parseMyGuesses()
     }
