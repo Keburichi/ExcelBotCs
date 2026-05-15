@@ -155,7 +155,7 @@ public class Program
         builder.Services.AddScoped<RsaKeyService>();
         builder.Services.AddLogging(options =>
         {
-            options.AddConsole();
+            options.AddJsonConsole(o => o.UseUtcTimestamp = true);
             options.SetMinimumLevel(LogLevel.Information);
         });
         builder.Services.AddHttpLogging();

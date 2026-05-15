@@ -28,7 +28,16 @@ public class DiscordBotService : BackgroundService
 
         _client.Log += message =>
         {
-            logger.LogInformation(message.ToString());
+            var level = message.Severity switch
+            {
+                LogSeverity.Critical => LogLevel.Critical,
+                LogSeverity.Error => LogLevel.Error,
+                LogSeverity.Warning => LogLevel.Warning,
+                LogSeverity.Info => LogLevel.Information,
+                _ => LogLevel.Debug
+            };
+            logger.Log(level, message.Exception, "[{Source}] {Message}", message.Source,
+                message.Message ?? message.Exception?.Message);
             return Task.CompletedTask;
         };
 
