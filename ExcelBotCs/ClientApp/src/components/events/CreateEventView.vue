@@ -57,6 +57,7 @@ const form = reactive<FCEvent>({
   ICalString: '',
   SignupType: 0,
   MaxNumberOfParticipants: 8,
+  SignupButtonConfigs: undefined,
   Signups: [],
   Groups: [],
   Occurrences: [],
@@ -379,7 +380,7 @@ async function submit() {
       form.PictureUrl = toAbsoluteUrl(form.PictureUrl)
     }
     form.ICalString = generateICalString(form, recurrence.value)
-    form.SignupButtonConfigs = buttonMode.value === 'custom' ? signupButtonConfigs.value : undefined
+    form.SignupButtonConfigs = buttonMode.value !== 'standard' ? signupButtonConfigs.value : undefined
 
     if (isEditMode.value) {
       await EventsApi.update(form.Id, form)
