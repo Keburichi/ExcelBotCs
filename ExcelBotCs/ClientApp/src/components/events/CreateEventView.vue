@@ -6,11 +6,12 @@ import { computed, onMounted, reactive, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import BaseButton from '@/components/BaseButton.vue'
 import DateTimePicker from '@/components/DateTimePicker.vue'
+import EventCard from '@/components/events/EventCard.vue'
 import RecurrenceOptions from '@/components/events/RecurrenceOptions.vue'
 import SearchableDropdown from '@/components/SearchableDropdown.vue'
 import { useAuth } from '@/composables/useAuth'
 import { EventsApi } from '@/features/events/events.api'
-import { EventType } from '@/features/events/events.types'
+import { EventType, OccurrenceStatus } from '@/features/events/events.types'
 import { FightsApi } from '@/features/fights/fights.api'
 import { fightTypeToString } from '@/features/fights/fights.types'
 import mapsPlaceholder from '@/static/img/maps-placeholder.png'
@@ -20,30 +21,24 @@ const router = useRouter()
 const route = useRoute()
 const { user, isAdmin, loadMe } = useAuth()
 
-// Ensures that provided URL is absolute (includes protocol and host)
 function toAbsoluteUrl(url: string): string {
   if (!url)
     return url
-  // Already absolute (supports protocol-relative //host/... too)
   if (/^(?:[a-z]+:)?\/\//i.test(url))
     return url
-  // Ensure leading slash for relative asset paths
   const withSlash = url.startsWith('/') ? url : `/${url}`
   return `${window.location.origin}${withSlash}`
 }
 
-// Absolute URL to the maps placeholder image
 const mapsPlaceholderAbsolute = toAbsoluteUrl(mapsPlaceholder)
 
 const loading = ref(false)
 const error = ref('')
 const isEditMode = computed(() => !!route.params.id)
 
-// Fights for dropdown
 const fights = ref<Fight[]>([])
 const selectedFight = ref<Fight | null>(null)
 
-// Party size presets
 type PartyPreset = 'light-party' | 'full-party' | 'alliance-raid' | 'any' | 'custom'
 const partyPreset = ref<PartyPreset>('full-party')
 
@@ -55,19 +50,21 @@ const form = reactive<FCEvent>({
   PictureUrl: '',
   Type: EventType.Other,
   FightId: undefined,
-  Organizer: '', // will be filled from current user on submit, server sets Author,
+  Organizer: '',
   StartDate: new Date(),
   EndDate: new Date(),
-  // Default duration set to 30 minutes
   Duration: 30,
   ICalString: '',
+  SignupType: 0,
   MaxNumberOfParticipants: 8,
   Signups: [],
   Groups: [],
+  Occurrences: [],
   AvailableForSignup: false,
+  IsArchived: false,
+  CanBeArchived: false,
 })
 
-// Recurrence configuration
 const recurrence = ref<RecurrenceConfig>({
   enabled: false,
   frequency: 'WEEKLY',
@@ -76,9 +73,30 @@ const recurrence = ref<RecurrenceConfig>({
   byWeekday: [],
 })
 
+const previewCollapsed = ref(true)
+
+const previewEvent = computed<FCEvent>(() => {
+  const icalStr = generateICalString(form, recurrence.value)
+  return {
+    ...form,
+    Organizer: form.Organizer || user.value?.PlayerName || 'You',
+    ICalString: icalStr,
+    AvailableForSignup: true,
+    Occurrences: [{
+      Id: 'preview',
+      OccurrenceDate: form.StartDate,
+      Status: OccurrenceStatus.Scheduled,
+    }],
+    IsArchived: false,
+    CanBeArchived: false,
+  }
+})
+
+const previewEventRef = ref<FCEvent>(previewEvent.value)
+watch(previewEvent, (val) => { previewEventRef.value = { ...val } }, { deep: true })
+
 function setPartyPreset(preset: PartyPreset) {
   partyPreset.value = preset
-
   switch (preset) {
     case 'light-party':
       form.MaxNumberOfParticipants = 4
@@ -93,7 +111,6 @@ function setPartyPreset(preset: PartyPreset) {
       form.MaxNumberOfParticipants = 99
       break
     case 'custom':
-      // Keep current value or set to 0 if invalid
       if (form.MaxNumberOfParticipants === 4 || form.MaxNumberOfParticipants === 8
         || form.MaxNumberOfParticipants === 24 || form.MaxNumberOfParticipants === 99) {
         form.MaxNumberOfParticipants = 0
@@ -102,31 +119,30 @@ function setPartyPreset(preset: PartyPreset) {
   }
 }
 
-// Quick setters for common durations (in minutes)
 function setDuration(minutes: number) {
   form.Duration = minutes
 }
 
-// Determine preset from MaxNumberOfParticipants value
 function detectPreset(maxParticipants: number): PartyPreset {
   switch (maxParticipants) {
-    case 4:
-      return 'light-party'
-    case 8:
-      return 'full-party'
-    case 24:
-      return 'alliance-raid'
-    case 99:
-      return 'any'
-    default:
-      return 'custom'
+    case 4: return 'light-party'
+    case 8: return 'full-party'
+    case 24: return 'alliance-raid'
+    case 99: return 'any'
+    default: return 'custom'
   }
 }
 
-// Check if input should be disabled (all presets except custom)
 const isInputDisabled = computed(() => partyPreset.value !== 'custom')
 
-// Event type options for dropdown
+const partyPresetOptions = [
+  { key: 'light-party' as PartyPreset, label: 'Light (4)' },
+  { key: 'full-party' as PartyPreset, label: 'Full (8)' },
+  { key: 'alliance-raid' as PartyPreset, label: 'Alliance (24)' },
+  { key: 'any' as PartyPreset, label: 'Any (99)' },
+  { key: 'custom' as PartyPreset, label: 'Custom' },
+]
+
 const eventTypeOptions = computed(() => {
   return Object.keys(EventType)
     .filter(key => Number.isNaN(Number(key)))
@@ -136,33 +152,24 @@ const eventTypeOptions = computed(() => {
     }))
 })
 
-// Determine if fight selection should be shown based on event type
 const showFightSelection = computed(() => {
   const fightCompatibleTypes = [
-    EventType.Academy,
-    EventType.Downsynced,
-    EventType.BLU,
-    EventType.Farming,
-    EventType.Raid,
-    EventType.MinIlvl,
-    EventType.Other,
+    EventType.Academy, EventType.Downsynced, EventType.BLU,
+    EventType.Farming, EventType.Raid, EventType.MinIlvl, EventType.Other,
   ]
   return fightCompatibleTypes.includes(form.Type)
 })
 
-// Format fight for display in dropdown
 function formatFight(fight: Fight): string {
   return `${fight.Name} (${fightTypeToString(fight.Type)})`
 }
 
-// Load fights and event data if in edit mode
 onMounted(async () => {
-  // Load fights for dropdown
   try {
     fights.value = await FightsApi.list()
   }
   catch {
-    // Fights are optional; the form works without them
+    // Fights are optional
   }
 
   if (isEditMode.value) {
@@ -171,17 +178,13 @@ onMounted(async () => {
       const eventData = await EventsApi.get(route.params.id as string)
       if (eventData) {
         Object.assign(form, eventData)
-        // Normalize picture URL to absolute if present
         if (form.PictureUrl) {
           form.PictureUrl = toAbsoluteUrl(form.PictureUrl)
         }
-        // Detect and set the appropriate preset
         partyPreset.value = detectPreset(eventData.MaxNumberOfParticipants)
-        // Set selected fight if FightId exists
         if (eventData.FightId) {
           selectedFight.value = fights.value.find(f => f.Id === eventData.FightId) || null
         }
-        // Parse recurrence configuration from iCal string
         if (eventData.ICalString) {
           const parsedRecurrence = parseICalString(eventData.ICalString)
           if (parsedRecurrence) {
@@ -199,7 +202,6 @@ onMounted(async () => {
   }
 })
 
-// Watch fight selection and auto-populate image
 watch(selectedFight, (newFight) => {
   if (newFight) {
     if (newFight.ImageUrl) {
@@ -212,24 +214,19 @@ watch(selectedFight, (newFight) => {
   }
 })
 
-// When Maps is selected as event type, auto-set the picture to the maps placeholder
 watch(
   () => form.Type,
   (newType) => {
     if (newType === EventType.Maps) {
-      // Only auto-fill if not already set to a custom value
       if (!form.PictureUrl || form.PictureUrl === mapsPlaceholder || form.PictureUrl === mapsPlaceholderAbsolute) {
         form.PictureUrl = mapsPlaceholderAbsolute
       }
     }
     else {
-      // If leaving Maps and the picture is the placeholder (and no fight image overrides it), clear it
       if ((form.PictureUrl === mapsPlaceholder || form.PictureUrl === mapsPlaceholderAbsolute) && !selectedFight.value) {
         form.PictureUrl = ''
       }
     }
-
-    // Clear fight selection if switching to a type that doesn't support fights
     if (!showFightSelection.value) {
       selectedFight.value = null
       form.FightId = undefined
@@ -247,16 +244,10 @@ async function submit() {
       error.value = 'You do not have permission to create/edit events.'
       return
     }
-
-    // Organizer is computed from Author on the backend; we can set it for display
     form.Organizer = user.value?.PlayerName ?? ''
-
-    // Ensure picture URL is absolute before sending to backend
     if (form.PictureUrl) {
       form.PictureUrl = toAbsoluteUrl(form.PictureUrl)
     }
-
-    // Generate iCal string with recurrence configuration
     form.ICalString = generateICalString(form, recurrence.value)
 
     if (isEditMode.value) {
@@ -265,7 +256,6 @@ async function submit() {
     else {
       await EventsApi.create(form)
     }
-
     await router.push({ name: 'events' })
   }
   catch (e: any) {
@@ -282,221 +272,226 @@ function cancel() {
 </script>
 
 <template>
-  <section class="page create-event">
+  <div class="create-event-page">
     <div class="page-header">
       <h2 class="page-title">
-        {{ isEditMode ? 'Edit FC Event' : 'Create FC Event' }}
+        {{ isEditMode ? 'Edit Event' : 'New Event' }}
       </h2>
     </div>
-    <p v-if="error" class="error">
+
+    <p v-if="error" class="form-error">
       {{ error }}
     </p>
-    <form class="event-form" @submit.prevent="submit">
-      <!-- Basic Information -->
-      <section class="form-section info-section">
-        <h3 class="section-header">
-          Basic Information
-        </h3>
-        <div class="form-row">
-          <label>Name</label>
-          <input v-model="form.Name" placeholder="Event name" required type="text">
-        </div>
-        <div class="form-row">
-          <label>Description</label>
-          <textarea v-model="form.Description" placeholder="Describe the event" rows="5" />
-        </div>
-        <div class="form-row-group">
-          <div class="form-row">
-            <label>Event Type</label>
-            <select v-model.number="form.Type" required>
-              <option v-for="option in eventTypeOptions" :key="option.value" :value="option.value">
-                {{ option.label }}
-              </option>
-            </select>
-          </div>
-          <div v-if="form.DiscordMessageId" class="form-row">
-            <label>Discord Message ID</label>
-            <input v-model="form.DiscordMessageId" placeholder="Discord message ID" type="text">
-          </div>
-        </div>
-      </section>
 
-      <!-- Media -->
-      <section class="form-section media-section">
-        <h3 class="section-header">
-          {{ showFightSelection ? 'Fight & Media' : 'Media' }}
-        </h3>
-        <div v-if="showFightSelection" class="form-row">
-          <label>Select Fight (Optional)</label>
-          <SearchableDropdown
-            v-model="selectedFight"
-            :format-option="formatFight"
-            :options="fights"
-            placeholder="Search fights..."
-          />
-          <small class="hint">Selecting a fight will auto-fill the picture URL</small>
-        </div>
-        <div class="media-row">
-          <div class="form-row media-input">
-            <label>Picture URL (optional)</label>
-            <input
-              v-model="form.PictureUrl"
-              :placeholder="showFightSelection ? 'https://... (auto-filled from fight if selected)' : 'https://...'"
-              type="url"
-            >
-          </div>
-          <div v-if="form.PictureUrl" class="image-preview">
-            <img
-              :src="form.PictureUrl" alt="Event preview"
-              @error="(e) => { const el = (e.target as HTMLElement).closest('.image-preview') as HTMLElement | null; if (el) el.style.display = 'none' }"
-            >
-          </div>
-        </div>
-      </section>
+    <div class="create-event-layout">
+      <!-- Form Column -->
+      <form class="event-form" @submit.prevent="submit">
+        <div class="form-surface">
+          <!-- Basic Information -->
+          <div class="form-group">
+            <div class="form-field">
+              <label for="event-name">Name</label>
+              <input id="event-name" v-model="form.Name" placeholder="Event name" required type="text">
+            </div>
 
-      <!-- Schedule -->
-      <section class="form-section schedule-section">
-        <h3 class="section-header">
-          Schedule
-        </h3>
-        <div class="form-row">
-          <DateTimePicker
-            v-model="form.StartDate"
-            :required="true"
-            label="Start Date & Time"
-          />
-        </div>
-        <div class="form-row">
-          <label>Duration (minutes)</label>
-          <div class="duration-controls">
-            <div class="duration-presets">
-              <BaseButton
-                :state="form.Duration === 60 ? 'primary' : 'secondary'"
-                :variant="form.Duration === 60 ? 'elevated' : 'outlined'"
-                size="small"
-                title="60 min"
-                tooltip="Set duration to 60 minutes"
-                type="button"
-                @clicked="setDuration(60)"
+            <div class="form-field">
+              <label for="event-description">Description</label>
+              <textarea id="event-description" v-model="form.Description" placeholder="Describe the event (supports Discord formatting)" rows="4" />
+            </div>
+
+            <div class="form-field-row">
+              <div class="form-field">
+                <label for="event-type">Type</label>
+                <select id="event-type" v-model.number="form.Type" required>
+                  <option v-for="option in eventTypeOptions" :key="option.value" :value="option.value">
+                    {{ option.label }}
+                  </option>
+                </select>
+              </div>
+              <div v-if="form.DiscordMessageId" class="form-field">
+                <label for="discord-id">Discord Message ID</label>
+                <input id="discord-id" v-model="form.DiscordMessageId" placeholder="Discord message ID" type="text">
+              </div>
+            </div>
+          </div>
+
+          <hr class="form-divider">
+
+          <!-- Fight & Media -->
+          <div class="form-group">
+            <h3 class="form-group-label">
+              {{ showFightSelection ? 'Fight & Media' : 'Media' }}
+            </h3>
+            <div v-if="showFightSelection" class="form-field">
+              <label>Fight (optional)</label>
+              <SearchableDropdown
+                v-model="selectedFight"
+                :format-option="formatFight"
+                :options="fights"
+                placeholder="Search fights..."
               />
-              <BaseButton
-                :state="form.Duration === 120 ? 'primary' : 'secondary'"
-                :variant="form.Duration === 120 ? 'elevated' : 'outlined'"
-                size="small"
-                title="120 min"
-                tooltip="Set duration to 120 minutes"
-                type="button"
-                @clicked="setDuration(120)"
-              />
-              <BaseButton
-                :state="form.Duration === 180 ? 'primary' : 'secondary'"
-                :variant="form.Duration === 180 ? 'elevated' : 'outlined'"
-                size="small"
-                title="180 min"
-                tooltip="Set duration to 180 minutes"
-                type="button"
-                @clicked="setDuration(180)"
+              <small class="field-hint">Auto-fills the event image</small>
+            </div>
+            <div class="form-field">
+              <label for="picture-url">Image URL</label>
+              <input
+                id="picture-url"
+                v-model="form.PictureUrl"
+                :placeholder="showFightSelection ? 'Auto-filled from fight' : 'https://...'"
+                type="url"
+              >
+            </div>
+          </div>
+
+          <hr class="form-divider">
+
+          <!-- Schedule -->
+          <div class="form-group">
+            <h3 class="form-group-label">
+              Schedule
+            </h3>
+            <div class="form-field">
+              <DateTimePicker
+                v-model="form.StartDate"
+                :required="true"
+                label="Start Date & Time"
               />
             </div>
-            <input
-              v-model.number="form.Duration" class="duration-input" inputmode="numeric" min="0"
-              pattern="[0-9]*" placeholder="Custom" required type="number"
-            >
+            <div class="form-field">
+              <label>Duration</label>
+              <div class="duration-controls">
+                <div class="duration-presets">
+                  <BaseButton
+                    v-for="mins in [60, 120, 180]"
+                    :key="mins"
+                    :state="form.Duration === mins ? 'primary' : 'secondary'"
+                    :variant="form.Duration === mins ? 'elevated' : 'outlined'"
+                    :title="`${mins} min`"
+                    size="small"
+                    type="button"
+                    @clicked="setDuration(mins)"
+                  />
+                </div>
+                <input
+                  v-model.number="form.Duration"
+                  class="duration-input"
+                  inputmode="numeric"
+                  min="0"
+                  pattern="[0-9]*"
+                  placeholder="min"
+                  required
+                  type="number"
+                >
+              </div>
+            </div>
+            <div class="form-field">
+              <RecurrenceOptions v-model="recurrence" />
+            </div>
+          </div>
+
+          <hr class="form-divider">
+
+          <!-- Participants -->
+          <div class="form-group">
+            <h3 class="form-group-label">
+              Participants
+            </h3>
+            <div class="form-field">
+              <label>Party Size</label>
+              <div class="party-presets">
+                <BaseButton
+                  v-for="preset in partyPresetOptions"
+                  :key="preset.key"
+                  :state="partyPreset === preset.key ? 'primary' : 'secondary'"
+                  :variant="partyPreset === preset.key ? 'elevated' : 'outlined'"
+                  :title="preset.label"
+                  size="small"
+                  type="button"
+                  @clicked="setPartyPreset(preset.key)"
+                />
+              </div>
+              <input
+                v-if="partyPreset === 'custom'"
+                v-model.number="form.MaxNumberOfParticipants"
+                :disabled="isInputDisabled"
+                inputmode="numeric"
+                max="99"
+                min="1"
+                pattern="[0-9]*"
+                placeholder="Custom count"
+                required
+                type="number"
+              >
+            </div>
+            <div v-if="isEditMode" class="form-field">
+              <label>Organizer</label>
+              <input :value="user?.PlayerName || ''" disabled type="text">
+            </div>
           </div>
         </div>
-        <div class="form-row">
-          <RecurrenceOptions v-model="recurrence" />
-        </div>
-      </section>
 
-      <!-- Participants -->
-      <section class="form-section participants-section">
-        <h3 class="section-header">
-          Participants
-        </h3>
-        <div class="form-row">
-          <label>Max Number of Participants</label>
-          <div class="party-preset-buttons">
-            <BaseButton
-              :state="partyPreset === 'light-party' ? 'primary' : 'secondary'"
-              :variant="partyPreset === 'light-party' ? 'elevated' : 'outlined'"
-              size="small"
-              title="Light Party (4)"
-              type="button"
-              @clicked="setPartyPreset('light-party')"
-            />
-            <BaseButton
-              :state="partyPreset === 'full-party' ? 'primary' : 'secondary'"
-              :variant="partyPreset === 'full-party' ? 'elevated' : 'outlined'"
-              size="small"
-              title="Full Party (8)"
-              type="button"
-              @clicked="setPartyPreset('full-party')"
-            />
-            <BaseButton
-              :state="partyPreset === 'alliance-raid' ? 'primary' : 'secondary'"
-              :variant="partyPreset === 'alliance-raid' ? 'elevated' : 'outlined'"
-              size="small"
-              title="Alliance Raid (24)"
-              type="button"
-              @clicked="setPartyPreset('alliance-raid')"
-            />
-            <BaseButton
-              :state="partyPreset === 'any' ? 'primary' : 'secondary'"
-              :variant="partyPreset === 'any' ? 'elevated' : 'outlined'"
-              size="small"
-              title="Any (99)"
-              type="button"
-              @clicked="setPartyPreset('any')"
-            />
-            <BaseButton
-              :state="partyPreset === 'custom' ? 'primary' : 'secondary'"
-              :variant="partyPreset === 'custom' ? 'elevated' : 'outlined'"
-              size="small"
-              title="Custom"
-              type="button"
-              @clicked="setPartyPreset('custom')"
+        <!-- Form Actions -->
+        <div class="form-actions">
+          <BaseButton :disabled="loading" state="secondary" title="Cancel" variant="outlined" @clicked="cancel" />
+          <BaseButton
+            :disabled="loading"
+            :title="loading ? (isEditMode ? 'Saving...' : 'Creating...') : (isEditMode ? 'Save Changes' : 'Create Event')"
+            type="submit"
+          />
+        </div>
+      </form>
+
+      <!-- Preview Column (desktop) -->
+      <aside class="preview-column">
+        <div class="preview-sticky">
+          <span class="preview-label">Live Preview</span>
+          <div class="preview-card-wrap">
+            <EventCard
+              v-model:fc-event="previewEventRef"
+              :is-member="true"
             />
           </div>
-          <input
-            v-model.number="form.MaxNumberOfParticipants"
-            :disabled="isInputDisabled"
-            inputmode="numeric"
-            max="99"
-            min="1"
-            pattern="[0-9]*"
-            placeholder="Enter custom value"
-            required
-            type="number"
-          >
         </div>
-        <div v-if="isEditMode" class="form-row">
-          <label>Organizer</label>
-          <input :value="user?.PlayerName || ''" disabled type="text">
-        </div>
-      </section>
+      </aside>
+    </div>
 
-      <!-- Actions -->
-      <div class="actions">
-        <BaseButton
-          :disabled="loading"
-          :title="loading ? (isEditMode ? 'Updating...' : 'Creating...') : (isEditMode ? 'Update' : 'Create')"
-          type="submit"
+    <!-- Preview Toggle (mobile) -->
+    <div class="preview-mobile">
+      <button class="preview-toggle" type="button" @click="previewCollapsed = !previewCollapsed">
+        <span>{{ previewCollapsed ? 'Show Preview' : 'Hide Preview' }}</span>
+        <svg
+          :class="{ 'chevron--open': !previewCollapsed }"
+          class="chevron"
+          fill="none"
+          height="16"
+          stroke="currentColor"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          stroke-width="2"
+          viewBox="0 0 24 24"
+          width="16"
+        >
+          <polyline points="6 9 12 15 18 9" />
+        </svg>
+      </button>
+      <div v-if="!previewCollapsed" class="preview-mobile-card">
+        <EventCard
+          v-model:fc-event="previewEventRef"
+          :is-member="true"
         />
-        <BaseButton :disabled="loading" state="secondary" title="Cancel" variant="outlined" @clicked="cancel" />
       </div>
-    </form>
-  </section>
+    </div>
+  </div>
 </template>
 
 <style scoped>
-.page {
-  max-width: 780px;
+.create-event-page {
+  max-width: 1120px;
   margin: 0 auto;
 }
 
 .page-header {
-  margin-bottom: 2.5rem;
+  margin-bottom: 2rem;
 }
 
 .page-title {
@@ -504,85 +499,110 @@ function cancel() {
   font-weight: 700;
   margin: 0;
   color: var(--fg);
-  background: linear-gradient(135deg, #3b82f6 0%, #8b5cf6 50%, #ec4899 100%);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
   letter-spacing: -0.02em;
 }
 
+.form-error {
+  padding: 0.75rem 1rem;
+  background: var(--alert-error-bg);
+  color: var(--alert-error-fg);
+  border: 1px solid var(--alert-error-border);
+  border-radius: 12px;
+  margin-bottom: 1.5rem;
+}
+
+/* Two-column layout */
+.create-event-layout {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 2rem;
+}
+
+@media (min-width: 960px) {
+  .create-event-layout {
+    grid-template-columns: 1fr 340px;
+  }
+}
+
+/* Form */
 .event-form {
-  display: flex;
-  flex-direction: column;
+  min-width: 0;
 }
 
-.info-section {
-  margin-bottom: 0.5rem;
-}
-
-.media-section {
-  margin-bottom: 2rem;
-}
-
-.schedule-section {
-  margin-bottom: 0.5rem;
-}
-
-.participants-section {
-  margin-bottom: 0;
-}
-
-.form-section {
+.form-surface {
   background: rgba(255, 255, 255, 0.7);
   backdrop-filter: blur(20px);
   border: 2px solid rgba(255, 255, 255, 0.4);
   border-radius: 16px;
-  padding: 1.25rem 1.5rem 1.5rem;
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08),
+  padding: 1.5rem;
+  box-shadow:
+    0 4px 16px rgba(0, 0, 0, 0.08),
     inset 0 1px 0 rgba(255, 255, 255, 0.5);
 }
 
-:root[data-theme='dark'] .form-section {
+:root[data-theme='dark'] .form-surface {
   background: rgba(18, 26, 45, 0.7);
-  border: 2px solid rgba(255, 255, 255, 0.15);
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3),
+  border-color: rgba(255, 255, 255, 0.15);
+  box-shadow:
+    0 4px 16px rgba(0, 0, 0, 0.3),
     inset 0 1px 0 rgba(255, 255, 255, 0.08);
 }
 
 @media (prefers-color-scheme: dark) {
-  :root:not([data-theme='light']) .form-section {
+  :root:not([data-theme='light']) .form-surface {
     background: rgba(18, 26, 45, 0.7);
-    border: 2px solid rgba(255, 255, 255, 0.15);
-    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3),
+    border-color: rgba(255, 255, 255, 0.15);
+    box-shadow:
+      0 4px 16px rgba(0, 0, 0, 0.3),
       inset 0 1px 0 rgba(255, 255, 255, 0.08);
   }
 }
 
-.section-header {
-  margin: 0 0 1.25rem 0;
-  font-size: 1.125rem;
-  font-weight: 600;
-  color: var(--fg);
+.form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
 }
 
-.form-row {
+.form-group-label {
+  font-size: 0.8125rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--muted);
+  margin: 0;
+}
+
+.form-divider {
+  border: none;
+  border-top: 1px solid var(--border);
+  margin: 1.25rem 0;
+}
+
+.form-field {
   display: flex;
   flex-direction: column;
   gap: 0.25rem;
-  margin-bottom: 1rem;
 }
 
-.form-row:last-child {
-  margin-bottom: 0;
+.form-field label {
+  font-weight: 500;
+  font-size: 0.875rem;
+  color: var(--fg);
 }
 
-.form-row-group {
+.form-field-row {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-  gap: 1rem;
-  margin-bottom: 1rem;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 0.75rem;
 }
 
+.field-hint {
+  font-size: 0.75rem;
+  color: var(--muted);
+}
+
+/* Duration */
 .duration-controls {
   display: flex;
   align-items: center;
@@ -596,80 +616,111 @@ function cancel() {
 }
 
 .duration-input {
-  width: 5.5rem;
+  width: 5rem;
   flex-shrink: 0;
 }
 
-.media-row {
-  display: grid;
-  grid-template-columns: 1fr auto;
-  gap: 1rem;
-  align-items: start;
-}
-
-.media-input {
-  min-width: 0;
-}
-
-.image-preview {
-  width: 180px;
-  height: 100px;
-  border: 1px solid var(--border);
-  border-radius: 12px;
-  overflow: hidden;
-  background: var(--muted-bg);
-  flex-shrink: 0;
-}
-
-.image-preview img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  display: block;
-}
-
-.party-preset-buttons {
+/* Party presets */
+.party-presets {
   display: flex;
   flex-wrap: wrap;
   gap: 0.25rem;
-  margin-bottom: 0.5rem;
 }
 
-.actions {
+/* Form actions */
+.form-actions {
   display: flex;
   gap: 0.75rem;
   justify-content: flex-end;
-  padding-top: 1.5rem;
-  margin-top: 0.5rem;
-  border-top: 1px solid var(--border);
+  padding-top: 1.25rem;
 }
 
-label {
-  font-weight: 500;
-  font-size: 0.9rem;
-  color: var(--fg);
+/* Preview column (desktop) */
+.preview-column {
+  display: none;
 }
 
-.error {
-  padding: 0.75rem 1rem;
-  background: var(--alert-error-bg);
-  color: var(--alert-error-fg);
-  border: 1px solid var(--alert-error-border);
-  border-radius: 12px;
-  margin-bottom: 1.5rem;
-}
-
-.hint {
-  font-size: 0.8125rem;
-  color: var(--muted);
-}
-
-@media (max-width: 768px) {
-  .page {
-    max-width: 100%;
+@media (min-width: 960px) {
+  .preview-column {
+    display: block;
   }
+}
 
-  .form-section {
+.preview-sticky {
+  position: sticky;
+  top: 1.5rem;
+}
+
+.preview-label {
+  display: block;
+  font-size: 0.6875rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--muted);
+  margin-bottom: 0.5rem;
+}
+
+.preview-card-wrap {
+  pointer-events: none;
+}
+
+.preview-card-wrap :deep(.event-card__actions) {
+  display: none;
+}
+
+/* Preview mobile */
+.preview-mobile {
+  margin-top: 1.5rem;
+}
+
+@media (min-width: 960px) {
+  .preview-mobile {
+    display: none;
+  }
+}
+
+.preview-toggle {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  width: 100%;
+  padding: 0.75rem 1rem;
+  background: var(--muted-bg);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  color: var(--fg);
+  font-size: 0.875rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.2s ease;
+}
+
+.preview-toggle:hover {
+  background: color-mix(in oklab, var(--muted-bg) 85%, var(--link) 15%);
+}
+
+.chevron {
+  margin-left: auto;
+  transition: transform 0.2s ease;
+}
+
+.chevron--open {
+  transform: rotate(180deg);
+}
+
+.preview-mobile-card {
+  margin-top: 0.75rem;
+  pointer-events: none;
+}
+
+.preview-mobile-card :deep(.event-card__actions) {
+  display: none;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .form-surface {
     padding: 1rem 1.25rem 1.25rem;
   }
 
@@ -677,41 +728,30 @@ label {
     flex-wrap: wrap;
   }
 
-  .media-row {
-    grid-template-columns: 1fr;
-  }
-
-  .image-preview {
-    width: 100%;
-    max-width: 100%;
-    height: auto;
-    aspect-ratio: 16 / 9;
-  }
-
-  .form-row-group {
+  .form-field-row {
     grid-template-columns: 1fr;
   }
 }
 
 @media (max-width: 480px) {
   .page-header {
-    margin-bottom: 1.75rem;
+    margin-bottom: 1.5rem;
   }
 
-  .form-section {
+  .form-surface {
     padding: 0.75rem 1rem 1rem;
+    border-radius: 12px;
   }
 
-  .section-header {
-    font-size: 1rem;
-    margin-bottom: 1rem;
+  .form-group-label {
+    font-size: 0.75rem;
   }
 
   .duration-presets {
     flex-wrap: wrap;
   }
 
-  .actions {
+  .form-actions {
     flex-direction: column;
   }
 }
