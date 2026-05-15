@@ -893,6 +893,189 @@ END:VCALENDAR";
 
     #endregion
 
+    #region Manual Signup Tests
+
+    [Fact]
+    public async Task ManualSignup_AsAdmin_CreatesSignup()
+    {
+        await CreateAndAuthenticateAsMember(GenerateRandomDiscordId(), true);
+        var fcEvent = CreateTestEvent();
+        await _eventService.CreateAsync(fcEvent);
+
+        var targetDiscordId = GenerateRandomDiscordId();
+        var response = await Client.PostAsJsonAsync(
+            $"api/Events/{fcEvent.Id}/signup/manual",
+            new EventSignupDto
+            {
+                DiscordUserId = targetDiscordId,
+                Roles = new List<Role> { Role.Tank, Role.Healer }
+            });
+
+        response.StatusCode.ShouldBe(HttpStatusCode.OK);
+
+        var updatedEvent = await _eventService.GetAsync(fcEvent.Id);
+        var signup = updatedEvent.Signups.FirstOrDefault(s => s.DiscordUserId == targetDiscordId);
+        signup.ShouldNotBeNull();
+        signup.Roles.Count.ShouldBe(2);
+        signup.Roles.ShouldContain(Role.Tank);
+        signup.Roles.ShouldContain(Role.Healer);
+    }
+
+    [Fact]
+    public async Task ManualSignup_AsMember_ReturnsForbidden()
+    {
+        await CreateAndAuthenticateAsMember(GenerateRandomDiscordId());
+        var fcEvent = CreateTestEvent();
+        await _eventService.CreateAsync(fcEvent);
+
+        var response = await Client.PostAsJsonAsync(
+            $"api/Events/{fcEvent.Id}/signup/manual",
+            new EventSignupDto
+            {
+                DiscordUserId = GenerateRandomDiscordId(),
+                Roles = new List<Role> { Role.Tank }
+            });
+
+        response.StatusCode.ShouldBe(HttpStatusCode.Forbidden);
+    }
+
+    [Fact]
+    public async Task ManualSignup_Unauthenticated_ReturnsUnauthorized()
+    {
+        SetUnauthenticated();
+        var fcEvent = CreateTestEvent();
+        await _eventService.CreateAsync(fcEvent);
+
+        var response = await Client.PostAsJsonAsync(
+            $"api/Events/{fcEvent.Id}/signup/manual",
+            new EventSignupDto
+            {
+                DiscordUserId = GenerateRandomDiscordId(),
+                Roles = new List<Role> { Role.Tank }
+            });
+
+        response.StatusCode.ShouldBe(HttpStatusCode.Unauthorized);
+    }
+
+    [Fact]
+    public async Task ManualSignup_NonExistentEvent_ReturnsNotFound()
+    {
+        await CreateAndAuthenticateAsMember(GenerateRandomDiscordId(), true);
+        var nonExistentId = "507f1f77bcf86cd799439011";
+
+        var response = await Client.PostAsJsonAsync(
+            $"api/Events/{nonExistentId}/signup/manual",
+            new EventSignupDto
+            {
+                DiscordUserId = GenerateRandomDiscordId(),
+                Roles = new List<Role> { Role.Tank }
+            });
+
+        response.StatusCode.ShouldBe(HttpStatusCode.NotFound);
+    }
+
+    [Fact]
+    public async Task ManualSignup_MissingDiscordUserId_ReturnsBadRequest()
+    {
+        await CreateAndAuthenticateAsMember(GenerateRandomDiscordId(), true);
+        var fcEvent = CreateTestEvent();
+        await _eventService.CreateAsync(fcEvent);
+
+        var response = await Client.PostAsJsonAsync(
+            $"api/Events/{fcEvent.Id}/signup/manual",
+            new EventSignupDto
+            {
+                DiscordUserId = null,
+                Roles = new List<Role> { Role.Tank }
+            });
+
+        response.StatusCode.ShouldBe(HttpStatusCode.BadRequest);
+    }
+
+    [Fact]
+    public async Task ManualSignup_EmptyRoles_ReturnsBadRequest()
+    {
+        await CreateAndAuthenticateAsMember(GenerateRandomDiscordId(), true);
+        var fcEvent = CreateTestEvent();
+        await _eventService.CreateAsync(fcEvent);
+
+        var response = await Client.PostAsJsonAsync(
+            $"api/Events/{fcEvent.Id}/signup/manual",
+            new EventSignupDto
+            {
+                DiscordUserId = GenerateRandomDiscordId(),
+                Roles = new List<Role>()
+            });
+
+        response.StatusCode.ShouldBe(HttpStatusCode.BadRequest);
+    }
+
+    [Fact]
+    public async Task ManualSignup_ExistingSignup_UpdatesRoles()
+    {
+        await CreateAndAuthenticateAsMember(GenerateRandomDiscordId(), true);
+        var targetDiscordId = GenerateRandomDiscordId();
+        var fcEvent = CreateTestEvent();
+        fcEvent.Signups.Add(new EventSignup
+        {
+            DiscordUserId = targetDiscordId,
+            Roles = new List<Role> { Role.Tank },
+            SignupDate = DateTime.UtcNow
+        });
+        await _eventService.CreateAsync(fcEvent);
+
+        var response = await Client.PostAsJsonAsync(
+            $"api/Events/{fcEvent.Id}/signup/manual",
+            new EventSignupDto
+            {
+                DiscordUserId = targetDiscordId,
+                Roles = new List<Role> { Role.Healer, Role.Caster }
+            });
+
+        response.StatusCode.ShouldBe(HttpStatusCode.OK);
+
+        var updatedEvent = await _eventService.GetAsync(fcEvent.Id);
+        var signups = updatedEvent.Signups.Where(s => s.DiscordUserId == targetDiscordId).ToList();
+        signups.Count.ShouldBe(1);
+        signups[0].Roles.Count.ShouldBe(2);
+        signups[0].Roles.ShouldContain(Role.Healer);
+        signups[0].Roles.ShouldContain(Role.Caster);
+    }
+
+    [Fact]
+    public async Task ManualSignup_DoesNotAffectOtherSignups()
+    {
+        await CreateAndAuthenticateAsMember(GenerateRandomDiscordId(), true);
+        var existingUserId = GenerateRandomDiscordId();
+        var newUserId = GenerateRandomDiscordId();
+
+        var fcEvent = CreateTestEvent();
+        fcEvent.Signups.Add(new EventSignup
+        {
+            DiscordUserId = existingUserId,
+            Roles = new List<Role> { Role.Tank },
+            SignupDate = DateTime.UtcNow
+        });
+        await _eventService.CreateAsync(fcEvent);
+
+        var response = await Client.PostAsJsonAsync(
+            $"api/Events/{fcEvent.Id}/signup/manual",
+            new EventSignupDto
+            {
+                DiscordUserId = newUserId,
+                Roles = new List<Role> { Role.Melee }
+            });
+
+        response.StatusCode.ShouldBe(HttpStatusCode.OK);
+
+        var updatedEvent = await _eventService.GetAsync(fcEvent.Id);
+        updatedEvent.Signups.Count.ShouldBe(2);
+        updatedEvent.Signups.Any(s => s.DiscordUserId == existingUserId).ShouldBeTrue();
+        updatedEvent.Signups.Any(s => s.DiscordUserId == newUserId).ShouldBeTrue();
+    }
+
+    #endregion
+
     #region Edge Cases
 
     [Fact]
