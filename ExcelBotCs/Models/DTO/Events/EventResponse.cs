@@ -40,6 +40,8 @@ public class EventResponse : BaseDto
     public string? Organizer { get; set; }
     public int MaxNumberOfParticipants { get; set; }
 
+    public List<SignupButtonConfigDto>? SignupButtonConfigs { get; set; }
+
     // Occurrences
     public List<EventOccurrenceDto> Occurrences { get; set; } = new();
 

@@ -6,6 +6,21 @@ export interface PagedResult<T> {
   HasMore: boolean
 }
 
+export interface SignupButtonConfig {
+  Slug: string
+  Label: string
+  EmojiId?: string
+  IsHelper: boolean
+  MappedRole?: Role
+}
+
+export interface GuildEmoji {
+  Id: string
+  Name: string
+  Url: string
+  IsAnimated: boolean
+}
+
 export interface FCEvent {
   Id: string
   Name: string
@@ -24,6 +39,7 @@ export interface FCEvent {
   Organizer: string
   AvailableForSignup: boolean
   MaxNumberOfParticipants: number
+  SignupButtonConfigs?: SignupButtonConfig[]
   Signups: EventSignup[]
   Groups: EventGroupResponse[]
   // Archive properties
@@ -59,6 +75,7 @@ export interface EventParticipant {
 export interface EventSignup {
   DiscordUserId: string
   Roles: Role[]
+  SignupSlugs?: string[]
   SignupDate: Date
 }
 

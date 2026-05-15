@@ -43,6 +43,26 @@ const manualSelectedRoles = ref<Role[]>([])
 interface UnassignedItem {
   DiscordUserId: string
   Roles: Role[]
+  SignupSlugs?: string[]
+}
+
+const usesCustomButtons = computed(() =>
+  eventValue.value.SignupButtonConfigs && eventValue.value.SignupButtonConfigs.length > 0,
+)
+
+function isHelperSignup(signup: EventSignup | UnassignedItem): boolean {
+  if (!usesCustomButtons.value || !eventValue.value.SignupButtonConfigs) return false
+  const slugs = 'SignupSlugs' in signup ? signup.SignupSlugs : (signup as EventSignup).SignupSlugs
+  if (!slugs) return false
+  return slugs.some(slug =>
+    eventValue.value.SignupButtonConfigs!.find(c => c.Slug === slug)?.IsHelper === true,
+  )
+}
+
+function getSlugLabels(slugs?: string[]): string[] {
+  if (!slugs || !eventValue.value.SignupButtonConfigs) return []
+  return slugs
+    .map(slug => eventValue.value.SignupButtonConfigs!.find(c => c.Slug === slug)?.Label ?? slug)
 }
 
 // Compute unassigned signups (not yet placed in any group)
@@ -50,12 +70,22 @@ const unassigned = computed((): UnassignedItem[] => {
   const assignedIds = new Set(
     groups.value.flatMap(g => g.Participants.map(p => p.DiscordUserId)),
   )
+
+  if (usesCustomButtons.value) {
+    return (eventValue.value.Signups ?? [])
+      .filter(s => !assignedIds.has(s.DiscordUserId) && s.SignupSlugs && s.SignupSlugs.length > 0)
+      .map(s => ({ DiscordUserId: s.DiscordUserId, Roles: s.Roles ?? [], SignupSlugs: s.SignupSlugs }))
+  }
+
   return (eventValue.value.Signups ?? [])
     .filter(s => !assignedIds.has(s.DiscordUserId) && s.Roles.length > 0)
     .map(s => ({ DiscordUserId: s.DiscordUserId, Roles: [...s.Roles] }))
 })
 
 const uniqueSignupCount = computed(() => {
+  if (usesCustomButtons.value) {
+    return (eventValue.value.Signups ?? []).filter(s => s.SignupSlugs && s.SignupSlugs.length > 0).length
+  }
   return (eventValue.value.Signups ?? []).filter(s => s.Roles.length > 0).length
 })
 
@@ -396,13 +426,21 @@ watch(modelValue, (isOpen) => {
                 </div>
                 <div class="pool-item-info">
                   <span class="member-name">{{ getMemberName(element.DiscordUserId) }}</span>
-                  <span class="role-tags">
+                  <span v-if="usesCustomButtons" class="role-tags">
+                    <span
+                      v-for="label in getSlugLabels(element.SignupSlugs)"
+                      :key="label"
+                      class="role-tag"
+                    >{{ label }}</span>
+                  </span>
+                  <span v-else class="role-tags">
                     <span
                       v-for="role in element.Roles"
                       :key="role"
                       class="role-tag"
                     >{{ roleShort(role) }}</span>
                   </span>
+                  <span v-if="isHelperSignup(element)" class="helper-badge">Helper</span>
                 </div>
               </div>
             </template>
@@ -723,6 +761,16 @@ watch(modelValue, (isOpen) => {
   background: var(--muted-bg);
   color: var(--muted);
   border: 1px solid var(--border);
+}
+
+.helper-badge {
+  font-size: 0.65rem;
+  font-weight: 700;
+  padding: 1px 5px;
+  border-radius: 8px;
+  background: #fef3c7;
+  color: #92400e;
+  border: 1px solid #fcd34d;
 }
 
 .not-enough-signups {

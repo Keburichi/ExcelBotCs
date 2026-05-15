@@ -22,4 +22,5 @@ public interface IEventService
     Task<(Event? Event, string? ErrorMessage)> ExtendEventAsync(string eventId, int count);
     Task AppendNextOccurrencesAsync(string eventId, int count = 1);
     Task HandleSignupAsync(string eventId, Role role, ulong discordUserId);
+    Task HandleSignupAsync(string eventId, string slug, ulong discordUserId);
 }

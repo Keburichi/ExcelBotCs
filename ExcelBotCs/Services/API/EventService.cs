@@ -180,6 +180,38 @@ public class EventService : IEventService
         await UpdateAsync(fcEvent.Id, fcEvent);
     }
 
+    public async Task HandleSignupAsync(string eventId, string slug, ulong discordUserId)
+    {
+        var fcEvent = await _eventRepository.GetAsync(eventId);
+        if (fcEvent == null) return;
+
+        var existing = fcEvent.Signups.FirstOrDefault(x => x.DiscordUserId == discordUserId.ToString());
+        if (existing != null)
+        {
+            existing.SignupSlugs ??= new List<string>();
+
+            if (existing.SignupSlugs.Contains(slug))
+                existing.SignupSlugs.Remove(slug);
+            else
+                existing.SignupSlugs.Add(slug);
+
+            if (existing.SignupSlugs.Count == 0)
+                fcEvent.Signups.Remove(existing);
+        }
+        else
+        {
+            fcEvent.Signups.Add(new DbEventSignup
+            {
+                DiscordUserId = discordUserId.ToString(),
+                Roles = new List<Role>(),
+                SignupSlugs = new List<string> { slug },
+                SignupDate = DateTime.UtcNow
+            });
+        }
+
+        await UpdateAsync(fcEvent.Id, fcEvent);
+    }
+
     public async Task<(bool Success, string? ErrorMessage)> ArchiveAsync(string eventId, string archivedByUserId)
     {
         var existingEvent = await _eventRepository.GetAsync(eventId);

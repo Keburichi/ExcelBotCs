@@ -1,5 +1,5 @@
 <script lang="ts" setup>
-import type { FCEvent } from '@/features/events/events.types'
+import type { FCEvent, GuildEmoji, SignupButtonConfig } from '@/features/events/events.types'
 import type { Fight } from '@/features/fights/fights.types'
 import type { RecurrenceConfig } from '@/utils/ical'
 import { computed, onMounted, reactive, ref, watch } from 'vue'
@@ -11,7 +11,7 @@ import RecurrenceOptions from '@/components/events/RecurrenceOptions.vue'
 import SearchableDropdown from '@/components/SearchableDropdown.vue'
 import { useAuth } from '@/composables/useAuth'
 import { EventsApi } from '@/features/events/events.api'
-import { EventType, OccurrenceStatus } from '@/features/events/events.types'
+import { EventType, OccurrenceStatus, ROLE } from '@/features/events/events.types'
 import { FightsApi } from '@/features/fights/fights.api'
 import { fightTypeToString } from '@/features/fights/fights.types'
 import mapsPlaceholder from '@/static/img/maps-placeholder.png'
@@ -72,6 +72,70 @@ const recurrence = ref<RecurrenceConfig>({
   endType: 'never',
   byWeekday: [],
 })
+
+// Signup button configuration
+type ButtonMode = 'standard' | 'custom'
+const buttonMode = ref<ButtonMode>('standard')
+const signupButtonConfigs = ref<SignupButtonConfig[]>([])
+const guildEmojis = ref<GuildEmoji[]>([])
+
+const roleOptions = [
+  { value: undefined, label: 'None' },
+  { value: ROLE.Tank, label: 'Tank' },
+  { value: ROLE.Healer, label: 'Healer' },
+  { value: ROLE.Melee, label: 'Melee' },
+  { value: ROLE.Caster, label: 'Caster' },
+  { value: ROLE.Ranged, label: 'Ranged' },
+]
+
+function slugify(text: string): string {
+  return text.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')
+}
+
+function addButton() {
+  signupButtonConfigs.value.push({
+    Slug: '',
+    Label: '',
+    EmojiId: undefined,
+    IsHelper: false,
+    MappedRole: undefined,
+  })
+}
+
+function removeButton(index: number) {
+  signupButtonConfigs.value.splice(index, 1)
+}
+
+function onLabelChange(index: number) {
+  const config = signupButtonConfigs.value[index]
+  config.Slug = slugify(config.Label)
+}
+
+function applyPreset(preset: 'standard-helper' | 'interested' | 'interested-helper') {
+  switch (preset) {
+    case 'standard-helper':
+      signupButtonConfigs.value = [
+        { Slug: 'tank', Label: 'Tank', IsHelper: false, MappedRole: ROLE.Tank },
+        { Slug: 'healer', Label: 'Healer', IsHelper: false, MappedRole: ROLE.Healer },
+        { Slug: 'melee', Label: 'Melee', IsHelper: false, MappedRole: ROLE.Melee },
+        { Slug: 'caster', Label: 'Caster', IsHelper: false, MappedRole: ROLE.Caster },
+        { Slug: 'ranged', Label: 'Ranged', IsHelper: false, MappedRole: ROLE.Ranged },
+        { Slug: 'helper', Label: 'Helper', IsHelper: true, MappedRole: undefined },
+      ]
+      break
+    case 'interested':
+      signupButtonConfigs.value = [
+        { Slug: 'interested', Label: 'Interested', IsHelper: false, MappedRole: undefined },
+      ]
+      break
+    case 'interested-helper':
+      signupButtonConfigs.value = [
+        { Slug: 'interested', Label: 'Interested', IsHelper: false, MappedRole: undefined },
+        { Slug: 'helper', Label: 'Helper', IsHelper: true, MappedRole: undefined },
+      ]
+      break
+  }
+}
 
 const previewCollapsed = ref(true)
 
@@ -172,6 +236,13 @@ onMounted(async () => {
     // Fights are optional
   }
 
+  try {
+    guildEmojis.value = await EventsApi.getGuildEmojis()
+  }
+  catch {
+    // Emojis are optional
+  }
+
   if (isEditMode.value) {
     loading.value = true
     try {
@@ -190,6 +261,10 @@ onMounted(async () => {
           if (parsedRecurrence) {
             recurrence.value = parsedRecurrence
           }
+        }
+        if (eventData.SignupButtonConfigs && eventData.SignupButtonConfigs.length > 0) {
+          buttonMode.value = 'custom'
+          signupButtonConfigs.value = eventData.SignupButtonConfigs
         }
       }
     }
@@ -249,6 +324,7 @@ async function submit() {
       form.PictureUrl = toAbsoluteUrl(form.PictureUrl)
     }
     form.ICalString = generateICalString(form, recurrence.value)
+    form.SignupButtonConfigs = buttonMode.value === 'custom' ? signupButtonConfigs.value : undefined
 
     if (isEditMode.value) {
       await EventsApi.update(form.Id, form)
@@ -427,6 +503,122 @@ function cancel() {
               <label>Organizer</label>
               <input :value="user?.PlayerName || ''" disabled type="text">
             </div>
+          </div>
+
+          <hr class="form-divider">
+
+          <!-- Signup Buttons -->
+          <div class="form-group">
+            <h3 class="form-group-label">
+              Signup Buttons
+            </h3>
+            <div class="form-field">
+              <label>Button Mode</label>
+              <div class="party-presets">
+                <BaseButton
+                  :state="buttonMode === 'standard' ? 'primary' : 'secondary'"
+                  :variant="buttonMode === 'standard' ? 'elevated' : 'outlined'"
+                  title="Standard Roles"
+                  size="small"
+                  type="button"
+                  @clicked="buttonMode = 'standard'"
+                />
+                <BaseButton
+                  :state="buttonMode === 'custom' ? 'primary' : 'secondary'"
+                  :variant="buttonMode === 'custom' ? 'elevated' : 'outlined'"
+                  title="Custom Buttons"
+                  size="small"
+                  type="button"
+                  @clicked="buttonMode = 'custom'"
+                />
+              </div>
+            </div>
+
+            <template v-if="buttonMode === 'custom'">
+              <div class="form-field">
+                <label>Presets</label>
+                <div class="party-presets">
+                  <BaseButton
+                    title="Roles + Helper"
+                    size="small"
+                    state="secondary"
+                    variant="outlined"
+                    type="button"
+                    @clicked="applyPreset('standard-helper')"
+                  />
+                  <BaseButton
+                    title="Interested Only"
+                    size="small"
+                    state="secondary"
+                    variant="outlined"
+                    type="button"
+                    @clicked="applyPreset('interested')"
+                  />
+                  <BaseButton
+                    title="Interested + Helper"
+                    size="small"
+                    state="secondary"
+                    variant="outlined"
+                    type="button"
+                    @clicked="applyPreset('interested-helper')"
+                  />
+                </div>
+              </div>
+
+              <div v-for="(config, index) in signupButtonConfigs" :key="index" class="button-config-row">
+                <div class="button-config-fields">
+                  <input
+                    v-model="config.Label"
+                    class="button-config-input"
+                    placeholder="Label"
+                    type="text"
+                    @input="onLabelChange(index)"
+                  >
+                  <input
+                    v-model="config.Slug"
+                    class="button-config-input button-config-input--slug"
+                    placeholder="slug"
+                    type="text"
+                  >
+                  <select v-model="config.EmojiId" class="button-config-input">
+                    <option :value="undefined">
+                      No emoji
+                    </option>
+                    <option v-for="emoji in guildEmojis" :key="emoji.Id" :value="emoji.Id">
+                      {{ emoji.Name }}
+                    </option>
+                  </select>
+                  <select v-model="config.MappedRole" class="button-config-input">
+                    <option v-for="opt in roleOptions" :key="String(opt.value)" :value="opt.value">
+                      {{ opt.label }}
+                    </option>
+                  </select>
+                  <label class="button-config-checkbox">
+                    <input v-model="config.IsHelper" type="checkbox">
+                    Helper
+                  </label>
+                </div>
+                <BaseButton
+                  icon-only
+                  rounded
+                  size="small"
+                  state="danger"
+                  title="X"
+                  variant="outlined"
+                  type="button"
+                  @clicked="removeButton(index)"
+                />
+              </div>
+
+              <BaseButton
+                size="small"
+                state="secondary"
+                title="+ Add Button"
+                variant="outlined"
+                type="button"
+                @clicked="addButton"
+              />
+            </template>
           </div>
         </div>
 
@@ -625,6 +817,51 @@ function cancel() {
   display: flex;
   flex-wrap: wrap;
   gap: 0.25rem;
+}
+
+/* Button config */
+.button-config-row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+
+.button-config-fields {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.375rem;
+  flex: 1;
+  min-width: 0;
+}
+
+.button-config-input {
+  padding: 0.25rem 0.5rem;
+  font-size: 0.8125rem;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--bg);
+  color: var(--fg);
+  min-width: 0;
+  width: 7rem;
+}
+
+.button-config-input--slug {
+  width: 5.5rem;
+  font-family: monospace;
+  font-size: 0.75rem;
+}
+
+.button-config-checkbox {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  font-size: 0.8125rem;
+  white-space: nowrap;
+  cursor: pointer;
 }
 
 /* Form actions */

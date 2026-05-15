@@ -9,5 +9,6 @@ public class EventSignup
 {
     public string DiscordUserId { get; set; }
     public List<Role> Roles { get; set; }
+    public List<string>? SignupSlugs { get; set; }
     public DateTime SignupDate { get; set; } = DateTime.UtcNow;
 }
