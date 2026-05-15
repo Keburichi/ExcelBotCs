@@ -217,68 +217,83 @@ async function signUp(signupEvent: FCEvent, role: Role) {
     </template>
 
     <template #actions>
-      <!-- Custom buttons mode -->
-      <template v-if="usesCustomButtons">
-        <BaseButton
-          v-for="config in event.SignupButtonConfigs"
-          :key="config.Slug"
-          :state="isSignedUpForSlug(config.Slug) ? 'pressed' : 'primary'"
-          :title="`${config.Label} (${getSignupCountForSlug(config.Slug)})`"
-          :tooltip="getSignedUpUsersForSlug(config.Slug).length > 0 ? getSignedUpUsersForSlug(config.Slug).join(', ') : 'No signups yet'"
-          @clicked="signUpBySlug(event, config.Slug)"
-        >
-          <template v-if="getEmojiUrl(config.EmojiId)" #icon>
-            <img :src="getEmojiUrl(config.EmojiId)!" alt="" class="button-emoji">
-          </template>
-        </BaseButton>
-      </template>
+      <div class="signup-buttons">
+        <!-- Custom buttons mode -->
+        <template v-if="usesCustomButtons">
+          <BaseButton
+            v-for="config in event.SignupButtonConfigs"
+            :key="config.Slug"
+            :state="isSignedUpForSlug(config.Slug) ? 'pressed' : 'primary'"
+            :title="`${config.Label} (${getSignupCountForSlug(config.Slug)})`"
+            :tooltip="getSignedUpUsersForSlug(config.Slug).length > 0 ? getSignedUpUsersForSlug(config.Slug).join(', ') : 'No signups yet'"
+            size="small"
+            @clicked="signUpBySlug(event, config.Slug)"
+          >
+            <template v-if="getEmojiUrl(config.EmojiId)" #icon>
+              <img :src="getEmojiUrl(config.EmojiId)!" alt="" class="button-emoji">
+            </template>
+          </BaseButton>
+        </template>
 
-      <!-- Legacy role buttons -->
-      <template v-else>
-        <BaseButton
-          :state="isSignedUpTank ? 'pressed' : 'primary'"
-          :title="`Tank (${tankCount})`"
-          :tooltip="tankUsers.length > 0 ? tankUsers.join(', ') : 'No signups yet'"
-          @clicked="signUp(event, ROLE.Tank)"
-        />
-        <BaseButton
-          :state="isSignedUpHealer ? 'pressed' : 'primary'"
-          :title="`Healer (${healerCount})`"
-          :tooltip="healerUsers.length > 0 ? healerUsers.join(', ') : 'No signups yet'"
-          @clicked="signUp(event, ROLE.Healer)"
-        />
-        <BaseButton
-          :state="isSignedUpMelee ? 'pressed' : 'primary'"
-          :title="`Melee (${meleeCount})`"
-          :tooltip="meleeUsers.length > 0 ? meleeUsers.join(', ') : 'No signups yet'"
-          @clicked="signUp(event, ROLE.Melee)"
-        />
-        <BaseButton
-          :state="isSignedUpCaster ? 'pressed' : 'primary'"
-          :title="`Caster (${casterCount})`"
-          :tooltip="casterUsers.length > 0 ? casterUsers.join(', ') : 'No signups yet'"
-          @clicked="signUp(event, ROLE.Caster)"
-        />
-        <BaseButton
-          :state="isSignedUpRanged ? 'pressed' : 'primary'"
-          :title="`Ranged (${rangedCount})`"
-          :tooltip="rangedUsers.length > 0 ? rangedUsers.join(', ') : 'No signups yet'"
-          @clicked="signUp(event, ROLE.Ranged)"
-        />
-      </template>
+        <!-- Legacy role buttons -->
+        <template v-else>
+          <BaseButton
+            :state="isSignedUpTank ? 'pressed' : 'primary'"
+            :title="`Tank (${tankCount})`"
+            :tooltip="tankUsers.length > 0 ? tankUsers.join(', ') : 'No signups yet'"
+            size="small"
+            @clicked="signUp(event, ROLE.Tank)"
+          />
+          <BaseButton
+            :state="isSignedUpHealer ? 'pressed' : 'primary'"
+            :title="`Healer (${healerCount})`"
+            :tooltip="healerUsers.length > 0 ? healerUsers.join(', ') : 'No signups yet'"
+            size="small"
+            @clicked="signUp(event, ROLE.Healer)"
+          />
+          <BaseButton
+            :state="isSignedUpMelee ? 'pressed' : 'primary'"
+            :title="`Melee (${meleeCount})`"
+            :tooltip="meleeUsers.length > 0 ? meleeUsers.join(', ') : 'No signups yet'"
+            size="small"
+            @clicked="signUp(event, ROLE.Melee)"
+          />
+          <BaseButton
+            :state="isSignedUpCaster ? 'pressed' : 'primary'"
+            :title="`Caster (${casterCount})`"
+            :tooltip="casterUsers.length > 0 ? casterUsers.join(', ') : 'No signups yet'"
+            size="small"
+            @clicked="signUp(event, ROLE.Caster)"
+          />
+          <BaseButton
+            :state="isSignedUpRanged ? 'pressed' : 'primary'"
+            :title="`Ranged (${rangedCount})`"
+            :tooltip="rangedUsers.length > 0 ? rangedUsers.join(', ') : 'No signups yet'"
+            size="small"
+            @clicked="signUp(event, ROLE.Ranged)"
+          />
+        </template>
+      </div>
     </template>
   </BaseModal>
 </template>
 
 <style scoped>
 .card__image {
-  /* zoom in on the image since the fight images have a small white gradient */
   transform: scale(1.1);
 }
 
+.signup-buttons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  width: 100%;
+  justify-content: flex-end;
+}
+
 .button-emoji {
-  width: 20px;
-  height: 20px;
+  width: 18px;
+  height: 18px;
   vertical-align: middle;
 }
 </style>
