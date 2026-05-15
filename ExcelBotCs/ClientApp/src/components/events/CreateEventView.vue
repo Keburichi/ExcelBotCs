@@ -648,7 +648,7 @@ function cancel() {
 
 .preview-sticky {
   position: sticky;
-  top: 1.5rem;
+  top: 5rem;
 }
 
 .preview-label {
