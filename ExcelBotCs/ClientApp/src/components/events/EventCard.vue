@@ -155,7 +155,9 @@ async function handleSignupDialogClose(value: boolean) {
 function getSignUpNumber(fcEvent: FCEvent) {
   if (!fcEvent.Signups)
     return 0
-  return fcEvent.Signups.filter(signup => signup.Roles.length > 0).length
+  return fcEvent.Signups.filter(signup =>
+    signup.Roles.length > 0 || (signup.SignupSlugs && signup.SignupSlugs.length > 0),
+  ).length
 }
 
 function getParticipantCount(fcEvent: FCEvent) {

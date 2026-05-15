@@ -39,6 +39,7 @@ const manualSearchQuery = ref('')
 const manualRolePickerOpen = ref(false)
 const manualRolePickerMember = ref<{ DiscordId: string, DiscordName: string, PlayerName: string } | null>(null)
 const manualSelectedRoles = ref<Role[]>([])
+const manualSelectedSlugs = ref<string[]>([])
 
 interface UnassignedItem {
   DiscordUserId: string
@@ -156,10 +157,21 @@ function roleShort(role: Role): string {
   return labels[role] ?? '?'
 }
 
-// Get signup roles for a user
 function getSignupRoles(discordUserId: string): Role[] {
   const signup = eventValue.value.Signups?.find(s => s.DiscordUserId === discordUserId)
-  return signup?.Roles ?? []
+  if (!signup) return []
+
+  if (!usesCustomButtons.value) return signup.Roles ?? []
+
+  const configs = eventValue.value.SignupButtonConfigs!
+  const roles: Role[] = []
+  for (const slug of signup.SignupSlugs ?? []) {
+    const config = configs.find(c => c.Slug === slug)
+    if (config?.MappedRole !== undefined) {
+      roles.push(config.MappedRole)
+    }
+  }
+  return roles
 }
 
 // Initialize from existing groups or empty
@@ -213,6 +225,19 @@ function onGroupChange(groupIndex: number, evt: any) {
   group.Participants.splice(addedIndex, 1)
 
   const signupRoles = getSignupRoles(addedItem.DiscordUserId)
+  if (signupRoles.length === 0 && usesCustomButtons.value) {
+    rolePickerTarget.value = {
+      groupIndex,
+      signup: {
+        DiscordUserId: addedItem.DiscordUserId,
+        Roles: [ROLE.Tank, ROLE.Healer, ROLE.Melee, ROLE.Caster, ROLE.Ranged],
+        SignupDate: new Date(),
+      },
+      element: null,
+    }
+    rolePickerOpen.value = true
+    return
+  }
   if (signupRoles.length === 1) {
     group.Participants.splice(addedIndex, 0, {
       DiscordUserId: addedItem.DiscordUserId,
@@ -258,6 +283,7 @@ function cancelRolePicker() {
 function openManualRolePicker(member: { DiscordId: string, DiscordName: string, PlayerName: string }) {
   manualRolePickerMember.value = member
   manualSelectedRoles.value = []
+  manualSelectedSlugs.value = []
   manualRolePickerOpen.value = true
   manualSearchQuery.value = ''
 }
@@ -272,16 +298,38 @@ function toggleManualRole(role: Role) {
   }
 }
 
+function toggleManualSlug(slug: string) {
+  const idx = manualSelectedSlugs.value.indexOf(slug)
+  if (idx >= 0) {
+    manualSelectedSlugs.value.splice(idx, 1)
+  }
+  else {
+    manualSelectedSlugs.value.push(slug)
+  }
+}
+
 async function confirmManualSignup() {
-  if (!manualRolePickerMember.value || manualSelectedRoles.value.length === 0)
-    return
+  if (!manualRolePickerMember.value) return
+
+  const isCustom = usesCustomButtons.value
+  if (isCustom && manualSelectedSlugs.value.length === 0) return
+  if (!isCustom && manualSelectedRoles.value.length === 0) return
 
   try {
-    await EventsApi.manualSignup(
-      eventValue.value.Id,
-      manualRolePickerMember.value.DiscordId,
-      [...manualSelectedRoles.value],
-    )
+    if (isCustom) {
+      await EventsApi.manualSignupWithSlugs(
+        eventValue.value.Id,
+        manualRolePickerMember.value.DiscordId,
+        [...manualSelectedSlugs.value],
+      )
+    }
+    else {
+      await EventsApi.manualSignup(
+        eventValue.value.Id,
+        manualRolePickerMember.value.DiscordId,
+        [...manualSelectedRoles.value],
+      )
+    }
 
     if (!eventValue.value.Signups) {
       eventValue.value.Signups = []
@@ -289,13 +337,15 @@ async function confirmManualSignup() {
 
     eventValue.value.Signups.push({
       DiscordUserId: manualRolePickerMember.value.DiscordId,
-      Roles: [...manualSelectedRoles.value],
+      Roles: isCustom ? [] : [...manualSelectedRoles.value],
+      SignupSlugs: isCustom ? [...manualSelectedSlugs.value] : undefined,
       SignupDate: new Date(),
     })
 
     manualRolePickerOpen.value = false
     manualRolePickerMember.value = null
     manualSelectedRoles.value = []
+    manualSelectedSlugs.value = []
   }
   catch (error) {
     console.error('Error adding manual signup:', error)
@@ -303,6 +353,7 @@ async function confirmManualSignup() {
     manualRolePickerOpen.value = false
     manualRolePickerMember.value = null
     manualSelectedRoles.value = []
+    manualSelectedSlugs.value = []
   }
 }
 
@@ -310,6 +361,7 @@ function cancelManualRolePicker() {
   manualRolePickerOpen.value = false
   manualRolePickerMember.value = null
   manualSelectedRoles.value = []
+  manualSelectedSlugs.value = []
 }
 
 function onManualSearchKeydown(event: KeyboardEvent) {
@@ -597,13 +649,28 @@ watch(modelValue, (isOpen) => {
     v-model="manualRolePickerOpen"
     :close-on-outside-click="false"
     size="small"
-    title="Select Roles"
+    :title="usesCustomButtons ? 'Select Signups' : 'Select Roles'"
   >
     <template #body>
       <p v-if="manualRolePickerMember">
-        Select role(s) for <b>{{ manualRolePickerMember.PlayerName || manualRolePickerMember.DiscordName }}</b>:
+        Select {{ usesCustomButtons ? 'signup(s)' : 'role(s)' }} for <b>{{ manualRolePickerMember.PlayerName || manualRolePickerMember.DiscordName }}</b>:
       </p>
-      <div class="role-picker-options">
+
+      <!-- Custom button slug picker -->
+      <div v-if="usesCustomButtons && eventValue.SignupButtonConfigs" class="role-picker-options">
+        <button
+          v-for="config in eventValue.SignupButtonConfigs"
+          :key="config.Slug"
+          class="role-picker-btn"
+          :class="{ 'role-picker-btn--selected': manualSelectedSlugs.includes(config.Slug) }"
+          @click="toggleManualSlug(config.Slug)"
+        >
+          {{ config.Label }}
+        </button>
+      </div>
+
+      <!-- Legacy role picker -->
+      <div v-else class="role-picker-options">
         <button
           v-for="role in [ROLE.Tank, ROLE.Healer, ROLE.Melee, ROLE.Caster, ROLE.Ranged]"
           :key="role"
@@ -614,14 +681,15 @@ watch(modelValue, (isOpen) => {
           {{ roleLabel(role) }}
         </button>
       </div>
-      <p v-if="manualSelectedRoles.length === 0" class="manual-role-hint">
-        Select at least one role.
+
+      <p v-if="(usesCustomButtons ? manualSelectedSlugs.length : manualSelectedRoles.length) === 0" class="manual-role-hint">
+        Select at least one {{ usesCustomButtons ? 'signup' : 'role' }}.
       </p>
     </template>
     <template #actions>
       <BaseButton state="secondary" title="Cancel" @clicked="cancelManualRolePicker" />
       <BaseButton
-        :disabled="manualSelectedRoles.length === 0"
+        :disabled="usesCustomButtons ? manualSelectedSlugs.length === 0 : manualSelectedRoles.length === 0"
         state="primary"
         title="Add to Pool"
         @clicked="confirmManualSignup"

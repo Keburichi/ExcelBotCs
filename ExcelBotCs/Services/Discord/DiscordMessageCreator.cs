@@ -106,7 +106,7 @@ public class DiscordMessageCreator : IDiscordMessageCreator
             foreach (Role role in Enum.GetValues(typeof(Role)))
             {
                 var signUps = (fcEvent.Signups ?? Enumerable.Empty<EventSignup>())
-                    .Where(x => x.Roles.Contains(role));
+                    .Where(x => x.Roles != null && x.Roles.Contains(role));
                 var members = signUps.Aggregate<EventSignup?, string>(null,
                     (current, eventSignup) => current + $"<@{eventSignup.DiscordUserId}>, ");
                 componentBuilderV2.WithTextDisplay($"{_discordSocketClient.GetEmoteByRole(role)}: {members}");
