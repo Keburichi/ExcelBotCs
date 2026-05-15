@@ -2,7 +2,7 @@
 import type { FCEvent, GuildEmoji, SignupButtonConfig } from '@/features/events/events.types'
 import type { Fight } from '@/features/fights/fights.types'
 import type { RecurrenceConfig } from '@/utils/ical'
-import { computed, onMounted, reactive, ref, watch } from 'vue'
+import { computed, nextTick, onMounted, onUnmounted, reactive, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import BaseButton from '@/components/BaseButton.vue'
 import DateTimePicker from '@/components/DateTimePicker.vue'
@@ -81,6 +81,7 @@ const signupButtonConfigs = ref<SignupButtonConfig[]>([])
 const guildEmojis = ref<GuildEmoji[]>([])
 const emojiSearchQuery = ref('')
 const emojiDropdownOpenIndex = ref<number | null>(null)
+const emojiSearchInputRef = ref<HTMLInputElement | null>(null)
 
 // Known role emoji IDs (used for "Roles + Helper" preset)
 const ROLE_EMOJI_IDS: Record<string, string> = {
@@ -135,6 +136,9 @@ function onLabelChange(index: number) {
 function openEmojiDropdown(index: number) {
   emojiSearchQuery.value = ''
   emojiDropdownOpenIndex.value = index
+  nextTick(() => {
+    emojiSearchInputRef.value?.focus()
+  })
 }
 
 function selectEmoji(index: number, emoji: GuildEmoji) {
@@ -149,6 +153,20 @@ function clearEmoji(index: number) {
 
 function closeEmojiDropdown() {
   emojiDropdownOpenIndex.value = null
+}
+
+function handleGlobalKeydown(e: KeyboardEvent) {
+  if (e.key === 'Escape' && emojiDropdownOpenIndex.value !== null) {
+    closeEmojiDropdown()
+  }
+}
+
+function handleGlobalClick(e: MouseEvent) {
+  if (emojiDropdownOpenIndex.value === null) return
+  const target = e.target as HTMLElement
+  if (!target.closest('.emoji-picker-wrapper')) {
+    closeEmojiDropdown()
+  }
 }
 
 function setButtonMode(mode: ButtonMode) {
@@ -276,6 +294,9 @@ function formatFight(fight: Fight): string {
 }
 
 onMounted(async () => {
+  document.addEventListener('keydown', handleGlobalKeydown)
+  document.addEventListener('click', handleGlobalClick)
+
   try {
     fights.value = await FightsApi.list()
   }
@@ -331,6 +352,11 @@ onMounted(async () => {
       loading.value = false
     }
   }
+})
+
+onUnmounted(() => {
+  document.removeEventListener('keydown', handleGlobalKeydown)
+  document.removeEventListener('click', handleGlobalClick)
 })
 
 watch(selectedFight, (newFight) => {
@@ -417,7 +443,7 @@ function cancel() {
 
     <div class="create-event-layout">
       <!-- Form Column -->
-      <form class="event-form" @submit.prevent="submit" @click="closeEmojiDropdown">
+      <form class="event-form" @submit.prevent="submit">
         <div class="form-surface">
           <!-- Basic Information -->
           <div class="form-group">
@@ -600,7 +626,7 @@ function cancel() {
 
             <!-- Roles + Helper: only configure the helper button -->
             <template v-if="buttonMode === 'roles-helper'">
-              <p class="field-hint">The 5 standard role buttons (Tank, Healer, Melee, Caster, Ranged) will be shown with their emotes. Configure the helper button below:</p>
+              <p class="field-hint">Standard role buttons (Tank, Healer, Melee, Caster, Ranged) with emotes. Configure the helper button below:</p>
               <div v-if="signupButtonConfigs.find(c => c.IsHelper)" class="button-config-row">
                 <div class="button-config-fields">
                   <input
@@ -610,6 +636,7 @@ function cancel() {
                     type="text"
                     @input="signupButtonConfigs[signupButtonConfigs.length - 1].Slug = slugify(signupButtonConfigs[signupButtonConfigs.length - 1].Label)"
                   >
+                  <span class="button-tag button-tag--helper">helper</span>
                   <div class="emoji-picker-wrapper">
                     <button
                       type="button"
@@ -617,15 +644,15 @@ function cancel() {
                       @click.stop="openEmojiDropdown(signupButtonConfigs.length - 1)"
                     >
                       <img v-if="getEmojiUrl(signupButtonConfigs[signupButtonConfigs.length - 1].EmojiId)" :src="getEmojiUrl(signupButtonConfigs[signupButtonConfigs.length - 1].EmojiId)!" alt="" class="emoji-preview-img">
-                      <span v-else class="emoji-picker-placeholder">Select emoji</span>
+                      <span v-else class="emoji-picker-placeholder">Emoji</span>
                     </button>
-                    <div v-if="emojiDropdownOpenIndex === signupButtonConfigs.length - 1" class="emoji-dropdown" @click.stop>
+                    <div v-if="emojiDropdownOpenIndex === signupButtonConfigs.length - 1" class="emoji-dropdown">
                       <input
+                        ref="emojiSearchInputRef"
                         v-model="emojiSearchQuery"
                         class="emoji-search-input"
                         placeholder="Search emojis..."
                         type="text"
-                        @click.stop
                       >
                       <button type="button" class="emoji-option emoji-option--clear" @click="clearEmoji(signupButtonConfigs.length - 1)">
                         No emoji
@@ -687,12 +714,8 @@ function cancel() {
                     type="text"
                     @input="onLabelChange(index)"
                   >
-                  <input
-                    v-model="config.Slug"
-                    class="button-config-input button-config-input--slug"
-                    placeholder="slug"
-                    type="text"
-                  >
+                  <span v-if="config.IsHelper" class="button-tag button-tag--helper">helper</span>
+                  <span v-else-if="config.Slug === 'interested'" class="button-tag button-tag--interested">interested</span>
                   <div class="emoji-picker-wrapper">
                     <button
                       type="button"
@@ -700,15 +723,15 @@ function cancel() {
                       @click.stop="openEmojiDropdown(index)"
                     >
                       <img v-if="getEmojiUrl(config.EmojiId)" :src="getEmojiUrl(config.EmojiId)!" alt="" class="emoji-preview-img">
-                      <span v-else class="emoji-picker-placeholder">Select emoji</span>
+                      <span v-else class="emoji-picker-placeholder">Emoji</span>
                     </button>
-                    <div v-if="emojiDropdownOpenIndex === index" class="emoji-dropdown" @click.stop>
+                    <div v-if="emojiDropdownOpenIndex === index" class="emoji-dropdown">
                       <input
+                        ref="emojiSearchInputRef"
                         v-model="emojiSearchQuery"
                         class="emoji-search-input"
                         placeholder="Search emojis..."
                         type="text"
-                        @click.stop
                       >
                       <button type="button" class="emoji-option emoji-option--clear" @click="clearEmoji(index)">
                         No emoji
@@ -734,15 +757,14 @@ function cancel() {
                     {{ config.Label || '...' }}
                   </span>
                 </div>
-                <BaseButton
-                  icon="✕"
-                  size="small"
-                  state="danger"
-                  variant="text"
-                  tooltip="Remove button"
+                <button
                   type="button"
-                  @clicked="removeButton(index)"
-                />
+                  class="button-remove"
+                  title="Remove button"
+                  @click="removeButton(index)"
+                >
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>
+                </button>
               </div>
 
               <BaseButton
@@ -984,10 +1006,83 @@ function cancel() {
   width: 7rem;
 }
 
-.button-config-input--slug {
-  width: 5.5rem;
-  font-family: monospace;
-  font-size: 0.75rem;
+/* Button tags */
+.button-tag {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.125rem 0.375rem;
+  font-size: 0.6875rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  border-radius: 4px;
+  white-space: nowrap;
+  text-transform: lowercase;
+}
+
+.button-tag--helper {
+  background: rgba(124, 58, 237, 0.12);
+  color: #7c3aed;
+}
+
+.button-tag--interested {
+  background: rgba(37, 99, 235, 0.12);
+  color: #2563eb;
+}
+
+:root[data-theme='dark'] .button-tag--helper {
+  background: rgba(167, 139, 250, 0.15);
+  color: #a78bfa;
+}
+
+:root[data-theme='dark'] .button-tag--interested {
+  background: rgba(96, 165, 250, 0.15);
+  color: #60a5fa;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme='light']) .button-tag--helper {
+    background: rgba(167, 139, 250, 0.15);
+    color: #a78bfa;
+  }
+
+  :root:not([data-theme='light']) .button-tag--interested {
+    background: rgba(96, 165, 250, 0.15);
+    color: #60a5fa;
+  }
+}
+
+/* Remove button */
+.button-remove {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 1.5rem;
+  height: 1.5rem;
+  padding: 0;
+  border: none;
+  border-radius: 4px;
+  background: transparent;
+  color: var(--muted);
+  cursor: pointer;
+  transition: color 0.15s ease, background 0.15s ease;
+}
+
+.button-remove:hover {
+  color: #dc2626;
+  background: rgba(220, 38, 38, 0.08);
+}
+
+:root[data-theme='dark'] .button-remove:hover {
+  color: #f87171;
+  background: rgba(248, 113, 113, 0.12);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme='light']) .button-remove:hover {
+    color: #f87171;
+    background: rgba(248, 113, 113, 0.12);
+  }
 }
 
 /* Emoji picker */
