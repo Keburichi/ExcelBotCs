@@ -242,23 +242,38 @@ function toggleManualRole(role: Role) {
   }
 }
 
-function confirmManualSignup() {
+async function confirmManualSignup() {
   if (!manualRolePickerMember.value || manualSelectedRoles.value.length === 0)
     return
 
-  if (!eventValue.value.Signups) {
-    eventValue.value.Signups = []
+  try {
+    await EventsApi.manualSignup(
+      eventValue.value.Id,
+      manualRolePickerMember.value.DiscordId,
+      [...manualSelectedRoles.value],
+    )
+
+    if (!eventValue.value.Signups) {
+      eventValue.value.Signups = []
+    }
+
+    eventValue.value.Signups.push({
+      DiscordUserId: manualRolePickerMember.value.DiscordId,
+      Roles: [...manualSelectedRoles.value],
+      SignupDate: new Date(),
+    })
+
+    manualRolePickerOpen.value = false
+    manualRolePickerMember.value = null
+    manualSelectedRoles.value = []
   }
-
-  eventValue.value.Signups.push({
-    DiscordUserId: manualRolePickerMember.value.DiscordId,
-    Roles: [...manualSelectedRoles.value],
-    SignupDate: new Date(),
-  })
-
-  manualRolePickerOpen.value = false
-  manualRolePickerMember.value = null
-  manualSelectedRoles.value = []
+  catch (error) {
+    console.error('Error adding manual signup:', error)
+    openInfo('Failed to add member. Please try again.')
+    manualRolePickerOpen.value = false
+    manualRolePickerMember.value = null
+    manualSelectedRoles.value = []
+  }
 }
 
 function cancelManualRolePicker() {

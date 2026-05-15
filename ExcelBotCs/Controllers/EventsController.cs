@@ -176,6 +176,38 @@ public class EventsController : AuthorizedController, IEventsController
         return Ok();
     }
 
+    [HttpPost]
+    [Route("{eventId}/signup/manual")]
+    [AdminAuth]
+    public async Task<ActionResult> ManualSignup(string eventId, [FromBody] EventSignupDto signupRequest)
+    {
+        var fcEvent = await _eventService.GetAsync(eventId);
+
+        if (fcEvent is null)
+            return NotFound();
+
+        if (string.IsNullOrWhiteSpace(signupRequest.DiscordUserId))
+            return BadRequest("DiscordUserId is required");
+
+        if (signupRequest.Roles is null || signupRequest.Roles.Count == 0)
+            return BadRequest("At least one role is required");
+
+        var existing = fcEvent.Signups.FirstOrDefault(x => x.DiscordUserId == signupRequest.DiscordUserId);
+        if (existing != null)
+            existing.Roles = signupRequest.Roles;
+        else
+            fcEvent.Signups.Add(new EventSignup
+            {
+                DiscordUserId = signupRequest.DiscordUserId,
+                Roles = signupRequest.Roles,
+                SignupDate = DateTime.UtcNow
+            });
+
+        await _eventService.UpdateAsync(fcEvent.Id, fcEvent);
+
+        return Ok();
+    }
+
     [HttpDelete]
     [Route("{eventId}/signup")]
     public async Task<ActionResult> CancelSignup(string eventId)
