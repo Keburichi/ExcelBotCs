@@ -153,9 +153,9 @@ export enum EventType {
   MinIlvl,
   Downsynced,
   Other,
+  Unreal,
 }
 
 export function eventTypeToString(type: EventType): string {
   return EventType[type]
 }
-

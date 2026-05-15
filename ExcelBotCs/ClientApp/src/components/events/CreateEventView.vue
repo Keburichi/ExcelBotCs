@@ -94,19 +94,23 @@ const ROLE_EMOJI_IDS: Record<string, string> = {
 
 const filteredEmojis = computed(() => {
   const query = emojiSearchQuery.value.trim().toLowerCase()
-  if (!query) return guildEmojis.value
+  if (!query)
+    return guildEmojis.value
   return guildEmojis.value.filter(e => e.Name.toLowerCase().includes(query))
 })
 
 function getEmojiById(id?: string): GuildEmoji | undefined {
-  if (!id) return undefined
+  if (!id)
+    return undefined
   return guildEmojis.value.find(e => e.Id === id)
 }
 
 function getEmojiUrl(id?: string): string | null {
-  if (!id) return null
+  if (!id)
+    return null
   const emoji = getEmojiById(id)
-  if (emoji) return emoji.Url
+  if (emoji)
+    return emoji.Url
   return `https://cdn.discordapp.com/emojis/${id}.webp?size=20`
 }
 
@@ -162,7 +166,8 @@ function handleGlobalKeydown(e: KeyboardEvent) {
 }
 
 function handleGlobalClick(e: MouseEvent) {
-  if (emojiDropdownOpenIndex.value === null) return
+  if (emojiDropdownOpenIndex.value === null)
+    return
   const target = e.target as HTMLElement
   if (!target.closest('.emoji-picker-wrapper')) {
     closeEmojiDropdown()
@@ -283,8 +288,14 @@ const eventTypeOptions = computed(() => {
 
 const showFightSelection = computed(() => {
   const fightCompatibleTypes = [
-    EventType.Academy, EventType.Downsynced, EventType.BLU,
-    EventType.Farming, EventType.Raid, EventType.MinIlvl, EventType.Other,
+    EventType.Academy,
+    EventType.Downsynced,
+    EventType.BLU,
+    EventType.Farming,
+    EventType.Raid,
+    EventType.MinIlvl,
+    EventType.Other,
+    EventType.Unreal,
   ]
   return fightCompatibleTypes.includes(form.Type)
 })
@@ -626,7 +637,9 @@ function cancel() {
 
             <!-- Roles + Helper: only configure the helper button -->
             <template v-if="buttonMode === 'roles-helper'">
-              <p class="field-hint">Standard role buttons (Tank, Healer, Melee, Caster, Ranged) with emotes. Configure the helper button below:</p>
+              <p class="field-hint">
+                Standard role buttons (Tank, Healer, Melee, Caster, Ranged) with emotes. Configure the helper button below:
+              </p>
               <div v-if="signupButtonConfigs.find(c => c.IsHelper)" class="button-config-row">
                 <div class="button-config-fields">
                   <input

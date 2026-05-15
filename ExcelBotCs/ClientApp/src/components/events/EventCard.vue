@@ -54,7 +54,8 @@ const occurrenceToComplete = computed((): EventOccurrence | null => {
 })
 
 const pastScheduledOccurrence = computed((): EventOccurrence | null => {
-  if (!fcEventValue.value.Occurrences) return null
+  if (!fcEventValue.value.Occurrences)
+    return null
   const now = new Date()
   return fcEventValue.value.Occurrences
     .filter(o =>
@@ -69,16 +70,19 @@ const eventTypeLabel = computed(() => {
 })
 
 const associatedFight = computed(() => {
-  if (!fcEventValue.value.FightId || fights.value.length === 0) return null
+  if (!fcEventValue.value.FightId || fights.value.length === 0)
+    return null
   return fights.value.find(f => f.Id === fcEventValue.value.FightId)
 })
 
 const formattedDuration = computed(() => {
   const minutes = fcEventValue.value.Duration
-  if (minutes < 60) return `${minutes} min`
+  if (minutes < 60)
+    return `${minutes} min`
   const hours = Math.floor(minutes / 60)
   const remainingMinutes = minutes % 60
-  if (remainingMinutes === 0) return `${hours}h`
+  if (remainingMinutes === 0)
+    return `${hours}h`
   return `${hours}h ${remainingMinutes}min`
 })
 
@@ -133,7 +137,8 @@ const eventIsRecurring = computed(() => {
 })
 
 const recurrenceDescription = computed(() => {
-  if (!eventIsRecurring.value) return ''
+  if (!eventIsRecurring.value)
+    return ''
   const config = parseICalString(fcEventValue.value.ICalString)
   return config ? describeRecurrence(config, fcEventValue.value.ICalString) : ''
 })
@@ -142,17 +147,20 @@ async function handleSignupDialogClose(value: boolean) {
   isOpen.value = value
   if (!value) {
     const updatedEvent = await getEvent(fcEventValue.value.Id)
-    if (updatedEvent) fcEventValue.value = updatedEvent
+    if (updatedEvent)
+      fcEventValue.value = updatedEvent
   }
 }
 
 function getSignUpNumber(fcEvent: FCEvent) {
-  if (!fcEvent.Signups) return 0
+  if (!fcEvent.Signups)
+    return 0
   return fcEvent.Signups.filter(signup => signup.Roles.length > 0).length
 }
 
 function getParticipantCount(fcEvent: FCEvent) {
-  if (!fcEvent.Groups || fcEvent.Groups.length === 0) return 0
+  if (!fcEvent.Groups || fcEvent.Groups.length === 0)
+    return 0
   return fcEvent.Groups.flatMap(g => g.Participants).length
 }
 
@@ -164,12 +172,14 @@ async function handleEventConcluded() {
   const updatedEvent = await getEvent(fcEventValue.value.Id)
   if (updatedEvent) {
     fcEventValue.value = updatedEvent
-    if (updatedEvent.IsArchived) emit('archived', updatedEvent)
+    if (updatedEvent.IsArchived)
+      emit('archived', updatedEvent)
   }
 }
 
 async function skipPastOccurrence() {
-  if (!pastScheduledOccurrence.value) return
+  if (!pastScheduledOccurrence.value)
+    return
   try {
     await updateOccurrenceStatusById(
       fcEventValue.value.Id,
@@ -179,7 +189,8 @@ async function skipPastOccurrence() {
     const updatedEvent = await getEvent(fcEventValue.value.Id)
     if (updatedEvent) {
       fcEventValue.value = updatedEvent
-      if (updatedEvent.IsArchived) emit('archived', updatedEvent)
+      if (updatedEvent.IsArchived)
+        emit('archived', updatedEvent)
     }
   }
   catch (error) {
@@ -256,7 +267,9 @@ onMounted(async () => {
     <div class="event-card__content">
       <!-- Header: title + badges -->
       <div class="event-card__header">
-        <h3 class="event-card__title">{{ fcEventValue.Name }}</h3>
+        <h3 class="event-card__title">
+          {{ fcEventValue.Name }}
+        </h3>
         <div class="event-card__badges">
           <span v-if="fcEventValue.IsArchived" class="event-badge event-badge--archived">Archived</span>
           <span
@@ -487,6 +500,11 @@ onMounted(async () => {
 .event-badge--academy { background: var(--cat-rose-bg); color: var(--cat-rose-fg); }
 .event-badge--minilvl { background: var(--cat-amber-bg); color: var(--cat-amber-fg); }
 .event-badge--downsynced { background: var(--cat-indigo-bg); color: var(--cat-indigo-fg); }
+
+.event-badge--unreal {
+  background: var(--cat-red-bg);
+  color: var(--cat-red-fg);
+}
 .event-badge--other { background: var(--cat-slate-bg); color: var(--cat-slate-fg); }
 
 /* Time block */
