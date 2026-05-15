@@ -93,8 +93,9 @@ async function awardUsers() {
   success.value = ''
 
   try {
-    const result = await LotteryApi.awardUsers(awardReason.value, selectedUsers.value)
-    success.value = result.message
+    const names = [...selectedUsers.value]
+    await LotteryApi.awardUsers(awardReason.value, names)
+    success.value = `Successfully awarded ${names.join(', ')} a new lottery guess`
     awardReason.value = ''
     selectedUsers.value = []
     emit('refresh')
