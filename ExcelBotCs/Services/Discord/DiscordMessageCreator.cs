@@ -70,7 +70,7 @@ public class DiscordMessageCreator : IDiscordMessageCreator
             : $"## {fcEvent.Type} - {await _fightService.GetAsync(fcEvent.FightId)}";
         componentBuilderV2.WithTextDisplay(subHeading);
 
-        if (fcEvent.PictureUrl != null)
+        if (!string.IsNullOrWhiteSpace(fcEvent.PictureUrl))
             componentBuilderV2.WithMediaGallery([fcEvent.PictureUrl]);
 
         componentBuilderV2.WithTextDisplay(
