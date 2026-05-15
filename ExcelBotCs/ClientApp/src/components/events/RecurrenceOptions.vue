@@ -2,7 +2,6 @@
 import type { RecurrenceConfig } from '@/utils/ical'
 import { computed, watch } from 'vue'
 import DateTimePicker from '@/components/DateTimePicker.vue'
-import { SignupType, signupTypeToString } from '@/features/events/events.types'
 import { describeRecurrence } from '@/utils/ical'
 
 const config = defineModel<RecurrenceConfig>({
@@ -15,20 +14,6 @@ const config = defineModel<RecurrenceConfig>({
   }),
 })
 
-const signupType = defineModel<SignupType>('signupType', {
-  default: SignupType.SingleEvent,
-})
-
-// Signup type options
-const signupTypeOptions = [
-  {
-    value: SignupType.LockedGroup,
-    label: signupTypeToString(SignupType.LockedGroup),
-    description: 'Same people participate in all occurrences',
-  },
-]
-
-// Day names for weekly selection
 const weekdays = [
   { value: 0, label: 'Mon', fullName: 'Monday' },
   { value: 1, label: 'Tue', fullName: 'Tuesday' },
@@ -227,28 +212,6 @@ function getOrdinalSuffix(day: number): string {
         <strong>Summary:</strong> {{ recurrenceDescription }}
       </div>
 
-      <!-- Signup Type Selection for Recurring Events -->
-      <div class="form-row">
-        <label>Signup Configuration</label>
-        <div class="signup-type-options">
-          <label
-            v-for="option in signupTypeOptions"
-            :key="option.value"
-            class="signup-type-option"
-          >
-            <input
-              v-model="signupType"
-              :value="option.value"
-              name="signupType"
-              type="radio"
-            >
-            <div class="option-content">
-              <span class="option-label">{{ option.label }}</span>
-              <span class="option-description">{{ option.description }}</span>
-            </div>
-          </label>
-        </div>
-      </div>
     </div>
   </div>
 </template>
@@ -259,24 +222,24 @@ function getOrdinalSuffix(day: number): string {
 }
 
 .recurrence-config {
-  margin-top: 12px;
-  padding: 16px;
+  margin-top: 0.75rem;
+  padding: 1rem;
   border: 1px solid var(--border);
-  border-radius: 8px;
+  border-radius: 12px;
   background: var(--muted-bg);
 }
 
 .form-row {
   display: flex;
   flex-direction: column;
-  gap: 6px;
-  margin: 12px 0;
+  gap: 0.25rem;
+  margin: 0.75rem 0;
 }
 
 .checkbox-label {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 0.5rem;
   cursor: pointer;
   font-weight: 500;
 }
@@ -286,14 +249,12 @@ function getOrdinalSuffix(day: number): string {
   height: 18px;
   cursor: pointer;
   accent-color: var(--link);
-  /* Improve visibility in dark themes */
-  filter: brightness(1.1);
 }
 
 .frequency-input {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 0.5rem;
 }
 
 .frequency-input span {
@@ -302,40 +263,30 @@ function getOrdinalSuffix(day: number): string {
 }
 
 .interval-input {
-  width: 70px;
-  padding: 8px;
-  border: 1px solid var(--border);
-  border-radius: 8px;
-  background: var(--card);
-  color: var(--fg);
+  width: 4.5rem;
 }
 
 .frequency-select,
 .end-type-select,
 .monthday-select {
   flex: 1;
-  padding: 8px;
-  border: 1px solid var(--border);
-  border-radius: 8px;
-  background: var(--card);
-  color: var(--fg);
 }
 
 .weekday-selector {
   display: flex;
-  gap: 8px;
+  gap: 0.25rem;
   flex-wrap: wrap;
 }
 
 .weekday-button {
-  padding: 8px 12px;
+  padding: 0.5rem 0.75rem;
   border: 2px solid var(--border);
   border-radius: 8px;
   background: var(--card);
   color: var(--fg);
   cursor: pointer;
   font-weight: 500;
-  transition: all 0.2s;
+  transition: border-color 0.2s ease, background 0.2s ease, color 0.2s ease;
 }
 
 .weekday-button:hover {
@@ -350,12 +301,12 @@ function getOrdinalSuffix(day: number): string {
 }
 
 .recurrence-summary {
-  margin-top: 16px;
-  padding: 12px;
+  margin-top: 0.75rem;
+  padding: 0.75rem;
   background: var(--card);
   border-radius: 8px;
   border: 1px solid var(--border);
-  font-size: 0.95rem;
+  font-size: 0.875rem;
   color: var(--fg);
 }
 
@@ -368,88 +319,15 @@ label {
   color: var(--fg);
 }
 
-input[type="number"],
-input[type="text"] {
-  padding: 8px;
-  border: 1px solid var(--border);
-  border-radius: 8px;
-  background: var(--card);
-  color: var(--fg);
-}
-
-.signup-type-options {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-}
-
-.signup-type-option {
-  display: flex;
-  align-items: flex-start;
-  gap: 12px;
-  padding: 12px;
-  border: 2px solid var(--border);
-  border-radius: 8px;
-  background: var(--card);
-  cursor: pointer;
-  transition: all 0.2s;
-}
-
-.signup-type-option:hover {
-  border-color: var(--link);
-  background: var(--muted-bg);
-}
-
-.signup-type-option:has(input:checked) {
-  border-color: var(--link);
-  border-width: 3px;
-  background: var(--card);
-  box-shadow: 0 0 0 2px var(--link) inset;
-}
-
-.signup-type-option:has(input:checked) .option-label {
-  font-weight: 700;
-}
-
-.signup-type-option input[type="radio"] {
-  margin-top: 2px;
-  width: 18px;
-  height: 18px;
-  cursor: pointer;
-  flex-shrink: 0;
-  accent-color: var(--link);
-  /* Improve visibility in dark themes */
-  filter: brightness(1.1);
-}
-
-.option-content {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  flex: 1;
-}
-
-.option-label {
-  font-weight: 600;
-  color: var(--fg);
-}
-
-.option-description {
-  font-size: 0.875rem;
-  color: var(--muted);
-  font-style: italic;
-}
-
-/* Responsive */
 @media (max-width: 640px) {
   .frequency-input {
     flex-wrap: wrap;
   }
 
   .weekday-button {
-    flex: 1 1 calc(14.28% - 8px);
+    flex: 1 1 calc(14.28% - 4px);
     min-width: 40px;
-    padding: 8px 4px;
+    padding: 0.5rem 0.25rem;
     font-size: 0.85rem;
   }
 }

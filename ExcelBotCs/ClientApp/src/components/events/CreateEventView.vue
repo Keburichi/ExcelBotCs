@@ -10,7 +10,7 @@ import RecurrenceOptions from '@/components/events/RecurrenceOptions.vue'
 import SearchableDropdown from '@/components/SearchableDropdown.vue'
 import { useAuth } from '@/composables/useAuth'
 import { EventsApi } from '@/features/events/events.api'
-import { EventType, SignupType } from '@/features/events/events.types'
+import { EventType } from '@/features/events/events.types'
 import { FightsApi } from '@/features/fights/fights.api'
 import { fightTypeToString } from '@/features/fights/fights.types'
 import mapsPlaceholder from '@/static/img/maps-placeholder.png'
@@ -76,24 +76,6 @@ const recurrence = ref<RecurrenceConfig>({
   byWeekday: [],
 })
 
-// Signup type configuration
-const signupType = ref<SignupType>(SignupType.SingleEvent)
-
-// Watch recurrence.enabled and set appropriate default signup type
-watch(() => recurrence.value.enabled, (enabled) => {
-  if (enabled) {
-    // When enabling recurrence, default to LockedGroup
-    if (signupType.value === SignupType.SingleEvent) {
-      signupType.value = SignupType.LockedGroup
-    }
-  }
-  else {
-    // When disabling recurrence, always set to SingleEvent
-    signupType.value = SignupType.SingleEvent
-  }
-})
-
-// Function to set party preset and update max participants
 function setPartyPreset(preset: PartyPreset) {
   partyPreset.value = preset
 
@@ -179,8 +161,8 @@ onMounted(async () => {
   try {
     fights.value = await FightsApi.list()
   }
-  catch (e: any) {
-    console.error('Failed to load fights:', e)
+  catch {
+    // Fights are optional; the form works without them
   }
 
   if (isEditMode.value) {
@@ -205,10 +187,6 @@ onMounted(async () => {
           if (parsedRecurrence) {
             recurrence.value = parsedRecurrence
           }
-        }
-        // Set signup type from event data
-        if (eventData.SignupType !== undefined) {
-          signupType.value = eventData.SignupType
         }
       }
     }
@@ -278,9 +256,6 @@ async function submit() {
       form.PictureUrl = toAbsoluteUrl(form.PictureUrl)
     }
 
-    // Set signup type
-    form.SignupType = signupType.value
-
     // Generate iCal string with recurrence configuration
     form.ICalString = generateICalString(form, recurrence.value)
 
@@ -340,8 +315,8 @@ function cancel() {
             </select>
           </div>
           <div v-if="form.DiscordMessageId" class="form-row">
-            <label>Discord Message Id</label>
-            <input v-model="form.DiscordMessageId" placeholder="The message id of the discord post." type="text">
+            <label>Discord Message ID</label>
+            <input v-model="form.DiscordMessageId" placeholder="Discord message ID" type="text">
           </div>
         </div>
       </section>
@@ -373,7 +348,7 @@ function cancel() {
           <div v-if="form.PictureUrl" class="image-preview">
             <img
               :src="form.PictureUrl" alt="Event preview"
-              @error="(e) => (e.target as HTMLImageElement).style.display = 'none'"
+              @error="(e) => { const el = (e.target as HTMLElement).closest('.image-preview') as HTMLElement | null; if (el) el.style.display = 'none' }"
             >
           </div>
         </div>
@@ -430,7 +405,7 @@ function cancel() {
           </div>
         </div>
         <div class="form-row">
-          <RecurrenceOptions v-model="recurrence" v-model:signup-type="signupType" />
+          <RecurrenceOptions v-model="recurrence" />
         </div>
       </section>
 
@@ -539,19 +514,18 @@ function cancel() {
 .event-form {
   display: flex;
   flex-direction: column;
-  gap: 0;
 }
 
 .info-section {
-  margin-bottom: 0.75rem;
+  margin-bottom: 0.5rem;
 }
 
 .media-section {
-  margin-bottom: 2.25rem;
+  margin-bottom: 2rem;
 }
 
 .schedule-section {
-  margin-bottom: 0.75rem;
+  margin-bottom: 0.5rem;
 }
 
 .participants-section {
@@ -566,7 +540,6 @@ function cancel() {
   padding: 1.25rem 1.5rem 1.5rem;
   box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08),
     inset 0 1px 0 rgba(255, 255, 255, 0.5);
-  transition: border-color 0.2s ease, box-shadow 0.2s ease;
 }
 
 :root[data-theme='dark'] .form-section {
@@ -585,29 +558,6 @@ function cancel() {
   }
 }
 
-.form-section:hover {
-  border-color: rgba(59, 130, 246, 0.4);
-  box-shadow: 0 6px 20px rgba(59, 130, 246, 0.12),
-    0 4px 16px rgba(0, 0, 0, 0.1),
-    inset 0 1px 0 rgba(255, 255, 255, 0.6);
-}
-
-:root[data-theme='dark'] .form-section:hover {
-  border-color: rgba(59, 130, 246, 0.5);
-  box-shadow: 0 6px 20px rgba(59, 130, 246, 0.2),
-    0 4px 16px rgba(0, 0, 0, 0.4),
-    inset 0 1px 0 rgba(255, 255, 255, 0.12);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root:not([data-theme='light']) .form-section:hover {
-    border-color: rgba(59, 130, 246, 0.5);
-    box-shadow: 0 6px 20px rgba(59, 130, 246, 0.2),
-      0 4px 16px rgba(0, 0, 0, 0.4),
-      inset 0 1px 0 rgba(255, 255, 255, 0.12);
-  }
-}
-
 .section-header {
   margin: 0 0 1.25rem 0;
   font-size: 1.125rem;
@@ -618,7 +568,7 @@ function cancel() {
 .form-row {
   display: flex;
   flex-direction: column;
-  gap: 0.375rem;
+  gap: 0.25rem;
   margin-bottom: 1rem;
 }
 
@@ -633,7 +583,6 @@ function cancel() {
   margin-bottom: 1rem;
 }
 
-/* Duration: presets + input on one line */
 .duration-controls {
   display: flex;
   align-items: center;
@@ -642,7 +591,7 @@ function cancel() {
 
 .duration-presets {
   display: flex;
-  gap: 0.375rem;
+  gap: 0.25rem;
   flex-shrink: 0;
 }
 
@@ -651,11 +600,10 @@ function cancel() {
   flex-shrink: 0;
 }
 
-/* Media: input + preview side by side */
 .media-row {
   display: grid;
   grid-template-columns: 1fr auto;
-  gap: 1.25rem;
+  gap: 1rem;
   align-items: start;
 }
 
@@ -666,8 +614,8 @@ function cancel() {
 .image-preview {
   width: 180px;
   height: 100px;
-  border: 1px solid rgba(var(--color-border), 0.5);
-  border-radius: 10px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
   overflow: hidden;
   background: var(--muted-bg);
   flex-shrink: 0;
@@ -680,15 +628,13 @@ function cancel() {
   display: block;
 }
 
-/* Party presets: flex-wrap for natural sizing */
 .party-preset-buttons {
   display: flex;
   flex-wrap: wrap;
-  gap: 0.375rem;
-  margin-bottom: 0.625rem;
+  gap: 0.25rem;
+  margin-bottom: 0.5rem;
 }
 
-/* Actions: anchored with a divider */
 .actions {
   display: flex;
   gap: 0.75rem;
@@ -705,7 +651,7 @@ label {
 }
 
 .error {
-  padding: 0.875rem 1rem;
+  padding: 0.75rem 1rem;
   background: var(--alert-error-bg);
   color: var(--alert-error-fg);
   border: 1px solid var(--alert-error-border);
@@ -716,7 +662,6 @@ label {
 .hint {
   font-size: 0.8125rem;
   color: var(--muted);
-  margin-top: 0.125rem;
 }
 
 @media (max-width: 768px) {
@@ -754,7 +699,7 @@ label {
   }
 
   .form-section {
-    padding: 0.875rem 1rem 1rem;
+    padding: 0.75rem 1rem 1rem;
   }
 
   .section-header {
