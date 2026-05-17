@@ -97,7 +97,12 @@ onUnmounted(() => {
         class="display-value"
         @click="openDropdown"
       >
-        {{ displayValue || placeholder }}
+        <slot v-if="modelValue" name="selected" :option="modelValue">
+          {{ displayValue }}
+        </slot>
+        <template v-else>
+          {{ placeholder }}
+        </template>
       </div>
       <button
         v-if="modelValue && !isOpen"
@@ -124,7 +129,9 @@ onUnmounted(() => {
         class="dropdown-item"
         @click="selectOption(option)"
       >
-        {{ formatOption(option) }}
+        <slot name="option" :option="option">
+          {{ formatOption(option) }}
+        </slot>
       </div>
       <div v-if="filteredOptions.length === 0 && searchQuery" class="dropdown-item no-results">
         No results found

@@ -1,6 +1,7 @@
 <script lang="ts" setup>
 import type { FCEvent, GuildEmoji, SignupButtonConfig } from '@/features/events/events.types'
 import type { Fight } from '@/features/fights/fights.types'
+import type { Member } from '@/features/members/members.types'
 import type { RecurrenceConfig } from '@/utils/ical'
 import { computed, nextTick, onMounted, onUnmounted, reactive, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
@@ -14,6 +15,7 @@ import { EventsApi } from '@/features/events/events.api'
 import { EventType, OccurrenceStatus, ROLE } from '@/features/events/events.types'
 import { FightsApi } from '@/features/fights/fights.api'
 import { fightTypeToString } from '@/features/fights/fights.types'
+import { MembersApi } from '@/features/members/members.api'
 import mapsPlaceholder from '@/static/img/maps-placeholder.png'
 import { generateICalString, parseICalString } from '@/utils/ical'
 
@@ -38,6 +40,13 @@ const isEditMode = computed(() => !!route.params.id)
 
 const fights = ref<Fight[]>([])
 const selectedFight = ref<Fight | null>(null)
+
+const adminMembers = ref<Member[]>([])
+const selectedOrganizer = ref<Member | null>(null)
+
+function formatMemberName(member: Member): string {
+  return member.PlayerName || member.DiscordName
+}
 
 type PartyPreset = 'light-party' | 'full-party' | 'alliance-raid' | 'any' | 'custom'
 const partyPreset = ref<PartyPreset>('full-party')
@@ -219,7 +228,7 @@ const previewEvent = computed<FCEvent>(() => {
   const icalStr = generateICalString(form, recurrence.value)
   return {
     ...form,
-    Organizer: form.Organizer || user.value?.PlayerName || 'You',
+    Organizer: form.Organizer || (selectedOrganizer.value ? formatMemberName(selectedOrganizer.value) : user.value?.PlayerName || 'You'),
     ICalString: icalStr,
     AvailableForSignup: true,
     Occurrences: [{
@@ -335,6 +344,21 @@ onMounted(async () => {
     // Emojis are optional
   }
 
+  try {
+    const allMembers = await MembersApi.list()
+    adminMembers.value = allMembers.filter(m => m.IsAdmin)
+    if (!isEditMode.value && user.value) {
+      const me = adminMembers.value.find(m => m.DiscordId === user.value!.DiscordId)
+      if (me) {
+        selectedOrganizer.value = me
+        form.Organizer = formatMemberName(me)
+      }
+    }
+  }
+  catch {
+    // Members are optional; organizer can still be typed manually
+  }
+
   if (isEditMode.value) {
     loading.value = true
     try {
@@ -347,6 +371,11 @@ onMounted(async () => {
         partyPreset.value = detectPreset(eventData.MaxNumberOfParticipants)
         if (eventData.FightId) {
           selectedFight.value = fights.value.find(f => f.Id === eventData.FightId) || null
+        }
+        if (eventData.Organizer) {
+          const match = adminMembers.value.find(m => m.PlayerName === eventData.Organizer)
+          if (match)
+            selectedOrganizer.value = match
         }
         if (eventData.ICalString) {
           const parsedRecurrence = parseICalString(eventData.ICalString)
@@ -381,6 +410,10 @@ onMounted(async () => {
 onUnmounted(() => {
   document.removeEventListener('keydown', handleGlobalKeydown)
   document.removeEventListener('click', handleGlobalClick)
+})
+
+watch(selectedOrganizer, (newOrganizer) => {
+  form.Organizer = newOrganizer ? formatMemberName(newOrganizer) : ''
 })
 
 watch(selectedFight, (newFight) => {
@@ -425,7 +458,8 @@ async function submit() {
       error.value = 'You do not have permission to create/edit events.'
       return
     }
-    form.Organizer = user.value?.PlayerName ?? ''
+    if (!form.Organizer)
+      form.Organizer = user.value?.PlayerName ?? ''
     if (form.PictureUrl) {
       form.PictureUrl = toAbsoluteUrl(form.PictureUrl)
     }
@@ -608,9 +642,39 @@ function cancel() {
                 type="number"
               >
             </div>
-            <div v-if="isEditMode" class="form-field">
+            <div class="form-field">
               <label>Organizer</label>
-              <input :value="user?.PlayerName || ''" disabled type="text">
+              <SearchableDropdown
+                v-model="selectedOrganizer"
+                :format-option="formatMemberName"
+                :options="adminMembers"
+                placeholder="Select organizer..."
+              >
+                <template #selected="{ option }">
+                  <span class="organizer-option">
+                    <img
+                      v-if="option.DiscordAvatar"
+                      :src="option.DiscordAvatar"
+                      :alt="formatMemberName(option)"
+                      class="organizer-avatar"
+                    >
+                    <span v-else class="organizer-avatar organizer-avatar--placeholder" />
+                    {{ formatMemberName(option) }}
+                  </span>
+                </template>
+                <template #option="{ option }">
+                  <span class="organizer-option">
+                    <img
+                      v-if="option.DiscordAvatar"
+                      :src="option.DiscordAvatar"
+                      :alt="formatMemberName(option)"
+                      class="organizer-avatar"
+                    >
+                    <span v-else class="organizer-avatar organizer-avatar--placeholder" />
+                    {{ formatMemberName(option) }}
+                  </span>
+                </template>
+              </SearchableDropdown>
             </div>
           </div>
 
@@ -1271,6 +1335,26 @@ function cancel() {
 .button-preview-emoji {
   width: 16px;
   height: 16px;
+}
+
+/* Organizer dropdown */
+.organizer-option {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.organizer-avatar {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  object-fit: cover;
+}
+
+.organizer-avatar--placeholder {
+  display: inline-block;
+  background: linear-gradient(135deg, #3b82f6 0%, #8b5cf6 50%, #ec4899 100%);
 }
 
 /* Form actions */
