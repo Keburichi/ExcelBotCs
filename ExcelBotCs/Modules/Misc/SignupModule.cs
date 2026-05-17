@@ -1,5 +1,4 @@
 using Discord.Interactions;
-using ExcelBotCs.Modules.TeamFormation;
 using ExcelBotCs.Services.API.Interfaces;
 using ExcelBotCs.Services.Discord.Interfaces;
 
@@ -34,37 +33,14 @@ public class SignupModule : InteractionModuleBase<SocketInteractionContext>
             return;
         }
 
-        if (fcEvent.UsesCustomButtons)
+        var buttonConfig = fcEvent.SignupButtonConfigs!.FirstOrDefault(b => b.Slug == slug);
+        if (buttonConfig == null)
         {
-            var buttonConfig = fcEvent.SignupButtonConfigs!.FirstOrDefault(b => b.Slug == slug);
-            if (buttonConfig == null)
-            {
-                await FollowupAsync("Unknown button.", ephemeral: true);
-                return;
-            }
-
-            await _eventService.HandleSignupAsync(eventId, slug, Context.User.Id);
+            await FollowupAsync("Unknown button.", ephemeral: true);
+            return;
         }
-        else
-        {
-            var role = slug switch
-            {
-                "tank"   => (Role?)Role.Tank,
-                "healer" => Role.Healer,
-                "melee"  => Role.Melee,
-                "ranged" => Role.Ranged,
-                "caster" => Role.Caster,
-                _        => null
-            };
 
-            if (role is null)
-            {
-                await FollowupAsync("Unknown role.", ephemeral: true);
-                return;
-            }
-
-            await _eventService.HandleSignupAsync(eventId, role.Value, Context.User.Id);
-        }
+        await _eventService.HandleSignupAsync(eventId, slug, Context.User.Id);
 
         fcEvent = await _eventService.GetAsync(eventId);
         if (fcEvent != null && !string.IsNullOrEmpty(fcEvent.DiscordMessageId))

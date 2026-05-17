@@ -48,7 +48,7 @@ public class DiscordMessageCreator : IDiscordMessageCreator
         {
             componentBuilderV2.WithTextDisplay("**Signups are closed for this event.**");
         }
-        else if (fcEvent.UsesCustomButtons)
+        else
         {
             var buttons = new List<ButtonBuilder>();
             foreach (var config in fcEvent.SignupButtonConfigs!)
@@ -73,73 +73,28 @@ public class DiscordMessageCreator : IDiscordMessageCreator
             if (buttons.Count > 0)
                 componentBuilderV2.WithActionRow(buttons);
         }
-        else
-        {
-            var buttons = BuildLegacyButtons(fcEvent.Id);
-            componentBuilderV2.WithActionRow(buttons);
-        }
 
         componentBuilderV2.WithSeparator(SeparatorSpacingSize.Large);
         componentBuilderV2.WithTextDisplay("**Current Signups**");
 
-        if (fcEvent.UsesCustomButtons)
+        foreach (var config in fcEvent.SignupButtonConfigs!)
         {
-            foreach (var config in fcEvent.SignupButtonConfigs!)
-            {
-                var signUps = (fcEvent.Signups ?? Enumerable.Empty<EventSignup>())
-                    .Where(x => x.SignupSlugs != null && x.SignupSlugs.Contains(config.Slug));
-                var members = signUps.Aggregate<EventSignup?, string>(null,
-                    (current, eventSignup) => current + $"<@{eventSignup.DiscordUserId}>, ");
+            var signUps = (fcEvent.Signups ?? Enumerable.Empty<EventSignup>())
+                .Where(x => x.SignupSlugs != null && x.SignupSlugs.Contains(config.Slug));
+            var members = signUps.Aggregate<EventSignup?, string>(null,
+                (current, eventSignup) => current + $"<@{eventSignup.DiscordUserId}>, ");
 
-                var emotePrefix = "";
-                if (config.EmojiId != null && ulong.TryParse(config.EmojiId, out var emojiId))
-                {
-                    var emote = _discordSocketClient.GetEmoteById(emojiId);
-                    emotePrefix = emote != null ? $"{emote} " : "";
-                }
-
-                componentBuilderV2.WithTextDisplay($"{emotePrefix}**{config.Label}**: {members}");
-            }
-        }
-        else
-        {
-            foreach (Role role in Enum.GetValues(typeof(Role)))
+            var emotePrefix = "";
+            if (config.EmojiId != null && ulong.TryParse(config.EmojiId, out var emojiId))
             {
-                var signUps = (fcEvent.Signups ?? Enumerable.Empty<EventSignup>())
-                    .Where(x => x.Roles != null && x.Roles.Contains(role));
-                var members = signUps.Aggregate<EventSignup?, string>(null,
-                    (current, eventSignup) => current + $"<@{eventSignup.DiscordUserId}>, ");
-                componentBuilderV2.WithTextDisplay($"{_discordSocketClient.GetEmoteByRole(role)}: {members}");
+                var emote = _discordSocketClient.GetEmoteById(emojiId);
+                emotePrefix = emote != null ? $"{emote} " : "";
             }
+
+            componentBuilderV2.WithTextDisplay($"{emotePrefix}**{config.Label}**: {members}");
         }
 
         return componentBuilderV2;
-    }
-
-    private List<ButtonBuilder> BuildLegacyButtons(string eventId)
-    {
-        var tankEmote = _discordSocketClient.GetTankEmote();
-        var healEmote = _discordSocketClient.GetHealerEmote();
-        var meleeEmote = _discordSocketClient.GetMeleeEmote();
-        var rangeEmote = _discordSocketClient.GetRangedEmote();
-        var casterEmote = _discordSocketClient.GetCasterEmote();
-
-        var tankButton = new ButtonBuilder("Tank", $"{eventId}-signup-tank");
-        if (tankEmote != null) tankButton.WithEmote(tankEmote);
-
-        var healerButton = new ButtonBuilder("Healer", $"{eventId}-signup-healer");
-        if (healEmote != null) healerButton.WithEmote(healEmote);
-
-        var meleeButton = new ButtonBuilder("Melee", $"{eventId}-signup-melee");
-        if (meleeEmote != null) meleeButton.WithEmote(meleeEmote);
-
-        var rangeButton = new ButtonBuilder("Range", $"{eventId}-signup-ranged");
-        if (rangeEmote != null) rangeButton.WithEmote(rangeEmote);
-
-        var casterButton = new ButtonBuilder("Caster", $"{eventId}-signup-caster");
-        if (casterEmote != null) casterButton.WithEmote(casterEmote);
-
-        return [tankButton, healerButton, meleeButton, rangeButton, casterButton];
     }
 
     public async Task<string> CreateUpcomingRosterMessage(Event fcEvent)

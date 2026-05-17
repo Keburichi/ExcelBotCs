@@ -41,7 +41,6 @@ public class Event : BaseEntity
 
     // Signup button configuration (null = legacy 5-role buttons)
     public List<SignupButtonConfig>? SignupButtonConfigs { get; set; }
-    public bool UsesCustomButtons => SignupButtonConfigs is { Count: > 0 };
 
     // Occurrences - always has at least one
     public List<EventOccurrence> Occurrences { get; set; } = new();

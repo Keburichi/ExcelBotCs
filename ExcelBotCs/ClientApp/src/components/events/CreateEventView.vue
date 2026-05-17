@@ -187,7 +187,13 @@ function setButtonMode(mode: ButtonMode) {
     ]
   }
   else if (mode === 'standard') {
-    signupButtonConfigs.value = []
+    signupButtonConfigs.value = [
+      { Slug: 'tank', Label: 'Tank', EmojiId: ROLE_EMOJI_IDS.tank, IsHelper: false, MappedRole: ROLE.Tank },
+      { Slug: 'healer', Label: 'Healer', EmojiId: ROLE_EMOJI_IDS.healer, IsHelper: false, MappedRole: ROLE.Healer },
+      { Slug: 'melee', Label: 'Melee', EmojiId: ROLE_EMOJI_IDS.melee, IsHelper: false, MappedRole: ROLE.Melee },
+      { Slug: 'caster', Label: 'Caster', EmojiId: ROLE_EMOJI_IDS.caster, IsHelper: false, MappedRole: ROLE.Caster },
+      { Slug: 'ranged', Label: 'Ranged', EmojiId: ROLE_EMOJI_IDS.ranged, IsHelper: false, MappedRole: ROLE.Ranged },
+    ]
   }
 }
 
@@ -227,7 +233,9 @@ const previewEvent = computed<FCEvent>(() => {
 })
 
 const previewEventRef = ref<FCEvent>(previewEvent.value)
-watch(previewEvent, (val) => { previewEventRef.value = { ...val } }, { deep: true })
+watch(previewEvent, (val) => {
+  previewEventRef.value = { ...val }
+}, { deep: true })
 
 function setPartyPreset(preset: PartyPreset) {
   partyPreset.value = preset
@@ -259,11 +267,16 @@ function setDuration(minutes: number) {
 
 function detectPreset(maxParticipants: number): PartyPreset {
   switch (maxParticipants) {
-    case 4: return 'light-party'
-    case 8: return 'full-party'
-    case 24: return 'alliance-raid'
-    case 99: return 'any'
-    default: return 'custom'
+    case 4:
+      return 'light-party'
+    case 8:
+      return 'full-party'
+    case 24:
+      return 'alliance-raid'
+    case 99:
+      return 'any'
+    default:
+      return 'custom'
   }
 }
 
@@ -465,7 +478,10 @@ function cancel() {
 
             <div class="form-field">
               <label for="event-description">Description</label>
-              <textarea id="event-description" v-model="form.Description" placeholder="Describe the event (supports Discord formatting)" rows="4" />
+              <textarea
+                id="event-description" v-model="form.Description"
+                placeholder="Describe the event (supports Discord formatting)" rows="4"
+              />
             </div>
 
             <div class="form-field-row">
@@ -534,8 +550,8 @@ function cancel() {
                     v-for="mins in [60, 120, 180]"
                     :key="mins"
                     :state="form.Duration === mins ? 'primary' : 'secondary'"
-                    :variant="form.Duration === mins ? 'elevated' : 'outlined'"
                     :title="`${mins} min`"
+                    :variant="form.Duration === mins ? 'elevated' : 'outlined'"
                     size="small"
                     type="button"
                     @clicked="setDuration(mins)"
@@ -572,8 +588,8 @@ function cancel() {
                   v-for="preset in partyPresetOptions"
                   :key="preset.key"
                   :state="partyPreset === preset.key ? 'primary' : 'secondary'"
-                  :variant="partyPreset === preset.key ? 'elevated' : 'outlined'"
                   :title="preset.label"
+                  :variant="partyPreset === preset.key ? 'elevated' : 'outlined'"
                   size="small"
                   type="button"
                   @clicked="setPartyPreset(preset.key)"
@@ -611,24 +627,24 @@ function cancel() {
                 <BaseButton
                   :state="buttonMode === 'standard' ? 'primary' : 'secondary'"
                   :variant="buttonMode === 'standard' ? 'elevated' : 'outlined'"
-                  title="Standard Roles"
                   size="small"
+                  title="Standard Roles"
                   type="button"
                   @clicked="setButtonMode('standard')"
                 />
                 <BaseButton
                   :state="buttonMode === 'roles-helper' ? 'primary' : 'secondary'"
                   :variant="buttonMode === 'roles-helper' ? 'elevated' : 'outlined'"
-                  title="Roles + Helper"
                   size="small"
+                  title="Roles + Helper"
                   type="button"
                   @clicked="setButtonMode('roles-helper')"
                 />
                 <BaseButton
                   :state="buttonMode === 'custom' ? 'primary' : 'secondary'"
                   :variant="buttonMode === 'custom' ? 'elevated' : 'outlined'"
-                  title="Custom Buttons"
                   size="small"
+                  title="Custom Buttons"
                   type="button"
                   @clicked="setButtonMode('custom')"
                 />
@@ -638,7 +654,8 @@ function cancel() {
             <!-- Roles + Helper: only configure the helper button -->
             <template v-if="buttonMode === 'roles-helper'">
               <p class="field-hint">
-                Standard role buttons (Tank, Healer, Melee, Caster, Ranged) with emotes. Configure the helper button below:
+                Standard role buttons (Tank, Healer, Melee, Caster, Ranged) with emotes. Configure the helper button
+                below:
               </p>
               <div v-if="signupButtonConfigs.find(c => c.IsHelper)" class="button-config-row">
                 <div class="button-config-fields">
@@ -652,11 +669,15 @@ function cancel() {
                   <span class="button-tag button-tag--helper">helper</span>
                   <div class="emoji-picker-wrapper">
                     <button
-                      type="button"
                       class="emoji-picker-trigger"
+                      type="button"
                       @click.stop="openEmojiDropdown(signupButtonConfigs.length - 1)"
                     >
-                      <img v-if="getEmojiUrl(signupButtonConfigs[signupButtonConfigs.length - 1].EmojiId)" :src="getEmojiUrl(signupButtonConfigs[signupButtonConfigs.length - 1].EmojiId)!" alt="" class="emoji-preview-img">
+                      <img
+                        v-if="getEmojiUrl(signupButtonConfigs[signupButtonConfigs.length - 1].EmojiId)"
+                        :src="getEmojiUrl(signupButtonConfigs[signupButtonConfigs.length - 1].EmojiId)!" alt=""
+                        class="emoji-preview-img"
+                      >
                       <span v-else class="emoji-picker-placeholder">Emoji</span>
                     </button>
                     <div v-if="emojiDropdownOpenIndex === signupButtonConfigs.length - 1" class="emoji-dropdown">
@@ -667,16 +688,19 @@ function cancel() {
                         placeholder="Search emojis..."
                         type="text"
                       >
-                      <button type="button" class="emoji-option emoji-option--clear" @click="clearEmoji(signupButtonConfigs.length - 1)">
+                      <button
+                        class="emoji-option emoji-option--clear" type="button"
+                        @click="clearEmoji(signupButtonConfigs.length - 1)"
+                      >
                         No emoji
                       </button>
                       <div class="emoji-grid">
                         <button
                           v-for="emoji in filteredEmojis"
                           :key="emoji.Id"
-                          type="button"
-                          class="emoji-option-img"
                           :title="emoji.Name"
+                          class="emoji-option-img"
+                          type="button"
                           @click="selectEmoji(signupButtonConfigs.length - 1, emoji)"
                         >
                           <img :src="emoji.Url" :alt="emoji.Name" class="emoji-grid-img">
@@ -687,7 +711,11 @@ function cancel() {
                 </div>
                 <div class="button-preview">
                   <span class="button-preview-btn">
-                    <img v-if="getEmojiUrl(signupButtonConfigs[signupButtonConfigs.length - 1].EmojiId)" :src="getEmojiUrl(signupButtonConfigs[signupButtonConfigs.length - 1].EmojiId)!" alt="" class="button-preview-emoji">
+                    <img
+                      v-if="getEmojiUrl(signupButtonConfigs[signupButtonConfigs.length - 1].EmojiId)"
+                      :src="getEmojiUrl(signupButtonConfigs[signupButtonConfigs.length - 1].EmojiId)!" alt=""
+                      class="button-preview-emoji"
+                    >
                     {{ signupButtonConfigs[signupButtonConfigs.length - 1].Label || 'Helper' }}
                   </span>
                 </div>
@@ -700,19 +728,19 @@ function cancel() {
                 <label>Presets</label>
                 <div class="party-presets">
                   <BaseButton
-                    title="Interested Only"
                     size="small"
                     state="secondary"
-                    variant="outlined"
+                    title="Interested Only"
                     type="button"
+                    variant="outlined"
                     @clicked="applyPreset('interested')"
                   />
                   <BaseButton
-                    title="Interested + Helper"
                     size="small"
                     state="secondary"
-                    variant="outlined"
+                    title="Interested + Helper"
                     type="button"
+                    variant="outlined"
                     @clicked="applyPreset('interested-helper')"
                   />
                 </div>
@@ -728,14 +756,20 @@ function cancel() {
                     @input="onLabelChange(index)"
                   >
                   <span v-if="config.IsHelper" class="button-tag button-tag--helper">helper</span>
-                  <span v-else-if="config.Slug === 'interested'" class="button-tag button-tag--interested">interested</span>
+                  <span
+                    v-else-if="config.Slug === 'interested'"
+                    class="button-tag button-tag--interested"
+                  >interested</span>
                   <div class="emoji-picker-wrapper">
                     <button
-                      type="button"
                       class="emoji-picker-trigger"
+                      type="button"
                       @click.stop="openEmojiDropdown(index)"
                     >
-                      <img v-if="getEmojiUrl(config.EmojiId)" :src="getEmojiUrl(config.EmojiId)!" alt="" class="emoji-preview-img">
+                      <img
+                        v-if="getEmojiUrl(config.EmojiId)" :src="getEmojiUrl(config.EmojiId)!" alt=""
+                        class="emoji-preview-img"
+                      >
                       <span v-else class="emoji-picker-placeholder">Emoji</span>
                     </button>
                     <div v-if="emojiDropdownOpenIndex === index" class="emoji-dropdown">
@@ -753,9 +787,9 @@ function cancel() {
                         <button
                           v-for="emoji in filteredEmojis"
                           :key="emoji.Id"
-                          type="button"
-                          class="emoji-option-img"
                           :title="emoji.Name"
+                          class="emoji-option-img"
+                          type="button"
                           @click="selectEmoji(index, emoji)"
                         >
                           <img :src="emoji.Url" :alt="emoji.Name" class="emoji-grid-img">
@@ -766,17 +800,26 @@ function cancel() {
                 </div>
                 <div class="button-preview">
                   <span class="button-preview-btn">
-                    <img v-if="getEmojiUrl(config.EmojiId)" :src="getEmojiUrl(config.EmojiId)!" alt="" class="button-preview-emoji">
+                    <img
+                      v-if="getEmojiUrl(config.EmojiId)" :src="getEmojiUrl(config.EmojiId)!" alt=""
+                      class="button-preview-emoji"
+                    >
                     {{ config.Label || '...' }}
                   </span>
                 </div>
                 <button
-                  type="button"
                   class="button-remove"
                   title="Remove button"
+                  type="button"
                   @click="removeButton(index)"
                 >
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>
+                  <svg
+                    fill="none" height="14" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                    viewBox="0 0 24 24" width="14"
+                  >
+                    <line x1="18" x2="6" y1="6" y2="18" />
+                    <line x1="6" x2="18" y1="6" y2="18" />
+                  </svg>
                 </button>
               </div>
 
@@ -784,8 +827,8 @@ function cancel() {
                 size="small"
                 state="secondary"
                 title="+ Add Button"
-                variant="outlined"
                 type="button"
+                variant="outlined"
                 @clicked="addButton"
               />
             </template>
@@ -897,26 +940,23 @@ function cancel() {
   border: 2px solid rgba(255, 255, 255, 0.4);
   border-radius: 16px;
   padding: 1.5rem;
-  box-shadow:
-    0 4px 16px rgba(0, 0, 0, 0.08),
-    inset 0 1px 0 rgba(255, 255, 255, 0.5);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08),
+  inset 0 1px 0 rgba(255, 255, 255, 0.5);
 }
 
 :root[data-theme='dark'] .form-surface {
   background: rgba(18, 26, 45, 0.7);
   border-color: rgba(255, 255, 255, 0.15);
-  box-shadow:
-    0 4px 16px rgba(0, 0, 0, 0.3),
-    inset 0 1px 0 rgba(255, 255, 255, 0.08);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3),
+  inset 0 1px 0 rgba(255, 255, 255, 0.08);
 }
 
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme='light']) .form-surface {
     background: rgba(18, 26, 45, 0.7);
     border-color: rgba(255, 255, 255, 0.15);
-    box-shadow:
-      0 4px 16px rgba(0, 0, 0, 0.3),
-      inset 0 1px 0 rgba(255, 255, 255, 0.08);
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3),
+    inset 0 1px 0 rgba(255, 255, 255, 0.08);
   }
 }
 
@@ -1143,7 +1183,7 @@ function cancel() {
   background: var(--card, #fff);
   border: 1px solid var(--border);
   border-radius: 8px;
-  box-shadow: 0 4px 16px rgba(0,0,0,0.15);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
   padding: 0.375rem;
   margin-top: 4px;
 }
