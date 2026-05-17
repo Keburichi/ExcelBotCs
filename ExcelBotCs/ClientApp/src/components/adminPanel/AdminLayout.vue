@@ -10,6 +10,7 @@ const tabs = computed<Tab[]>(() => {
   const base: Tab[] = [
     { name: 'Members', path: '/admin/members' },
     { name: 'Roles', path: '/admin/roles' },
+    { name: 'Templates', path: '/admin/templates' },
     { name: 'Statistics', path: '/admin/statistics' },
     { name: 'Settings', path: '/admin/settings' },
   ]

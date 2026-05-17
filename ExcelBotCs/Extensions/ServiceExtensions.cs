@@ -25,6 +25,7 @@ public static class ServiceExtensions
         services.AddSingleton<IExtraLotteryGuessRepository, ExtraLotteryGuessRepository>();
         services.AddSingleton<ILotteryResultRepository, LotteryResultRepository>();
         services.AddSingleton<IEventDetailsRepository, EventDetailsRepository>();
+        services.AddSingleton<IEventTemplateRepository, EventTemplateRepository>();
     }
 
     public static void AddApiServices(this IServiceCollection services)
@@ -36,6 +37,7 @@ public static class ServiceExtensions
         services.AddSingleton<IMemberRoleService, MemberRoleService>();
         services.AddSingleton<ILodestoneDutyService, LodestoneDutyService>();
         services.AddSingleton<IRaidplanService, RaidplanService>();
+        services.AddSingleton<IEventTemplateService, EventTemplateService>();
     }
 
     public static void AddDomainServices(this IServiceCollection services)

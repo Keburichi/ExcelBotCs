@@ -1,4 +1,5 @@
 <script lang="ts" setup>
+import type { EventTemplate } from '@/features/event-templates/event-templates.types'
 import type { FCEvent, GuildEmoji, SignupButtonConfig } from '@/features/events/events.types'
 import type { Fight } from '@/features/fights/fights.types'
 import type { Member } from '@/features/members/members.types'
@@ -11,6 +12,7 @@ import EventCard from '@/components/events/EventCard.vue'
 import RecurrenceOptions from '@/components/events/RecurrenceOptions.vue'
 import SearchableDropdown from '@/components/SearchableDropdown.vue'
 import { useAuth } from '@/composables/useAuth'
+import { EventTemplatesApi } from '@/features/event-templates/event-templates.api'
 import { EventsApi } from '@/features/events/events.api'
 import { EventType, OccurrenceStatus, ROLE } from '@/features/events/events.types'
 import { FightsApi } from '@/features/fights/fights.api'
@@ -37,6 +39,13 @@ const mapsPlaceholderAbsolute = toAbsoluteUrl(mapsPlaceholder)
 const loading = ref(false)
 const error = ref('')
 const isEditMode = computed(() => !!route.params.id)
+
+const eventTemplates = ref<EventTemplate[]>([])
+const selectedTemplate = ref<EventTemplate | null>(null)
+
+function formatTemplateName(tpl: EventTemplate): string {
+  return tpl.Name
+}
 
 const fights = ref<Fight[]>([])
 const selectedFight = ref<Fight | null>(null)
@@ -222,6 +231,63 @@ function applyPreset(preset: 'interested' | 'interested-helper') {
   }
 }
 
+function getNextOccurrence(dayOfWeek: number, timeOfDayMinutes: number): Date {
+  const now = new Date()
+  const targetDay = dayOfWeek
+  const currentDay = now.getDay()
+  let daysUntil = targetDay - currentDay
+  if (daysUntil < 0)
+    daysUntil += 7
+  if (daysUntil === 0) {
+    const currentMinutes = now.getHours() * 60 + now.getMinutes()
+    if (currentMinutes >= timeOfDayMinutes)
+      daysUntil = 7
+  }
+  const result = new Date(now)
+  result.setDate(result.getDate() + daysUntil)
+  result.setHours(Math.floor(timeOfDayMinutes / 60), timeOfDayMinutes % 60, 0, 0)
+  return result
+}
+
+function applyTemplate(tpl: EventTemplate | null) {
+  if (!tpl)
+    return
+
+  form.Name = tpl.Name
+  form.Description = tpl.Description
+  form.Type = tpl.Type
+  form.Duration = tpl.Duration
+  form.MaxNumberOfParticipants = tpl.MaxNumberOfParticipants
+  form.StartDate = getNextOccurrence(tpl.DayOfWeek, tpl.TimeOfDayMinutes)
+
+  partyPreset.value = detectPreset(tpl.MaxNumberOfParticipants)
+
+  if (tpl.Organizer) {
+    const match = adminMembers.value.find(m => m.PlayerName === tpl.Organizer)
+    if (match) {
+      selectedOrganizer.value = match
+      form.Organizer = formatMemberName(match)
+    }
+    else {
+      form.Organizer = tpl.Organizer
+    }
+  }
+
+  if (tpl.SignupButtonConfigs && tpl.SignupButtonConfigs.length > 0) {
+    const hasHelper = tpl.SignupButtonConfigs.some(c => c.IsHelper)
+    const hasAllRoles = ['tank', 'healer', 'melee', 'caster', 'ranged']
+      .every(slug => tpl.SignupButtonConfigs!.some(c => c.Slug === slug))
+    if (hasHelper && hasAllRoles)
+      buttonMode.value = 'roles-helper'
+    else buttonMode.value = 'custom'
+    signupButtonConfigs.value = [...tpl.SignupButtonConfigs]
+  }
+  else {
+    buttonMode.value = 'standard'
+    signupButtonConfigs.value = []
+  }
+}
+
 const previewCollapsed = ref(true)
 
 const previewEvent = computed<FCEvent>(() => {
@@ -329,6 +395,13 @@ function formatFight(fight: Fight): string {
 onMounted(async () => {
   document.addEventListener('keydown', handleGlobalKeydown)
   document.addEventListener('click', handleGlobalClick)
+
+  try {
+    eventTemplates.value = await EventTemplatesApi.list()
+  }
+  catch {
+    // Templates are optional
+  }
 
   try {
     fights.value = await FightsApi.list()
@@ -503,6 +576,30 @@ function cancel() {
       <!-- Form Column -->
       <form class="event-form" @submit.prevent="submit">
         <div class="form-surface">
+          <!-- Template Picker (create mode only) -->
+          <div v-if="!isEditMode && eventTemplates.length > 0" class="form-group template-picker-group">
+            <div class="form-field">
+              <label>Load from Template</label>
+              <div class="template-picker">
+                <SearchableDropdown
+                  v-model="selectedTemplate"
+                  :format-option="formatTemplateName"
+                  :options="eventTemplates"
+                  placeholder="Select a template..."
+                />
+                <BaseButton
+                  :disabled="!selectedTemplate"
+                  size="small"
+                  title="Apply"
+                  type="button"
+                  @clicked="applyTemplate(selectedTemplate)"
+                />
+              </div>
+              <small class="field-hint">Pre-fills the form with saved settings</small>
+            </div>
+            <hr class="form-divider">
+          </div>
+
           <!-- Basic Information -->
           <div class="form-group">
             <div class="form-field">
@@ -1022,6 +1119,17 @@ function cancel() {
     box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3),
     inset 0 1px 0 rgba(255, 255, 255, 0.08);
   }
+}
+
+.template-picker {
+  display: flex;
+  gap: 0.5rem;
+  align-items: flex-start;
+}
+
+.template-picker-group .form-divider {
+  margin-top: 1.25rem;
+  margin-bottom: 0;
 }
 
 .form-group {

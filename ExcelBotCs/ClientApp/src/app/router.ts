@@ -5,6 +5,7 @@ import HomeView from '@/app/HomeView.vue'
 import AdminLayout from '@/components/adminPanel/AdminLayout.vue'
 import DevResourcesView from '@/components/adminPanel/DevResourcesView.vue'
 import MemberRolesView from '@/components/adminPanel/MemberRolesView.vue'
+import EventTemplatesView from '@/components/adminPanel/EventTemplatesView.vue'
 import SettingsView from '@/components/adminPanel/SettingsView.vue'
 import StatisticsView from '@/components/adminPanel/StatisticsView.vue'
 import LoginView from '@/components/auth/LoginView.vue'
@@ -69,6 +70,7 @@ const routes: RouteRecordRaw[] = [
       { path: 'members', name: 'admin-members', component: MembersListView },
       { path: 'roles', name: 'admin-roles', component: MemberRolesView },
       { path: 'statistics', name: 'admin-statistics', component: StatisticsView },
+      { path: 'templates', name: 'admin-templates', component: EventTemplatesView },
       { path: 'settings', name: 'admin-settings', component: SettingsView },
       { path: 'dev-resources', name: 'admin-dev-resources', component: DevResourcesView },
     ],
