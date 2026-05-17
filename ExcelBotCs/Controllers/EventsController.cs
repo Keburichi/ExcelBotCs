@@ -158,22 +158,7 @@ public class EventsController : AuthorizedController, IEventsController
         if (member is null)
             return BadRequest("Member not found for the current user");
 
-        // Check if the member is already signed up for this occurrence
-        var existing = fcEvent.Signups.FirstOrDefault(x => x.DiscordUserId == member.DiscordId);
-        if (existing != null)
-            // Update roles for existing signup
-            existing.Roles = signupRequest.Roles;
-        else
-            fcEvent.Signups.Add(new EventSignup
-            {
-                DiscordUserId = member.DiscordId,
-                Roles = signupRequest.Roles,
-                SignupDate = DateTime.UtcNow
-            });
-
-        await _eventService.UpdateAsync(fcEvent.Id, fcEvent);
-
-        return Ok();
+        return await UpdateSignup(fcEvent, member.DiscordId, signupRequest);
     }
 
     [HttpPost]
@@ -189,19 +174,41 @@ public class EventsController : AuthorizedController, IEventsController
         if (string.IsNullOrWhiteSpace(signupRequest.DiscordUserId))
             return BadRequest("DiscordUserId is required");
 
-        if (signupRequest.Roles is null || signupRequest.Roles.Count == 0)
-            return BadRequest("At least one role is required");
+        return await UpdateSignup(fcEvent, signupRequest.DiscordUserId, signupRequest);
+    }
 
-        var existing = fcEvent.Signups.FirstOrDefault(x => x.DiscordUserId == signupRequest.DiscordUserId);
+    private async Task<ActionResult> UpdateSignup(Event fcEvent, string discordUserId,
+        [FromBody] EventSignupDto signupRequest)
+    {
+        if (signupRequest.SignupSlugs is null || signupRequest.SignupSlugs.Count == 0)
+            return BadRequest("At least one signup slug is required");
+
+        var existing = fcEvent.Signups.FirstOrDefault(x => x.DiscordUserId == discordUserId);
+
+        // extract the roles from the signup slugs
+        var signupRoles = new List<Role>();
+        foreach (var signupSlug in signupRequest.SignupSlugs)
+        {
+            var role = fcEvent.SignupButtonConfigs!.FirstOrDefault(b => b.Slug == signupSlug)?.MappedRole;
+            if (role != null)
+                signupRoles.Add(role.Value);
+        }
+
         if (existing != null)
-            existing.Roles = signupRequest.Roles;
+        {
+            existing.SignupSlugs = signupRequest.SignupSlugs;
+            existing.Roles = signupRoles;
+        }
         else
+        {
             fcEvent.Signups.Add(new EventSignup
             {
-                DiscordUserId = signupRequest.DiscordUserId,
-                Roles = signupRequest.Roles,
+                DiscordUserId = discordUserId,
+                SignupSlugs = signupRequest.SignupSlugs,
+                Roles = signupRoles,
                 SignupDate = DateTime.UtcNow
             });
+        }
 
         await _eventService.UpdateAsync(fcEvent.Id, fcEvent);
 

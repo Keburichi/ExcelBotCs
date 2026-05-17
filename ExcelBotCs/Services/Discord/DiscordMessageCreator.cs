@@ -22,45 +22,6 @@ public class DiscordMessageCreator : IDiscordMessageCreator
 
     public async Task<ComponentBuilderV2> CreateSignupComponents(Event fcEvent)
     {
-        var buttons = new List<ButtonBuilder>();
-
-        var tankEmote = _discordSocketClient.GetTankEmote();
-        var healEmote = _discordSocketClient.GetHealerEmote();
-        var meleeEmote = _discordSocketClient.GetMeleeEmote();
-        var rangeEmote = _discordSocketClient.GetRangedEmote();
-        var casterEmote = _discordSocketClient.GetCasterEmote();
-
-        var tankButton = new ButtonBuilder("Tank", $"{fcEvent.Id}-signup-tank");
-
-        if (tankEmote != null)
-            tankButton.WithEmote(tankEmote);
-
-        var healerButton = new ButtonBuilder("Healer", $"{fcEvent.Id}-signup-healer");
-
-        if (healEmote != null)
-            healerButton.WithEmote(healEmote);
-
-        var meleeButton = new ButtonBuilder("Melee", $"{fcEvent.Id}-signup-melee");
-
-        if (meleeEmote != null)
-            meleeButton.WithEmote(meleeEmote);
-
-        var rangeButton = new ButtonBuilder("Range", $"{fcEvent.Id}-signup-ranged");
-
-        if (rangeEmote != null)
-            rangeButton.WithEmote(rangeEmote);
-
-        var casterButton = new ButtonBuilder("Caster", $"{fcEvent.Id}-signup-caster");
-
-        if (casterEmote != null)
-            casterButton.WithEmote(casterEmote);
-
-        buttons.Add(tankButton);
-        buttons.Add(healerButton);
-        buttons.Add(meleeButton);
-        buttons.Add(rangeButton);
-        buttons.Add(casterButton);
-
         var componentBuilderV2 = new ComponentBuilderV2();
 
         componentBuilderV2.WithTextDisplay(new TextDisplayBuilder($"# {fcEvent.Name}"));
@@ -89,19 +50,48 @@ public class DiscordMessageCreator : IDiscordMessageCreator
         }
         else
         {
-            componentBuilderV2.WithActionRow(buttons);
+            var buttons = new List<ButtonBuilder>();
+            foreach (var config in fcEvent.SignupButtonConfigs!)
+            {
+                var button = new ButtonBuilder(config.Label, $"{fcEvent.Id}-signup-{config.Slug}");
+                if (config.EmojiId != null && ulong.TryParse(config.EmojiId, out var emojiId))
+                {
+                    var emote = _discordSocketClient.GetEmoteById(emojiId);
+                    if (emote != null)
+                        button.WithEmote(emote);
+                }
+
+                buttons.Add(button);
+
+                if (buttons.Count == 5)
+                {
+                    componentBuilderV2.WithActionRow(buttons);
+                    buttons = new List<ButtonBuilder>();
+                }
+            }
+
+            if (buttons.Count > 0)
+                componentBuilderV2.WithActionRow(buttons);
         }
 
         componentBuilderV2.WithSeparator(SeparatorSpacingSize.Large);
         componentBuilderV2.WithTextDisplay("**Current Signups**");
 
-        foreach (Role role in Enum.GetValues(typeof(Role)))
+        foreach (var config in fcEvent.SignupButtonConfigs!)
         {
             var signUps = (fcEvent.Signups ?? Enumerable.Empty<EventSignup>())
-                .Where(x => x.Roles.Contains(role));
+                .Where(x => x.SignupSlugs != null && x.SignupSlugs.Contains(config.Slug));
             var members = signUps.Aggregate<EventSignup?, string>(null,
                 (current, eventSignup) => current + $"<@{eventSignup.DiscordUserId}>, ");
-            componentBuilderV2.WithTextDisplay($"{_discordSocketClient.GetEmoteByRole(role)}: {members}");
+
+            var emotePrefix = "";
+            if (config.EmojiId != null && ulong.TryParse(config.EmojiId, out var emojiId))
+            {
+                var emote = _discordSocketClient.GetEmoteById(emojiId);
+                emotePrefix = emote != null ? $"{emote} " : "";
+            }
+
+            componentBuilderV2.WithTextDisplay($"{emotePrefix}**{config.Label}**: {members}");
         }
 
         return componentBuilderV2;

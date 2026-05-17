@@ -21,4 +21,6 @@ public class CreateEventRequest
     public string? FightId { get; set; }
     public string? Organizer { get; set; }
     public int MaxNumberOfParticipants { get; set; }
+
+    public List<SignupButtonConfigDto>? SignupButtonConfigs { get; set; }
 }

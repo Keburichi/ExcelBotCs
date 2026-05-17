@@ -2,6 +2,7 @@ using ExcelBotCs.Extensions;
 using ExcelBotCs.Models.Database.Events;
 using ExcelBotCs.Models.DTO;
 using ExcelBotCs.Models.DTO.Events;
+using ExcelBotCs.Modules.TeamFormation;
 using DbEventSignup = ExcelBotCs.Models.Database.Events.EventSignup;
 using DtoEventSignup = ExcelBotCs.Models.DTO.EventSignupDto;
 
@@ -45,6 +46,7 @@ public static class EventMappingExtensions
             MaxNumberOfParticipants = fcEvent.MaxNumberOfParticipants,
             AuthorId = fcEvent.AuthorId,
             Organizer = fcEvent.Organizer,
+            SignupButtonConfigs = fcEvent.SignupButtonConfigs?.Select(MapButtonConfigToDto).ToList(),
             Occurrences = fcEvent.Occurrences?.Select(MapOccurrenceToDto).ToList() ?? new List<EventOccurrenceDto>(),
             IsArchived = fcEvent.IsArchived,
             ArchivedDate = fcEvent.ArchivedDate,
@@ -80,6 +82,7 @@ public static class EventMappingExtensions
         {
             DiscordUserId = signup.DiscordUserId,
             Roles = signup.Roles,
+            SignupSlugs = signup.SignupSlugs,
             SignupDate = signup.SignupDate
         };
     }
@@ -90,7 +93,32 @@ public static class EventMappingExtensions
         {
             DiscordUserId = dto.DiscordUserId,
             Roles = dto.Roles,
+            SignupSlugs = dto.SignupSlugs,
             SignupDate = dto.SignupDate
+        };
+    }
+
+    private static SignupButtonConfigDto MapButtonConfigToDto(SignupButtonConfig config)
+    {
+        return new SignupButtonConfigDto
+        {
+            Slug = config.Slug,
+            Label = config.Label,
+            EmojiId = config.EmojiId,
+            IsHelper = config.IsHelper,
+            MappedRole = config.MappedRole
+        };
+    }
+
+    private static SignupButtonConfig MapButtonConfigToEntity(SignupButtonConfigDto dto)
+    {
+        return new SignupButtonConfig
+        {
+            Slug = dto.Slug,
+            Label = dto.Label,
+            EmojiId = dto.EmojiId,
+            IsHelper = dto.IsHelper,
+            MappedRole = dto.MappedRole
         };
     }
 
@@ -127,6 +155,7 @@ public static class EventMappingExtensions
         existing.FightId = request.FightId;
         existing.Organizer = request.Organizer;
         existing.MaxNumberOfParticipants = request.MaxNumberOfParticipants;
+        existing.SignupButtonConfigs = request.SignupButtonConfigs?.Select(MapButtonConfigToEntity).ToList();
         return existing;
     }
 
@@ -144,7 +173,8 @@ public static class EventMappingExtensions
             PictureUrl = createEventRequest.PictureUrl,
             FightId = createEventRequest.FightId,
             Organizer = createEventRequest.Organizer,
-            MaxNumberOfParticipants = createEventRequest.MaxNumberOfParticipants
+            MaxNumberOfParticipants = createEventRequest.MaxNumberOfParticipants,
+            SignupButtonConfigs = createEventRequest.SignupButtonConfigs?.Select(MapButtonConfigToEntity).ToList()
         };
     }
 }

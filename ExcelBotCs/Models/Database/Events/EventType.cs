@@ -10,5 +10,6 @@ public enum EventType
     Academy,
     MinIlvl,
     Downsynced,
-    Other
+    Other,
+    Unreal
 }

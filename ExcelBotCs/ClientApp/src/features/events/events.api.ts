@@ -3,6 +3,7 @@ import type {
   EventGroupRequest,
   ExtendEventRequest,
   FCEvent,
+  GuildEmoji,
   OccurrenceStatus,
   PagedResult,
   Role,
@@ -24,6 +25,12 @@ export const EventsApi = {
       body: JSON.stringify({ Roles: roles }),
     }),
 
+  signUpWithSlugs: (eventId: string, slugs: string[]) =>
+    http<void>(`/api/events/${eventId}/signup`, {
+      method: 'POST',
+      body: JSON.stringify({ SignupSlugs: slugs }),
+    }),
+
   cancelSignup: (eventId: string) =>
     http<void>(`/api/events/${eventId}/signup`, {
       method: 'DELETE',
@@ -34,6 +41,15 @@ export const EventsApi = {
       method: 'POST',
       body: JSON.stringify({ DiscordUserId: discordUserId, Roles: roles }),
     }),
+
+  manualSignupWithSlugs: (eventId: string, discordUserId: string, slugs: string[]) =>
+    http<void>(`/api/events/${eventId}/signup/manual`, {
+      method: 'POST',
+      body: JSON.stringify({ DiscordUserId: discordUserId, SignupSlugs: slugs }),
+    }),
+
+  // Emojis
+  getGuildEmojis: () => http<GuildEmoji[]>('/api/emojis'),
 
   // Group-based participant selection
   selectParticipants: (eventId: string, groups: EventGroupRequest[]) =>

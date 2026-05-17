@@ -149,6 +149,16 @@ export function useEvents() {
     }
   }
 
+  async function signUpWithSlugs(eventId: string, slugs: string[]) {
+    try {
+      await EventsApi.signUpWithSlugs(eventId, slugs)
+      await load()
+    }
+    catch (e: unknown) {
+      error.value = e instanceof Error ? e.message : 'Failed to sign up for event'
+    }
+  }
+
   async function cancelSignupForEvent(eventId: string) {
     try {
       await EventsApi.cancelSignup(eventId)
@@ -308,6 +318,7 @@ export function useEvents() {
     getEvent,
     // Event-level signup/participant methods
     signUpForEvent,
+    signUpWithSlugs,
     cancelSignupForEvent,
     selectParticipantsForEvent,
     removeParticipantFromEvent,

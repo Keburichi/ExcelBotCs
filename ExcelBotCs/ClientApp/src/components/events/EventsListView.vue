@@ -38,13 +38,15 @@ function handleEventArchived(event: any) {
 
 const calendarUrl = computed(() => {
   const discordId = user.value?.DiscordId
-  if (!discordId) return ''
+  if (!discordId)
+    return ''
   const origin = typeof window !== 'undefined' ? window.location.origin : ''
   return `${origin}/api/Events/retrieve/${discordId}.ics`
 })
 
 function subscribeCalendar() {
-  if (!calendarUrl.value) return
+  if (!calendarUrl.value)
+    return
   window.open(calendarUrl.value, '_blank')
 }
 
@@ -56,7 +58,8 @@ const freqMap = {
 }
 
 const calendarEvents = computed(() => {
-  if (!e.events.value) return []
+  if (!e.events.value)
+    return []
   const events: any[] = []
   e.events.value.forEach((event) => {
     if (event.ICalString && event.ICalString.includes('RRULE:')) {
@@ -321,6 +324,11 @@ onMounted(e.load)
 .event-type--academy { background-color: var(--cat-rose-bg); border: 1px solid var(--cat-rose-fg); }
 .event-type--minilvl { background-color: var(--cat-amber-bg); border: 1px solid var(--cat-amber-fg); }
 .event-type--downsynced { background-color: var(--cat-indigo-bg); border: 1px solid var(--cat-indigo-fg); }
+
+.event-type--unreal {
+  background-color: var(--cat-red-bg);
+  border: 1px solid var(--cat-red-fg);
+}
 .event-type--other { background-color: var(--cat-slate-bg); border: 1px solid var(--cat-slate-fg); }
 .vuecal--dark .event-type--raid { background-color: var(--cat-blue-fg); }
 .vuecal--dark .event-type--social { background-color: var(--cat-purple-fg); }
@@ -330,5 +338,9 @@ onMounted(e.load)
 .vuecal--dark .event-type--academy { background-color: var(--cat-rose-fg); }
 .vuecal--dark .event-type--minilvl { background-color: var(--cat-amber-fg); }
 .vuecal--dark .event-type--downsynced { background-color: var(--cat-indigo-fg); }
+
+.vuecal--dark .event-type--unreal {
+  background-color: var(--cat-red-fg);
+}
 .vuecal--dark .event-type--other { background-color: var(--cat-slate-fg); }
 </style>
