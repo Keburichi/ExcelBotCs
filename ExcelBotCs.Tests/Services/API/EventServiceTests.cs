@@ -1,3 +1,4 @@
+using Discord;
 using ExcelBotCs.Database.Interfaces;
 using ExcelBotCs.Models.Database;
 using ExcelBotCs.Models.Database.Events;
@@ -403,6 +404,40 @@ public class EventServiceTests
         _discordMessageServiceMock.Verify(x => x.PostEventSignupAsync(eventItem), Times.Once());
     }
 
+    [Fact]
+    public async Task CreateAsync_StoresSignupPostId_WhenDiscordMessageIsPosted()
+    {
+        var eventItem = new Event { StartDate = DateTime.UtcNow, Duration = 60 }.PopulateWithRandomData();
+        eventItem.ICalString = null;
+        var mockMessage = new Mock<IUserMessage>();
+        mockMessage.Setup(m => m.Id).Returns(987654321UL);
+        _discordMessageServiceMock.Setup(x => x.PostEventSignupAsync(eventItem))
+            .ReturnsAsync(mockMessage.Object);
+        _eventRepositoryMock.Setup(x => x.CreateAsync(eventItem)).Returns(Task.CompletedTask);
+        _eventRepositoryMock.Setup(x => x.UpdateAsync(eventItem.Id, eventItem)).Returns(Task.CompletedTask);
+
+        await _eventService.CreateAsync(eventItem);
+
+        eventItem.SignupPostId.ShouldBe("987654321");
+        _eventRepositoryMock.Verify(x => x.UpdateAsync(eventItem.Id, eventItem), Times.Once());
+    }
+
+    [Fact]
+    public async Task CreateAsync_SkipsSignupPostId_WhenDiscordMessageIsNull()
+    {
+        var eventItem = new Event { StartDate = DateTime.UtcNow, Duration = 60 }.PopulateWithRandomData();
+        eventItem.ICalString = null;
+        eventItem.SignupPostId = null;
+        _discordMessageServiceMock.Setup(x => x.PostEventSignupAsync(eventItem))
+            .ReturnsAsync((IUserMessage?)null);
+        _eventRepositoryMock.Setup(x => x.CreateAsync(eventItem)).Returns(Task.CompletedTask);
+
+        await _eventService.CreateAsync(eventItem);
+
+        eventItem.SignupPostId.ShouldBeNull();
+        _eventRepositoryMock.Verify(x => x.UpdateAsync(It.IsAny<string>(), It.IsAny<Event>()), Times.Never());
+    }
+
     #endregion
 
     #region UpdateAsync
@@ -458,7 +493,7 @@ public class EventServiceTests
         {
             StartDate = occurrenceDate,
             ICalString = CalendarUtils.CreateICalString(occurrenceDate, FrequencyType.Weekly, 2),
-            DiscordMessageId = "123456",
+            SignupPostId = "123456",
             Occurrences = new List<EventOccurrence>
             {
                 new EventOccurrence
@@ -501,14 +536,14 @@ public class EventServiceTests
     public async Task UpdateAsync_UpdatesDiscordMessage_WhenMessageIdExists()
     {
         var id = Guid.NewGuid().ToString();
-        var existingEvent = new Event { StartDate = DateTime.UtcNow, DiscordMessageId = "123" }.PopulateWithRandomData();
+        var existingEvent = new Event { StartDate = DateTime.UtcNow, SignupPostId = "123" }.PopulateWithRandomData();
         existingEvent.ICalString = null;
 
         var updatedEvent = new Event
         {
             StartDate = existingEvent.StartDate,
             Duration = 60,
-            DiscordMessageId = "123"
+            SignupPostId = "123"
         }.PopulateWithRandomData();
         updatedEvent.ICalString = null;
 
@@ -528,7 +563,7 @@ public class EventServiceTests
     public async Task DeleteAsync_DeletesDiscordMessage_WhenMessageIdExists()
     {
         var id = Guid.NewGuid().ToString();
-        var fcEvent = new Event { DiscordMessageId = "123456789" }.PopulateWithRandomData();
+        var fcEvent = new Event { SignupPostId = "123456789" }.PopulateWithRandomData();
         _eventRepositoryMock.Setup(x => x.GetAsync(id)).ReturnsAsync(fcEvent);
         _eventRepositoryMock.Setup(x => x.DeleteAsync(id)).Returns(Task.CompletedTask);
 
@@ -543,7 +578,7 @@ public class EventServiceTests
     {
         var id = Guid.NewGuid().ToString();
         var fcEvent = new Event().PopulateWithRandomData();
-        fcEvent.DiscordMessageId = null;
+        fcEvent.SignupPostId = null;
         _eventRepositoryMock.Setup(x => x.GetAsync(id)).ReturnsAsync(fcEvent);
         _eventRepositoryMock.Setup(x => x.DeleteAsync(id)).Returns(Task.CompletedTask);
 
@@ -719,7 +754,7 @@ public class EventServiceTests
     {
         var fcEvent = new Event().PopulateWithRandomData();
         fcEvent.IsArchived = false;
-        fcEvent.DiscordMessageId = "12345";
+        fcEvent.SignupPostId = "12345";
         fcEvent.Occurrences = new List<EventOccurrence>
         {
             new EventOccurrence { Status = OccurrenceStatus.Completed }
@@ -729,6 +764,42 @@ public class EventServiceTests
         await _eventService.ArchiveAsync(fcEvent.Id, "user1");
 
         _discordMessageServiceMock.Verify(x => x.UpdateSignupMessage(fcEvent), Times.Once());
+    }
+
+    [Fact]
+    public async Task ArchiveAsync_DeletesUpcomingRosterMessage_WhenRosterMessageIdExists()
+    {
+        var fcEvent = new Event().PopulateWithRandomData();
+        fcEvent.IsArchived = false;
+        fcEvent.SignupPostId = null;
+        fcEvent.UpcomingRosterMessageId = "99999";
+        fcEvent.Occurrences = new List<EventOccurrence>
+        {
+            new() { Status = OccurrenceStatus.Completed }
+        };
+        _eventRepositoryMock.Setup(x => x.GetAsync(fcEvent.Id)).ReturnsAsync(fcEvent);
+
+        await _eventService.ArchiveAsync(fcEvent.Id, "user1");
+
+        _discordMessageServiceMock.Verify(x => x.DeleteUpcomingRosterMessageAsync("99999"), Times.Once());
+    }
+
+    [Fact]
+    public async Task ArchiveAsync_SkipsRosterDeletion_WhenRosterMessageIdIsNull()
+    {
+        var fcEvent = new Event().PopulateWithRandomData();
+        fcEvent.IsArchived = false;
+        fcEvent.SignupPostId = null;
+        fcEvent.UpcomingRosterMessageId = null;
+        fcEvent.Occurrences = new List<EventOccurrence>
+        {
+            new() { Status = OccurrenceStatus.Completed }
+        };
+        _eventRepositoryMock.Setup(x => x.GetAsync(fcEvent.Id)).ReturnsAsync(fcEvent);
+
+        await _eventService.ArchiveAsync(fcEvent.Id, "user1");
+
+        _discordMessageServiceMock.Verify(x => x.DeleteUpcomingRosterMessageAsync(It.IsAny<string>()), Times.Never());
     }
 
     #endregion
@@ -778,7 +849,7 @@ public class EventServiceTests
     {
         var fcEvent = new Event().PopulateWithRandomData();
         fcEvent.IsArchived = false;
-        fcEvent.DiscordMessageId = "12345";
+        fcEvent.SignupPostId = "12345";
         fcEvent.Occurrences = new List<EventOccurrence>
         {
             new EventOccurrence { Status = OccurrenceStatus.Completed }
@@ -790,6 +861,25 @@ public class EventServiceTests
         result.ShouldBeTrue();
         fcEvent.IsArchived.ShouldBeTrue();
         _discordMessageServiceMock.Verify(x => x.UpdateSignupMessage(fcEvent), Times.Once());
+    }
+
+    [Fact]
+    public async Task TryAutoArchiveAsync_DeletesUpcomingRosterMessage_WhenRosterMessageIdExists()
+    {
+        var fcEvent = new Event().PopulateWithRandomData();
+        fcEvent.IsArchived = false;
+        fcEvent.SignupPostId = null;
+        fcEvent.UpcomingRosterMessageId = "77777";
+        fcEvent.Occurrences = new List<EventOccurrence>
+        {
+            new() { Status = OccurrenceStatus.Completed }
+        };
+        _eventRepositoryMock.Setup(x => x.GetAsync(fcEvent.Id)).ReturnsAsync(fcEvent);
+
+        var result = await _eventService.TryAutoArchiveAsync(fcEvent.Id, "user1");
+
+        result.ShouldBeTrue();
+        _discordMessageServiceMock.Verify(x => x.DeleteUpcomingRosterMessageAsync("77777"), Times.Once());
     }
 
     #endregion

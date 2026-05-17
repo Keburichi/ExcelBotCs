@@ -101,6 +101,8 @@ public abstract class IntegrationTestBase : MongoDbTest
                     mockDiscordMessageService.Setup(x => x.PostInEventChannelAsync(It.IsAny<string>()))
                         .Returns(Task.CompletedTask);
                     mockDiscordMessageService.Setup(x => x.PostInUpcomingRosterChannelAsync(It.IsAny<string>()))
+                        .ReturnsAsync((IUserMessage?)null);
+                    mockDiscordMessageService.Setup(x => x.DeleteUpcomingRosterMessageAsync(It.IsAny<string>()))
                         .Returns(Task.CompletedTask);
                     mockDiscordMessageService.Setup(x => x.GetAnnouncementChannelMessagesAsync())
                         .ReturnsAsync(new List<IMessage>());

@@ -31,8 +31,9 @@ public class Event : BaseEntity
     // Signup configuration
     public SignupType SignupType { get; set; } = SignupType.SingleEvent;
 
-    // Legacy/additional fields
-    public string DiscordMessageId { get; set; }
+    // Discord message tracking (internal only — not exposed via API)
+    public string SignupPostId { get; set; }
+    public string? UpcomingRosterMessageId { get; set; }
     public string? PictureUrl { get; set; }
     public string? FightId { get; set; }
     public string? AuthorId { get; set; }

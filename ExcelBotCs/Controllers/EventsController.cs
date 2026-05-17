@@ -258,11 +258,14 @@ public class EventsController : AuthorizedController, IEventsController
 
         fcEvent.Groups = eventGroups.ToEventGroups();
 
-        await _eventService.UpdateAsync(fcEvent.Id, fcEvent);
-
-        // Post the roster to Discord
-        await _discordMessageService.PostInUpcomingRosterChannelAsync(
+        // Post the roster to Discord and store the message ID for later cleanup
+        var rosterMessage = await _discordMessageService.PostInUpcomingRosterChannelAsync(
             await _discordMessageCreator.CreateUpcomingRosterMessage(fcEvent));
+
+        if (rosterMessage != null)
+            fcEvent.UpcomingRosterMessageId = rosterMessage.Id.ToString();
+
+        await _eventService.UpdateAsync(fcEvent.Id, fcEvent);
 
         return Ok();
     }

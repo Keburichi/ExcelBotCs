@@ -11,7 +11,8 @@ public interface IDiscordMessageService
     Task UpdateSignupMessage(Event fcEvent);
     Task DeleteEventMessageAsync(string discordMessageId);
     Task<string> GetEventSignupMessageUrl(string discordMessageId);
-    Task PostInUpcomingRosterChannelAsync(string message);
+    Task<IUserMessage?> PostInUpcomingRosterChannelAsync(string message);
+    Task DeleteUpcomingRosterMessageAsync(string messageId);
     Task PostInLotteryChannelAsync(string message);
     Task<List<IMessage>> GetAnnouncementChannelMessagesAsync();
     Task<ITextChannel?> GetLogChannelAsync();

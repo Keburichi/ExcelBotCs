@@ -32,8 +32,6 @@ public class EventResponse : BaseDto
     // Signup configuration
     public SignupType SignupType { get; set; } = SignupType.SingleEvent;
 
-    // Legacy/additional fields
-    public string DiscordMessageId { get; set; }
     public string? PictureUrl { get; set; }
     public string? FightId { get; set; }
     public string? AuthorId { get; set; }

@@ -128,7 +128,7 @@ public class ICalService : IICalService
                     StartDate = occurrence.Period.StartTime.AsUtc,
                     Duration = recurringEvent.Duration,
                     ICalString = recurringEvent.ICalString ?? "",
-                    DiscordMessageId = recurringEvent.DiscordMessageId ?? "",
+                    SignupPostId = recurringEvent.SignupPostId ?? "",
                     PictureUrl = recurringEvent.PictureUrl,
                     FightId = recurringEvent.FightId,
                     Occurrences = recurringEvent.Occurrences ?? new List<EventOccurrence>(),
