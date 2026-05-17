@@ -1,15 +1,17 @@
 <script lang="ts" setup>
 import type { EventTemplate } from '@/features/event-templates/event-templates.types'
-import type { GuildEmoji, SignupButtonConfig } from '@/features/events/events.types'
+import type { FCEvent, GuildEmoji, SignupButtonConfig } from '@/features/events/events.types'
 import type { Member } from '@/features/members/members.types'
-import { computed, nextTick, onMounted, onUnmounted, reactive, ref } from 'vue'
+import { computed, nextTick, onMounted, onUnmounted, reactive, ref, watch } from 'vue'
 import BaseButton from '@/components/BaseButton.vue'
+import DateTimePicker from '@/components/DateTimePicker.vue'
+import EventCard from '@/components/events/EventCard.vue'
 import SearchableDropdown from '@/components/SearchableDropdown.vue'
 import { useAuth } from '@/composables/useAuth'
 import { EventTemplatesApi } from '@/features/event-templates/event-templates.api'
 import { DayOfWeek, dayOfWeekToString, formatTimeOfDay } from '@/features/event-templates/event-templates.types'
 import { EventsApi } from '@/features/events/events.api'
-import { EventType, ROLE } from '@/features/events/events.types'
+import { EventType, OccurrenceStatus, ROLE } from '@/features/events/events.types'
 import { MembersApi } from '@/features/members/members.api'
 
 const { user } = useAuth()
@@ -212,27 +214,65 @@ const eventTypeOptions = computed(() => {
     .map(key => ({ value: EventType[key as keyof typeof EventType], label: key }))
 })
 
-// Day of week options
-const dayOfWeekOptions = [
-  { value: DayOfWeek.Monday, label: 'Monday' },
-  { value: DayOfWeek.Tuesday, label: 'Tuesday' },
-  { value: DayOfWeek.Wednesday, label: 'Wednesday' },
-  { value: DayOfWeek.Thursday, label: 'Thursday' },
-  { value: DayOfWeek.Friday, label: 'Friday' },
-  { value: DayOfWeek.Saturday, label: 'Saturday' },
-  { value: DayOfWeek.Sunday, label: 'Sunday' },
-]
+function getNextOccurrence(dayOfWeek: number, timeOfDayMinutes: number): Date {
+  const now = new Date()
+  const targetDay = dayOfWeek
+  const currentDay = now.getDay()
+  let daysUntil = targetDay - currentDay
+  if (daysUntil < 0)
+    daysUntil += 7
+  if (daysUntil === 0) {
+    const currentMinutes = now.getHours() * 60 + now.getMinutes()
+    if (currentMinutes >= timeOfDayMinutes)
+      daysUntil = 7
+  }
+  const result = new Date(now)
+  result.setDate(result.getDate() + daysUntil)
+  result.setHours(Math.floor(timeOfDayMinutes / 60), timeOfDayMinutes % 60, 0, 0)
+  return result
+}
 
-// Time input helper
-const timeValue = computed({
-  get() {
-    return formatTimeOfDay(form.TimeOfDayMinutes)
-  },
-  set(val: string) {
-    const [h, m] = val.split(':').map(Number)
-    form.TimeOfDayMinutes = (h || 0) * 60 + (m || 0)
-  },
+const syntheticDate = ref<Date>(getNextOccurrence(form.DayOfWeek, form.TimeOfDayMinutes))
+
+watch(syntheticDate, (d) => {
+  form.DayOfWeek = d.getDay() as DayOfWeek
+  form.TimeOfDayMinutes = d.getHours() * 60 + d.getMinutes()
 })
+
+const previewCollapsed = ref(true)
+
+const previewEvent = computed<FCEvent>(() => {
+  return {
+    Id: 'template-preview',
+    Name: form.Name || 'Untitled Event',
+    Description: form.Description,
+    Type: form.Type,
+    StartDate: syntheticDate.value,
+    EndDate: new Date(syntheticDate.value.getTime() + form.Duration * 60000),
+    Duration: form.Duration,
+    ICalString: '',
+    SignupType: 0,
+    DiscordMessageId: '',
+    Organizer: form.Organizer || (selectedOrganizer.value ? formatMemberName(selectedOrganizer.value) : user.value?.PlayerName || 'You'),
+    AvailableForSignup: true,
+    MaxNumberOfParticipants: form.MaxNumberOfParticipants,
+    SignupButtonConfigs: buttonMode.value !== 'standard' ? signupButtonConfigs.value : undefined,
+    Signups: [],
+    Groups: [],
+    Occurrences: [{
+      Id: 'preview',
+      OccurrenceDate: syntheticDate.value,
+      Status: OccurrenceStatus.Scheduled,
+    }],
+    IsArchived: false,
+    CanBeArchived: false,
+  }
+})
+
+const previewEventRef = ref<FCEvent>(previewEvent.value)
+watch(previewEvent, (val) => {
+  previewEventRef.value = { ...val }
+}, { deep: true })
 
 async function loadTemplates() {
   loading.value = true
@@ -255,6 +295,7 @@ function openCreateForm() {
   buttonMode.value = 'standard'
   signupButtonConfigs.value = []
   selectedOrganizer.value = null
+  syntheticDate.value = getNextOccurrence(form.DayOfWeek, form.TimeOfDayMinutes)
 
   if (user.value) {
     const me = adminMembers.value.find(m => m.DiscordId === user.value!.DiscordId)
@@ -280,6 +321,7 @@ function openEditForm(template: EventTemplate) {
     MaxNumberOfParticipants: template.MaxNumberOfParticipants,
     SignupButtonConfigs: template.SignupButtonConfigs,
   })
+  syntheticDate.value = getNextOccurrence(template.DayOfWeek, template.TimeOfDayMinutes)
   partyPreset.value = detectPreset(template.MaxNumberOfParticipants)
 
   if (template.Organizer) {
@@ -404,390 +446,426 @@ onUnmounted(() => {
     </p>
 
     <!-- Template Form -->
-    <div v-if="showForm" class="template-form-surface">
-      <h4 class="form-title">
-        {{ editingId ? 'Edit Template' : 'New Template' }}
-      </h4>
+    <div v-if="showForm" class="template-form-layout">
+      <div class="template-form-surface">
+        <h4 class="form-title">
+          {{ editingId ? 'Edit Template' : 'New Template' }}
+        </h4>
 
-      <form class="template-form" @submit.prevent="saveTemplate">
-        <!-- Basic Info -->
-        <div class="form-group">
-          <div class="form-field">
-            <label for="tpl-name">Name</label>
-            <input id="tpl-name" v-model="form.Name" type="text" placeholder="Template name" required>
-          </div>
-
-          <div class="form-field">
-            <label for="tpl-description">Description</label>
-            <textarea id="tpl-description" v-model="form.Description" placeholder="Event description" rows="3" />
-          </div>
-
-          <div class="form-field-row">
+        <form class="template-form" @submit.prevent="saveTemplate">
+          <!-- Basic Info -->
+          <div class="form-group">
             <div class="form-field">
-              <label for="tpl-type">Type</label>
-              <select id="tpl-type" v-model.number="form.Type" required>
-                <option v-for="option in eventTypeOptions" :key="option.value" :value="option.value">
-                  {{ option.label }}
-                </option>
-              </select>
+              <label for="tpl-name">Name</label>
+              <input id="tpl-name" v-model="form.Name" type="text" placeholder="Template name" required>
+            </div>
+
+            <div class="form-field">
+              <label for="tpl-description">Description</label>
+              <textarea id="tpl-description" v-model="form.Description" placeholder="Event description" rows="3" />
+            </div>
+
+            <div class="form-field-row">
+              <div class="form-field">
+                <label for="tpl-type">Type</label>
+                <select id="tpl-type" v-model.number="form.Type" required>
+                  <option v-for="option in eventTypeOptions" :key="option.value" :value="option.value">
+                    {{ option.label }}
+                  </option>
+                </select>
+              </div>
             </div>
           </div>
-        </div>
 
-        <hr class="form-divider">
+          <hr class="form-divider">
 
-        <!-- Schedule -->
-        <div class="form-group">
-          <h5 class="form-group-label">
-            Schedule
-          </h5>
-          <div class="form-field-row">
+          <!-- Schedule -->
+          <div class="form-group">
+            <h5 class="form-group-label">
+              Schedule
+            </h5>
             <div class="form-field">
-              <label for="tpl-day">Day of Week</label>
-              <select id="tpl-day" v-model.number="form.DayOfWeek" required>
-                <option v-for="day in dayOfWeekOptions" :key="day.value" :value="day.value">
-                  {{ day.label }}
-                </option>
-              </select>
+              <DateTimePicker
+                v-model="syntheticDate"
+                :required="true"
+                label="Day & Time"
+              />
+              <small class="field-hint">The date sets the day of week; time sets the start time for events created from this template.</small>
             </div>
             <div class="form-field">
-              <label for="tpl-time">Time of Day</label>
-              <input id="tpl-time" v-model="timeValue" type="time" required>
+              <label>Duration</label>
+              <div class="duration-controls">
+                <div class="duration-presets">
+                  <BaseButton
+                    v-for="mins in [60, 120, 180]"
+                    :key="mins"
+                    :state="form.Duration === mins ? 'primary' : 'secondary'"
+                    :title="`${mins} min`"
+                    :variant="form.Duration === mins ? 'elevated' : 'outlined'"
+                    size="small"
+                    type="button"
+                    @clicked="form.Duration = mins"
+                  />
+                </div>
+                <input
+                  v-model.number="form.Duration"
+                  class="duration-input"
+                  inputmode="numeric"
+                  min="0"
+                  pattern="[0-9]*"
+                  placeholder="min"
+                  required
+                  type="number"
+                >
+              </div>
             </div>
           </div>
-          <div class="form-field">
-            <label>Duration</label>
-            <div class="duration-controls">
-              <div class="duration-presets">
+
+          <hr class="form-divider">
+
+          <!-- Participants -->
+          <div class="form-group">
+            <h5 class="form-group-label">
+              Participants
+            </h5>
+            <div class="form-field">
+              <label>Party Size</label>
+              <div class="party-presets">
                 <BaseButton
-                  v-for="mins in [60, 120, 180]"
-                  :key="mins"
-                  :state="form.Duration === mins ? 'primary' : 'secondary'"
-                  :title="`${mins} min`"
-                  :variant="form.Duration === mins ? 'elevated' : 'outlined'"
+                  v-for="preset in partyPresetOptions"
+                  :key="preset.key"
+                  :state="partyPreset === preset.key ? 'primary' : 'secondary'"
+                  :title="preset.label"
+                  :variant="partyPreset === preset.key ? 'elevated' : 'outlined'"
                   size="small"
                   type="button"
-                  @clicked="form.Duration = mins"
+                  @clicked="setPartyPreset(preset.key)"
                 />
               </div>
               <input
-                v-model.number="form.Duration"
-                class="duration-input"
+                v-if="partyPreset === 'custom'"
+                v-model.number="form.MaxNumberOfParticipants"
                 inputmode="numeric"
-                min="0"
+                max="99"
+                min="1"
                 pattern="[0-9]*"
-                placeholder="min"
+                placeholder="Custom count"
                 required
                 type="number"
               >
             </div>
-          </div>
-        </div>
-
-        <hr class="form-divider">
-
-        <!-- Participants -->
-        <div class="form-group">
-          <h5 class="form-group-label">
-            Participants
-          </h5>
-          <div class="form-field">
-            <label>Party Size</label>
-            <div class="party-presets">
-              <BaseButton
-                v-for="preset in partyPresetOptions"
-                :key="preset.key"
-                :state="partyPreset === preset.key ? 'primary' : 'secondary'"
-                :title="preset.label"
-                :variant="partyPreset === preset.key ? 'elevated' : 'outlined'"
-                size="small"
-                type="button"
-                @clicked="setPartyPreset(preset.key)"
-              />
-            </div>
-            <input
-              v-if="partyPreset === 'custom'"
-              v-model.number="form.MaxNumberOfParticipants"
-              inputmode="numeric"
-              max="99"
-              min="1"
-              pattern="[0-9]*"
-              placeholder="Custom count"
-              required
-              type="number"
-            >
-          </div>
-          <div class="form-field">
-            <label>Organizer</label>
-            <SearchableDropdown
-              v-model="selectedOrganizer"
-              :format-option="formatMemberName"
-              :options="adminMembers"
-              placeholder="Select organizer..."
-              @update:model-value="form.Organizer = $event ? formatMemberName($event) : ''"
-            >
-              <template #selected="{ option }">
-                <span class="organizer-option">
-                  <img
-                    v-if="option.DiscordAvatar"
-                    :src="option.DiscordAvatar"
-                    :alt="formatMemberName(option)"
-                    class="organizer-avatar"
-                  >
-                  <span v-else class="organizer-avatar organizer-avatar--placeholder" />
-                  {{ formatMemberName(option) }}
-                </span>
-              </template>
-              <template #option="{ option }">
-                <span class="organizer-option">
-                  <img
-                    v-if="option.DiscordAvatar"
-                    :src="option.DiscordAvatar"
-                    :alt="formatMemberName(option)"
-                    class="organizer-avatar"
-                  >
-                  <span v-else class="organizer-avatar organizer-avatar--placeholder" />
-                  {{ formatMemberName(option) }}
-                </span>
-              </template>
-            </SearchableDropdown>
-          </div>
-        </div>
-
-        <hr class="form-divider">
-
-        <!-- Signup Buttons -->
-        <div class="form-group">
-          <h5 class="form-group-label">
-            Signup Buttons
-          </h5>
-          <div class="form-field">
-            <label>Button Mode</label>
-            <div class="party-presets">
-              <BaseButton
-                :state="buttonMode === 'standard' ? 'primary' : 'secondary'"
-                :variant="buttonMode === 'standard' ? 'elevated' : 'outlined'"
-                size="small"
-                title="Standard Roles"
-                type="button"
-                @clicked="setButtonMode('standard')"
-              />
-              <BaseButton
-                :state="buttonMode === 'roles-helper' ? 'primary' : 'secondary'"
-                :variant="buttonMode === 'roles-helper' ? 'elevated' : 'outlined'"
-                size="small"
-                title="Roles + Helper"
-                type="button"
-                @clicked="setButtonMode('roles-helper')"
-              />
-              <BaseButton
-                :state="buttonMode === 'custom' ? 'primary' : 'secondary'"
-                :variant="buttonMode === 'custom' ? 'elevated' : 'outlined'"
-                size="small"
-                title="Custom Buttons"
-                type="button"
-                @clicked="setButtonMode('custom')"
-              />
+            <div class="form-field">
+              <label>Organizer</label>
+              <SearchableDropdown
+                v-model="selectedOrganizer"
+                :format-option="formatMemberName"
+                :options="adminMembers"
+                placeholder="Select organizer..."
+                @update:model-value="form.Organizer = $event ? formatMemberName($event) : ''"
+              >
+                <template #selected="{ option }">
+                  <span class="organizer-option">
+                    <img
+                      v-if="option.DiscordAvatar"
+                      :src="option.DiscordAvatar"
+                      :alt="formatMemberName(option)"
+                      class="organizer-avatar"
+                    >
+                    <span v-else class="organizer-avatar organizer-avatar--placeholder" />
+                    {{ formatMemberName(option) }}
+                  </span>
+                </template>
+                <template #option="{ option }">
+                  <span class="organizer-option">
+                    <img
+                      v-if="option.DiscordAvatar"
+                      :src="option.DiscordAvatar"
+                      :alt="formatMemberName(option)"
+                      class="organizer-avatar"
+                    >
+                    <span v-else class="organizer-avatar organizer-avatar--placeholder" />
+                    {{ formatMemberName(option) }}
+                  </span>
+                </template>
+              </SearchableDropdown>
             </div>
           </div>
 
-          <!-- Roles + Helper: configure helper button -->
-          <template v-if="buttonMode === 'roles-helper'">
-            <p class="field-hint">
-              Standard role buttons with emotes. Configure the helper button below:
-            </p>
-            <div v-if="signupButtonConfigs.find(c => c.IsHelper)" class="button-config-row">
-              <div class="button-config-fields">
-                <input
-                  v-model="signupButtonConfigs[signupButtonConfigs.length - 1].Label"
-                  class="button-config-input"
-                  placeholder="Helper label"
-                  type="text"
-                  @input="signupButtonConfigs[signupButtonConfigs.length - 1].Slug = slugify(signupButtonConfigs[signupButtonConfigs.length - 1].Label)"
-                >
-                <span class="button-tag button-tag--helper">helper</span>
-                <div class="emoji-picker-wrapper">
-                  <button
-                    class="emoji-picker-trigger"
-                    type="button"
-                    @click.stop="openEmojiDropdown(signupButtonConfigs.length - 1)"
+          <hr class="form-divider">
+
+          <!-- Signup Buttons -->
+          <div class="form-group">
+            <h5 class="form-group-label">
+              Signup Buttons
+            </h5>
+            <div class="form-field">
+              <label>Button Mode</label>
+              <div class="party-presets">
+                <BaseButton
+                  :state="buttonMode === 'standard' ? 'primary' : 'secondary'"
+                  :variant="buttonMode === 'standard' ? 'elevated' : 'outlined'"
+                  size="small"
+                  title="Standard Roles"
+                  type="button"
+                  @clicked="setButtonMode('standard')"
+                />
+                <BaseButton
+                  :state="buttonMode === 'roles-helper' ? 'primary' : 'secondary'"
+                  :variant="buttonMode === 'roles-helper' ? 'elevated' : 'outlined'"
+                  size="small"
+                  title="Roles + Helper"
+                  type="button"
+                  @clicked="setButtonMode('roles-helper')"
+                />
+                <BaseButton
+                  :state="buttonMode === 'custom' ? 'primary' : 'secondary'"
+                  :variant="buttonMode === 'custom' ? 'elevated' : 'outlined'"
+                  size="small"
+                  title="Custom Buttons"
+                  type="button"
+                  @clicked="setButtonMode('custom')"
+                />
+              </div>
+            </div>
+
+            <!-- Roles + Helper: configure helper button -->
+            <template v-if="buttonMode === 'roles-helper'">
+              <p class="field-hint">
+                Standard role buttons with emotes. Configure the helper button below:
+              </p>
+              <div v-if="signupButtonConfigs.find(c => c.IsHelper)" class="button-config-row">
+                <div class="button-config-fields">
+                  <input
+                    v-model="signupButtonConfigs[signupButtonConfigs.length - 1].Label"
+                    class="button-config-input"
+                    placeholder="Helper label"
+                    type="text"
+                    @input="signupButtonConfigs[signupButtonConfigs.length - 1].Slug = slugify(signupButtonConfigs[signupButtonConfigs.length - 1].Label)"
                   >
+                  <span class="button-tag button-tag--helper">helper</span>
+                  <div class="emoji-picker-wrapper">
+                    <button
+                      class="emoji-picker-trigger"
+                      type="button"
+                      @click.stop="openEmojiDropdown(signupButtonConfigs.length - 1)"
+                    >
+                      <img
+                        v-if="getEmojiUrl(signupButtonConfigs[signupButtonConfigs.length - 1].EmojiId)"
+                        :src="getEmojiUrl(signupButtonConfigs[signupButtonConfigs.length - 1].EmojiId)!"
+                        alt=""
+                        class="emoji-preview-img"
+                      >
+                      <span v-else class="emoji-picker-placeholder">Emoji</span>
+                    </button>
+                    <div v-if="emojiDropdownOpenIndex === signupButtonConfigs.length - 1" class="emoji-dropdown">
+                      <input
+                        ref="emojiSearchInputRef"
+                        v-model="emojiSearchQuery"
+                        class="emoji-search-input"
+                        placeholder="Search emojis..."
+                        type="text"
+                      >
+                      <button
+                        class="emoji-option emoji-option--clear"
+                        type="button"
+                        @click="clearEmoji(signupButtonConfigs.length - 1)"
+                      >
+                        No emoji
+                      </button>
+                      <div class="emoji-grid">
+                        <button
+                          v-for="emoji in filteredEmojis"
+                          :key="emoji.Id"
+                          :title="emoji.Name"
+                          class="emoji-option-img"
+                          type="button"
+                          @click="selectEmoji(signupButtonConfigs.length - 1, emoji)"
+                        >
+                          <img :src="emoji.Url" :alt="emoji.Name" class="emoji-grid-img">
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                <div class="button-preview">
+                  <span class="button-preview-btn">
                     <img
                       v-if="getEmojiUrl(signupButtonConfigs[signupButtonConfigs.length - 1].EmojiId)"
                       :src="getEmojiUrl(signupButtonConfigs[signupButtonConfigs.length - 1].EmojiId)!"
                       alt=""
-                      class="emoji-preview-img"
+                      class="button-preview-emoji"
                     >
-                    <span v-else class="emoji-picker-placeholder">Emoji</span>
-                  </button>
-                  <div v-if="emojiDropdownOpenIndex === signupButtonConfigs.length - 1" class="emoji-dropdown">
-                    <input
-                      ref="emojiSearchInputRef"
-                      v-model="emojiSearchQuery"
-                      class="emoji-search-input"
-                      placeholder="Search emojis..."
-                      type="text"
-                    >
+                    {{ signupButtonConfigs[signupButtonConfigs.length - 1].Label || 'Helper' }}
+                  </span>
+                </div>
+              </div>
+            </template>
+
+            <!-- Custom buttons -->
+            <template v-if="buttonMode === 'custom'">
+              <div class="form-field">
+                <label>Presets</label>
+                <div class="party-presets">
+                  <BaseButton
+                    size="small"
+                    state="secondary"
+                    title="Interested Only"
+                    type="button"
+                    variant="outlined"
+                    @clicked="applyPreset('interested')"
+                  />
+                  <BaseButton
+                    size="small"
+                    state="secondary"
+                    title="Interested + Helper"
+                    type="button"
+                    variant="outlined"
+                    @clicked="applyPreset('interested-helper')"
+                  />
+                </div>
+              </div>
+
+              <div v-for="(config, index) in signupButtonConfigs" :key="index" class="button-config-row">
+                <div class="button-config-fields">
+                  <input
+                    v-model="config.Label"
+                    class="button-config-input"
+                    placeholder="Label"
+                    type="text"
+                    @input="onLabelChange(index)"
+                  >
+                  <span v-if="config.IsHelper" class="button-tag button-tag--helper">helper</span>
+                  <span v-else-if="config.Slug === 'interested'" class="button-tag button-tag--interested">interested</span>
+                  <div class="emoji-picker-wrapper">
                     <button
-                      class="emoji-option emoji-option--clear"
+                      class="emoji-picker-trigger"
                       type="button"
-                      @click="clearEmoji(signupButtonConfigs.length - 1)"
+                      @click.stop="openEmojiDropdown(index)"
                     >
-                      No emoji
-                    </button>
-                    <div class="emoji-grid">
-                      <button
-                        v-for="emoji in filteredEmojis"
-                        :key="emoji.Id"
-                        :title="emoji.Name"
-                        class="emoji-option-img"
-                        type="button"
-                        @click="selectEmoji(signupButtonConfigs.length - 1, emoji)"
+                      <img
+                        v-if="getEmojiUrl(config.EmojiId)"
+                        :src="getEmojiUrl(config.EmojiId)!"
+                        alt=""
+                        class="emoji-preview-img"
                       >
-                        <img :src="emoji.Url" :alt="emoji.Name" class="emoji-grid-img">
+                      <span v-else class="emoji-picker-placeholder">Emoji</span>
+                    </button>
+                    <div v-if="emojiDropdownOpenIndex === index" class="emoji-dropdown">
+                      <input
+                        ref="emojiSearchInputRef"
+                        v-model="emojiSearchQuery"
+                        class="emoji-search-input"
+                        placeholder="Search emojis..."
+                        type="text"
+                      >
+                      <button type="button" class="emoji-option emoji-option--clear" @click="clearEmoji(index)">
+                        No emoji
                       </button>
+                      <div class="emoji-grid">
+                        <button
+                          v-for="emoji in filteredEmojis"
+                          :key="emoji.Id"
+                          :title="emoji.Name"
+                          class="emoji-option-img"
+                          type="button"
+                          @click="selectEmoji(index, emoji)"
+                        >
+                          <img :src="emoji.Url" :alt="emoji.Name" class="emoji-grid-img">
+                        </button>
+                      </div>
                     </div>
                   </div>
                 </div>
-              </div>
-              <div class="button-preview">
-                <span class="button-preview-btn">
-                  <img
-                    v-if="getEmojiUrl(signupButtonConfigs[signupButtonConfigs.length - 1].EmojiId)"
-                    :src="getEmojiUrl(signupButtonConfigs[signupButtonConfigs.length - 1].EmojiId)!"
-                    alt=""
-                    class="button-preview-emoji"
-                  >
-                  {{ signupButtonConfigs[signupButtonConfigs.length - 1].Label || 'Helper' }}
-                </span>
-              </div>
-            </div>
-          </template>
-
-          <!-- Custom buttons -->
-          <template v-if="buttonMode === 'custom'">
-            <div class="form-field">
-              <label>Presets</label>
-              <div class="party-presets">
-                <BaseButton
-                  size="small"
-                  state="secondary"
-                  title="Interested Only"
-                  type="button"
-                  variant="outlined"
-                  @clicked="applyPreset('interested')"
-                />
-                <BaseButton
-                  size="small"
-                  state="secondary"
-                  title="Interested + Helper"
-                  type="button"
-                  variant="outlined"
-                  @clicked="applyPreset('interested-helper')"
-                />
-              </div>
-            </div>
-
-            <div v-for="(config, index) in signupButtonConfigs" :key="index" class="button-config-row">
-              <div class="button-config-fields">
-                <input
-                  v-model="config.Label"
-                  class="button-config-input"
-                  placeholder="Label"
-                  type="text"
-                  @input="onLabelChange(index)"
-                >
-                <span v-if="config.IsHelper" class="button-tag button-tag--helper">helper</span>
-                <span v-else-if="config.Slug === 'interested'" class="button-tag button-tag--interested">interested</span>
-                <div class="emoji-picker-wrapper">
-                  <button
-                    class="emoji-picker-trigger"
-                    type="button"
-                    @click.stop="openEmojiDropdown(index)"
-                  >
+                <div class="button-preview">
+                  <span class="button-preview-btn">
                     <img
                       v-if="getEmojiUrl(config.EmojiId)"
                       :src="getEmojiUrl(config.EmojiId)!"
                       alt=""
-                      class="emoji-preview-img"
+                      class="button-preview-emoji"
                     >
-                    <span v-else class="emoji-picker-placeholder">Emoji</span>
-                  </button>
-                  <div v-if="emojiDropdownOpenIndex === index" class="emoji-dropdown">
-                    <input
-                      ref="emojiSearchInputRef"
-                      v-model="emojiSearchQuery"
-                      class="emoji-search-input"
-                      placeholder="Search emojis..."
-                      type="text"
-                    >
-                    <button type="button" class="emoji-option emoji-option--clear" @click="clearEmoji(index)">
-                      No emoji
-                    </button>
-                    <div class="emoji-grid">
-                      <button
-                        v-for="emoji in filteredEmojis"
-                        :key="emoji.Id"
-                        :title="emoji.Name"
-                        class="emoji-option-img"
-                        type="button"
-                        @click="selectEmoji(index, emoji)"
-                      >
-                        <img :src="emoji.Url" :alt="emoji.Name" class="emoji-grid-img">
-                      </button>
-                    </div>
-                  </div>
+                    {{ config.Label || '...' }}
+                  </span>
                 </div>
+                <button
+                  class="button-remove"
+                  title="Remove button"
+                  type="button"
+                  @click="removeButton(index)"
+                >
+                  <svg fill="none" height="14" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24" width="14">
+                    <line x1="18" x2="6" y1="6" y2="18" /><line x1="6" x2="18" y1="6" y2="18" />
+                  </svg>
+                </button>
               </div>
-              <div class="button-preview">
-                <span class="button-preview-btn">
-                  <img
-                    v-if="getEmojiUrl(config.EmojiId)"
-                    :src="getEmojiUrl(config.EmojiId)!"
-                    alt=""
-                    class="button-preview-emoji"
-                  >
-                  {{ config.Label || '...' }}
-                </span>
-              </div>
-              <button
-                class="button-remove"
-                title="Remove button"
+
+              <BaseButton
+                size="small"
+                state="secondary"
+                title="+ Add Button"
                 type="button"
-                @click="removeButton(index)"
-              >
-                <svg fill="none" height="14" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24" width="14">
-                  <line x1="18" x2="6" y1="6" y2="18" /><line x1="6" x2="18" y1="6" y2="18" />
-                </svg>
-              </button>
-            </div>
+                variant="outlined"
+                @clicked="addButton"
+              />
+            </template>
+          </div>
 
+          <!-- Actions -->
+          <div class="form-actions">
             <BaseButton
-              size="small"
               state="secondary"
-              title="+ Add Button"
-              type="button"
+              title="Cancel"
               variant="outlined"
-              @clicked="addButton"
+              @clicked="closeForm"
             />
-          </template>
-        </div>
+            <BaseButton
+              :disabled="saving"
+              :title="saving ? 'Saving...' : (editingId ? 'Save Changes' : 'Create Template')"
+              type="submit"
+            />
+          </div>
+        </form>
+      </div>
 
-        <!-- Actions -->
-        <div class="form-actions">
-          <BaseButton
-            state="secondary"
-            title="Cancel"
-            variant="outlined"
-            @clicked="closeForm"
-          />
-          <BaseButton
-            :disabled="saving"
-            :title="saving ? 'Saving...' : (editingId ? 'Save Changes' : 'Create Template')"
-            type="submit"
-          />
+      <!-- Preview Column (desktop) -->
+      <aside class="preview-column">
+        <div class="preview-sticky">
+          <span class="preview-label">Live Preview</span>
+          <div class="preview-card-wrap">
+            <EventCard
+              v-model:fc-event="previewEventRef"
+              :is-member="true"
+            />
+          </div>
         </div>
-      </form>
+      </aside>
+    </div>
+
+    <!-- Preview Toggle (mobile) -->
+    <div v-if="showForm" class="preview-mobile">
+      <button class="preview-toggle" type="button" @click="previewCollapsed = !previewCollapsed">
+        <span>{{ previewCollapsed ? 'Show Preview' : 'Hide Preview' }}</span>
+        <svg
+          :class="{ 'chevron--open': !previewCollapsed }"
+          class="chevron"
+          fill="none"
+          height="16"
+          stroke="currentColor"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          stroke-width="2"
+          viewBox="0 0 24 24"
+          width="16"
+        >
+          <polyline points="6 9 12 15 18 9" />
+        </svg>
+      </button>
+      <div v-if="!previewCollapsed" class="preview-mobile-card">
+        <EventCard
+          v-model:fc-event="previewEventRef"
+          :is-member="true"
+        />
+      </div>
     </div>
 
     <!-- Template List -->
@@ -910,7 +988,6 @@ onUnmounted(() => {
   padding: 1.5rem;
   box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08),
     inset 0 1px 0 rgba(255, 255, 255, 0.5);
-  margin-bottom: 1.5rem;
 }
 
 :root[data-theme='dark'] .template-form-surface {
@@ -1253,6 +1330,104 @@ onUnmounted(() => {
   display: flex;
   gap: 0.25rem;
   align-items: center;
+}
+
+/* Two-column form + preview layout */
+.template-form-layout {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 2rem;
+  margin-bottom: 1.5rem;
+}
+
+@media (min-width: 960px) {
+  .template-form-layout {
+    grid-template-columns: 1fr 340px;
+  }
+}
+
+/* Preview column (desktop) */
+.preview-column {
+  display: none;
+}
+
+@media (min-width: 960px) {
+  .preview-column {
+    display: block;
+  }
+}
+
+.preview-sticky {
+  position: sticky;
+  top: 5rem;
+}
+
+.preview-label {
+  display: block;
+  font-size: 0.6875rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--muted);
+  margin-bottom: 0.5rem;
+}
+
+.preview-card-wrap {
+  pointer-events: none;
+}
+
+.preview-card-wrap :deep(.event-card__actions) {
+  display: none;
+}
+
+/* Preview mobile */
+.preview-mobile {
+  margin-top: 1.5rem;
+  margin-bottom: 1.5rem;
+}
+
+@media (min-width: 960px) {
+  .preview-mobile {
+    display: none;
+  }
+}
+
+.preview-toggle {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  width: 100%;
+  padding: 0.75rem 1rem;
+  background: var(--muted-bg);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  color: var(--fg);
+  font-size: 0.875rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.2s ease;
+}
+
+.preview-toggle:hover {
+  background: color-mix(in oklab, var(--muted-bg) 85%, var(--link) 15%);
+}
+
+.chevron {
+  margin-left: auto;
+  transition: transform 0.2s ease;
+}
+
+.chevron--open {
+  transform: rotate(180deg);
+}
+
+.preview-mobile-card {
+  margin-top: 0.75rem;
+  pointer-events: none;
+}
+
+.preview-mobile-card :deep(.event-card__actions) {
+  display: none;
 }
 
 /* Responsive */
