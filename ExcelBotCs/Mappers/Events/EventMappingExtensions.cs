@@ -2,7 +2,6 @@ using ExcelBotCs.Extensions;
 using ExcelBotCs.Models.Database.Events;
 using ExcelBotCs.Models.DTO;
 using ExcelBotCs.Models.DTO.Events;
-using ExcelBotCs.Modules.TeamFormation;
 using DbEventSignup = ExcelBotCs.Models.Database.Events.EventSignup;
 using DtoEventSignup = ExcelBotCs.Models.DTO.EventSignupDto;
 
@@ -39,7 +38,6 @@ public static class EventMappingExtensions
             StartDate = fcEvent.StartDate,
             ICalString = fcEvent.ICalString,
             SignupType = fcEvent.SignupType,
-            DiscordMessageId = fcEvent.DiscordMessageId,
             PictureUrl = fcEvent.PictureUrl,
             Type = fcEvent.Type,
             FightId = fcEvent.FightId,

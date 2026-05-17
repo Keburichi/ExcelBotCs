@@ -43,7 +43,7 @@ public class SignupModule : InteractionModuleBase<SocketInteractionContext>
         await _eventService.HandleSignupAsync(eventId, slug, Context.User.Id);
 
         fcEvent = await _eventService.GetAsync(eventId);
-        if (fcEvent != null && !string.IsNullOrEmpty(fcEvent.DiscordMessageId))
+        if (fcEvent != null && !string.IsNullOrEmpty(fcEvent.SignupPostId))
             await _discordMessageService.UpdateSignupMessage(fcEvent);
 
         await FollowupAsync("Your signup has been received!", ephemeral: true);

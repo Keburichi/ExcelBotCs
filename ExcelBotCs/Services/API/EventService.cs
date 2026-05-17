@@ -230,8 +230,11 @@ public class EventService : IEventService
 
         await _eventRepository.UpdateAsync(eventId, existingEvent);
 
-        if (!existingEvent.DiscordMessageId.IsNullOrEmpty())
+        if (!existingEvent.SignupPostId.IsNullOrEmpty())
             await _discordMessageService.UpdateSignupMessage(existingEvent);
+
+        if (!existingEvent.UpcomingRosterMessageId.IsNullOrEmpty())
+            await _discordMessageService.DeleteUpcomingRosterMessageAsync(existingEvent.UpcomingRosterMessageId);
 
         return (true, null);
     }
@@ -251,8 +254,11 @@ public class EventService : IEventService
 
         await _eventRepository.UpdateAsync(eventId, existingEvent);
 
-        if (!existingEvent.DiscordMessageId.IsNullOrEmpty())
+        if (!existingEvent.SignupPostId.IsNullOrEmpty())
             await _discordMessageService.UpdateSignupMessage(existingEvent);
+
+        if (!existingEvent.UpcomingRosterMessageId.IsNullOrEmpty())
+            await _discordMessageService.DeleteUpcomingRosterMessageAsync(existingEvent.UpcomingRosterMessageId);
 
         return true;
     }
@@ -325,7 +331,7 @@ public class EventService : IEventService
 
         if (message != null)
         {
-            entity.DiscordMessageId = message.Id.ToString();
+            entity.SignupPostId = message.Id.ToString();
             await _eventRepository.UpdateAsync(entity.Id, entity);
         }
     }
@@ -351,7 +357,7 @@ public class EventService : IEventService
 
         await _eventRepository.UpdateAsync(id, updatedEntity);
 
-        if (!updatedEntity.DiscordMessageId.IsNullOrEmpty())
+        if (!updatedEntity.SignupPostId.IsNullOrEmpty())
             await _discordMessageService.UpdateSignupMessage(updatedEntity);
     }
 
@@ -359,8 +365,8 @@ public class EventService : IEventService
     {
         var existingEvent = await _eventRepository.GetAsync(id);
 
-        if (existingEvent != null && !existingEvent.DiscordMessageId.IsNullOrEmpty())
-            await _discordMessageService.DeleteEventMessageAsync(existingEvent.DiscordMessageId);
+        if (existingEvent != null && !existingEvent.SignupPostId.IsNullOrEmpty())
+            await _discordMessageService.DeleteEventMessageAsync(existingEvent.SignupPostId);
 
         await _eventRepository.DeleteAsync(id);
     }

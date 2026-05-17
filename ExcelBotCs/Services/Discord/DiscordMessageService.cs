@@ -55,7 +55,7 @@ public class DiscordMessageService : IDiscordMessageService
         if (channel == null)
             return;
 
-        var message = await channel.GetMessageAsync(ulong.Parse(fcEvent.DiscordMessageId)) as IUserMessage;
+        var message = await channel.GetMessageAsync(ulong.Parse(fcEvent.SignupPostId)) as IUserMessage;
         if (message == null)
             return;
 
@@ -89,13 +89,26 @@ public class DiscordMessageService : IDiscordMessageService
         return message.GetJumpUrl();
     }
 
-    public async Task PostInUpcomingRosterChannelAsync(string message)
+    public async Task<IUserMessage?> PostInUpcomingRosterChannelAsync(string message)
+    {
+        var channel = await GetTextChannelFromChannelId(_config.Value.UpcomingRosterChannel);
+        if (channel == null)
+            return null;
+
+        return await channel.SendMessageAsync(message);
+    }
+
+    public async Task DeleteUpcomingRosterMessageAsync(string messageId)
     {
         var channel = await GetTextChannelFromChannelId(_config.Value.UpcomingRosterChannel);
         if (channel == null)
             return;
 
-        await channel.SendMessageAsync(message);
+        var message = await channel.GetMessageAsync(ulong.Parse(messageId));
+        if (message == null)
+            return;
+
+        await message.DeleteAsync();
     }
 
     public async Task PostInLotteryChannelAsync(string message)

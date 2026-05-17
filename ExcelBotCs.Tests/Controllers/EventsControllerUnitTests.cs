@@ -1,6 +1,8 @@
+using Discord;
 using ExcelBotCs.Controllers;
 using ExcelBotCs.Models.Database.Events;
 using ExcelBotCs.Models.DTO;
+using ExcelBotCs.Models.DTO.Events;
 using ExcelBotCs.Modules.TeamFormation;
 using ExcelBotCs.Services;
 using ExcelBotCs.Services.API.Interfaces;
@@ -16,15 +18,17 @@ public class EventsControllerUnitTests
     private readonly EventsController _controller;
     private readonly Mock<IEventService> _eventServiceMock;
     private readonly Mock<ICurrentMemberAccessor> _currentMemberAccessorMock;
+    private readonly Mock<IDiscordMessageService> _discordMessageServiceMock;
+    private readonly Mock<IDiscordMessageCreator> _discordMessageCreatorMock;
 
     public EventsControllerUnitTests()
     {
         _eventServiceMock = new Mock<IEventService>();
         _currentMemberAccessorMock = new Mock<ICurrentMemberAccessor>();
+        _discordMessageServiceMock = new Mock<IDiscordMessageService>();
+        _discordMessageCreatorMock = new Mock<IDiscordMessageCreator>();
         var loggerMock = new Mock<ILogger<EventsController>>();
-        var discordMessageServiceMock = new Mock<IDiscordMessageService>();
         var iCalServiceMock = new Mock<IICalService>();
-        var discordMessageCreatorMock = new Mock<IDiscordMessageCreator>();
 
         Environment.SetEnvironmentVariable("EVENT_ENDPOINT_URL", "https://test.example.com");
 
@@ -32,9 +36,9 @@ public class EventsControllerUnitTests
             loggerMock.Object,
             _eventServiceMock.Object,
             _currentMemberAccessorMock.Object,
-            discordMessageServiceMock.Object,
+            _discordMessageServiceMock.Object,
             iCalServiceMock.Object,
-            discordMessageCreatorMock.Object);
+            _discordMessageCreatorMock.Object);
     }
 
     #region ManualSignup Unit Tests
@@ -241,6 +245,97 @@ public class EventsControllerUnitTests
         var newSignup = fcEvent.Signups.First(s => s.DiscordUserId == "new-user");
         newSignup.Roles.Count.ShouldBe(1);
         newSignup.Roles.ShouldContain(Role.Ranged);
+    }
+
+    #endregion
+
+    #region SelectParticipants Unit Tests
+
+    [Fact]
+    public async Task SelectParticipants_ReturnsNotFound_WhenEventNotFound()
+    {
+        _eventServiceMock.Setup(x => x.GetAsync("missing")).ReturnsAsync((Event)null!);
+
+        var result = await _controller.SelectParticipants("missing", new List<EventGroupRequest>());
+
+        result.ShouldBeOfType<NotFoundObjectResult>();
+    }
+
+    [Fact]
+    public async Task SelectParticipants_StoresUpcomingRosterMessageId_WhenDiscordReturnsMessage()
+    {
+        var fcEvent = new Event { Id = "evt1", Groups = new List<EventGroup>() };
+        var mockMessage = new Mock<IUserMessage>();
+        mockMessage.Setup(m => m.Id).Returns(111222333UL);
+
+        _eventServiceMock.Setup(x => x.GetAsync("evt1")).ReturnsAsync(fcEvent);
+        _discordMessageCreatorMock.Setup(x => x.CreateUpcomingRosterMessage(fcEvent))
+            .ReturnsAsync("roster text");
+        _discordMessageServiceMock.Setup(x => x.PostInUpcomingRosterChannelAsync("roster text"))
+            .ReturnsAsync(mockMessage.Object);
+        _eventServiceMock.Setup(x => x.UpdateAsync("evt1", fcEvent)).Returns(Task.CompletedTask);
+
+        await _controller.SelectParticipants("evt1", new List<EventGroupRequest>());
+
+        fcEvent.UpcomingRosterMessageId.ShouldBe("111222333");
+    }
+
+    [Fact]
+    public async Task SelectParticipants_DoesNotSetUpcomingRosterMessageId_WhenDiscordReturnsNull()
+    {
+        var fcEvent = new Event { Id = "evt1", Groups = new List<EventGroup>() };
+
+        _eventServiceMock.Setup(x => x.GetAsync("evt1")).ReturnsAsync(fcEvent);
+        _discordMessageCreatorMock.Setup(x => x.CreateUpcomingRosterMessage(fcEvent))
+            .ReturnsAsync("roster text");
+        _discordMessageServiceMock.Setup(x => x.PostInUpcomingRosterChannelAsync("roster text"))
+            .ReturnsAsync((IUserMessage?)null);
+        _eventServiceMock.Setup(x => x.UpdateAsync("evt1", fcEvent)).Returns(Task.CompletedTask);
+
+        await _controller.SelectParticipants("evt1", new List<EventGroupRequest>());
+
+        fcEvent.UpcomingRosterMessageId.ShouldBeNull();
+    }
+
+    [Fact]
+    public async Task SelectParticipants_CallsUpdateAsync_WithEventIncludingRosterMessageId()
+    {
+        var fcEvent = new Event { Id = "evt1", Groups = new List<EventGroup>() };
+        var mockMessage = new Mock<IUserMessage>();
+        mockMessage.Setup(m => m.Id).Returns(555666777UL);
+        Event? capturedEvent = null;
+
+        _eventServiceMock.Setup(x => x.GetAsync("evt1")).ReturnsAsync(fcEvent);
+        _discordMessageCreatorMock.Setup(x => x.CreateUpcomingRosterMessage(fcEvent))
+            .ReturnsAsync("roster text");
+        _discordMessageServiceMock.Setup(x => x.PostInUpcomingRosterChannelAsync("roster text"))
+            .ReturnsAsync(mockMessage.Object);
+        _eventServiceMock.Setup(x => x.UpdateAsync("evt1", It.IsAny<Event>()))
+            .Callback<string, Event>((_, e) => capturedEvent = e)
+            .Returns(Task.CompletedTask);
+
+        var result = await _controller.SelectParticipants("evt1", new List<EventGroupRequest>());
+
+        result.ShouldBeOfType<OkResult>();
+        capturedEvent.ShouldNotBeNull();
+        capturedEvent!.UpcomingRosterMessageId.ShouldBe("555666777");
+    }
+
+    [Fact]
+    public async Task SelectParticipants_ReturnsOk_WhenSuccessful()
+    {
+        var fcEvent = new Event { Id = "evt1", Groups = new List<EventGroup>() };
+
+        _eventServiceMock.Setup(x => x.GetAsync("evt1")).ReturnsAsync(fcEvent);
+        _discordMessageCreatorMock.Setup(x => x.CreateUpcomingRosterMessage(fcEvent))
+            .ReturnsAsync("roster text");
+        _discordMessageServiceMock.Setup(x => x.PostInUpcomingRosterChannelAsync(It.IsAny<string>()))
+            .ReturnsAsync((IUserMessage?)null);
+        _eventServiceMock.Setup(x => x.UpdateAsync("evt1", fcEvent)).Returns(Task.CompletedTask);
+
+        var result = await _controller.SelectParticipants("evt1", new List<EventGroupRequest>());
+
+        result.ShouldBeOfType<OkResult>();
     }
 
     #endregion
