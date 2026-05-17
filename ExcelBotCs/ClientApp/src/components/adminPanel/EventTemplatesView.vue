@@ -1,107 +1,105 @@
 <script lang="ts" setup>
 import type { EventTemplate } from '@/features/event-templates/event-templates.types'
 import type { FCEvent, GuildEmoji, SignupButtonConfig } from '@/features/events/events.types'
-import type { Fight } from '@/features/fights/fights.types'
 import type { Member } from '@/features/members/members.types'
-import type { RecurrenceConfig } from '@/utils/ical'
 import { computed, nextTick, onMounted, onUnmounted, reactive, ref, watch } from 'vue'
-import { useRoute, useRouter } from 'vue-router'
 import BaseButton from '@/components/BaseButton.vue'
 import DateTimePicker from '@/components/DateTimePicker.vue'
 import EventCard from '@/components/events/EventCard.vue'
-import RecurrenceOptions from '@/components/events/RecurrenceOptions.vue'
 import SearchableDropdown from '@/components/SearchableDropdown.vue'
 import { useAuth } from '@/composables/useAuth'
 import { EventTemplatesApi } from '@/features/event-templates/event-templates.api'
+import { DayOfWeek, dayOfWeekToString, formatTimeOfDay } from '@/features/event-templates/event-templates.types'
 import { EventsApi } from '@/features/events/events.api'
 import { EventType, OccurrenceStatus, ROLE } from '@/features/events/events.types'
-import { FightsApi } from '@/features/fights/fights.api'
-import { fightTypeToString } from '@/features/fights/fights.types'
 import { MembersApi } from '@/features/members/members.api'
-import mapsPlaceholder from '@/static/img/maps-placeholder.png'
-import { generateICalString, parseICalString } from '@/utils/ical'
 
-const router = useRouter()
-const route = useRoute()
-const { user, isAdmin, loadMe } = useAuth()
+const { user } = useAuth()
 
-function toAbsoluteUrl(url: string): string {
-  if (!url)
-    return url
-  if (/^(?:[a-z]+:)?\/\//i.test(url))
-    return url
-  const withSlash = url.startsWith('/') ? url : `/${url}`
-  return `${window.location.origin}${withSlash}`
-}
-
-const mapsPlaceholderAbsolute = toAbsoluteUrl(mapsPlaceholder)
-
+const templates = ref<EventTemplate[]>([])
 const loading = ref(false)
 const error = ref('')
-const isEditMode = computed(() => !!route.params.id)
 
-const eventTemplates = ref<EventTemplate[]>([])
-const selectedTemplate = ref<EventTemplate | null>(null)
-
-function formatTemplateName(tpl: EventTemplate): string {
-  return tpl.Name
-}
-
-const fights = ref<Fight[]>([])
-const selectedFight = ref<Fight | null>(null)
+const showForm = ref(false)
+const editingId = ref<string | null>(null)
+const saving = ref(false)
 
 const adminMembers = ref<Member[]>([])
 const selectedOrganizer = ref<Member | null>(null)
+const guildEmojis = ref<GuildEmoji[]>([])
 
 function formatMemberName(member: Member): string {
   return member.PlayerName || member.DiscordName
 }
 
+function blankForm(): Omit<EventTemplate, 'Id'> {
+  return {
+    Name: '',
+    Description: '',
+    Type: EventType.Other,
+    DayOfWeek: DayOfWeek.Wednesday,
+    TimeOfDayMinutes: 1200,
+    Duration: 120,
+    Organizer: '',
+    MaxNumberOfParticipants: 8,
+    SignupButtonConfigs: undefined,
+  }
+}
+
+const form = reactive<Omit<EventTemplate, 'Id'>>(blankForm())
+
+// Party presets (reused from CreateEventView)
 type PartyPreset = 'light-party' | 'full-party' | 'alliance-raid' | 'any' | 'custom'
 const partyPreset = ref<PartyPreset>('full-party')
 
-const form = reactive<FCEvent>({
-  Id: '',
-  Name: '',
-  Description: '',
-  DiscordMessageId: '',
-  PictureUrl: '',
-  Type: EventType.Other,
-  FightId: undefined,
-  Organizer: '',
-  StartDate: new Date(),
-  EndDate: new Date(),
-  Duration: 30,
-  ICalString: '',
-  SignupType: 0,
-  MaxNumberOfParticipants: 8,
-  SignupButtonConfigs: undefined,
-  Signups: [],
-  Groups: [],
-  Occurrences: [],
-  AvailableForSignup: false,
-  IsArchived: false,
-  CanBeArchived: false,
-})
+const partyPresetOptions = [
+  { key: 'light-party' as PartyPreset, label: 'Light (4)' },
+  { key: 'full-party' as PartyPreset, label: 'Full (8)' },
+  { key: 'alliance-raid' as PartyPreset, label: 'Alliance (24)' },
+  { key: 'any' as PartyPreset, label: 'Any (99)' },
+  { key: 'custom' as PartyPreset, label: 'Custom' },
+]
 
-const recurrence = ref<RecurrenceConfig>({
-  enabled: false,
-  frequency: 'WEEKLY',
-  interval: 1,
-  endType: 'never',
-  byWeekday: [],
-})
+function setPartyPreset(preset: PartyPreset) {
+  partyPreset.value = preset
+  switch (preset) {
+    case 'light-party':
+      form.MaxNumberOfParticipants = 4
+      break
+    case 'full-party':
+      form.MaxNumberOfParticipants = 8
+      break
+    case 'alliance-raid':
+      form.MaxNumberOfParticipants = 24
+      break
+    case 'any':
+      form.MaxNumberOfParticipants = 99
+      break
+    case 'custom':
+      if ([4, 8, 24, 99].includes(form.MaxNumberOfParticipants))
+        form.MaxNumberOfParticipants = 0
+      break
+  }
+}
 
-// Signup button configuration
+function detectPreset(max: number): PartyPreset {
+  switch (max) {
+    case 4: return 'light-party'
+    case 8: return 'full-party'
+    case 24: return 'alliance-raid'
+    case 99: return 'any'
+    default: return 'custom'
+  }
+}
+
+// Button configuration (reused pattern from CreateEventView)
 type ButtonMode = 'standard' | 'roles-helper' | 'custom'
 const buttonMode = ref<ButtonMode>('standard')
 const signupButtonConfigs = ref<SignupButtonConfig[]>([])
-const guildEmojis = ref<GuildEmoji[]>([])
 const emojiSearchQuery = ref('')
 const emojiDropdownOpenIndex = ref<number | null>(null)
 const emojiSearchInputRef = ref<HTMLInputElement | null>(null)
 
-// Known role emoji IDs (used for "Roles + Helper" preset)
 const ROLE_EMOJI_IDS: Record<string, string> = {
   tank: '1380979172423499846',
   healer: '1380979170787721368',
@@ -117,16 +115,10 @@ const filteredEmojis = computed(() => {
   return guildEmojis.value.filter(e => e.Name.toLowerCase().includes(query))
 })
 
-function getEmojiById(id?: string): GuildEmoji | undefined {
-  if (!id)
-    return undefined
-  return guildEmojis.value.find(e => e.Id === id)
-}
-
 function getEmojiUrl(id?: string): string | null {
   if (!id)
     return null
-  const emoji = getEmojiById(id)
+  const emoji = guildEmojis.value.find(e => e.Id === id)
   if (emoji)
     return emoji.Url
   return `https://cdn.discordapp.com/emojis/${id}.webp?size=20`
@@ -137,13 +129,7 @@ function slugify(text: string): string {
 }
 
 function addButton() {
-  signupButtonConfigs.value.push({
-    Slug: '',
-    Label: '',
-    EmojiId: undefined,
-    IsHelper: false,
-    MappedRole: undefined,
-  })
+  signupButtonConfigs.value.push({ Slug: '', Label: '', EmojiId: undefined, IsHelper: false, MappedRole: undefined })
 }
 
 function removeButton(index: number) {
@@ -151,16 +137,13 @@ function removeButton(index: number) {
 }
 
 function onLabelChange(index: number) {
-  const config = signupButtonConfigs.value[index]
-  config.Slug = slugify(config.Label)
+  signupButtonConfigs.value[index].Slug = slugify(signupButtonConfigs.value[index].Label)
 }
 
 function openEmojiDropdown(index: number) {
   emojiSearchQuery.value = ''
   emojiDropdownOpenIndex.value = index
-  nextTick(() => {
-    emojiSearchInputRef.value?.focus()
-  })
+  nextTick(() => emojiSearchInputRef.value?.focus())
 }
 
 function selectEmoji(index: number, emoji: GuildEmoji) {
@@ -178,18 +161,15 @@ function closeEmojiDropdown() {
 }
 
 function handleGlobalKeydown(e: KeyboardEvent) {
-  if (e.key === 'Escape' && emojiDropdownOpenIndex.value !== null) {
+  if (e.key === 'Escape' && emojiDropdownOpenIndex.value !== null)
     closeEmojiDropdown()
-  }
 }
 
 function handleGlobalClick(e: MouseEvent) {
   if (emojiDropdownOpenIndex.value === null)
     return
-  const target = e.target as HTMLElement
-  if (!target.closest('.emoji-picker-wrapper')) {
+  if (!(e.target as HTMLElement).closest('.emoji-picker-wrapper'))
     closeEmojiDropdown()
-  }
 }
 
 function setButtonMode(mode: ButtonMode) {
@@ -216,20 +196,23 @@ function setButtonMode(mode: ButtonMode) {
 }
 
 function applyPreset(preset: 'interested' | 'interested-helper') {
-  switch (preset) {
-    case 'interested':
-      signupButtonConfigs.value = [
-        { Slug: 'interested', Label: 'Interested', IsHelper: false, MappedRole: undefined },
-      ]
-      break
-    case 'interested-helper':
-      signupButtonConfigs.value = [
-        { Slug: 'interested', Label: 'Interested', IsHelper: false, MappedRole: undefined },
-        { Slug: 'helper', Label: 'Helper', IsHelper: true, MappedRole: undefined },
-      ]
-      break
+  if (preset === 'interested') {
+    signupButtonConfigs.value = [{ Slug: 'interested', Label: 'Interested', IsHelper: false, MappedRole: undefined }]
+  }
+  else {
+    signupButtonConfigs.value = [
+      { Slug: 'interested', Label: 'Interested', IsHelper: false, MappedRole: undefined },
+      { Slug: 'helper', Label: 'Helper', IsHelper: true, MappedRole: undefined },
+    ]
   }
 }
+
+// Event type options
+const eventTypeOptions = computed(() => {
+  return Object.keys(EventType)
+    .filter(key => Number.isNaN(Number(key)))
+    .map(key => ({ value: EventType[key as keyof typeof EventType], label: key }))
+})
 
 function getNextOccurrence(dayOfWeek: number, timeOfDayMinutes: number): Date {
   const now = new Date()
@@ -249,57 +232,36 @@ function getNextOccurrence(dayOfWeek: number, timeOfDayMinutes: number): Date {
   return result
 }
 
-function applyTemplate(tpl: EventTemplate | null) {
-  if (!tpl)
-    return
+const syntheticDate = ref<Date>(getNextOccurrence(form.DayOfWeek, form.TimeOfDayMinutes))
 
-  form.Name = tpl.Name
-  form.Description = tpl.Description
-  form.Type = tpl.Type
-  form.Duration = tpl.Duration
-  form.MaxNumberOfParticipants = tpl.MaxNumberOfParticipants
-  form.StartDate = getNextOccurrence(tpl.DayOfWeek, tpl.TimeOfDayMinutes)
-
-  partyPreset.value = detectPreset(tpl.MaxNumberOfParticipants)
-
-  if (tpl.Organizer) {
-    const match = adminMembers.value.find(m => m.PlayerName === tpl.Organizer)
-    if (match) {
-      selectedOrganizer.value = match
-      form.Organizer = formatMemberName(match)
-    }
-    else {
-      form.Organizer = tpl.Organizer
-    }
-  }
-
-  if (tpl.SignupButtonConfigs && tpl.SignupButtonConfigs.length > 0) {
-    const hasHelper = tpl.SignupButtonConfigs.some(c => c.IsHelper)
-    const hasAllRoles = ['tank', 'healer', 'melee', 'caster', 'ranged']
-      .every(slug => tpl.SignupButtonConfigs!.some(c => c.Slug === slug))
-    if (hasHelper && hasAllRoles)
-      buttonMode.value = 'roles-helper'
-    else buttonMode.value = 'custom'
-    signupButtonConfigs.value = [...tpl.SignupButtonConfigs]
-  }
-  else {
-    buttonMode.value = 'standard'
-    signupButtonConfigs.value = []
-  }
-}
+watch(syntheticDate, (d) => {
+  form.DayOfWeek = d.getDay() as DayOfWeek
+  form.TimeOfDayMinutes = d.getHours() * 60 + d.getMinutes()
+})
 
 const previewCollapsed = ref(true)
 
 const previewEvent = computed<FCEvent>(() => {
-  const icalStr = generateICalString(form, recurrence.value)
   return {
-    ...form,
+    Id: 'template-preview',
+    Name: form.Name || 'Untitled Event',
+    Description: form.Description,
+    Type: form.Type,
+    StartDate: syntheticDate.value,
+    EndDate: new Date(syntheticDate.value.getTime() + form.Duration * 60000),
+    Duration: form.Duration,
+    ICalString: '',
+    SignupType: 0,
+    DiscordMessageId: '',
     Organizer: form.Organizer || (selectedOrganizer.value ? formatMemberName(selectedOrganizer.value) : user.value?.PlayerName || 'You'),
-    ICalString: icalStr,
     AvailableForSignup: true,
+    MaxNumberOfParticipants: form.MaxNumberOfParticipants,
+    SignupButtonConfigs: buttonMode.value !== 'standard' ? signupButtonConfigs.value : undefined,
+    Signups: [],
+    Groups: [],
     Occurrences: [{
       Id: 'preview',
-      OccurrenceDate: form.StartDate,
+      OccurrenceDate: syntheticDate.value,
       Status: OccurrenceStatus.Scheduled,
     }],
     IsArchived: false,
@@ -312,350 +274,206 @@ watch(previewEvent, (val) => {
   previewEventRef.value = { ...val }
 }, { deep: true })
 
-function setPartyPreset(preset: PartyPreset) {
-  partyPreset.value = preset
-  switch (preset) {
-    case 'light-party':
-      form.MaxNumberOfParticipants = 4
-      break
-    case 'full-party':
-      form.MaxNumberOfParticipants = 8
-      break
-    case 'alliance-raid':
-      form.MaxNumberOfParticipants = 24
-      break
-    case 'any':
-      form.MaxNumberOfParticipants = 99
-      break
-    case 'custom':
-      if (form.MaxNumberOfParticipants === 4 || form.MaxNumberOfParticipants === 8
-        || form.MaxNumberOfParticipants === 24 || form.MaxNumberOfParticipants === 99) {
-        form.MaxNumberOfParticipants = 0
-      }
-      break
-  }
-}
-
-function setDuration(minutes: number) {
-  form.Duration = minutes
-}
-
-function detectPreset(maxParticipants: number): PartyPreset {
-  switch (maxParticipants) {
-    case 4:
-      return 'light-party'
-    case 8:
-      return 'full-party'
-    case 24:
-      return 'alliance-raid'
-    case 99:
-      return 'any'
-    default:
-      return 'custom'
-  }
-}
-
-const isInputDisabled = computed(() => partyPreset.value !== 'custom')
-
-const partyPresetOptions = [
-  { key: 'light-party' as PartyPreset, label: 'Light (4)' },
-  { key: 'full-party' as PartyPreset, label: 'Full (8)' },
-  { key: 'alliance-raid' as PartyPreset, label: 'Alliance (24)' },
-  { key: 'any' as PartyPreset, label: 'Any (99)' },
-  { key: 'custom' as PartyPreset, label: 'Custom' },
-]
-
-const eventTypeOptions = computed(() => {
-  return Object.keys(EventType)
-    .filter(key => Number.isNaN(Number(key)))
-    .map(key => ({
-      value: EventType[key as keyof typeof EventType],
-      label: key,
-    }))
-})
-
-const showFightSelection = computed(() => {
-  const fightCompatibleTypes = [
-    EventType.Academy,
-    EventType.Downsynced,
-    EventType.BLU,
-    EventType.Farming,
-    EventType.Raid,
-    EventType.MinIlvl,
-    EventType.Other,
-    EventType.Unreal,
-  ]
-  return fightCompatibleTypes.includes(form.Type)
-})
-
-function formatFight(fight: Fight): string {
-  return `${fight.Name} (${fightTypeToString(fight.Type)})`
-}
-
-onMounted(async () => {
-  document.addEventListener('keydown', handleGlobalKeydown)
-  document.addEventListener('click', handleGlobalClick)
-
-  try {
-    eventTemplates.value = await EventTemplatesApi.list()
-  }
-  catch {
-    // Templates are optional
-  }
-
-  try {
-    fights.value = await FightsApi.list()
-  }
-  catch {
-    // Fights are optional
-  }
-
-  try {
-    guildEmojis.value = await EventsApi.getGuildEmojis()
-  }
-  catch {
-    // Emojis are optional
-  }
-
-  try {
-    const allMembers = await MembersApi.list()
-    adminMembers.value = allMembers.filter(m => m.IsAdmin)
-    if (!isEditMode.value && user.value) {
-      const me = adminMembers.value.find(m => m.DiscordId === user.value!.DiscordId)
-      if (me) {
-        selectedOrganizer.value = me
-        form.Organizer = formatMemberName(me)
-      }
-    }
-  }
-  catch {
-    // Members are optional; organizer can still be typed manually
-  }
-
-  if (isEditMode.value) {
-    loading.value = true
-    try {
-      const eventData = await EventsApi.get(route.params.id as string)
-      if (eventData) {
-        Object.assign(form, eventData)
-        if (form.PictureUrl) {
-          form.PictureUrl = toAbsoluteUrl(form.PictureUrl)
-        }
-        partyPreset.value = detectPreset(eventData.MaxNumberOfParticipants)
-        if (eventData.FightId) {
-          selectedFight.value = fights.value.find(f => f.Id === eventData.FightId) || null
-        }
-        if (eventData.Organizer) {
-          const match = adminMembers.value.find(m => m.PlayerName === eventData.Organizer)
-          if (match)
-            selectedOrganizer.value = match
-        }
-        if (eventData.ICalString) {
-          const parsedRecurrence = parseICalString(eventData.ICalString)
-          if (parsedRecurrence) {
-            recurrence.value = parsedRecurrence
-          }
-        }
-        if (eventData.SignupButtonConfigs && eventData.SignupButtonConfigs.length > 0) {
-          // Detect if it's the "roles + helper" preset
-          const hasHelper = eventData.SignupButtonConfigs.some(c => c.IsHelper)
-          const hasAllRoles = ['tank', 'healer', 'melee', 'caster', 'ranged']
-            .every(slug => eventData.SignupButtonConfigs!.some(c => c.Slug === slug))
-          if (hasHelper && hasAllRoles) {
-            buttonMode.value = 'roles-helper'
-          }
-          else {
-            buttonMode.value = 'custom'
-          }
-          signupButtonConfigs.value = eventData.SignupButtonConfigs
-        }
-      }
-    }
-    catch (e: any) {
-      error.value = e?.message || 'Failed to load event'
-    }
-    finally {
-      loading.value = false
-    }
-  }
-})
-
-onUnmounted(() => {
-  document.removeEventListener('keydown', handleGlobalKeydown)
-  document.removeEventListener('click', handleGlobalClick)
-})
-
-watch(selectedOrganizer, (newOrganizer) => {
-  form.Organizer = newOrganizer ? formatMemberName(newOrganizer) : ''
-})
-
-watch(selectedFight, (newFight) => {
-  if (newFight) {
-    if (newFight.ImageUrl) {
-      form.PictureUrl = toAbsoluteUrl(newFight.ImageUrl)
-    }
-    form.FightId = newFight.Id
-  }
-  else {
-    form.FightId = undefined
-  }
-})
-
-watch(
-  () => form.Type,
-  (newType) => {
-    if (newType === EventType.Maps) {
-      if (!form.PictureUrl || form.PictureUrl === mapsPlaceholder || form.PictureUrl === mapsPlaceholderAbsolute) {
-        form.PictureUrl = mapsPlaceholderAbsolute
-      }
-    }
-    else {
-      if ((form.PictureUrl === mapsPlaceholder || form.PictureUrl === mapsPlaceholderAbsolute) && !selectedFight.value) {
-        form.PictureUrl = ''
-      }
-    }
-    if (!showFightSelection.value) {
-      selectedFight.value = null
-      form.FightId = undefined
-    }
-  },
-  { immediate: true },
-)
-
-async function submit() {
-  error.value = ''
+async function loadTemplates() {
   loading.value = true
+  error.value = ''
   try {
-    await loadMe()
-    if (!isAdmin.value) {
-      error.value = 'You do not have permission to create/edit events.'
-      return
-    }
-    if (!form.Organizer)
-      form.Organizer = user.value?.PlayerName ?? ''
-    if (form.PictureUrl) {
-      form.PictureUrl = toAbsoluteUrl(form.PictureUrl)
-    }
-    form.ICalString = generateICalString(form, recurrence.value)
-    form.SignupButtonConfigs = buttonMode.value !== 'standard' ? signupButtonConfigs.value : undefined
-
-    if (isEditMode.value) {
-      await EventsApi.update(form.Id, form)
-    }
-    else {
-      await EventsApi.create(form)
-    }
-    await router.push({ name: 'events' })
+    templates.value = await EventTemplatesApi.list()
   }
   catch (e: any) {
-    error.value = e?.message || `Failed to ${isEditMode.value ? 'update' : 'create'} event`
+    error.value = e?.message || 'Failed to load templates'
   }
   finally {
     loading.value = false
   }
 }
 
-function cancel() {
-  router.push({ name: 'events' })
+function openCreateForm() {
+  editingId.value = null
+  Object.assign(form, blankForm())
+  partyPreset.value = 'full-party'
+  buttonMode.value = 'standard'
+  signupButtonConfigs.value = []
+  selectedOrganizer.value = null
+  syntheticDate.value = getNextOccurrence(form.DayOfWeek, form.TimeOfDayMinutes)
+
+  if (user.value) {
+    const me = adminMembers.value.find(m => m.DiscordId === user.value!.DiscordId)
+    if (me) {
+      selectedOrganizer.value = me
+      form.Organizer = formatMemberName(me)
+    }
+  }
+
+  showForm.value = true
 }
+
+function openEditForm(template: EventTemplate) {
+  editingId.value = template.Id
+  Object.assign(form, {
+    Name: template.Name,
+    Description: template.Description,
+    Type: template.Type,
+    DayOfWeek: template.DayOfWeek,
+    TimeOfDayMinutes: template.TimeOfDayMinutes,
+    Duration: template.Duration,
+    Organizer: template.Organizer,
+    MaxNumberOfParticipants: template.MaxNumberOfParticipants,
+    SignupButtonConfigs: template.SignupButtonConfigs,
+  })
+  syntheticDate.value = getNextOccurrence(template.DayOfWeek, template.TimeOfDayMinutes)
+  partyPreset.value = detectPreset(template.MaxNumberOfParticipants)
+
+  if (template.Organizer) {
+    const match = adminMembers.value.find(m => m.PlayerName === template.Organizer)
+    if (match)
+      selectedOrganizer.value = match
+    else selectedOrganizer.value = null
+  }
+  else {
+    selectedOrganizer.value = null
+  }
+
+  if (template.SignupButtonConfigs && template.SignupButtonConfigs.length > 0) {
+    const hasHelper = template.SignupButtonConfigs.some(c => c.IsHelper)
+    const hasAllRoles = ['tank', 'healer', 'melee', 'caster', 'ranged']
+      .every(slug => template.SignupButtonConfigs!.some(c => c.Slug === slug))
+    if (hasHelper && hasAllRoles)
+      buttonMode.value = 'roles-helper'
+    else buttonMode.value = 'custom'
+    signupButtonConfigs.value = [...template.SignupButtonConfigs]
+  }
+  else {
+    buttonMode.value = 'standard'
+    signupButtonConfigs.value = []
+  }
+
+  showForm.value = true
+}
+
+function closeForm() {
+  showForm.value = false
+  editingId.value = null
+}
+
+async function saveTemplate() {
+  saving.value = true
+  error.value = ''
+  try {
+    form.SignupButtonConfigs = buttonMode.value !== 'standard' ? signupButtonConfigs.value : undefined
+
+    if (editingId.value) {
+      await EventTemplatesApi.update(editingId.value, { ...form })
+    }
+    else {
+      await EventTemplatesApi.create({ ...form })
+    }
+    showForm.value = false
+    editingId.value = null
+    await loadTemplates()
+  }
+  catch (e: any) {
+    error.value = e?.message || 'Failed to save template'
+  }
+  finally {
+    saving.value = false
+  }
+}
+
+const deleteConfirmId = ref<string | null>(null)
+
+async function deleteTemplate(id: string) {
+  if (deleteConfirmId.value !== id) {
+    deleteConfirmId.value = id
+    return
+  }
+  error.value = ''
+  try {
+    await EventTemplatesApi.delete(id)
+    deleteConfirmId.value = null
+    await loadTemplates()
+  }
+  catch (e: any) {
+    error.value = e?.message || 'Failed to delete template'
+  }
+}
+
+function cancelDelete() {
+  deleteConfirmId.value = null
+}
+
+onMounted(async () => {
+  document.addEventListener('keydown', handleGlobalKeydown)
+  document.addEventListener('click', handleGlobalClick)
+
+  await loadTemplates()
+
+  try {
+    const allMembers = await MembersApi.list()
+    adminMembers.value = allMembers.filter(m => m.IsAdmin)
+  }
+  catch { /* optional */ }
+
+  try {
+    guildEmojis.value = await EventsApi.getGuildEmojis()
+  }
+  catch { /* optional */ }
+})
+
+onUnmounted(() => {
+  document.removeEventListener('keydown', handleGlobalKeydown)
+  document.removeEventListener('click', handleGlobalClick)
+})
 </script>
 
 <template>
-  <div class="create-event-page">
-    <div class="page-header">
-      <h2 class="page-title">
-        {{ isEditMode ? 'Edit Event' : 'New Event' }}
-      </h2>
+  <section class="templates-view">
+    <!-- Header -->
+    <div class="templates-header">
+      <h3 class="section-heading">
+        Event Templates
+      </h3>
+      <BaseButton
+        v-if="!showForm"
+        title="New Template"
+        size="small"
+        @clicked="openCreateForm"
+      />
     </div>
 
     <p v-if="error" class="form-error">
       {{ error }}
     </p>
 
-    <div class="create-event-layout">
-      <!-- Form Column -->
-      <form class="event-form" @submit.prevent="submit">
-        <div class="form-surface">
-          <!-- Template Picker (create mode only) -->
-          <div v-if="!isEditMode && eventTemplates.length > 0" class="form-group template-picker-group">
-            <div class="form-field">
-              <label>Load from Template</label>
-              <div class="template-picker">
-                <SearchableDropdown
-                  v-model="selectedTemplate"
-                  :format-option="formatTemplateName"
-                  :options="eventTemplates"
-                  placeholder="Select a template..."
-                />
-                <BaseButton
-                  :disabled="!selectedTemplate"
-                  size="small"
-                  title="Apply"
-                  type="button"
-                  @clicked="applyTemplate(selectedTemplate)"
-                />
-              </div>
-              <small class="field-hint">Pre-fills the form with saved settings</small>
-            </div>
-            <hr class="form-divider">
-          </div>
+    <!-- Template Form -->
+    <div v-if="showForm" class="template-form-layout">
+      <div class="template-form-surface">
+        <h4 class="form-title">
+          {{ editingId ? 'Edit Template' : 'New Template' }}
+        </h4>
 
-          <!-- Basic Information -->
+        <form class="template-form" @submit.prevent="saveTemplate">
+          <!-- Basic Info -->
           <div class="form-group">
             <div class="form-field">
-              <label for="event-name">Name</label>
-              <input id="event-name" v-model="form.Name" placeholder="Event name" required type="text">
+              <label for="tpl-name">Name</label>
+              <input id="tpl-name" v-model="form.Name" type="text" placeholder="Template name" required>
             </div>
 
             <div class="form-field">
-              <label for="event-description">Description</label>
-              <textarea
-                id="event-description" v-model="form.Description"
-                placeholder="Describe the event (supports Discord formatting)" rows="4"
-              />
+              <label for="tpl-description">Description</label>
+              <textarea id="tpl-description" v-model="form.Description" placeholder="Event description" rows="3" />
             </div>
 
             <div class="form-field-row">
               <div class="form-field">
-                <label for="event-type">Type</label>
-                <select id="event-type" v-model.number="form.Type" required>
+                <label for="tpl-type">Type</label>
+                <select id="tpl-type" v-model.number="form.Type" required>
                   <option v-for="option in eventTypeOptions" :key="option.value" :value="option.value">
                     {{ option.label }}
                   </option>
                 </select>
               </div>
-              <div v-if="form.DiscordMessageId" class="form-field">
-                <label for="discord-id">Discord Message ID</label>
-                <input id="discord-id" v-model="form.DiscordMessageId" placeholder="Discord message ID" type="text">
-              </div>
-            </div>
-          </div>
-
-          <hr class="form-divider">
-
-          <!-- Fight & Media -->
-          <div class="form-group">
-            <h3 class="form-group-label">
-              {{ showFightSelection ? 'Fight & Media' : 'Media' }}
-            </h3>
-            <div v-if="showFightSelection" class="form-field">
-              <label>Fight (optional)</label>
-              <SearchableDropdown
-                v-model="selectedFight"
-                :format-option="formatFight"
-                :options="fights"
-                placeholder="Search fights..."
-              />
-              <small class="field-hint">Auto-fills the event image</small>
-            </div>
-            <div class="form-field">
-              <label for="picture-url">Image URL</label>
-              <input
-                id="picture-url"
-                v-model="form.PictureUrl"
-                :placeholder="showFightSelection ? 'Auto-filled from fight' : 'https://...'"
-                type="url"
-              >
             </div>
           </div>
 
@@ -663,15 +481,16 @@ function cancel() {
 
           <!-- Schedule -->
           <div class="form-group">
-            <h3 class="form-group-label">
+            <h5 class="form-group-label">
               Schedule
-            </h3>
+            </h5>
             <div class="form-field">
               <DateTimePicker
-                v-model="form.StartDate"
+                v-model="syntheticDate"
                 :required="true"
-                label="Start Date & Time"
+                label="Day & Time"
               />
+              <small class="field-hint">The date sets the day of week; time sets the start time for events created from this template.</small>
             </div>
             <div class="form-field">
               <label>Duration</label>
@@ -685,7 +504,7 @@ function cancel() {
                     :variant="form.Duration === mins ? 'elevated' : 'outlined'"
                     size="small"
                     type="button"
-                    @clicked="setDuration(mins)"
+                    @clicked="form.Duration = mins"
                   />
                 </div>
                 <input
@@ -700,18 +519,15 @@ function cancel() {
                 >
               </div>
             </div>
-            <div class="form-field">
-              <RecurrenceOptions v-model="recurrence" />
-            </div>
           </div>
 
           <hr class="form-divider">
 
           <!-- Participants -->
           <div class="form-group">
-            <h3 class="form-group-label">
+            <h5 class="form-group-label">
               Participants
-            </h3>
+            </h5>
             <div class="form-field">
               <label>Party Size</label>
               <div class="party-presets">
@@ -729,7 +545,6 @@ function cancel() {
               <input
                 v-if="partyPreset === 'custom'"
                 v-model.number="form.MaxNumberOfParticipants"
-                :disabled="isInputDisabled"
                 inputmode="numeric"
                 max="99"
                 min="1"
@@ -746,6 +561,7 @@ function cancel() {
                 :format-option="formatMemberName"
                 :options="adminMembers"
                 placeholder="Select organizer..."
+                @update:model-value="form.Organizer = $event ? formatMemberName($event) : ''"
               >
                 <template #selected="{ option }">
                   <span class="organizer-option">
@@ -779,9 +595,9 @@ function cancel() {
 
           <!-- Signup Buttons -->
           <div class="form-group">
-            <h3 class="form-group-label">
+            <h5 class="form-group-label">
               Signup Buttons
-            </h3>
+            </h5>
             <div class="form-field">
               <label>Button Mode</label>
               <div class="party-presets">
@@ -812,11 +628,10 @@ function cancel() {
               </div>
             </div>
 
-            <!-- Roles + Helper: only configure the helper button -->
+            <!-- Roles + Helper: configure helper button -->
             <template v-if="buttonMode === 'roles-helper'">
               <p class="field-hint">
-                Standard role buttons (Tank, Healer, Melee, Caster, Ranged) with emotes. Configure the helper button
-                below:
+                Standard role buttons with emotes. Configure the helper button below:
               </p>
               <div v-if="signupButtonConfigs.find(c => c.IsHelper)" class="button-config-row">
                 <div class="button-config-fields">
@@ -836,7 +651,8 @@ function cancel() {
                     >
                       <img
                         v-if="getEmojiUrl(signupButtonConfigs[signupButtonConfigs.length - 1].EmojiId)"
-                        :src="getEmojiUrl(signupButtonConfigs[signupButtonConfigs.length - 1].EmojiId)!" alt=""
+                        :src="getEmojiUrl(signupButtonConfigs[signupButtonConfigs.length - 1].EmojiId)!"
+                        alt=""
                         class="emoji-preview-img"
                       >
                       <span v-else class="emoji-picker-placeholder">Emoji</span>
@@ -850,7 +666,8 @@ function cancel() {
                         type="text"
                       >
                       <button
-                        class="emoji-option emoji-option--clear" type="button"
+                        class="emoji-option emoji-option--clear"
+                        type="button"
                         @click="clearEmoji(signupButtonConfigs.length - 1)"
                       >
                         No emoji
@@ -874,7 +691,8 @@ function cancel() {
                   <span class="button-preview-btn">
                     <img
                       v-if="getEmojiUrl(signupButtonConfigs[signupButtonConfigs.length - 1].EmojiId)"
-                      :src="getEmojiUrl(signupButtonConfigs[signupButtonConfigs.length - 1].EmojiId)!" alt=""
+                      :src="getEmojiUrl(signupButtonConfigs[signupButtonConfigs.length - 1].EmojiId)!"
+                      alt=""
                       class="button-preview-emoji"
                     >
                     {{ signupButtonConfigs[signupButtonConfigs.length - 1].Label || 'Helper' }}
@@ -883,7 +701,7 @@ function cancel() {
               </div>
             </template>
 
-            <!-- Custom buttons: full config -->
+            <!-- Custom buttons -->
             <template v-if="buttonMode === 'custom'">
               <div class="form-field">
                 <label>Presets</label>
@@ -917,10 +735,7 @@ function cancel() {
                     @input="onLabelChange(index)"
                   >
                   <span v-if="config.IsHelper" class="button-tag button-tag--helper">helper</span>
-                  <span
-                    v-else-if="config.Slug === 'interested'"
-                    class="button-tag button-tag--interested"
-                  >interested</span>
+                  <span v-else-if="config.Slug === 'interested'" class="button-tag button-tag--interested">interested</span>
                   <div class="emoji-picker-wrapper">
                     <button
                       class="emoji-picker-trigger"
@@ -928,7 +743,9 @@ function cancel() {
                       @click.stop="openEmojiDropdown(index)"
                     >
                       <img
-                        v-if="getEmojiUrl(config.EmojiId)" :src="getEmojiUrl(config.EmojiId)!" alt=""
+                        v-if="getEmojiUrl(config.EmojiId)"
+                        :src="getEmojiUrl(config.EmojiId)!"
+                        alt=""
                         class="emoji-preview-img"
                       >
                       <span v-else class="emoji-picker-placeholder">Emoji</span>
@@ -962,7 +779,9 @@ function cancel() {
                 <div class="button-preview">
                   <span class="button-preview-btn">
                     <img
-                      v-if="getEmojiUrl(config.EmojiId)" :src="getEmojiUrl(config.EmojiId)!" alt=""
+                      v-if="getEmojiUrl(config.EmojiId)"
+                      :src="getEmojiUrl(config.EmojiId)!"
+                      alt=""
                       class="button-preview-emoji"
                     >
                     {{ config.Label || '...' }}
@@ -974,12 +793,8 @@ function cancel() {
                   type="button"
                   @click="removeButton(index)"
                 >
-                  <svg
-                    fill="none" height="14" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                    viewBox="0 0 24 24" width="14"
-                  >
-                    <line x1="18" x2="6" y1="6" y2="18" />
-                    <line x1="6" x2="18" y1="6" y2="18" />
+                  <svg fill="none" height="14" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24" width="14">
+                    <line x1="18" x2="6" y1="6" y2="18" /><line x1="6" x2="18" y1="6" y2="18" />
                   </svg>
                 </button>
               </div>
@@ -994,18 +809,23 @@ function cancel() {
               />
             </template>
           </div>
-        </div>
 
-        <!-- Form Actions -->
-        <div class="form-actions">
-          <BaseButton :disabled="loading" state="secondary" title="Cancel" variant="outlined" @clicked="cancel" />
-          <BaseButton
-            :disabled="loading"
-            :title="loading ? (isEditMode ? 'Saving...' : 'Creating...') : (isEditMode ? 'Save Changes' : 'Create Event')"
-            type="submit"
-          />
-        </div>
-      </form>
+          <!-- Actions -->
+          <div class="form-actions">
+            <BaseButton
+              state="secondary"
+              title="Cancel"
+              variant="outlined"
+              @clicked="closeForm"
+            />
+            <BaseButton
+              :disabled="saving"
+              :title="saving ? 'Saving...' : (editingId ? 'Save Changes' : 'Create Template')"
+              type="submit"
+            />
+          </div>
+        </form>
+      </div>
 
       <!-- Preview Column (desktop) -->
       <aside class="preview-column">
@@ -1022,7 +842,7 @@ function cancel() {
     </div>
 
     <!-- Preview Toggle (mobile) -->
-    <div class="preview-mobile">
+    <div v-if="showForm" class="preview-mobile">
       <button class="preview-toggle" type="button" @click="previewCollapsed = !previewCollapsed">
         <span>{{ previewCollapsed ? 'Show Preview' : 'Hide Preview' }}</span>
         <svg
@@ -1047,25 +867,107 @@ function cancel() {
         />
       </div>
     </div>
-  </div>
+
+    <!-- Template List -->
+    <div v-if="!showForm" class="templates-list">
+      <div v-if="loading" class="placeholder-box">
+        <p class="placeholder-box__text">
+          Loading templates...
+        </p>
+      </div>
+
+      <div v-else-if="templates.length === 0" class="placeholder-box">
+        <p class="placeholder-box__text">
+          No event templates yet.
+        </p>
+        <p class="placeholder-box__subtext">
+          Create a template to quickly set up recurring events.
+        </p>
+      </div>
+
+      <div v-else class="templates-table-wrap">
+        <table class="templates-table">
+          <thead>
+            <tr>
+              <th>Name</th>
+              <th>Type</th>
+              <th>Schedule</th>
+              <th>Duration</th>
+              <th>Party Size</th>
+              <th>Organizer</th>
+              <th class="actions-col" />
+            </tr>
+          </thead>
+          <tbody>
+            <tr v-for="tpl in templates" :key="tpl.Id">
+              <td class="name-cell">
+                {{ tpl.Name }}
+              </td>
+              <td>
+                <span class="type-badge">{{ EventType[tpl.Type] }}</span>
+              </td>
+              <td>{{ dayOfWeekToString(tpl.DayOfWeek) }} {{ formatTimeOfDay(tpl.TimeOfDayMinutes) }}</td>
+              <td>{{ tpl.Duration }} min</td>
+              <td>{{ tpl.MaxNumberOfParticipants }}</td>
+              <td>{{ tpl.Organizer || '—' }}</td>
+              <td class="actions-cell">
+                <BaseButton
+                  size="small"
+                  state="secondary"
+                  title="Edit"
+                  variant="text"
+                  @clicked="openEditForm(tpl)"
+                />
+                <template v-if="deleteConfirmId === tpl.Id">
+                  <BaseButton
+                    size="small"
+                    state="danger"
+                    title="Confirm"
+                    variant="elevated"
+                    @clicked="deleteTemplate(tpl.Id)"
+                  />
+                  <BaseButton
+                    size="small"
+                    state="secondary"
+                    title="Cancel"
+                    variant="text"
+                    @clicked="cancelDelete"
+                  />
+                </template>
+                <BaseButton
+                  v-else
+                  size="small"
+                  state="danger"
+                  title="Delete"
+                  variant="text"
+                  @clicked="deleteTemplate(tpl.Id)"
+                />
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </section>
 </template>
 
 <style scoped>
-.create-event-page {
-  max-width: 1120px;
-  margin: 0 auto;
+.templates-view {
+  width: 100%;
 }
 
-.page-header {
-  margin-bottom: 2rem;
+.templates-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 1.5rem;
 }
 
-.page-title {
-  font-size: 2rem;
-  font-weight: 700;
-  margin: 0;
+.section-heading {
+  font-size: 1.5rem;
+  font-weight: 600;
   color: var(--fg);
-  letter-spacing: -0.02em;
+  margin: 0;
 }
 
 .form-error {
@@ -1077,67 +979,47 @@ function cancel() {
   margin-bottom: 1.5rem;
 }
 
-/* Two-column layout */
-.create-event-layout {
-  display: grid;
-  grid-template-columns: 1fr;
-  gap: 2rem;
-}
-
-@media (min-width: 960px) {
-  .create-event-layout {
-    grid-template-columns: 1fr 340px;
-  }
-}
-
-/* Form */
-.event-form {
-  min-width: 0;
-}
-
-.form-surface {
+/* Template Form */
+.template-form-surface {
   background: rgba(255, 255, 255, 0.7);
   backdrop-filter: blur(20px);
   border: 2px solid rgba(255, 255, 255, 0.4);
   border-radius: 16px;
   padding: 1.5rem;
   box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08),
-  inset 0 1px 0 rgba(255, 255, 255, 0.5);
+    inset 0 1px 0 rgba(255, 255, 255, 0.5);
 }
 
-:root[data-theme='dark'] .form-surface {
+:root[data-theme='dark'] .template-form-surface {
   background: rgba(18, 26, 45, 0.7);
   border-color: rgba(255, 255, 255, 0.15);
   box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3),
-  inset 0 1px 0 rgba(255, 255, 255, 0.08);
+    inset 0 1px 0 rgba(255, 255, 255, 0.08);
 }
 
 @media (prefers-color-scheme: dark) {
-  :root:not([data-theme='light']) .form-surface {
+  :root:not([data-theme='light']) .template-form-surface {
     background: rgba(18, 26, 45, 0.7);
     border-color: rgba(255, 255, 255, 0.15);
     box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3),
-    inset 0 1px 0 rgba(255, 255, 255, 0.08);
+      inset 0 1px 0 rgba(255, 255, 255, 0.08);
   }
 }
 
-.template-picker {
-  display: flex;
-  gap: 0.5rem;
-  align-items: flex-start;
+.form-title {
+  font-size: 1.125rem;
+  font-weight: 600;
+  color: var(--fg);
+  margin: 0 0 1.25rem 0;
 }
 
-.template-picker-group .form-divider {
-  margin-top: 1.25rem;
-  margin-bottom: 0;
-}
-
-.form-group {
+.template-form {
   display: flex;
   flex-direction: column;
-  gap: 0.75rem;
+  gap: 0;
 }
 
+.form-group { display: flex; flex-direction: column; gap: 0.75rem; }
 .form-group-label {
   font-size: 0.8125rem;
   font-weight: 600;
@@ -1147,23 +1029,10 @@ function cancel() {
   margin: 0;
 }
 
-.form-divider {
-  border: none;
-  border-top: 1px solid var(--border);
-  margin: 1.25rem 0;
-}
+.form-divider { border: none; border-top: 1px solid var(--border); margin: 1.25rem 0; }
 
-.form-field {
-  display: flex;
-  flex-direction: column;
-  gap: 0.25rem;
-}
-
-.form-field label {
-  font-weight: 500;
-  font-size: 0.875rem;
-  color: var(--fg);
-}
+.form-field { display: flex; flex-direction: column; gap: 0.25rem; }
+.form-field label { font-weight: 500; font-size: 0.875rem; color: var(--fg); }
 
 .form-field-row {
   display: grid;
@@ -1171,37 +1040,30 @@ function cancel() {
   gap: 0.75rem;
 }
 
-.field-hint {
-  font-size: 0.75rem;
-  color: var(--muted);
-}
+.field-hint { font-size: 0.75rem; color: var(--muted); }
 
-/* Duration */
-.duration-controls {
+.duration-controls { display: flex; align-items: center; gap: 0.5rem; }
+.duration-presets { display: flex; gap: 0.25rem; flex-shrink: 0; }
+.duration-input { width: 5rem; flex-shrink: 0; }
+
+.party-presets { display: flex; flex-wrap: wrap; gap: 0.25rem; }
+
+.form-actions {
   display: flex;
-  align-items: center;
-  gap: 0.5rem;
+  gap: 0.75rem;
+  justify-content: flex-end;
+  padding-top: 1.25rem;
 }
 
-.duration-presets {
-  display: flex;
-  gap: 0.25rem;
-  flex-shrink: 0;
+/* Organizer */
+.organizer-option { display: inline-flex; align-items: center; gap: 0.5rem; }
+.organizer-avatar { width: 24px; height: 24px; border-radius: 50%; flex-shrink: 0; object-fit: cover; }
+.organizer-avatar--placeholder {
+  display: inline-block;
+  background: linear-gradient(135deg, #3b82f6 0%, #8b5cf6 50%, #ec4899 100%);
 }
 
-.duration-input {
-  width: 5rem;
-  flex-shrink: 0;
-}
-
-/* Party presets */
-.party-presets {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.25rem;
-}
-
-/* Button config */
+/* Button config rows */
 .button-config-row {
   display: flex;
   align-items: center;
@@ -1211,14 +1073,7 @@ function cancel() {
   border-radius: 8px;
 }
 
-.button-config-fields {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 0.375rem;
-  flex: 1;
-  min-width: 0;
-}
+.button-config-fields { display: flex; flex-wrap: wrap; align-items: center; gap: 0.375rem; flex: 1; min-width: 0; }
 
 .button-config-input {
   padding: 0.25rem 0.5rem;
@@ -1231,7 +1086,6 @@ function cancel() {
   width: 7rem;
 }
 
-/* Button tags */
 .button-tag {
   display: inline-flex;
   align-items: center;
@@ -1244,39 +1098,17 @@ function cancel() {
   text-transform: lowercase;
 }
 
-.button-tag--helper {
-  background: rgba(124, 58, 237, 0.12);
-  color: #7c3aed;
-}
+.button-tag--helper { background: rgba(124, 58, 237, 0.12); color: #7c3aed; }
+.button-tag--interested { background: rgba(37, 99, 235, 0.12); color: #2563eb; }
 
-.button-tag--interested {
-  background: rgba(37, 99, 235, 0.12);
-  color: #2563eb;
-}
-
-:root[data-theme='dark'] .button-tag--helper {
-  background: rgba(167, 139, 250, 0.15);
-  color: #a78bfa;
-}
-
-:root[data-theme='dark'] .button-tag--interested {
-  background: rgba(96, 165, 250, 0.15);
-  color: #60a5fa;
-}
+:root[data-theme='dark'] .button-tag--helper { background: rgba(167, 139, 250, 0.15); color: #a78bfa; }
+:root[data-theme='dark'] .button-tag--interested { background: rgba(96, 165, 250, 0.15); color: #60a5fa; }
 
 @media (prefers-color-scheme: dark) {
-  :root:not([data-theme='light']) .button-tag--helper {
-    background: rgba(167, 139, 250, 0.15);
-    color: #a78bfa;
-  }
-
-  :root:not([data-theme='light']) .button-tag--interested {
-    background: rgba(96, 165, 250, 0.15);
-    color: #60a5fa;
-  }
+  :root:not([data-theme='light']) .button-tag--helper { background: rgba(167, 139, 250, 0.15); color: #a78bfa; }
+  :root:not([data-theme='light']) .button-tag--interested { background: rgba(96, 165, 250, 0.15); color: #60a5fa; }
 }
 
-/* Remove button */
 .button-remove {
   display: flex;
   align-items: center;
@@ -1293,27 +1125,16 @@ function cancel() {
   transition: color 0.15s ease, background 0.15s ease;
 }
 
-.button-remove:hover {
-  color: #dc2626;
-  background: rgba(220, 38, 38, 0.08);
-}
+.button-remove:hover { color: #dc2626; background: rgba(220, 38, 38, 0.08); }
 
-:root[data-theme='dark'] .button-remove:hover {
-  color: #f87171;
-  background: rgba(248, 113, 113, 0.12);
-}
+:root[data-theme='dark'] .button-remove:hover { color: #f87171; background: rgba(248, 113, 113, 0.12); }
 
 @media (prefers-color-scheme: dark) {
-  :root:not([data-theme='light']) .button-remove:hover {
-    color: #f87171;
-    background: rgba(248, 113, 113, 0.12);
-  }
+  :root:not([data-theme='light']) .button-remove:hover { color: #f87171; background: rgba(248, 113, 113, 0.12); }
 }
 
 /* Emoji picker */
-.emoji-picker-wrapper {
-  position: relative;
-}
+.emoji-picker-wrapper { position: relative; }
 
 .emoji-picker-trigger {
   display: flex;
@@ -1330,19 +1151,9 @@ function cancel() {
   height: 1.75rem;
 }
 
-.emoji-picker-trigger:hover {
-  border-color: var(--link);
-}
-
-.emoji-preview-img {
-  width: 18px;
-  height: 18px;
-}
-
-.emoji-picker-placeholder {
-  color: var(--muted);
-  font-size: 0.75rem;
-}
+.emoji-picker-trigger:hover { border-color: var(--link); }
+.emoji-preview-img { width: 18px; height: 18px; }
+.emoji-picker-placeholder { color: var(--muted); font-size: 0.75rem; }
 
 .emoji-dropdown {
   position: absolute;
@@ -1384,9 +1195,7 @@ function cancel() {
   border-radius: 4px;
 }
 
-.emoji-option:hover {
-  background: var(--muted-bg);
-}
+.emoji-option:hover { background: var(--muted-bg); }
 
 .emoji-option--clear {
   color: var(--muted);
@@ -1396,11 +1205,7 @@ function cancel() {
   border-radius: 0;
 }
 
-.emoji-grid {
-  display: grid;
-  grid-template-columns: repeat(6, 1fr);
-  gap: 2px;
-}
+.emoji-grid { display: grid; grid-template-columns: repeat(6, 1fr); gap: 2px; }
 
 .emoji-option-img {
   display: flex;
@@ -1413,19 +1218,10 @@ function cancel() {
   cursor: pointer;
 }
 
-.emoji-option-img:hover {
-  background: var(--muted-bg);
-}
+.emoji-option-img:hover { background: var(--muted-bg); }
+.emoji-grid-img { width: 24px; height: 24px; }
 
-.emoji-grid-img {
-  width: 24px;
-  height: 24px;
-}
-
-/* Button preview */
-.button-preview {
-  flex-shrink: 0;
-}
+.button-preview { flex-shrink: 0; }
 
 .button-preview-btn {
   display: inline-flex;
@@ -1440,37 +1236,114 @@ function cancel() {
   white-space: nowrap;
 }
 
-.button-preview-emoji {
-  width: 16px;
-  height: 16px;
+.button-preview-emoji { width: 16px; height: 16px; }
+
+/* Placeholder */
+.placeholder-box {
+  background: var(--muted-bg);
+  border-radius: 12px;
+  padding: 2rem;
+  text-align: center;
 }
 
-/* Organizer dropdown */
-.organizer-option {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.5rem;
+.placeholder-box__text { color: var(--muted); font-size: 1.125rem; }
+.placeholder-box__subtext { color: var(--muted); font-size: 0.875rem; margin-top: 0.5rem; }
+
+/* Templates Table */
+.templates-table-wrap {
+  background: rgba(255, 255, 255, 0.7);
+  backdrop-filter: blur(20px);
+  border: 2px solid rgba(255, 255, 255, 0.4);
+  border-radius: 16px;
+  overflow: hidden;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08),
+    inset 0 1px 0 rgba(255, 255, 255, 0.5);
 }
 
-.organizer-avatar {
-  width: 24px;
-  height: 24px;
-  border-radius: 50%;
-  flex-shrink: 0;
-  object-fit: cover;
+:root[data-theme='dark'] .templates-table-wrap {
+  background: rgba(18, 26, 45, 0.7);
+  border-color: rgba(255, 255, 255, 0.15);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3),
+    inset 0 1px 0 rgba(255, 255, 255, 0.08);
 }
 
-.organizer-avatar--placeholder {
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme='light']) .templates-table-wrap {
+    background: rgba(18, 26, 45, 0.7);
+    border-color: rgba(255, 255, 255, 0.15);
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3),
+      inset 0 1px 0 rgba(255, 255, 255, 0.08);
+  }
+}
+
+.templates-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.templates-table th {
+  text-align: left;
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--muted);
+  padding: 0.75rem;
+  border-bottom: 1px solid var(--border);
+}
+
+.templates-table td {
+  padding: 0.75rem;
+  font-size: 0.875rem;
+  color: var(--fg);
+  border-bottom: 1px solid var(--border);
+}
+
+.templates-table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.templates-table tbody tr:hover {
+  background: color-mix(in oklab, var(--card, #fff) 90%, var(--link) 10%);
+}
+
+.name-cell {
+  font-weight: 500;
+}
+
+.type-badge {
   display: inline-block;
-  background: linear-gradient(135deg, #3b82f6 0%, #8b5cf6 50%, #ec4899 100%);
+  padding: 0.125rem 0.5rem;
+  font-size: 0.75rem;
+  font-weight: 500;
+  border-radius: 999px;
+  background: var(--muted-bg);
+  color: var(--fg);
 }
 
-/* Form actions */
-.form-actions {
+.actions-col {
+  width: 1%;
+  white-space: nowrap;
+}
+
+.actions-cell {
   display: flex;
-  gap: 0.75rem;
-  justify-content: flex-end;
-  padding-top: 1.25rem;
+  gap: 0.25rem;
+  align-items: center;
+}
+
+/* Two-column form + preview layout */
+.template-form-layout {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 2rem;
+  margin-bottom: 1.5rem;
+}
+
+@media (min-width: 960px) {
+  .template-form-layout {
+    grid-template-columns: 1fr 340px;
+  }
 }
 
 /* Preview column (desktop) */
@@ -1510,6 +1383,7 @@ function cancel() {
 /* Preview mobile */
 .preview-mobile {
   margin-top: 1.5rem;
+  margin-bottom: 1.5rem;
 }
 
 @media (min-width: 960px) {
@@ -1558,39 +1432,18 @@ function cancel() {
 
 /* Responsive */
 @media (max-width: 768px) {
-  .form-surface {
-    padding: 1rem 1.25rem 1.25rem;
-  }
+  .template-form-surface { padding: 1rem 1.25rem 1.25rem; }
+  .duration-controls { flex-wrap: wrap; }
+  .form-field-row { grid-template-columns: 1fr; }
 
-  .duration-controls {
-    flex-wrap: wrap;
-  }
-
-  .form-field-row {
-    grid-template-columns: 1fr;
-  }
+  .templates-table-wrap { overflow-x: auto; }
+  .templates-table { min-width: 600px; }
 }
 
 @media (max-width: 480px) {
-  .page-header {
-    margin-bottom: 1.5rem;
-  }
-
-  .form-surface {
-    padding: 0.75rem 1rem 1rem;
-    border-radius: 12px;
-  }
-
-  .form-group-label {
-    font-size: 0.75rem;
-  }
-
-  .duration-presets {
-    flex-wrap: wrap;
-  }
-
-  .form-actions {
-    flex-direction: column;
-  }
+  .template-form-surface { padding: 0.75rem 1rem 1rem; border-radius: 12px; }
+  .form-group-label { font-size: 0.75rem; }
+  .duration-presets { flex-wrap: wrap; }
+  .form-actions { flex-direction: column; }
 }
 </style>
