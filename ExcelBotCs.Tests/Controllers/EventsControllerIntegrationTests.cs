@@ -55,7 +55,16 @@ public class EventsControllerIntegrationTests : IntegrationTestBase
             ICalString = iCalString,
             SignupType = signupType,
             MaxNumberOfParticipants = maxParticipants,
-            Occurrences = new List<EventOccurrence>()
+            Occurrences = new List<EventOccurrence>(),
+            SignupButtonConfigs = new List<SignupButtonConfig>
+            {
+                new() { MappedRole = Role.Tank, Slug = "tank", Label = "Tank" },
+                new() { MappedRole = Role.Healer, Slug = "healer", Label = "Healer" },
+                new() { MappedRole = Role.Melee, Slug = "melee", Label = "Melee" },
+                new() { MappedRole = Role.Ranged, Slug = "ranged", Label = "Ranged" },
+                new() { MappedRole = Role.Caster, Slug = "caster", Label = "Caster" },
+                new() { MappedRole = null, Slug = "helper", Label = "Helper", IsHelper = true }
+            }
         };
 
         for (var i = 0; i < occurrenceCount; i++)
@@ -165,7 +174,7 @@ END:VCALENDAR";
 
         var response = await Client.PostAsJsonAsync(
             $"api/Events/{fcEvent.Id}/signup",
-            new EventSignupDto { Roles = new List<Role> { Role.Tank } });
+            new EventSignupDto { Roles = new List<Role> { Role.Tank }, SignupSlugs = new List<string> { "tank" } });
 
         response.StatusCode.ShouldBe(HttpStatusCode.OK);
     }
@@ -381,7 +390,10 @@ END:VCALENDAR";
 
         var response = await Client.PostAsJsonAsync(
             $"api/Events/{fcEvent.Id}/signup",
-            new EventSignupDto { Roles = new List<Role> { Role.Tank, Role.Healer } });
+            new EventSignupDto
+            {
+                Roles = new List<Role> { Role.Tank, Role.Healer }, SignupSlugs = new List<string> { "tank", "healer" }
+            });
 
         response.EnsureSuccessStatusCode();
 
@@ -402,13 +414,18 @@ END:VCALENDAR";
         {
             DiscordUserId = member.DiscordId,
             Roles = new List<Role> { Role.Tank },
-            SignupDate = DateTime.UtcNow
+            SignupDate = DateTime.UtcNow,
+            SignupSlugs = new List<string> { "tank" }
         });
         await _eventService.CreateAsync(fcEvent);
 
         var response = await Client.PostAsJsonAsync(
             $"api/Events/{fcEvent.Id}/signup",
-            new EventSignupDto { Roles = new List<Role> { Role.Healer, Role.Caster } });
+            new EventSignupDto
+            {
+                Roles = new List<Role> { Role.Healer, Role.Caster },
+                SignupSlugs = new List<string> { "healer", "caster" }
+            });
 
         response.EnsureSuccessStatusCode();
 
@@ -908,7 +925,8 @@ END:VCALENDAR";
             new EventSignupDto
             {
                 DiscordUserId = targetDiscordId,
-                Roles = new List<Role> { Role.Tank, Role.Healer }
+                Roles = new List<Role> { Role.Tank, Role.Healer },
+                SignupSlugs = new List<string> { "tank", "healer" }
             });
 
         response.StatusCode.ShouldBe(HttpStatusCode.OK);
@@ -1020,7 +1038,8 @@ END:VCALENDAR";
         {
             DiscordUserId = targetDiscordId,
             Roles = new List<Role> { Role.Tank },
-            SignupDate = DateTime.UtcNow
+            SignupDate = DateTime.UtcNow,
+            SignupSlugs = new List<string> { "tank" }
         });
         await _eventService.CreateAsync(fcEvent);
 
@@ -1029,7 +1048,8 @@ END:VCALENDAR";
             new EventSignupDto
             {
                 DiscordUserId = targetDiscordId,
-                Roles = new List<Role> { Role.Healer, Role.Caster }
+                Roles = new List<Role> { Role.Healer, Role.Caster },
+                SignupSlugs = new List<string> { "healer", "caster" }
             });
 
         response.StatusCode.ShouldBe(HttpStatusCode.OK);
@@ -1054,7 +1074,8 @@ END:VCALENDAR";
         {
             DiscordUserId = existingUserId,
             Roles = new List<Role> { Role.Tank },
-            SignupDate = DateTime.UtcNow
+            SignupDate = DateTime.UtcNow,
+            SignupSlugs = new List<string> { "tank" }
         });
         await _eventService.CreateAsync(fcEvent);
 
@@ -1063,7 +1084,8 @@ END:VCALENDAR";
             new EventSignupDto
             {
                 DiscordUserId = newUserId,
-                Roles = new List<Role> { Role.Melee }
+                Roles = new List<Role> { Role.Melee },
+                SignupSlugs = new List<string> { "melee" }
             });
 
         response.StatusCode.ShouldBe(HttpStatusCode.OK);

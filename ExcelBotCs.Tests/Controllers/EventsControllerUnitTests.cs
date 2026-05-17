@@ -103,7 +103,7 @@ public class EventsControllerUnitTests
             });
 
         var badRequest = result.ShouldBeOfType<BadRequestObjectResult>();
-        badRequest.Value.ShouldBe("At least one role is required");
+        badRequest.Value.ShouldBe("At least one signup slug is required");
     }
 
     [Fact]
@@ -120,13 +120,23 @@ public class EventsControllerUnitTests
             });
 
         var badRequest = result.ShouldBeOfType<BadRequestObjectResult>();
-        badRequest.Value.ShouldBe("At least one role is required");
+        badRequest.Value.ShouldBe("At least one signup slug is required");
     }
 
     [Fact]
     public async Task ManualSignup_NewSignup_AddsToSignupsAndCallsUpdate()
     {
-        var fcEvent = new Event { Id = "evt1", Signups = new List<EventSignup>() };
+        var fcEvent = new Event
+        {
+            Id = "evt1",
+            Signups = new List<EventSignup>(),
+            SignupButtonConfigs = new List<SignupButtonConfig>
+            {
+                new() { MappedRole = Role.Tank, Slug = "tank" },
+                new() { MappedRole = Role.Healer, Slug = "healer" }
+            }
+        };
+        
         _eventServiceMock.Setup(x => x.GetAsync("evt1")).ReturnsAsync(fcEvent);
         _eventServiceMock.Setup(x => x.UpdateAsync("evt1", fcEvent)).Returns(Task.CompletedTask);
 
@@ -134,7 +144,8 @@ public class EventsControllerUnitTests
             new EventSignupDto
             {
                 DiscordUserId = "12345",
-                Roles = new List<Role> { Role.Tank, Role.Healer }
+                Roles = new List<Role> { Role.Tank, Role.Healer },
+                SignupSlugs = new List<string>(new[] { "tank", "healer" })
             });
 
         result.ShouldBeOfType<OkResult>();
@@ -157,8 +168,15 @@ public class EventsControllerUnitTests
                 {
                     DiscordUserId = "12345",
                     Roles = new List<Role> { Role.Tank },
-                    SignupDate = DateTime.UtcNow
+                    SignupDate = DateTime.UtcNow,
+                    SignupSlugs = new List<string>(new[] { "tank" })
                 }
+            },
+            SignupButtonConfigs = new List<SignupButtonConfig>
+            {
+                new() { MappedRole = Role.Tank, Slug = "tank" },
+                new() { MappedRole = Role.Healer, Slug = "healer" },
+                new() { MappedRole = Role.Caster, Slug = "caster" }
             }
         };
         _eventServiceMock.Setup(x => x.GetAsync("evt1")).ReturnsAsync(fcEvent);
@@ -168,7 +186,8 @@ public class EventsControllerUnitTests
             new EventSignupDto
             {
                 DiscordUserId = "12345",
-                Roles = new List<Role> { Role.Healer, Role.Caster }
+                Roles = new List<Role> { Role.Healer, Role.Caster },
+                SignupSlugs = new List<string>(new[] { "healer", "caster" })
             });
 
         result.ShouldBeOfType<OkResult>();
@@ -191,8 +210,14 @@ public class EventsControllerUnitTests
                 {
                     DiscordUserId = "existing-user",
                     Roles = new List<Role> { Role.Melee },
-                    SignupDate = DateTime.UtcNow
+                    SignupDate = DateTime.UtcNow,
+                    SignupSlugs = new List<string>(new[] { "melee" })
                 }
+            },
+            SignupButtonConfigs = new List<SignupButtonConfig>
+            {
+                new() { MappedRole = Role.Melee, Slug = "melee" },
+                new() { MappedRole = Role.Ranged, Slug = "ranged" }
             }
         };
         _eventServiceMock.Setup(x => x.GetAsync("evt1")).ReturnsAsync(fcEvent);
@@ -202,7 +227,8 @@ public class EventsControllerUnitTests
             new EventSignupDto
             {
                 DiscordUserId = "new-user",
-                Roles = new List<Role> { Role.Ranged }
+                Roles = new List<Role> { Role.Ranged },
+                SignupSlugs = new List<string> { "ranged" }
             });
 
         result.ShouldBeOfType<OkResult>();
