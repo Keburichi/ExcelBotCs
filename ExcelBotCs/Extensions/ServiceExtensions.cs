@@ -2,6 +2,7 @@
 using Discord.WebSocket;
 using ExcelBotCs.Database;
 using ExcelBotCs.Database.Interfaces;
+using ExcelBotCs.Discord;
 using ExcelBotCs.Services;
 using ExcelBotCs.Services.API;
 using ExcelBotCs.Services.API.Interfaces;
@@ -56,7 +57,9 @@ public static class ServiceExtensions
         };
 
         services.AddSingleton(config)
-            .AddSingleton<DiscordSocketClient>();
+            .AddSingleton<DiscordSocketClient>()
+            .AddSingleton<IDiscordBotClient, DiscordClient>()
+            .ActivateSingleton<IDiscordBotClient>();
     }
 
     public static void AddFFLogsServices(this IServiceCollection services)

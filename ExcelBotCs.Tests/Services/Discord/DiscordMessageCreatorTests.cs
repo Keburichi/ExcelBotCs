@@ -1,6 +1,5 @@
 using Discord;
-using Discord.WebSocket;
-using ExcelBotCs.Extensions;
+using ExcelBotCs.Discord;
 using ExcelBotCs.Models.Database;
 using ExcelBotCs.Models.Database.Events;
 using ExcelBotCs.Services.API.Interfaces;
@@ -13,15 +12,15 @@ namespace ExcelBotCs.Tests.Services.Discord;
 
 public class DiscordMessageCreatorTests
 {
-    private readonly Mock<DiscordSocketClient> _discordSocketClientMock;
+    private readonly Mock<IDiscordBotClient> _discordClientMock;
     private readonly Mock<IFightService> _fightServiceMock;
     private readonly DiscordMessageCreator _discordMessageCreator;
 
     public DiscordMessageCreatorTests()
     {
-        _discordSocketClientMock = new Mock<DiscordSocketClient>();
+        _discordClientMock = new Mock<IDiscordBotClient>();
         _fightServiceMock = new Mock<IFightService>();
-        _discordMessageCreator = new DiscordMessageCreator(_discordSocketClientMock.Object, _fightServiceMock.Object);
+        _discordMessageCreator = new DiscordMessageCreator(_discordClientMock.Object, _fightServiceMock.Object);
     }
 
     [Fact]
@@ -228,7 +227,7 @@ public class DiscordMessageCreatorTests
             }
         };
 
-        _discordSocketClientMock.Setup(x => x.GetEmoteById(1234567890))
+        _discordClientMock.Setup(x => x.GetEmoteById(1234567890))
             .Returns(new Emote(1234567890, "test"));
 
         var componentBuilder = await _discordMessageCreator.CreateSignupComponents(fcEvent);

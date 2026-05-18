@@ -1,3 +1,4 @@
+using ExcelBotCs.Discord;
 using ExcelBotCs.Extensions;
 using ExcelBotCs.TestFramework.TestData;
 
@@ -161,30 +162,24 @@ public class DiscordSocketExtensionsTests
     [Fact]
     public void IsMember_MessageResponse_NotValidUrlType_ShouldExist()
     {
-        // This test verifies the enum and response types exist
-        var notValidResponse = new DiscordSocketExtensions.NotValidUrlMessageResponse();
+        var notValidResponse = new NotValidUrlMessageResponse();
         notValidResponse.ShouldNotBeNull();
-        notValidResponse.ShouldBeAssignableTo<DiscordSocketExtensions.IMessageResponse>();
+        notValidResponse.ShouldBeAssignableTo<IMessageResponse>();
     }
 
     [Fact]
     public void IsMember_MessageResponse_NotFoundUrlType_ShouldExist()
     {
-        // This test verifies the enum and response types exist
-        var notFoundResponse = new DiscordSocketExtensions.NotFoundUrlMessageResponse();
+        var notFoundResponse = new NotFoundUrlMessageResponse();
         notFoundResponse.ShouldNotBeNull();
-        notFoundResponse.ShouldBeAssignableTo<DiscordSocketExtensions.IMessageResponse>();
+        notFoundResponse.ShouldBeAssignableTo<IMessageResponse>();
     }
 
     [Fact]
     public void MessageResponse_Enum_ShouldHaveExpectedValues()
     {
-        // Assert enum values exist
-        DiscordSocketExtensions.MessageResponse.NotValidUrl
-            .ShouldBe(DiscordSocketExtensions.MessageResponse.NotValidUrl);
-        DiscordSocketExtensions.MessageResponse.NotFoundUrl
-            .ShouldBe(DiscordSocketExtensions.MessageResponse.NotFoundUrl);
-        DiscordSocketExtensions.MessageResponse.Success
-            .ShouldBe(DiscordSocketExtensions.MessageResponse.Success);
+        MessageResponse.NotValidUrl.ShouldBe(MessageResponse.NotValidUrl);
+        MessageResponse.NotFoundUrl.ShouldBe(MessageResponse.NotFoundUrl);
+        MessageResponse.Success.ShouldBe(MessageResponse.Success);
     }
 }

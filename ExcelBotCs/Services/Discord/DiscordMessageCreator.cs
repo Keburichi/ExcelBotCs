@@ -1,6 +1,6 @@
 using System.Text;
 using Discord;
-using Discord.WebSocket;
+using ExcelBotCs.Discord;
 using ExcelBotCs.Extensions;
 using ExcelBotCs.Models.Database;
 using ExcelBotCs.Models.Database.Events;
@@ -12,12 +12,12 @@ namespace ExcelBotCs.Services.Discord;
 
 public class DiscordMessageCreator : IDiscordMessageCreator
 {
-    private readonly DiscordSocketClient _discordSocketClient;
+    private readonly IDiscordBotClient _discordClient;
     private readonly IFightService _fightService;
 
-    public DiscordMessageCreator(DiscordSocketClient client, IFightService fightService)
+    public DiscordMessageCreator(IDiscordBotClient discordClient, IFightService fightService)
     {
-        _discordSocketClient = client;
+        _discordClient = discordClient;
         _fightService = fightService;
     }
 
@@ -66,7 +66,7 @@ public class DiscordMessageCreator : IDiscordMessageCreator
                 var button = new ButtonBuilder(config.Label, $"{fcEvent.Id}-signup-{config.Slug}");
                 if (config.EmojiId != null && ulong.TryParse(config.EmojiId, out var emojiId))
                 {
-                    var emote = _discordSocketClient.GetEmoteById(emojiId);
+                    var emote = _discordClient.GetEmoteById(emojiId);
                     if (emote != null)
                         button.WithEmote(emote);
                 }
@@ -97,7 +97,7 @@ public class DiscordMessageCreator : IDiscordMessageCreator
             var emotePrefix = "";
             if (config.EmojiId != null && ulong.TryParse(config.EmojiId, out var emojiId))
             {
-                var emote = _discordSocketClient.GetEmoteById(emojiId);
+                var emote = _discordClient.GetEmoteById(emojiId);
                 emotePrefix = emote != null ? $"{emote} " : "";
             }
 

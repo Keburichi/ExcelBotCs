@@ -1,9 +1,8 @@
 using Discord.WebSocket;
 using ExcelBotCs.Attributes;
-using ExcelBotCs.Models.Config;
+using ExcelBotCs.Discord;
 using ExcelBotCs.Models.DTO.Discord;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.Extensions.Options;
 
 namespace ExcelBotCs.Controllers;
 
@@ -12,26 +11,25 @@ namespace ExcelBotCs.Controllers;
 [Route("api/[controller]")]
 public class EmojisController : AuthorizedController
 {
-    private readonly DiscordSocketClient _discordSocketClient;
-    private readonly DiscordBotOptions _discordBotOptions;
+    private readonly IDiscordBotClient _discordClient;
 
-    public EmojisController(
-        ILogger<EmojisController> logger,
-        DiscordSocketClient discordSocketClient,
-        IOptions<DiscordBotOptions> discordBotOptions) : base(logger)
+    public EmojisController(ILogger<EmojisController> logger, IDiscordBotClient discordClient) : base(logger)
     {
-        _discordSocketClient = discordSocketClient;
-        _discordBotOptions = discordBotOptions.Value;
+        _discordClient = discordClient;
     }
 
     [HttpGet]
     public ActionResult<List<GuildEmojiResponse>> GetGuildEmojis()
     {
-        var guild = _discordSocketClient.Guilds
-            .FirstOrDefault(g => g.Id == _discordBotOptions.GuildId);
-
-        if (guild == null)
+        SocketGuild? guild;
+        try
+        {
+            guild = _discordClient.GetExcelGuild();
+        }
+        catch (InvalidOperationException)
+        {
             return NotFound("Guild not found");
+        }
 
         var emojis = guild.Emotes.Select(e => new GuildEmojiResponse
         {
