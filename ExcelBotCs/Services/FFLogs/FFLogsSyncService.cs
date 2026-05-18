@@ -85,7 +85,6 @@ public class FFLogsSyncService
                     // Skip non-high-end content (Normal, Chaotic, etc.)
                     if (fightMapping.fightType != FightType.Extreme &&
                         fightMapping.fightType != FightType.Savage &&
-                        fightMapping.fightType != FightType.LegacySavage &&
                         fightMapping.fightType != FightType.Ultimate &&
                         fightMapping.fightType != FightType.Chaotic &&
                         fightMapping.fightType != FightType.Unreal)
@@ -106,11 +105,8 @@ public class FFLogsSyncService
                             continue;
                         }
 
-                        // Attach the suffix to the fight name, but don't propagate the
-                        // legacy part
-                        var fightName = fightMapping.fightType == FightType.LegacySavage
-                            ? $"{encounter.name} ({FightType.Savage})"
-                            : $"{encounter.name} ({fightMapping.fightType})";
+                        // Attach the suffix to the fight name
+                        var fightName = $"{encounter.name} ({fightMapping.fightType})";
 
                         // Create new fight
                         var fight = new Fight

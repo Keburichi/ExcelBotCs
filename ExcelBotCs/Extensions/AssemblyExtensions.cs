@@ -27,6 +27,6 @@ public static class AssemblyExtensions
 
 public class OptionsAttribute
 {
-    public Type Type { get; set; }
-    public OptionsSectionAttribute? Attribute { get; set; }
+    public Type Type { get; init; }
+    public OptionsSectionAttribute? Attribute { get; init; }
 }

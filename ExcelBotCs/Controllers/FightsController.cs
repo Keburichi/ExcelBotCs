@@ -22,7 +22,7 @@ public class FightsController : AuthorizedController, IBaseCrudController<FightD
     [HttpGet]
     public async Task<ActionResult<List<FightDto>>> GetEntities()
     {
-        var entities = await _fightService.GetAsync();
+        var entities = await _fightService.GetFightsAsync();
 
         if (entities is null)
             return new List<FightDto>();
@@ -35,7 +35,7 @@ public class FightsController : AuthorizedController, IBaseCrudController<FightD
     [HttpGet("{id:length(24)}")]
     public async Task<ActionResult<FightDto>> GetEntity(string id)
     {
-        var entity = await _fightService.GetAsync(id);
+        var entity = await _fightService.GetFightAsync(id);
 
         if (entity is null)
             return NotFound();
@@ -67,7 +67,7 @@ public class FightsController : AuthorizedController, IBaseCrudController<FightD
     [AdminAuth]
     public async Task<ActionResult<FightDto>> DeleteEntity(string id)
     {
-        var entity = await _fightService.GetAsync(id);
+        var entity = await _fightService.GetFightAsync(id);
 
         if (entity is null)
             return NotFound();

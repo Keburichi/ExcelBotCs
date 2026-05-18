@@ -28,7 +28,7 @@ public class DiscordMessageCreator : IDiscordMessageCreator
 
         var subHeading = fcEvent.FightId.IsNullOrEmpty()
             ? $"## {fcEvent.Type}"
-            : $"## {fcEvent.Type} - {await _fightService.GetAsync(fcEvent.FightId)}";
+            : $"## {fcEvent.Type} - {await _fightService.GetFightAsync(fcEvent.FightId)}";
         componentBuilderV2.WithTextDisplay(subHeading);
 
         if (!string.IsNullOrWhiteSpace(fcEvent.PictureUrl))

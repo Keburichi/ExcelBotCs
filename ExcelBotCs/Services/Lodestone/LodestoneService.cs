@@ -116,7 +116,7 @@ public class LodestoneService
             _logger.LogInformation("Starting fight image synchronization from Lodestone");
 
             // Get all fights that need images
-            var allFights = await _fightService.GetAsync();
+            var allFights = await _fightService.GetFightsAsync();
             var fightsNeedingImages = allFights.Where(f =>
                 string.IsNullOrEmpty(f.ImageUrl) &&
                 (f.Type == FightType.Extreme || f.Type == FightType.Savage ||
