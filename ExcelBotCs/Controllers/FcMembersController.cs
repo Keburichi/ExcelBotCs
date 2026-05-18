@@ -30,7 +30,7 @@ public class FcMembersController : AuthorizedController, IBaseCrudController<FcM
         var dtos = entities
             .OrderBy(x => x.Rank)
             .ThenBy(x => x.Name)
-            .Select(FcMemberMapper.ToDto).ToList();
+            .Select(x => x.ToDto()).ToList();
 
         return dtos;
     }
@@ -43,16 +43,16 @@ public class FcMembersController : AuthorizedController, IBaseCrudController<FcM
         if (entity is null)
             return NotFound();
 
-        return FcMemberMapper.ToDto(entity);
+        return entity.ToDto();
     }
 
     [HttpPost]
     [AdminAuth]
     public async Task<ActionResult<FcMemberDto>> CreateEntity(FcMemberDto entity)
     {
-        var fcMember = FcMemberMapper.ToEntity(entity);
+        var fcMember = entity.ToEntity();
         await _fcMemberService.CreateAsync(fcMember);
-        return CreatedAtAction(nameof(CreateEntity), new { id = fcMember.Id }, FcMemberMapper.ToDto(fcMember));
+        return CreatedAtAction(nameof(CreateEntity), new { id = fcMember.Id }, fcMember.ToDto());
     }
 
     [HttpPut("{id:length(24)}")]
@@ -61,7 +61,7 @@ public class FcMembersController : AuthorizedController, IBaseCrudController<FcM
     {
         Logger.LogInformation("Updating entity with id: {id}", id);
 
-        await _fcMemberService.UpdateAsync(id, FcMemberMapper.ToEntity(updatedEntity));
+        await _fcMemberService.UpdateAsync(id, updatedEntity.ToEntity());
 
         return NoContent();
     }

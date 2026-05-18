@@ -1,11 +1,11 @@
 using ExcelBotCs.Models.Database;
 using ExcelBotCs.Models.DTO.Members;
 
-namespace ExcelBotCs.Mappers;
+namespace ExcelBotCs.Mappers.Members;
 
-public static class MemberRoleMapper
+public static class MemberRoleMappingExtensions
 {
-    public static MemberRoleDto ToDto(MemberRole memberRole)
+    public static MemberRoleDto ToDto(this MemberRole memberRole)
     {
         return new MemberRoleDto
         {
@@ -18,7 +18,7 @@ public static class MemberRoleMapper
         };
     }
 
-    public static MemberRole ToEntity(MemberRoleDto memberRole)
+    public static MemberRole ToEntity(this MemberRoleDto memberRole)
     {
         return new MemberRole
         {

@@ -1,6 +1,6 @@
 ﻿using ExcelBotCs.Attributes;
 using ExcelBotCs.Controllers.Interfaces;
-using ExcelBotCs.Mappers;
+using ExcelBotCs.Mappers.Fights;
 using ExcelBotCs.Models.DTO;
 using ExcelBotCs.Services.API.Interfaces;
 using Microsoft.AspNetCore.Mvc;
@@ -27,7 +27,7 @@ public class FightsController : AuthorizedController, IBaseCrudController<FightD
         if (entities is null)
             return new List<FightDto>();
 
-        var dtos = entities.Select(FightMapper.ToDto).ToList();
+        var dtos = entities.Select(x => x.ToDto()).ToList();
 
         return dtos;
     }
@@ -40,16 +40,16 @@ public class FightsController : AuthorizedController, IBaseCrudController<FightD
         if (entity is null)
             return NotFound();
 
-        return FightMapper.ToDto(entity);
+        return entity.ToDto();
     }
 
     [HttpPost]
     [AdminAuth]
     public async Task<ActionResult<FightDto>> CreateEntity(FightDto entity)
     {
-        var fight = FightMapper.ToEntity(entity);
+        var fight = entity.ToEntity();
         await _fightService.CreateAsync(fight);
-        return CreatedAtAction(nameof(CreateEntity), new { id = fight.Id }, FightMapper.ToDto(fight));
+        return CreatedAtAction(nameof(CreateEntity), new { id = fight.Id }, fight.ToDto());
     }
 
     [HttpPut("{id:length(24)}")]
@@ -58,7 +58,7 @@ public class FightsController : AuthorizedController, IBaseCrudController<FightD
     {
         Logger.LogInformation("Updating entity with id: {id}", id);
 
-        await _fightService.UpdateAsync(id, FightMapper.ToEntity(updatedEntity));
+        await _fightService.UpdateAsync(id, updatedEntity.ToEntity());
 
         return NoContent();
     }
