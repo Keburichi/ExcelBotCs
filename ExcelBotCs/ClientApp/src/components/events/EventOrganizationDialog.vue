@@ -141,7 +141,8 @@ function getMemberAvatar(discordId: string): string | null {
   return member?.DiscordAvatar || null
 }
 
-function roleLabel(role: Role): string {
+function roleLabel(role: Role | null | undefined): string {
+  if (role == null) return ''
   const labels: Record<number, string> = {
     [ROLE.Tank]: 'Tank',
     [ROLE.Healer]: 'Healer',
@@ -231,17 +232,12 @@ function onGroupChange(groupIndex: number, evt: any) {
   group.Participants.splice(addedIndex, 1)
 
   const signupRoles = getSignupRoles(addedItem.DiscordUserId)
-  if (signupRoles.length === 0 && usesCustomButtons.value) {
-    rolePickerTarget.value = {
-      groupIndex,
-      signup: {
-        DiscordUserId: addedItem.DiscordUserId,
-        Roles: [ROLE.Tank, ROLE.Healer, ROLE.Melee, ROLE.Caster, ROLE.Ranged],
-        SignupDate: new Date(),
-      },
-      element: null,
-    }
-    rolePickerOpen.value = true
+  if (signupRoles.length === 0) {
+    group.Participants.splice(addedIndex, 0, {
+      DiscordUserId: addedItem.DiscordUserId,
+      Role: null,
+      SelectionDate: new Date(),
+    })
     return
   }
   if (signupRoles.length === 1) {
@@ -581,7 +577,7 @@ watch(modelValue, (isOpen) => {
                     {{ getMemberName(element.DiscordUserId).charAt(0).toUpperCase() }}
                   </div>
                   <span class="member-name">{{ getMemberName(element.DiscordUserId) }}</span>
-                  <span class="assigned-role">{{ roleLabel(element.Role) }}</span>
+                  <span v-if="element.Role != null" class="assigned-role">{{ roleLabel(element.Role) }}</span>
                   <button class="btn-remove-member" title="Remove" @click="removeFromGroup(gIdx, index)">
                     &times;
                   </button>

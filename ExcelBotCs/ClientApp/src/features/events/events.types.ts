@@ -69,7 +69,7 @@ export interface EventOccurrence {
 
 export interface EventParticipant {
   DiscordUserId: string
-  Role: Role
+  Role?: Role | null
   SelectionDate: Date
 }
 
