@@ -42,6 +42,7 @@ function blankForm(): Omit<EventTemplate, 'Id'> {
     Duration: 120,
     Organizer: '',
     MaxNumberOfParticipants: 8,
+    RequiredParticipants: 8,
     SignupButtonConfigs: undefined,
   }
 }
@@ -56,7 +57,7 @@ const partyPresetOptions = [
   { key: 'light-party' as PartyPreset, label: 'Light (4)' },
   { key: 'full-party' as PartyPreset, label: 'Full (8)' },
   { key: 'alliance-raid' as PartyPreset, label: 'Alliance (24)' },
-  { key: 'any' as PartyPreset, label: 'Any (99)' },
+  { key: 'any' as PartyPreset, label: 'Any' },
   { key: 'custom' as PartyPreset, label: 'Custom' },
 ]
 
@@ -64,30 +65,31 @@ function setPartyPreset(preset: PartyPreset) {
   partyPreset.value = preset
   switch (preset) {
     case 'light-party':
-      form.MaxNumberOfParticipants = 4
+      form.RequiredParticipants = 4
       break
     case 'full-party':
-      form.MaxNumberOfParticipants = 8
+      form.RequiredParticipants = 8
       break
     case 'alliance-raid':
-      form.MaxNumberOfParticipants = 24
+      form.RequiredParticipants = 24
       break
     case 'any':
-      form.MaxNumberOfParticipants = 99
+      form.RequiredParticipants = 0
       break
     case 'custom':
-      if ([4, 8, 24, 99].includes(form.MaxNumberOfParticipants))
-        form.MaxNumberOfParticipants = 0
+      if ([0, 4, 8, 24].includes(form.RequiredParticipants))
+        form.RequiredParticipants = 0
       break
   }
+  form.MaxNumberOfParticipants = form.RequiredParticipants
 }
 
-function detectPreset(max: number): PartyPreset {
-  switch (max) {
+function detectPreset(requiredParticipants: number): PartyPreset {
+  switch (requiredParticipants) {
     case 4: return 'light-party'
     case 8: return 'full-party'
     case 24: return 'alliance-raid'
-    case 99: return 'any'
+    case 0: return 'any'
     default: return 'custom'
   }
 }
@@ -255,7 +257,8 @@ const previewEvent = computed<FCEvent>(() => {
     DiscordMessageId: '',
     Organizer: form.Organizer || (selectedOrganizer.value ? formatMemberName(selectedOrganizer.value) : user.value?.PlayerName || 'You'),
     AvailableForSignup: true,
-    MaxNumberOfParticipants: form.MaxNumberOfParticipants,
+    MaxNumberOfParticipants: form.RequiredParticipants,
+    RequiredParticipants: form.RequiredParticipants,
     SignupButtonConfigs: buttonMode.value !== 'standard' ? signupButtonConfigs.value : undefined,
     Signups: [],
     Groups: [],
@@ -319,10 +322,11 @@ function openEditForm(template: EventTemplate) {
     Duration: template.Duration,
     Organizer: template.Organizer,
     MaxNumberOfParticipants: template.MaxNumberOfParticipants,
+    RequiredParticipants: template.RequiredParticipants ?? template.MaxNumberOfParticipants,
     SignupButtonConfigs: template.SignupButtonConfigs,
   })
   syntheticDate.value = getNextOccurrence(template.DayOfWeek, template.TimeOfDayMinutes)
-  partyPreset.value = detectPreset(template.MaxNumberOfParticipants)
+  partyPreset.value = detectPreset(form.RequiredParticipants)
 
   if (template.Organizer) {
     const match = adminMembers.value.find(m => m.PlayerName === template.Organizer)
@@ -544,7 +548,7 @@ onUnmounted(() => {
               </div>
               <input
                 v-if="partyPreset === 'custom'"
-                v-model.number="form.MaxNumberOfParticipants"
+                v-model.number="form.RequiredParticipants"
                 inputmode="numeric"
                 max="99"
                 min="1"
@@ -908,7 +912,7 @@ onUnmounted(() => {
               </td>
               <td>{{ dayOfWeekToString(tpl.DayOfWeek) }} {{ formatTimeOfDay(tpl.TimeOfDayMinutes) }}</td>
               <td>{{ tpl.Duration }} min</td>
-              <td>{{ tpl.MaxNumberOfParticipants }}</td>
+              <td>{{ tpl.RequiredParticipants || '∞' }}</td>
               <td>{{ tpl.Organizer || '—' }}</td>
               <td class="actions-cell">
                 <BaseButton

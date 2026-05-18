@@ -75,6 +75,7 @@ const form = reactive<FCEvent>({
   ICalString: '',
   SignupType: 0,
   MaxNumberOfParticipants: 8,
+  RequiredParticipants: 8,
   SignupButtonConfigs: undefined,
   Signups: [],
   Groups: [],
@@ -257,10 +258,11 @@ function applyTemplate(tpl: EventTemplate | null) {
   form.Description = tpl.Description
   form.Type = tpl.Type
   form.Duration = tpl.Duration
-  form.MaxNumberOfParticipants = tpl.MaxNumberOfParticipants
+  form.RequiredParticipants = tpl.RequiredParticipants ?? tpl.MaxNumberOfParticipants
+  form.MaxNumberOfParticipants = form.RequiredParticipants
   form.StartDate = getNextOccurrence(tpl.DayOfWeek, tpl.TimeOfDayMinutes)
 
-  partyPreset.value = detectPreset(tpl.MaxNumberOfParticipants)
+  partyPreset.value = detectPreset(form.RequiredParticipants)
 
   if (tpl.Organizer) {
     const match = adminMembers.value.find(m => m.PlayerName === tpl.Organizer)
@@ -316,39 +318,39 @@ function setPartyPreset(preset: PartyPreset) {
   partyPreset.value = preset
   switch (preset) {
     case 'light-party':
-      form.MaxNumberOfParticipants = 4
+      form.RequiredParticipants = 4
       break
     case 'full-party':
-      form.MaxNumberOfParticipants = 8
+      form.RequiredParticipants = 8
       break
     case 'alliance-raid':
-      form.MaxNumberOfParticipants = 24
+      form.RequiredParticipants = 24
       break
     case 'any':
-      form.MaxNumberOfParticipants = 99
+      form.RequiredParticipants = 0
       break
     case 'custom':
-      if (form.MaxNumberOfParticipants === 4 || form.MaxNumberOfParticipants === 8
-        || form.MaxNumberOfParticipants === 24 || form.MaxNumberOfParticipants === 99) {
-        form.MaxNumberOfParticipants = 0
+      if ([0, 4, 8, 24].includes(form.RequiredParticipants)) {
+        form.RequiredParticipants = 0
       }
       break
   }
+  form.MaxNumberOfParticipants = form.RequiredParticipants
 }
 
 function setDuration(minutes: number) {
   form.Duration = minutes
 }
 
-function detectPreset(maxParticipants: number): PartyPreset {
-  switch (maxParticipants) {
+function detectPreset(requiredParticipants: number): PartyPreset {
+  switch (requiredParticipants) {
     case 4:
       return 'light-party'
     case 8:
       return 'full-party'
     case 24:
       return 'alliance-raid'
-    case 99:
+    case 0:
       return 'any'
     default:
       return 'custom'
@@ -361,7 +363,7 @@ const partyPresetOptions = [
   { key: 'light-party' as PartyPreset, label: 'Light (4)' },
   { key: 'full-party' as PartyPreset, label: 'Full (8)' },
   { key: 'alliance-raid' as PartyPreset, label: 'Alliance (24)' },
-  { key: 'any' as PartyPreset, label: 'Any (99)' },
+  { key: 'any' as PartyPreset, label: 'Any' },
   { key: 'custom' as PartyPreset, label: 'Custom' },
 ]
 
@@ -441,7 +443,7 @@ onMounted(async () => {
         if (form.PictureUrl) {
           form.PictureUrl = toAbsoluteUrl(form.PictureUrl)
         }
-        partyPreset.value = detectPreset(eventData.MaxNumberOfParticipants)
+        partyPreset.value = detectPreset(eventData.RequiredParticipants ?? eventData.MaxNumberOfParticipants)
         if (eventData.FightId) {
           selectedFight.value = fights.value.find(f => f.Id === eventData.FightId) || null
         }
@@ -536,6 +538,7 @@ async function submit() {
     if (form.PictureUrl) {
       form.PictureUrl = toAbsoluteUrl(form.PictureUrl)
     }
+    form.MaxNumberOfParticipants = form.RequiredParticipants
     form.ICalString = generateICalString(form, recurrence.value)
     form.SignupButtonConfigs = buttonMode.value !== 'standard' ? signupButtonConfigs.value : undefined
 
@@ -728,13 +731,13 @@ function cancel() {
               </div>
               <input
                 v-if="partyPreset === 'custom'"
-                v-model.number="form.MaxNumberOfParticipants"
+                v-model.number="form.RequiredParticipants"
                 :disabled="isInputDisabled"
                 inputmode="numeric"
                 max="99"
                 min="1"
                 pattern="[0-9]*"
-                placeholder="Custom count"
+                placeholder="Required participants"
                 required
                 type="number"
               >

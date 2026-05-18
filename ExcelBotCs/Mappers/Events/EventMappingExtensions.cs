@@ -42,6 +42,9 @@ public static class EventMappingExtensions
             Type = fcEvent.Type,
             FightId = fcEvent.FightId,
             MaxNumberOfParticipants = fcEvent.MaxNumberOfParticipants,
+            RequiredParticipants = fcEvent.RequiredParticipants > 0
+                ? fcEvent.RequiredParticipants
+                : fcEvent.MaxNumberOfParticipants,
             AuthorId = fcEvent.AuthorId,
             Organizer = fcEvent.Organizer,
             SignupButtonConfigs = fcEvent.SignupButtonConfigs?.Select(MapButtonConfigToDto).ToList(),
@@ -112,6 +115,7 @@ public static class EventMappingExtensions
         existing.FightId = request.FightId;
         existing.Organizer = request.Organizer;
         existing.MaxNumberOfParticipants = request.MaxNumberOfParticipants;
+        existing.RequiredParticipants = request.RequiredParticipants;
         existing.SignupButtonConfigs = request.SignupButtonConfigs?.Select(MapButtonConfigToEntity).ToList();
         return existing;
     }
@@ -131,6 +135,7 @@ public static class EventMappingExtensions
             FightId = createEventRequest.FightId,
             Organizer = createEventRequest.Organizer,
             MaxNumberOfParticipants = createEventRequest.MaxNumberOfParticipants,
+            RequiredParticipants = createEventRequest.RequiredParticipants,
             SignupButtonConfigs = createEventRequest.SignupButtonConfigs?.Select(MapButtonConfigToEntity).ToList()
         };
     }

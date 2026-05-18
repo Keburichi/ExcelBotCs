@@ -39,6 +39,7 @@ export interface FCEvent {
   Organizer: string
   AvailableForSignup: boolean
   MaxNumberOfParticipants: number
+  RequiredParticipants: number
   SignupButtonConfigs?: SignupButtonConfig[]
   Signups: EventSignup[]
   Groups: EventGroupResponse[]

@@ -18,6 +18,9 @@ public static class EventTemplateMappingExtensions
             Duration = template.Duration,
             Organizer = template.Organizer,
             MaxNumberOfParticipants = template.MaxNumberOfParticipants,
+            RequiredParticipants = template.RequiredParticipants > 0
+                ? template.RequiredParticipants
+                : template.MaxNumberOfParticipants,
             SignupButtonConfigs = template.SignupButtonConfigs?.Select(MapButtonConfigToDto).ToList()
         };
     }
@@ -39,6 +42,7 @@ public static class EventTemplateMappingExtensions
             Duration = request.Duration,
             Organizer = request.Organizer,
             MaxNumberOfParticipants = request.MaxNumberOfParticipants,
+            RequiredParticipants = request.RequiredParticipants,
             SignupButtonConfigs = request.SignupButtonConfigs?.Select(MapButtonConfigToEntity).ToList()
         };
     }
@@ -53,6 +57,7 @@ public static class EventTemplateMappingExtensions
         existing.Duration = request.Duration;
         existing.Organizer = request.Organizer;
         existing.MaxNumberOfParticipants = request.MaxNumberOfParticipants;
+        existing.RequiredParticipants = request.RequiredParticipants;
         existing.SignupButtonConfigs = request.SignupButtonConfigs?.Select(MapButtonConfigToEntity).ToList();
         return existing;
     }

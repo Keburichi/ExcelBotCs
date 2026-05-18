@@ -10,6 +10,7 @@ export interface EventTemplate {
   Duration: number
   Organizer: string
   MaxNumberOfParticipants: number
+  RequiredParticipants: number
   SignupButtonConfigs?: SignupButtonConfig[]
 }
 

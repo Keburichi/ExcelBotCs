@@ -37,6 +37,7 @@ export function useEvents() {
     StartDate: new Date(),
     Duration: 0,
     MaxNumberOfParticipants: 0,
+    RequiredParticipants: 0,
   })
 
   const editId = ref<string | null>(null)
@@ -54,6 +55,7 @@ export function useEvents() {
     StartDate: new Date(),
     Duration: 0,
     MaxNumberOfParticipants: 0,
+    RequiredParticipants: 0,
   })
 
   async function load() {
