@@ -1,5 +1,5 @@
 using Discord;
-using Discord.WebSocket;
+using ExcelBotCs.Discord;
 using ExcelBotCs.Models.Config;
 using ExcelBotCs.Models.Database.Events;
 using ExcelBotCs.Services.Discord.Interfaces;
@@ -9,14 +9,14 @@ namespace ExcelBotCs.Services.Discord;
 
 public class DiscordMessageService : IDiscordMessageService
 {
-    private readonly DiscordSocketClient _discordSocketClient;
+    private readonly IDiscordBotClient _discordClient;
     private readonly IOptions<DiscordBotOptions> _config;
     private readonly IDiscordMessageCreator _componentCreator;
 
-    public DiscordMessageService(DiscordSocketClient discordSocketClient, IOptions<DiscordBotOptions> config,
+    public DiscordMessageService(IDiscordBotClient discordClient, IOptions<DiscordBotOptions> config,
         IDiscordMessageCreator componentCreator)
     {
-        _discordSocketClient = discordSocketClient;
+        _discordClient = discordClient;
         _config = config;
         _componentCreator = componentCreator;
     }
@@ -141,6 +141,6 @@ public class DiscordMessageService : IDiscordMessageService
 
     private async Task<IMessageChannel?> GetTextChannelFromChannelId(ulong channelId)
     {
-        return await _discordSocketClient.GetChannelAsync(channelId) as ITextChannel;
+        return await _discordClient.GetChannelAsync(channelId) as ITextChannel;
     }
 }

@@ -3,6 +3,7 @@ using System.Text.RegularExpressions;
 using Discord;
 using Discord.Interactions;
 using ExcelBotCs.Database.Interfaces;
+using ExcelBotCs.Discord;
 using ExcelBotCs.Extensions;
 using ExcelBotCs.Models.Config;
 using Microsoft.Extensions.Options;
@@ -13,13 +14,15 @@ namespace ExcelBotCs.Modules.TeamFormation;
 public class TeamFormationInteraction : InteractionModuleBase<SocketInteractionContext>
 {
     private readonly IEventDetailsRepository _eventDetails;
+    private readonly IDiscordBotClient _discordClient;
     private readonly DiscordBotOptions _discordBotOptions;
     private readonly string _rootUrl;
 
     public TeamFormationInteraction(Prng rng, IEventDetailsRepository eventDetailsRepository,
-        IOptions<DiscordBotOptions> discordBotOptions)
+        IDiscordBotClient discordClient, IOptions<DiscordBotOptions> discordBotOptions)
     {
         _eventDetails = eventDetailsRepository;
+        _discordClient = discordClient;
         _discordBotOptions = discordBotOptions.Value;
         _rootUrl = Utils.GetEnvVar("EVENT_ENDPOINT_URL", nameof(TeamFormationInteraction));
     }
@@ -68,19 +71,19 @@ public class TeamFormationInteraction : InteractionModuleBase<SocketInteractionC
 
         await DeferAsync();
 
-        switch (await Context.Client.GetMessageFromUrl(postUrl))
+        switch (await _discordClient.GetMessageFromUrl(postUrl))
         {
-            case DiscordSocketExtensions.NotValidUrlMessageResponse:
+            case NotValidUrlMessageResponse:
                 await FollowupAsync("The provided URL does not seem to be a valid Discord URL", ephemeral: true);
                 break;
 
-            case DiscordSocketExtensions.NotFoundUrlMessageResponse:
+            case NotFoundUrlMessageResponse:
                 await FollowupAsync(
                     "Could not find the Guild/Channel this message belongs to. Do I have permission to view it?",
                     ephemeral: true);
                 break;
 
-            case DiscordSocketExtensions.SuccessMessageResponse msg:
+            case SuccessMessageResponse msg:
                 var useEmoji = ExtractEmotes(checkEmoji ?? string.Empty).ToList();
                 var emotes = useEmoji.Any()
                     ? msg.Message.Reactions.Keys.Where(useEmoji.Contains)
@@ -152,7 +155,7 @@ public class TeamFormationInteraction : InteractionModuleBase<SocketInteractionC
         IEnumerable<IUser> GetUsersFromString(string input)
         {
             var ids = Regex.Matches(input, @"\d+").Select(m => ulong.Parse(m.Value));
-            return ids.Select(id => Context.Client.GetUser(id));
+            return ids.Select(id => _discordClient.GetUser(id));
         }
 
         var tankIds = (string.IsNullOrWhiteSpace(tanks) ? [] : GetUsersFromString(tanks)).ToList();

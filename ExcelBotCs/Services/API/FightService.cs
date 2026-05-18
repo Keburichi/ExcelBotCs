@@ -4,15 +4,18 @@ using ExcelBotCs.Services.API.Interfaces;
 
 namespace ExcelBotCs.Services.API;
 
-public class FightService : BaseEntityService<Fight, IFightRepository>, IFightService
+public class FightService : IFightService
 {
-    public FightService(IFightRepository fightRepository) : base(fightRepository)
+    private readonly IFightRepository _fightRepository;
+
+    public FightService(IFightRepository fightRepository)
     {
+        _fightRepository = fightRepository;
     }
 
-    public override async Task<List<Fight>> GetAsync()
+    public async Task<List<Fight>> GetFightsAsync()
     {
-        var fights = await Repository.GetAsync();
+        var fights = await _fightRepository.GetAsync();
 
         if (fights is null)
             return new List<Fight>();
@@ -26,10 +29,6 @@ public class FightService : BaseEntityService<Fight, IFightRepository>, IFightSe
         foreach (var fight in fights.OrderBy(x => x.FFLogsExpansionId))
         {
             HandleSpecialFights(fight);
-
-            // On the website we do not differentiate between savage and legacy savage
-            if (fight.Type == FightType.LegacySavage)
-                fight.Type = FightType.Savage;
 
             if (filteredFights.Any(x => x.Name.Equals(fight.Name)))
                 continue;
@@ -52,9 +51,29 @@ public class FightService : BaseEntityService<Fight, IFightRepository>, IFightSe
             fight.Name = "The Weapon's Refrain";
     }
 
+    public async Task<Fight?> GetFightAsync(string id)
+    {
+        return await _fightRepository.GetAsync(id);
+    }
+
+    public async Task CreateAsync(Fight fight)
+    {
+        await _fightRepository.CreateAsync(fight);
+    }
+
+    public async Task UpdateAsync(string id, Fight updatedFight)
+    {
+        await _fightRepository.UpdateAsync(id, updatedFight);
+    }
+
+    public async Task DeleteAsync(string id)
+    {
+        await _fightRepository.DeleteAsync(id);
+    }
+
     public async Task<Fight?> GetByNameAndTypeAsync(string name, FightType type)
     {
-        return await Repository.GetByNameAndTypeAsync(name, type);
+        return await _fightRepository.GetByNameAndTypeAsync(name, type);
     }
 
     public async Task<bool> UpsertAsync(Fight fight)

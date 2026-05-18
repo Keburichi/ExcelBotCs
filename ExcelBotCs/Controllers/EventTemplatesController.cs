@@ -10,7 +10,7 @@ namespace ExcelBotCs.Controllers;
 [ApiController]
 [AdminAuth]
 [Route("api/event-templates")]
-public class EventTemplatesController : AuthorizedController
+public class EventTemplatesController : AuthorizedController, IEventTemplatesController
 {
     private readonly IEventTemplateService _templateService;
 

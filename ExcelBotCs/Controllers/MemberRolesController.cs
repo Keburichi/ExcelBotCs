@@ -1,6 +1,6 @@
 using ExcelBotCs.Attributes;
 using ExcelBotCs.Controllers.Interfaces;
-using ExcelBotCs.Mappers;
+using ExcelBotCs.Mappers.Members;
 using ExcelBotCs.Models.DTO.Members;
 using ExcelBotCs.Services.API.Interfaces;
 using Microsoft.AspNetCore.Mvc;
@@ -28,7 +28,7 @@ public class MemberRolesController : AuthorizedController, IBaseCrudController<M
         if (entities is null)
             return new List<MemberRoleDto>();
 
-        var dtos = entities.Select(MemberRoleMapper.ToDto).ToList();
+        var dtos = entities.Select(x => x.ToDto()).ToList();
 
         return dtos;
     }
@@ -41,16 +41,16 @@ public class MemberRolesController : AuthorizedController, IBaseCrudController<M
         if (entity is null)
             return NotFound();
 
-        return MemberRoleMapper.ToDto(entity);
+        return entity.ToDto();
     }
 
     [AdminAuth]
     [HttpPost]
     public async Task<ActionResult<MemberRoleDto>> CreateEntity(MemberRoleDto entity)
     {
-        var entit = MemberRoleMapper.ToEntity(entity);
+        var entit = entity.ToEntity();
         await _memberRoleService.CreateAsync(entit);
-        return CreatedAtAction(nameof(CreateEntity), new { id = entit.Id }, MemberRoleMapper.ToDto(entit));
+        return CreatedAtAction(nameof(CreateEntity), new { id = entit.Id }, entit.ToDto());
     }
 
     [AdminAuth]
@@ -59,7 +59,7 @@ public class MemberRolesController : AuthorizedController, IBaseCrudController<M
     {
         Logger.LogInformation("Updating entity with id: {id}", id);
 
-        await _memberRoleService.UpdateAsync(id, MemberRoleMapper.ToEntity(updatedEntity));
+        await _memberRoleService.UpdateAsync(id, updatedEntity.ToEntity());
 
         return NoContent();
     }

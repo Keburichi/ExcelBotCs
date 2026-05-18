@@ -6,52 +6,70 @@ using ExcelBotCs.Services.API.Interfaces;
 
 namespace ExcelBotCs.Services.API;
 
-public class MemberService : BaseEntityService<Member, IMemberRepository>, IMemberService
+public class MemberService : IMemberService
 {
-    public MemberService(IMemberRepository memberRepository) : base(memberRepository)
+    private readonly IMemberRepository _memberRepository;
+
+    public MemberService(IMemberRepository memberRepository)
     {
+        _memberRepository = memberRepository;
     }
 
-    public override async Task<List<Member>> GetAsync()
+    public async Task<List<Member>> GetAsync()
     {
-        var members = await Repository.GetAsync();
+        var members = await _memberRepository.GetAsync();
         return members is null ? null : members.OrderBy(x => x.DiscordName).ToList();
     }
 
-    public override async Task UpdateAsync(string id, Member updatedEntity)
+    public async Task<Member?> GetAsync(string id)
+    {
+        return await _memberRepository.GetAsync(id);
+    }
+
+    public async Task CreateAsync(Member member)
+    {
+        await _memberRepository.CreateAsync(member);
+    }
+
+    public async Task UpdateAsync(string id, Member updatedMember)
     {
         // Load the current DB state
-        var dbEntity = await Repository.GetAsync(id);
+        var dbEntity = await _memberRepository.GetAsync(id);
         if (dbEntity is null)
             throw new NotFoundException();
 
         // Update all properties
-        updatedEntity.DateCreated = dbEntity.DateCreated;
-        updatedEntity.ExperienceIds = dbEntity.ExperienceIds;
+        updatedMember.DateCreated = dbEntity.DateCreated;
+        updatedMember.ExperienceIds = dbEntity.ExperienceIds;
 
         // Enforce: LodestoneId can only be set/changed via the verification flow
         // Prevent any modifications to LodestoneId through generic PUT updates
-        updatedEntity.LodestoneId = dbEntity.LodestoneId;
+        updatedMember.LodestoneId = dbEntity.LodestoneId;
 
-        await Repository.UpdateAsync(id, updatedEntity);
+        await _memberRepository.UpdateAsync(id, updatedMember);
+    }
+
+    public async Task DeleteAsync(string id)
+    {
+        await _memberRepository.DeleteAsync(id);
     }
 
     public async Task UpdateDiscordRoles(string id, List<string> roleIds)
     {
         // Load the current DB state
-        var dbEntity = await Repository.GetAsync(id);
+        var dbEntity = await _memberRepository.GetAsync(id);
         if (dbEntity is null)
             throw new NotFoundException();
 
         dbEntity.RoleIds = roleIds;
 
-        await Repository.UpdateAsync(id, dbEntity);
+        await _memberRepository.UpdateAsync(id, dbEntity);
     }
 
     public async Task UpdateMemberProfileAsync(string id, UpdateMemberRequest request)
     {
         // Load the current DB state
-        var dbEntity = await Repository.GetAsync(id);
+        var dbEntity = await _memberRepository.GetAsync(id);
         if (dbEntity is null)
             throw new NotFoundException();
 
@@ -59,12 +77,12 @@ public class MemberService : BaseEntityService<Member, IMemberRepository>, IMemb
         dbEntity.Subbed = request.Subbed;
         dbEntity.LodestoneId = request.LodestoneId;
 
-        await Repository.UpdateAsync(id, dbEntity);
+        await _memberRepository.UpdateAsync(id, dbEntity);
     }
 
     public async Task<Member> GetByDiscordId(string discordId)
     {
-        return await Repository.GetByDiscordId(discordId);
+        return await _memberRepository.GetByDiscordId(discordId);
     }
 
     public async Task<Member> GetByDiscordId(ulong discordId)
@@ -79,7 +97,7 @@ public class MemberService : BaseEntityService<Member, IMemberRepository>, IMemb
 
     public async Task<Member> GetByLodestoneId(string lodestoneId)
     {
-        return await Repository.GetByLodestoneId(lodestoneId);
+        return await _memberRepository.GetByLodestoneId(lodestoneId);
     }
 
     /// <summary>

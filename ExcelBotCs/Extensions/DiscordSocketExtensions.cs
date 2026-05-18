@@ -1,26 +1,12 @@
-using System.Text.RegularExpressions;
 using Discord;
 using Discord.Interactions;
 using Discord.WebSocket;
 using ExcelBotCs.Models.Config;
-using ExcelBotCs.Modules.TeamFormation;
 
 namespace ExcelBotCs.Extensions;
 
 public static class DiscordSocketExtensions
 {
-    public enum MessageResponse
-    {
-        NotValidUrl,
-        NotFoundUrl,
-        Success
-    }
-
-    public static SocketGuild ExcelGuild(this DiscordSocketClient client, DiscordBotOptions discordBotOptions)
-    {
-        return client.Guilds.First(x => x.Id == discordBotOptions.GuildId);
-    }
-
     public static bool IsMember(this SocketGuildUser user, DiscordBotOptions discordBotOptions)
     {
         return user.Roles.Any(role => discordBotOptions.MemberRoleIds.Contains(role.Id));
@@ -63,83 +49,8 @@ public static class DiscordSocketExtensions
             : list.FirstOrDefault() ?? string.Empty;
     }
 
-    public static async Task<IMessageResponse> GetMessageFromUrl(this DiscordSocketClient client, string postUrl)
-    {
-        var regex = new Regex("discord.com/channels/(?<guildId>\\d+)/(?<channelId>\\d+)/(?<messageId>\\d+)");
-        var match = regex.Matches(postUrl).FirstOrDefault();
-
-        if (match is not { Success: true })
-            return new NotFoundUrlMessageResponse();
-
-        var guildId = ulong.Parse(match.Groups["guildId"].Value);
-        var channelId = ulong.Parse(match.Groups["channelId"].Value);
-        var messageId = ulong.Parse(match.Groups["messageId"].Value);
-
-        return client.GetGuild(guildId).GetChannel(channelId) is not ITextChannel channel
-            ? new NotValidUrlMessageResponse()
-            : new SuccessMessageResponse(await channel.GetMessageAsync(messageId));
-    }
-
-    public interface IMessageResponse
-    {
-    }
-
-    public record NotValidUrlMessageResponse : IMessageResponse;
-
-    public record NotFoundUrlMessageResponse : IMessageResponse;
-
-    public record SuccessMessageResponse(IMessage Message) : IMessageResponse;
-
     public static List<GuildEmote> GetEmotes(this SocketGuild guild)
     {
         return guild.Emotes.ToList();
-    }
-
-    public static List<GuildEmote> GetEmotes(this DiscordSocketClient discordSocketClient)
-    {
-        return discordSocketClient.Guilds.SelectMany(x => x.Emotes).ToList();
-    }
-
-    public static Emote? GetTankEmote(this DiscordSocketClient client)
-    {
-        return client.GetEmotes().FirstOrDefault(x => x.Id == Constants.TankRoleEmoteId);
-    }
-
-    public static Emote? GetHealerEmote(this DiscordSocketClient client)
-    {
-        return client.GetEmotes().FirstOrDefault(x => x.Id == Constants.HealerRoleEmoteId);
-    }
-
-    public static Emote? GetMeleeEmote(this DiscordSocketClient client)
-    {
-        return client.GetEmotes().FirstOrDefault(x => x.Id == Constants.MeleeRoleEmoteId);
-    }
-
-    public static Emote? GetRangedEmote(this DiscordSocketClient client)
-    {
-        return client.GetEmotes().FirstOrDefault(x => x.Id == Constants.RangedRoleEmoteId);
-    }
-
-    public static Emote? GetCasterEmote(this DiscordSocketClient client)
-    {
-        return client.GetEmotes().FirstOrDefault(x => x.Id == Constants.CasterRoleEmoteId);
-    }
-
-    public static Emote? GetEmoteById(this DiscordSocketClient client, ulong id)
-    {
-        return client.GetEmotes().FirstOrDefault(x => x.Id == id);
-    }
-
-    public static Emote? GetEmoteByRole(this DiscordSocketClient client, Role role)
-    {
-        return role switch
-        {
-            Role.Tank => client.GetTankEmote(),
-            Role.Healer => client.GetHealerEmote(),
-            Role.Melee => client.GetMeleeEmote(),
-            Role.Caster => client.GetCasterEmote(),
-            Role.Ranged => client.GetRangedEmote(),
-            _ => throw new ArgumentOutOfRangeException(nameof(role), role, null)
-        };
     }
 }

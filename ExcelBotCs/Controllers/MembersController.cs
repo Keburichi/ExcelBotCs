@@ -1,6 +1,6 @@
 ﻿using ExcelBotCs.Attributes;
 using ExcelBotCs.Controllers.Interfaces;
-using ExcelBotCs.Mappers;
+using ExcelBotCs.Mappers.Members;
 using ExcelBotCs.Models.Database;
 using ExcelBotCs.Models.DTO.Members;
 using ExcelBotCs.Services;
@@ -36,7 +36,7 @@ public class MembersController : AuthorizedController, IMembersController
         if (entities is null)
             return new List<MemberResponse>();
 
-        var dtos = entities.Select(MemberMapper.ToDto).ToList();
+        var dtos = entities.Select(x => x.ToDto()).ToList();
 
         return dtos;
     }
@@ -49,7 +49,7 @@ public class MembersController : AuthorizedController, IMembersController
         if (entity is null)
             return NotFound();
 
-        return MemberMapper.ToDto(entity);
+        return entity.ToDto();
     }
 
     [HttpPut("{id:length(24)}")]
@@ -198,7 +198,7 @@ public class MembersController : AuthorizedController, IMembersController
 
         await _memberService.UpdateAsync(memberId, member);
 
-        return CreatedAtAction(nameof(AddNote), new { memberId, noteId = note.Id }, MemberNoteMapper.ToDto(note));
+        return CreatedAtAction(nameof(AddNote), new { memberId, noteId = note.Id }, note.ToDto());
     }
 
     [HttpPut("{memberId:length(24)}/notes/{noteId:length(24)}")]

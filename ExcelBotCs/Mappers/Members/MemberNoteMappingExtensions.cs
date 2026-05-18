@@ -1,11 +1,11 @@
 using ExcelBotCs.Models.Database;
 using ExcelBotCs.Models.DTO.Members;
 
-namespace ExcelBotCs.Mappers;
+namespace ExcelBotCs.Mappers.Members;
 
-public static class MemberNoteMapper
+public static class MemberNoteMappingExtensions
 {
-    public static NoteResponse ToDto(MemberNote note)
+    public static NoteResponse ToDto(this MemberNote note)
     {
         return new NoteResponse
         {
@@ -13,19 +13,19 @@ public static class MemberNoteMapper
             DateCreated = note.DateCreated,
             DateModified = note.DateModified,
             Note = note.Note,
-            Author = note.Author,
+            Author = note.Author
         };
     }
 
-    public static MemberNote ToEntity(NoteResponse note)
+    public static MemberNote ToEntity(this NoteResponse note)
     {
-        return new MemberNote()
+        return new MemberNote
         {
             Id = note.Id,
             DateCreated = note.DateCreated,
             DateModified = note.DateModified,
             Note = note.Note,
-            Author = note.Author,
+            Author = note.Author
         };
     }
 }

@@ -11,7 +11,7 @@ public abstract class BackgroundService : IHostedService, IDisposable
 	private readonly CancellationTokenSource _stoppingCts =
 		new CancellationTokenSource();
 
-	public BackgroundService(IServiceScopeFactory scopeFactory)
+	protected BackgroundService(IServiceScopeFactory scopeFactory)
 	{
 		_scopeFactory = scopeFactory;
 	}

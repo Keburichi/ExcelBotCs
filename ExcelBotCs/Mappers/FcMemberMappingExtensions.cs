@@ -3,11 +3,11 @@ using ExcelBotCs.Models.DTO;
 
 namespace ExcelBotCs.Mappers;
 
-public static class FcMemberMapper
+public static class FcMemberMappingExtensions
 {
-    public static FcMemberDto ToDto(FcMember fcMember)
+    public static FcMemberDto ToDto(this FcMember fcMember)
     {
-        return new FcMemberDto()
+        return new FcMemberDto
         {
             Id = fcMember.Id,
             Name = fcMember.Name,
@@ -16,13 +16,13 @@ public static class FcMemberMapper
             CharacterId = fcMember.CharacterId,
             FcRank = fcMember.FcRank,
             Title = fcMember.Title,
-            LastSynchronisation = fcMember.LastSynchronisation,
+            LastSynchronisation = fcMember.LastSynchronisation
         };
     }
 
-    public static FcMember ToEntity(FcMemberDto fcMember)
+    public static FcMember ToEntity(this FcMemberDto fcMember)
     {
-        return new FcMember()
+        return new FcMember
         {
             Id = fcMember.Id,
             Name = fcMember.Name,
@@ -31,7 +31,7 @@ public static class FcMemberMapper
             CharacterId = fcMember.CharacterId,
             FcRank = fcMember.FcRank,
             Title = fcMember.Title,
-            LastSynchronisation = fcMember.LastSynchronisation,
+            LastSynchronisation = fcMember.LastSynchronisation
         };
     }
 }

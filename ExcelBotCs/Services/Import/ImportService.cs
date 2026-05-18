@@ -1,4 +1,5 @@
 using Discord.WebSocket;
+using ExcelBotCs.Discord;
 using ExcelBotCs.Extensions;
 using ExcelBotCs.Models.Config;
 using ExcelBotCs.Models.Database;
@@ -10,17 +11,17 @@ namespace ExcelBotCs.Services.Import;
 public class ImportService
 {
     private readonly ILogger<ImportService> _logger;
-    private readonly DiscordSocketClient _discordSocketClient;
+    private readonly IDiscordBotClient _discordClient;
     private readonly IMemberRoleService _memberRoleService;
     private readonly IMemberService _memberService;
     private readonly IOptions<DiscordBotOptions> _options;
 
-    public ImportService(ILogger<ImportService> logger, DiscordSocketClient discordSocketClient,
+    public ImportService(ILogger<ImportService> logger, IDiscordBotClient discordClient,
         IMemberRoleService memberRoleService,
         IMemberService memberService, IOptions<DiscordBotOptions> options)
     {
         _logger = logger;
-        _discordSocketClient = discordSocketClient;
+        _discordClient = discordClient;
         _memberRoleService = memberRoleService;
         _memberService = memberService;
         _options = options;
@@ -31,49 +32,27 @@ public class ImportService
         return await ImportMembers(_options.Value.GuildId);
     }
 
-    public async Task<List<Member>> ImportMembers(ulong guildId = 0)
+    public async Task<List<Member>> ImportMembers(ulong guildId)
     {
         _logger.LogInformation("Importing discord members");
 
-        var guilds = _discordSocketClient.Guilds;
-
-        if (guilds.IsNullOrEmpty())
+        var guild = _discordClient.GetGuild(guildId);
+        if (guild is null)
             return new List<Member>();
 
-        var members = new List<Member>();
-
-        // Import all roles
         await ImportRoles(guildId);
 
-        // If a guild id has been provided, only import that one. Otherwise we go for all servers
-        if (guildId != 0)
-        {
-            var guild = guilds.FirstOrDefault(x => x.Id == guildId);
-            if (guild == null)
-                return new List<Member>();
-
-            members = await GetGuildMembers(guild);
-        }
-        else
-        {
-            foreach (var guild in guilds)
-            {
-                members = await GetGuildMembers(guild);
-            }
-        }
+        var members = await GetGuildMembers(guild);
 
         foreach (var member in members)
         {
-            // Check if we need to create or update the member
             var dbMember = await _memberService.GetByDiscordId(member.DiscordId);
-            
+
             if (dbMember == null)
                 await _memberService.CreateAsync(member);
             else
             {
                 member.Id = dbMember.Id;
-
-                // Don't override some properties to avoid accidental removals
                 member.Roles = dbMember.Roles;
                 member.Subbed = dbMember.Subbed;
                 member.LodestoneId = dbMember.LodestoneId;
@@ -81,9 +60,6 @@ public class ImportService
                 member.Notes = dbMember.Notes;
                 member.PlayerName = dbMember.PlayerName;
                 member.LastFFLogsSyncTime = dbMember.LastFFLogsSyncTime;
-
-                // Don't update the 'Experience' list, since its being ignored for the database
-                // Instead update/keep the list of experience ids, since we are only saving references
                 member.ExperienceIds = dbMember.ExperienceIds;
 
                 await _memberService.UpdateAsync(dbMember.Id, member);
@@ -115,7 +91,6 @@ public class ImportService
                 .OfType<MemberRole>()
                 .ToList();
 
-            // Filter out all non-fc discord users
             if (assignedRoles.Any(x => x.IsMember))
                 members.Add(new Member
                 {
@@ -133,53 +108,24 @@ public class ImportService
     {
         _logger.LogInformation("Importing discord roles");
 
-        var guilds = _discordSocketClient.Guilds;
+        var guild = guildId != 0 ? _discordClient.GetGuild(guildId) : _discordClient.GetExcelGuild();
+        var roles = new List<MemberRole>();
 
-        List<MemberRole> roles = new List<MemberRole>();
-
-        if (guildId != 0)
-        {
-            var guild = guilds.FirstOrDefault(x => x.Id == guildId);
-
+        if (guild is not null)
             foreach (var guildRole in guild.Roles)
-            {
-                roles.Add(new MemberRole()
-                {
-                    DiscordId = guildRole.Id.ToString(),
-                    Name = guildRole.Name
-                });
-            }
-        }
-        else
-        {
-            foreach (var guild in guilds)
-            {
-                foreach (var guildRole in guild.Roles)
-                {
-                    roles.Add(new MemberRole()
-                    {
-                        DiscordId = guildRole.Id.ToString(),
-                        Name = guildRole.Name
-                    });
-                }
-            }
-        }
+                roles.Add(new MemberRole { DiscordId = guildRole.Id.ToString(), Name = guildRole.Name });
 
         foreach (var memberRole in roles)
         {
-            // Check if role already exists, if it does we update, otherwise we create
             var role = await _memberRoleService.GetByDiscordId(memberRole.DiscordId);
             if (role != null)
             {
-                // don't update certain properties
                 memberRole.IsAdmin = role.IsAdmin;
                 memberRole.IsMember = role.IsMember;
-
                 await _memberRoleService.UpdateAsync(memberRole.Id, memberRole);
             }
             else
             {
-                // automatically assign the member and admin flags for the initial import
                 if (_options.Value.AdminRoleIds.Any(x => x.ToString() == memberRole.DiscordId))
                     memberRole.IsAdmin = true;
 

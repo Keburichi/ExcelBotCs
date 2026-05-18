@@ -64,16 +64,6 @@ public static class EventMappingExtensions
         };
     }
 
-    private static EventOccurrence MapOccurrenceToEntity(EventOccurrenceDto dto)
-    {
-        return new EventOccurrence
-        {
-            Id = dto.Id,
-            OccurrenceDate = dto.OccurrenceDate,
-            Status = dto.Status
-        };
-    }
-
     private static DtoEventSignup MapSignupToDto(DbEventSignup signup)
     {
         return new DtoEventSignup
@@ -82,17 +72,6 @@ public static class EventMappingExtensions
             Roles = signup.Roles,
             SignupSlugs = signup.SignupSlugs,
             SignupDate = signup.SignupDate
-        };
-    }
-
-    private static DbEventSignup MapSignupToEntity(DtoEventSignup dto)
-    {
-        return new DbEventSignup
-        {
-            DiscordUserId = dto.DiscordUserId,
-            Roles = dto.Roles,
-            SignupSlugs = dto.SignupSlugs,
-            SignupDate = dto.SignupDate
         };
     }
 
@@ -117,26 +96,6 @@ public static class EventMappingExtensions
             EmojiId = dto.EmojiId,
             IsHelper = dto.IsHelper,
             MappedRole = dto.MappedRole
-        };
-    }
-
-    private static EventParticipantDto MapParticipantToDto(EventParticipant participant)
-    {
-        return new EventParticipantDto
-        {
-            DiscordUserId = participant.DiscordUserId,
-            Role = participant.Role,
-            SelectionDate = participant.SelectionDate
-        };
-    }
-
-    private static EventParticipant MapParticipantToEntity(EventParticipantDto dto)
-    {
-        return new EventParticipant
-        {
-            DiscordUserId = dto.DiscordUserId,
-            Role = dto.Role,
-            SelectionDate = dto.SelectionDate
         };
     }
 

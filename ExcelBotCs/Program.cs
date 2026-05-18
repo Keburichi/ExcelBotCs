@@ -21,6 +21,7 @@ using ExcelBotCs.Utilities;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.DataProtection.KeyManagement;
+using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.Extensions.Options;
 using MongoDB.Driver;
 using NetStone;
@@ -184,6 +185,11 @@ public class Program
         builder.Services.AddAppAuthentication(builder.Configuration);
 
         var app = builder.Build();
+
+        app.UseForwardedHeaders(new ForwardedHeadersOptions
+        {
+            ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto
+        });
 
         app.UseHttpsRedirection();
 

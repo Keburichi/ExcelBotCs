@@ -61,6 +61,9 @@ public class DiscordLogger : TextWriter
 
     public override void WriteLine(string? line)
     {
+        if (line is null)
+            return;
+
         if (line.Contains($"POST channels/{_options.Value.LogChannel}/messages"))
             return;
 
@@ -72,5 +75,5 @@ public class DiscordLogger : TextWriter
         _logQueue.Enqueue(line);
     }
 
-    public override Encoding Encoding { get; }
+    public override Encoding Encoding { get; } = Encoding.UTF8;
 }

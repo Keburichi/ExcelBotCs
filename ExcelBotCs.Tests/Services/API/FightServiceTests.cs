@@ -25,7 +25,7 @@ public class FightServiceTests
         _fightRepositoryMock.Setup(x => x.GetAsync()).ReturnsAsync((List<Fight>)null);
 
         // Act
-        var result = await _fightService.GetAsync();
+        var result = await _fightService.GetFightsAsync();
 
         // Assert
         result.ShouldBeEmpty();
@@ -46,7 +46,7 @@ public class FightServiceTests
             }.PopulateWithRandomData(),
             new Fight
             {
-                Name = "Fight2", Type = FightType.LegacySavage, FFLogsZoneId = 90, FFLogsEncounterId = 2,
+                Name = "Fight2", Type = FightType.Savage, FFLogsZoneId = 90, FFLogsEncounterId = 2,
                 FFLogsExpansionId = 2
             }.PopulateWithRandomData(),
             new Fight
@@ -58,7 +58,7 @@ public class FightServiceTests
         _fightRepositoryMock.Setup(x => x.GetAsync()).ReturnsAsync(fights);
 
         // Act
-        var result = await _fightService.GetAsync();
+        var result = await _fightService.GetFightsAsync();
 
         // Assert
         result.ShouldNotBeNull();
@@ -82,7 +82,7 @@ public class FightServiceTests
         _fightRepositoryMock.Setup(x => x.GetAsync()).ReturnsAsync(fights);
 
         // Act
-        var result = await _fightService.GetAsync();
+        var result = await _fightService.GetFightsAsync();
 
         // Assert
         result.ShouldNotBeNull();
@@ -106,7 +106,7 @@ public class FightServiceTests
         _fightRepositoryMock.Setup(x => x.GetAsync()).ReturnsAsync(fights);
 
         // Act
-        var result = await _fightService.GetAsync();
+        var result = await _fightService.GetFightsAsync();
 
         // Assert
         result.ShouldNotBeNull();
@@ -124,7 +124,7 @@ public class FightServiceTests
         _fightRepositoryMock.Setup(x => x.GetAsync(id)).ReturnsAsync((Fight)null);
 
         // Act
-        var result = await _fightService.GetAsync(id);
+        var result = await _fightService.GetFightAsync(id);
 
         // Assert
         result.ShouldBeNull();
@@ -141,7 +141,7 @@ public class FightServiceTests
         _fightRepositoryMock.Setup(x => x.GetAsync(id)).ReturnsAsync(fight);
 
         // Act
-        var result = await _fightService.GetAsync(id);
+        var result = await _fightService.GetFightAsync(id);
 
         // Assert
         result.ShouldNotBeNull();

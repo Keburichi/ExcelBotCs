@@ -1,6 +1,7 @@
 using Discord;
 using Discord.Interactions;
 using Discord.WebSocket;
+using ExcelBotCs.Discord;
 using ExcelBotCs.Extensions;
 using ExcelBotCs.Models.Config;
 using ExcelBotCs.Services.Lottery;
@@ -15,11 +16,14 @@ namespace ExcelBotCs.Modules.Lottery;
 public class LotteryInteraction : InteractionModuleBase<SocketInteractionContext>
 {
     private readonly ILotteryService _lotteryService;
+    private readonly IDiscordBotClient _discordClient;
     private readonly DiscordBotOptions _discordBotOptions;
 
-    public LotteryInteraction(ILotteryService lotteryService, IOptions<DiscordBotOptions> discordBotOptions)
+    public LotteryInteraction(ILotteryService lotteryService, IDiscordBotClient discordClient,
+        IOptions<DiscordBotOptions> discordBotOptions)
     {
         _lotteryService = lotteryService;
+        _discordClient = discordClient;
         _discordBotOptions = discordBotOptions.Value;
     }
 
@@ -45,25 +49,11 @@ public class LotteryInteraction : InteractionModuleBase<SocketInteractionContext
         RandomGuessType numberPool =
             RandomGuessType.UnusedOnly)
     {
-        var cts = new CancellationTokenSource();
-
-        var task = _lotteryService.RandomGuessAsync(Context.User.Id, cts, numberPool);
-
         await DeferAsync(true);
 
-        if (await Task.WhenAny(task, Task.Delay(TimeSpan.FromSeconds(5), cts.Token)) == task)
-        {
-            await cts.CancelAsync();
-            var result = await task;
-            await FollowupAsync(LotteryResponseFormatter.FormatGuessResponse(result), ephemeral: true);
-        }
-        else
-        {
-            await cts.CancelAsync();
-            await FollowupAsync(
-                "Picking a number took too long, try again later. If this keeps happening, let Zahrymm know.",
-                ephemeral: true);
-        }
+        var cts = new CancellationTokenSource();
+        var result = await _lotteryService.RandomGuessAsync(Context.User.Id, cts, numberPool);
+        await FollowupAsync(LotteryResponseFormatter.FormatGuessResponse(result), ephemeral: true);
     }
 
     [SlashCommand("change", "Change one of your current guesses")]
@@ -113,6 +103,7 @@ public class LotteryInteraction : InteractionModuleBase<SocketInteractionContext
         await DeferAsync(true);
 
         await _lotteryService.RemindAsync(Context.GuildUser().Id);
+        await FollowupAsync("Reminders sent!", ephemeral: true);
     }
 
     [SlashCommand("award", "Grants extra guesses for the current lottery period")]
@@ -148,36 +139,38 @@ public class LotteryInteraction : InteractionModuleBase<SocketInteractionContext
 
     private async Task AwardByContents(string reason, string postUrl)
     {
-        switch (await Context.Client.GetMessageFromUrl(postUrl))
+        await DeferAsync(true);
+
+        switch (await _discordClient.GetMessageFromUrl(postUrl))
         {
-            case DiscordSocketExtensions.NotValidUrlMessageResponse:
-                await RespondAsync("The provided URL does not seem to be a valid Discord URL", ephemeral: true);
+            case NotValidUrlMessageResponse:
+                await FollowupAsync("The provided URL does not seem to be a valid Discord URL", ephemeral: true);
                 break;
 
-            case DiscordSocketExtensions.NotFoundUrlMessageResponse:
-                await RespondAsync(
+            case NotFoundUrlMessageResponse:
+                await FollowupAsync(
                     "Could not find the Guild/Channel this message belongs to. Do I have permission to view it?",
                     ephemeral: true);
                 break;
 
-            case DiscordSocketExtensions.SuccessMessageResponse msg:
+            case SuccessMessageResponse msg:
             {
                 var result = await _lotteryService.TryAwardUsersAsync(reason, msg.Message.MentionedUserIds.ToList());
 
                 if (result is NoUsersAwardResponse)
                 {
-                    await RespondAsync("No mentioned users could be found in the message.", ephemeral: true);
+                    await FollowupAsync("No mentioned users could be found in the message.", ephemeral: true);
                     return;
                 }
 
                 if (result is not SuccessAwardResponse success)
                 {
-                    await RespondAsync("Something went wrong. Tell Zahrymm.", ephemeral: true);
+                    await FollowupAsync("Something went wrong. Tell Zahrymm.", ephemeral: true);
                     return;
                 }
 
                 await _lotteryService.AwardUsersAsync(success);
-                await RespondAsync($"An extra lottery guess have been granted to: {success.PrettyUsersAwarded}",
+                await FollowupAsync($"An extra lottery guess have been granted to: {success.PrettyUsersAwarded}",
                     ephemeral: true);
                 break;
             }
@@ -194,17 +187,19 @@ public class LotteryInteraction : InteractionModuleBase<SocketInteractionContext
             return;
         }
 
+        await DeferAsync(true);
+
         var result = await _lotteryService.TryAwardUsersAsync(reason, users.Select(user => user.Id).ToList());
 
         if (result is NoUsersAwardResponse)
         {
-            await RespondAsync("You did not pick any users.", ephemeral: true);
+            await FollowupAsync("You did not pick any users.", ephemeral: true);
             return;
         }
 
         if (result is not SuccessAwardResponse success)
         {
-            await RespondAsync("Something went wrong. Tell Zahrymm.", ephemeral: true);
+            await FollowupAsync("Something went wrong. Tell Zahrymm.", ephemeral: true);
             return;
         }
 

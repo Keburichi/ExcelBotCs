@@ -5,7 +5,6 @@ public enum FightType
     Normal,
     Extreme,
     Savage,
-    LegacySavage,
     Ultimate,
     Chaotic,
     Unreal

@@ -1,5 +1,5 @@
 using ExcelBotCs.Attributes;
-using ExcelBotCs.Mappers;
+using ExcelBotCs.Mappers.Fights;
 using ExcelBotCs.Models.DTO;
 using ExcelBotCs.Services;
 using ExcelBotCs.Services.API.Interfaces;
@@ -29,7 +29,7 @@ public class RaidplansController : AuthorizedController
     public async Task<ActionResult<List<RaidplanDto>>> GetRaidplans(string fightId)
     {
         var raidplans = await _raidplanService.GetByFightIdAsync(fightId);
-        var dtos = raidplans.Select(RaidplanMapper.ToDto).ToList();
+        var dtos = raidplans.Select(x => x.ToDto()).ToList();
         return Ok(dtos);
     }
 
@@ -42,7 +42,7 @@ public class RaidplansController : AuthorizedController
         if (raidplan == null)
             return NotFound();
 
-        return Ok(RaidplanMapper.ToDto(raidplan));
+        return Ok(raidplan.ToDto());
     }
 
     // POST /api/fights/{fightId}/raidplans
@@ -56,13 +56,13 @@ public class RaidplansController : AuthorizedController
         // Set the author to the current member
         dto.AuthorId = member.Id;
 
-        var entity = RaidplanMapper.ToEntity(dto);
+        var entity = dto.ToEntity();
         await _raidplanService.CreateAsync(fightId, entity);
 
         return CreatedAtAction(
             nameof(GetRaidplan),
             new { fightId, id = entity.Id },
-            RaidplanMapper.ToDto(entity));
+            entity.ToDto());
     }
 
     // PUT /api/fights/{fightId}/raidplans/{id}
@@ -84,7 +84,7 @@ public class RaidplansController : AuthorizedController
         if (!isAdmin && !isOwner)
             return Forbid();
 
-        var entity = RaidplanMapper.ToEntity(dto);
+        var entity = dto.ToEntity();
         entity.AuthorId = existingRaidplan.AuthorId; // Preserve original author
 
         await _raidplanService.UpdateAsync(fightId, id, entity);
