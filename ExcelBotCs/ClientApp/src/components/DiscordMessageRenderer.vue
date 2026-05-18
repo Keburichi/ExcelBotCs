@@ -489,17 +489,6 @@ function isImage(filename: string): boolean {
   min-height: 1.2em;
 }
 
-/* Inline code */
-.discord-inline-code {
-  background: var(--muted-bg);
-  color: var(--fg);
-  padding: 0.15rem 0.35rem;
-  border-radius: 8px;
-  font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
-  font-size: 0.9em;
-  border: 1px solid var(--border);
-}
-
 /* Code blocks */
 .discord-codeblock {
   background: var(--muted-bg);
@@ -531,31 +520,6 @@ function isImage(filename: string): boolean {
   margin: 0.25rem 0;
 }
 
-/* Spoilers */
-.discord-spoiler {
-  background: var(--muted);
-  color: transparent;
-  padding: 0 0.25rem;
-  border-radius: 8px;
-  cursor: pointer;
-  transition: all 0.2s ease;
-  user-select: none;
-}
-
-.discord-spoiler:hover {
-  background: color-mix(in oklab, var(--muted) 80%, var(--fg) 20%);
-}
-
-.discord-spoiler.revealed {
-  background: var(--muted-bg);
-  color: var(--fg);
-}
-
-.discord-spoiler:focus {
-  outline: 2px solid var(--ring);
-  outline-offset: 2px;
-}
-
 /* Headlines */
 .discord-headline {
   font-size: 1.5rem;
@@ -571,16 +535,6 @@ function isImage(filename: string): boolean {
   color: var(--muted);
   margin: 0.25rem 0;
   line-height: 1.4;
-}
-
-/* Timestamps */
-.discord-timestamp {
-  background: var(--muted-bg);
-  color: var(--fg);
-  padding: 0.1rem 0.3rem;
-  border-radius: 8px;
-  font-size: 0.95em;
-  white-space: nowrap;
 }
 
 /* Attachments container */
@@ -625,75 +579,132 @@ function isImage(filename: string): boolean {
   text-decoration: underline;
 }
 
+/* ========================================
+   Styles for child TokenRenderer component
+   (requires :deep() to pierce scoped boundary)
+   ======================================== */
+
+/* Inline code */
+:deep(.discord-inline-code) {
+  background: var(--muted-bg);
+  color: var(--fg);
+  padding: 0.15rem 0.35rem;
+  border-radius: 8px;
+  font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+  font-size: 0.9em;
+  border: 1px solid var(--border);
+}
+
+/* Spoilers */
+:deep(.discord-spoiler) {
+  background: var(--muted);
+  color: transparent;
+  padding: 0 0.25rem;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  user-select: none;
+}
+
+:deep(.discord-spoiler:hover) {
+  background: color-mix(in oklab, var(--muted) 80%, var(--fg) 20%);
+}
+
+:deep(.discord-spoiler.revealed) {
+  background: var(--muted-bg);
+  color: var(--fg);
+}
+
+:deep(.discord-spoiler:focus) {
+  outline: 2px solid var(--ring);
+  outline-offset: 2px;
+}
+
+/* Timestamps */
+:deep(.discord-timestamp) {
+  background: var(--muted-bg);
+  color: var(--fg);
+  padding: 0.1rem 0.3rem;
+  border-radius: 8px;
+  font-size: 0.95em;
+  white-space: nowrap;
+}
+
 /* Mentions */
-.discord-mention {
+:deep(.discord-mention) {
   padding: 0 0.25rem;
   border-radius: 8px;
   font-weight: 500;
   white-space: nowrap;
 }
 
-.discord-mention--user,
-.discord-mention--channel {
+:deep(.discord-mention--user),
+:deep(.discord-mention--channel) {
   background: rgba(59, 130, 246, 0.15);
   color: rgb(59, 130, 246);
 }
 
-.discord-mention--role {
+:deep(.discord-mention--role) {
   background: rgba(139, 92, 246, 0.15);
   color: rgb(139, 92, 246);
 }
 
 /* Custom emotes */
-.discord-emote {
-  display: inline;
+:deep(.discord-emote) {
+  display: inline-block;
   height: 1.2em;
   width: 1.2em;
   object-fit: contain;
   vertical-align: text-bottom;
-  margin: 0;
+  margin: 0 0.05em;
 }
 
 /* Links */
-.discord-link {
+:deep(.discord-link) {
   color: var(--link);
   text-decoration: none;
 }
 
-.discord-link:hover {
+:deep(.discord-link:hover) {
   text-decoration: underline;
 }
 
 /* Dark theme adjustments */
-:root[data-theme='dark'] .discord-inline-code,
 :root[data-theme='dark'] .discord-codeblock {
   background: rgba(0, 0, 0, 0.3);
 }
 
-:root[data-theme='dark'] .discord-mention--user,
-:root[data-theme='dark'] .discord-mention--channel {
+:root[data-theme='dark'] :deep(.discord-inline-code) {
+  background: rgba(0, 0, 0, 0.3);
+}
+
+:root[data-theme='dark'] :deep(.discord-mention--user),
+:root[data-theme='dark'] :deep(.discord-mention--channel) {
   background: rgba(59, 130, 246, 0.2);
   color: rgb(96, 165, 250);
 }
 
-:root[data-theme='dark'] .discord-mention--role {
+:root[data-theme='dark'] :deep(.discord-mention--role) {
   background: rgba(139, 92, 246, 0.2);
   color: rgb(167, 139, 250);
 }
 
 @media (prefers-color-scheme: dark) {
-  :root:not([data-theme='light']) .discord-inline-code,
   :root:not([data-theme='light']) .discord-codeblock {
     background: rgba(0, 0, 0, 0.3);
   }
 
-  :root:not([data-theme='light']) .discord-mention--user,
-  :root:not([data-theme='light']) .discord-mention--channel {
+  :root:not([data-theme='light']) :deep(.discord-inline-code) {
+    background: rgba(0, 0, 0, 0.3);
+  }
+
+  :root:not([data-theme='light']) :deep(.discord-mention--user),
+  :root:not([data-theme='light']) :deep(.discord-mention--channel) {
     background: rgba(59, 130, 246, 0.2);
     color: rgb(96, 165, 250);
   }
 
-  :root:not([data-theme='light']) .discord-mention--role {
+  :root:not([data-theme='light']) :deep(.discord-mention--role) {
     background: rgba(139, 92, 246, 0.2);
     color: rgb(167, 139, 250);
   }
@@ -701,7 +712,7 @@ function isImage(filename: string): boolean {
 
 /* Respect prefers-reduced-motion for Discord elements */
 @media (prefers-reduced-motion: reduce) {
-  .discord-spoiler,
+  :deep(.discord-spoiler),
   .discord-attachment__link {
     transition: none !important;
   }
