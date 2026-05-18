@@ -2,6 +2,7 @@ using System.Text;
 using Discord;
 using Discord.WebSocket;
 using ExcelBotCs.Extensions;
+using ExcelBotCs.Models.Database;
 using ExcelBotCs.Models.Database.Events;
 using ExcelBotCs.Modules.TeamFormation;
 using ExcelBotCs.Services.API.Interfaces;
@@ -22,13 +23,22 @@ public class DiscordMessageCreator : IDiscordMessageCreator
 
     public async Task<ComponentBuilderV2> CreateSignupComponents(Event fcEvent)
     {
+        ArgumentNullException.ThrowIfNull(fcEvent);
+
+        if (fcEvent.SignupButtonConfigs is null)
+            throw new ArgumentException("No signup button configs found for event");
+
         var componentBuilderV2 = new ComponentBuilderV2();
 
         componentBuilderV2.WithTextDisplay(new TextDisplayBuilder($"# {fcEvent.Name}"));
 
-        var subHeading = fcEvent.FightId.IsNullOrEmpty()
+        Fight? fight = null;
+        if (!string.IsNullOrWhiteSpace(fcEvent.FightId))
+            fight = await _fightService.GetFightAsync(fcEvent.FightId);
+
+        var subHeading = fight is null
             ? $"## {fcEvent.Type}"
-            : $"## {fcEvent.Type} - {await _fightService.GetFightAsync(fcEvent.FightId)}";
+            : $"## {fcEvent.Type} - {fight!.Name}";
         componentBuilderV2.WithTextDisplay(subHeading);
 
         if (!string.IsNullOrWhiteSpace(fcEvent.PictureUrl))
@@ -51,7 +61,7 @@ public class DiscordMessageCreator : IDiscordMessageCreator
         else
         {
             var buttons = new List<ButtonBuilder>();
-            foreach (var config in fcEvent.SignupButtonConfigs!)
+            foreach (var config in fcEvent.SignupButtonConfigs)
             {
                 var button = new ButtonBuilder(config.Label, $"{fcEvent.Id}-signup-{config.Slug}");
                 if (config.EmojiId != null && ulong.TryParse(config.EmojiId, out var emojiId))
@@ -77,7 +87,7 @@ public class DiscordMessageCreator : IDiscordMessageCreator
         componentBuilderV2.WithSeparator(SeparatorSpacingSize.Large);
         componentBuilderV2.WithTextDisplay("**Current Signups**");
 
-        foreach (var config in fcEvent.SignupButtonConfigs!)
+        foreach (var config in fcEvent.SignupButtonConfigs)
         {
             var signUps = (fcEvent.Signups ?? Enumerable.Empty<EventSignup>())
                 .Where(x => x.SignupSlugs != null && x.SignupSlugs.Contains(config.Slug));
