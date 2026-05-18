@@ -186,9 +186,26 @@ public class Program
 
         var app = builder.Build();
 
-        app.UseForwardedHeaders(new ForwardedHeadersOptions
+        var forwardedOptions = new ForwardedHeadersOptions
         {
             ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto
+        };
+        // Trust headers from any IP — safe when the app is only reachable through the reverse proxy.
+        // The default only trusts loopback, which silently drops headers from Docker bridge IPs.
+        forwardedOptions.KnownNetworks.Clear();
+        forwardedOptions.KnownProxies.Clear();
+        app.UseForwardedHeaders(forwardedOptions);
+
+        app.Use(async (context, next) =>
+        {
+            var logger = context.RequestServices.GetRequiredService<ILogger<Program>>();
+            logger.LogInformation(
+                "[ForwardedHeaders] Scheme={Scheme} Host={Host} X-Forwarded-Proto={Proto} X-Forwarded-For={For}",
+                context.Request.Scheme,
+                context.Request.Host,
+                context.Request.Headers["X-Forwarded-Proto"].ToString(),
+                context.Request.Headers["X-Forwarded-For"].ToString());
+            await next();
         });
 
         app.UseHttpsRedirection();
