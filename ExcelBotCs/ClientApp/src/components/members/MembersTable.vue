@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import type { Member } from './members.types'
+import type { Member } from '@/features/members/members.types'
 import BaseButton from '@/components/BaseButton.vue'
 import ExperienceTags from './ExperienceTags.vue'
 

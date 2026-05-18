@@ -29,6 +29,7 @@ const form = reactive<Member>({
   DiscordId: '',
   IsAdmin: false,
   IsMember: false,
+  IsDeveloper: false,
   Experience: [],
   Notes: [],
   Roles: [],

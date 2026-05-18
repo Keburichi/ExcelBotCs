@@ -37,13 +37,13 @@ const emit = defineEmits<{
           <BaseButton
             size="small"
             title="Save"
-            @clicked="emit('save-role-edit', role)"
+            @clicked="emit('save-role-edit')"
           />
           <BaseButton
             size="small"
             state="secondary"
             title="Cancel"
-            @clicked="emit('cancel-role-edit', role)"
+            @clicked="emit('cancel-role-edit')"
           />
         </template>
         <template v-else>

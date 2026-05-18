@@ -201,9 +201,10 @@ function getOrdinalSuffix(day: number): string {
       <!-- Until Date Input -->
       <div v-if="config.endType === 'until'" class="form-row">
         <DateTimePicker
-          v-model="config.until"
+          :model-value="config.until ?? new Date()"
           :required="true"
           label="End Date"
+          @update:model-value="config.until = $event"
         />
       </div>
 

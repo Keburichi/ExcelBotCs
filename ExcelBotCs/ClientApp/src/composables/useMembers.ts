@@ -18,6 +18,7 @@ export function useMembers() {
     Notes: [],
     IsMember: false,
     IsAdmin: false,
+    IsDeveloper: false,
     Roles: [],
   })
 
@@ -33,6 +34,7 @@ export function useMembers() {
     Notes: [],
     IsMember: false,
     IsAdmin: false,
+    IsDeveloper: false,
     Roles: [],
   })
 

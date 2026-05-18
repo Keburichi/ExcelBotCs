@@ -38,7 +38,7 @@ function save() {
 
   const savedNote: MemberNote = props.isEdit && props.note
     ? { ...props.note, Note: noteText.value.trim() }
-    : { Note: noteText.value.trim() }
+    : { Note: noteText.value.trim(), Author: '' }
 
   emit('save', savedNote)
   close()

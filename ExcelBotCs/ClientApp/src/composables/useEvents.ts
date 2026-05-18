@@ -8,7 +8,7 @@ import type {
 } from '@/features/events/events.types'
 import { reactive, ref } from 'vue'
 import { EventsApi } from '@/features/events/events.api'
-import { isOccurrencePast, OccurrenceStatus as OccStatus } from '@/features/events/events.types'
+import { EventType, isOccurrencePast, OccurrenceStatus as OccStatus, SignupType } from '@/features/events/events.types'
 
 export function useEvents() {
   const loading = ref(false)
@@ -24,38 +24,50 @@ export function useEvents() {
   const archiveHasMore = ref(false)
 
   const newEvent = reactive<FCEvent>({
+    Id: '',
     Name: '',
     Description: '',
+    Type: 0 as EventType,
+    StartDate: new Date(),
+    EndDate: new Date(),
+    Duration: 0,
+    ICalString: '',
+    SignupType: 0 as SignupType,
     DiscordMessageId: '',
-    Id: '',
     PictureUrl: '',
     Organizer: '',
     Occurrences: [],
     Signups: [],
     Groups: [],
     AvailableForSignup: false,
-    StartDate: new Date(),
-    Duration: 0,
     MaxNumberOfParticipants: 0,
     RequiredParticipants: 0,
+    IsArchived: false,
+    CanBeArchived: false,
   })
 
   const editId = ref<string | null>(null)
   const editBuffer = reactive<FCEvent>({
+    Id: '',
     Name: '',
     Description: '',
+    Type: 0 as EventType,
+    StartDate: new Date(),
+    EndDate: new Date(),
+    Duration: 0,
+    ICalString: '',
+    SignupType: 0 as SignupType,
     DiscordMessageId: '',
     PictureUrl: '',
-    Id: '',
     Organizer: '',
     Occurrences: [],
     Signups: [],
     Groups: [],
     AvailableForSignup: false,
-    StartDate: new Date(),
-    Duration: 0,
     MaxNumberOfParticipants: 0,
     RequiredParticipants: 0,
+    IsArchived: false,
+    CanBeArchived: false,
   })
 
   async function load() {

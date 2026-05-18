@@ -21,7 +21,7 @@ const { user } = useAuth()
       <input type="text" :value="memberNote.Note">
     </template>
     <template #footer>
-      <p>Written by: {{ memberNote.Author.DiscordName }}</p>
+      <p>Written by: {{ memberNote.Author }}</p>
     </template>
     <template #actions>
       <BaseButton title="Save" size="small" state="primary" />

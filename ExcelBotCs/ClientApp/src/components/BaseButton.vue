@@ -2,7 +2,7 @@
 import { computed } from 'vue'
 
 const props = withDefaults(defineProps<{
-  state?: 'primary' | 'secondary' | 'tertiary' | 'danger' | 'pressed'
+  state?: 'primary' | 'secondary' | 'tertiary' | 'danger' | 'warning' | 'pressed'
   title?: string
   disabled?: boolean
   icon?: string
