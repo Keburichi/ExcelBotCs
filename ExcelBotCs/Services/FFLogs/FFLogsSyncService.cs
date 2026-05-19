@@ -89,18 +89,6 @@ public class FFLogsSyncService
                     // Determine fight type early to filter
                     var fightMapping = MapFightType(zone.name, zone.difficulties);
 
-                    // Skip non-high-end content (Normal, Chaotic, etc.)
-                    if (fightMapping.fightType != FightType.Extreme &&
-                        fightMapping.fightType != FightType.Savage &&
-                        fightMapping.fightType != FightType.Ultimate &&
-                        fightMapping.fightType != FightType.Chaotic &&
-                        fightMapping.fightType != FightType.Unreal)
-                    {
-                        _logger.LogDebug("Skipping non-high-end zone: {ZoneName} (Type: {FightType})",
-                            zone.name, fightMapping.fightType);
-                        continue;
-                    }
-
                     foreach (var encounter in zone.encounters)
                     {
                         log.ItemsProcessed++;
@@ -116,13 +104,10 @@ public class FFLogsSyncService
                         var boss = await GetOrCreateBossAsync(
                             encounter.name, expansion.id, fightMapping.fightType, bossCache);
 
-                        // Attach the suffix to the fight name
-                        var fightName = $"{encounter.name} ({fightMapping.fightType})";
-
                         // Create new fight linked to boss
                         var fight = new Fight
                         {
-                            Name = fightName,
+                            Name = encounter.name,
                             Type = fightMapping.fightType,
                             Raidplans = new List<Raidplan>(),
                             BossId = boss.Id,
