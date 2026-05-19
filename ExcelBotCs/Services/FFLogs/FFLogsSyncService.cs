@@ -193,7 +193,7 @@ public class FFLogsSyncService
             // Get all fights for matching
             var allFights = await _fightRepository.GetAsync();
             var fightsByFFLogsId = allFights
-                .Where(f => f.FFLogsEncounterId.HasValue)
+                .Where(f => f.FFLogsEncounterId.HasValue && f.IsFightDifficult())
                 .ToDictionary(f => f.FFLogsEncounterId!.Value, f => f);
 
             foreach (var member in membersToSync)
