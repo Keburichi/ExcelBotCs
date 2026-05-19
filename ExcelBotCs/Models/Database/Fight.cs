@@ -20,4 +20,15 @@ public class Fight : BaseEntity
     {
         return $"{Name}";
     }
+
+    public bool IsFightDifficult()
+    {
+        return Type switch
+        {
+            FightType.Normal => false,
+            FightType.Extreme or FightType.Savage or FightType.Ultimate or FightType.Chaotic
+                or FightType.Unreal => true,
+            _ => throw new ArgumentOutOfRangeException()
+        };
+    }
 }

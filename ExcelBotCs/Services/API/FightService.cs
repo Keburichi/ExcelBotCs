@@ -26,11 +26,13 @@ public class FightService : IFightService
         // to check if someone cleared something new and sync progress
         var filteredFights = new List<Fight>();
 
-        foreach (var fight in fights.OrderBy(x => x.FFLogsExpansionId))
+        foreach (var fight in fights
+                     .Where(x => x.IsFightDifficult())
+                     .OrderBy(x => x.FFLogsExpansionId))
         {
             HandleSpecialFights(fight);
 
-            if (filteredFights.Any(x => x.Name.Equals(fight.Name)))
+            if (filteredFights.Any(x => x.Name.Equals(fight.Name) && x.Type == fight.Type))
                 continue;
 
             filteredFights.Add(fight);
