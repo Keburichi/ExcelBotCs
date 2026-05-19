@@ -1,5 +1,6 @@
 ﻿using ExcelBotCs.Attributes;
-using ExcelBotCs.Models.Database;
+using ExcelBotCs.Mappers.Members;
+using ExcelBotCs.Models.DTO.Members;
 using ExcelBotCs.Services;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
@@ -28,12 +29,12 @@ public class AuthController : AuthorizedController
 
     [HttpGet]
     [Route("me")]
-    public async Task<ActionResult<Member>> GetMe()
+    public async Task<ActionResult<MemberResponse>> GetMe()
     {
         var member = await _currentMemberAccessor.GetCurrentAsync();
         if (member is not null)
         {
-            return member;
+            return member.ToDto();
         }
 
         return Unauthorized();
