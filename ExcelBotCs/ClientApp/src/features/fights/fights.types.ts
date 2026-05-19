@@ -1,7 +1,6 @@
 export interface Fight {
   Id?: string
   Name: string
-  Description: string
   ImageUrl?: string
   Type: FightType
   BossId?: string

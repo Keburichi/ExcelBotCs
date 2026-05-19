@@ -64,6 +64,7 @@ const filters = computed<FilterDef<Fight>[]>(() => [
     id: 'zone',
     label: 'Zone',
     multiple: true,
+    searchable: true,
     options: zoneOptions.value,
     predicate: (fight, selected) => {
       const arr = Array.isArray(selected) ? selected : [selected]
@@ -96,7 +97,7 @@ const searchFiltered = computed(() => {
   const search = searchText.value.toLowerCase()
   return filtered.value.filter(fight =>
     fight.Name.toLowerCase().includes(search)
-    || fight.Description.toLowerCase().includes(search)
+    || fight.BossName?.toLowerCase().includes(search)
     || fight.FFLogsZoneName?.toLowerCase().includes(search)
     || fight.FFLogsExpansionName?.toLowerCase().includes(search),
   )

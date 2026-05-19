@@ -6,6 +6,7 @@ export interface FilterDef<T> {
   id: string
   label: string
   multiple?: boolean
+  searchable?: boolean
   options?: Option[]
   predicate: (item: T, selected: unknown | unknown[]) => boolean
 }

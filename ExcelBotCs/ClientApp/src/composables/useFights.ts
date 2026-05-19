@@ -10,9 +10,6 @@ export function useFights() {
 
   const newFight = reactive<Fight>({
     Name: '',
-    Description: '',
-    Raidplans: [],
-    ImageUrl: '',
     Type: FightType.Extreme,
   })
 
@@ -36,7 +33,7 @@ export function useFights() {
     try {
       const created = await FightsApi.create(newFight)
       fights.value.unshift(created)
-      Object.assign(newFight, { Name: '', Description: '', Raidplans: [], ImageUrl: '' })
+      Object.assign(newFight, { Name: '', Type: FightType.Extreme })
     }
     catch (e: unknown) {
       error.value = e instanceof Error ? e.message : 'Failed to create fight'
