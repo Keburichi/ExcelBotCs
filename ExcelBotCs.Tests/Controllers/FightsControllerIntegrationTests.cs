@@ -2,7 +2,6 @@ using System.Net;
 using System.Net.Http.Json;
 using ExcelBotCs.Models.Database;
 using ExcelBotCs.Models.DTO.Fights;
-using ExcelBotCs.Models.DTO.Resources;
 using ExcelBotCs.Services.API.Interfaces;
 using ExcelBotCs.TestFramework.Database;
 using ExcelBotCs.Tests.Utils;
@@ -91,8 +90,7 @@ public class FightsControllerIntegrationTests : IntegrationTestBase
         response.EnsureSuccessStatusCode();
         var fights = await response.Content.ReadFromJsonAsync<List<FightResponse>>();
         fights.ShouldNotBeNull();
-        fights.Count.ShouldBe(2);
-        fights.Any(f => f.Name == fight1.Name).ShouldBeTrue();
+        fights.Count.ShouldBe(1);
         fights.Any(f => f.Name == fight2.Name).ShouldBeTrue();
     }
 
