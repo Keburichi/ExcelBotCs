@@ -50,8 +50,8 @@ function difficultyClass(fight: Fight) {
       </div>
 
       <div class="fight-card__image-overlay">
-        <span v-if="fight.Raidplans?.length" class="fight-card__resource-count">
-          {{ fight.Raidplans.length }} {{ fight.Raidplans.length === 1 ? 'resource' : 'resources' }}
+        <span v-if="fight.Resources?.length" class="fight-card__resource-count">
+          {{ fight.Resources.length }} {{ fight.Resources.length === 1 ? 'resource' : 'resources' }}
         </span>
       </div>
     </div>
