@@ -13,6 +13,7 @@ public class LodestoneService
     private readonly IOptions<LodestoneOptions> _options;
     private readonly IFcMemberService _fcMemberService;
     private readonly IFightService _fightService;
+    private readonly IBossService _bossService;
     private readonly ILogger<LodestoneService> _logger;
     private readonly HttpClient _httpClient;
     private readonly IMemberService _memberService;
@@ -21,7 +22,7 @@ public class LodestoneService
     private readonly LodestoneDutyScraperService _scraperService;
 
     public LodestoneService(IOptions<LodestoneOptions> options, IFcMemberService fcMemberService,
-        IFightService fightService, ILogger<LodestoneService> logger, HttpClient httpClient,
+        IFightService fightService, IBossService bossService, ILogger<LodestoneService> logger, HttpClient httpClient,
         IMemberService memberService, ILodestoneDutyService lodestoneDutyService,
         DutyMatchingService dutyMatchingService, LodestoneDutyScraperService scraperService,
         ILodestoneClient lodestoneClient)
@@ -29,6 +30,7 @@ public class LodestoneService
         _options = options;
         _fcMemberService = fcMemberService;
         _fightService = fightService;
+        _bossService = bossService;
         _logger = logger;
         _httpClient = httpClient;
         _memberService = memberService;
@@ -186,6 +188,73 @@ public class LodestoneService
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error during fight image synchronization");
+        }
+    }
+
+    public async Task SyncBossImagesAsync()
+    {
+        try
+        {
+            _logger.LogInformation("Starting boss image synchronization from Lodestone");
+
+            var allBosses = await _bossService.GetBossesAsync();
+            var bossesNeedingImages = allBosses.Where(b => string.IsNullOrEmpty(b.ImageUrl)).ToList();
+
+            if (!bossesNeedingImages.Any())
+            {
+                _logger.LogInformation("No bosses require image synchronization");
+                return;
+            }
+
+            _logger.LogInformation("Found {Count} bosses needing images", bossesNeedingImages.Count);
+
+            var dutyLookup = await BuildDutyLookupAsync();
+
+            var updated = 0;
+            var failed = 0;
+
+            foreach (var boss in bossesNeedingImages)
+                try
+                {
+                    _logger.LogDebug("Processing boss: {BossName}", boss.Name);
+
+                    var matchedDuty = _dutyMatchingService.FindBestMatchForBoss(boss, dutyLookup);
+
+                    if (matchedDuty == null)
+                    {
+                        _logger.LogWarning("No Lodestone match found for boss: {BossName}", boss.Name);
+                        failed++;
+                        continue;
+                    }
+
+                    if (string.IsNullOrEmpty(matchedDuty.ImageUrl))
+                    {
+                        _logger.LogWarning("No cached image URL for matched duty: {DutyName}", matchedDuty.Name);
+                        failed++;
+                        continue;
+                    }
+
+                    boss.ImageUrl = matchedDuty.ImageUrl;
+                    boss.Description = matchedDuty.Description ?? boss.Description;
+                    await _bossService.UpdateAsync(boss.Id, boss);
+
+                    _logger.LogInformation(
+                        "Updated metadata for boss '{BossName}': ImageUrl={ImageUrl}",
+                        boss.Name, boss.ImageUrl);
+                    updated++;
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex, "Error processing boss: {BossName}", boss.Name);
+                    failed++;
+                }
+
+            _logger.LogInformation("Boss image synchronization complete. Updated: {Updated}, Failed: {Failed}",
+                updated, failed);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error during boss image synchronization");
         }
     }
 

@@ -7,6 +7,7 @@ public class Fight : BaseEntity
     public string ImageUrl { get; set; }
     public FightType Type { get; set; }
     public List<Raidplan> Raidplans { get; set; }
+    public string? BossId { get; set; }
 
     // FFLogs Integration Fields
     public int? FFLogsEncounterId { get; set; }      // Primary identifier from FFLogs

@@ -54,6 +54,7 @@ public class LodestoneServiceTests : IntegrationTestBase
         });
 
         var fcMemberService = Factory.Services.GetRequiredService<IFcMemberService>();
+        var bossService = Factory.Services.GetRequiredService<IBossService>();
         var memberService = Factory.Services.GetRequiredService<IMemberService>();
         var lodestoneDutyService = Factory.Services.GetRequiredService<ILodestoneDutyService>();
         var logger = Factory.Services.GetRequiredService<ILogger<LodestoneService>>();
@@ -70,6 +71,7 @@ public class LodestoneServiceTests : IntegrationTestBase
             _options,
             fcMemberService,
             _fightService,
+            bossService,
             logger,
             _httpClient,
             memberService,

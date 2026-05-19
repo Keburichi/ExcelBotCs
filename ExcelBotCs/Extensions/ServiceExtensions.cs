@@ -16,7 +16,9 @@ public static class ServiceExtensions
     {
         services.AddSingleton<IEventRepository, EventRepository>();
         services.AddSingleton<IFcMemberRepository, FcMemberRepository>();
+        services.AddSingleton<IBossRepository, BossRepository>();
         services.AddSingleton<IFightRepository, FightRepository>();
+        services.AddSingleton<IResourceRepository, ResourceRepository>();
         services.AddSingleton<IMemberRepository, MemberRepository>();
         services.AddSingleton<IMemberRoleRepository, MemberRoleRepository>();
         services.AddSingleton<IFFLogsImportLogRepository, FFLogsImportLogRepository>();
@@ -33,7 +35,9 @@ public static class ServiceExtensions
     {
         services.AddSingleton<IEventService, EventService>();
         services.AddSingleton<IFcMemberService, FcMemberService>();
+        services.AddSingleton<IBossService, BossService>();
         services.AddSingleton<IFightService, FightService>();
+        services.AddSingleton<IResourceService, ResourceService>();
         services.AddSingleton<IMemberService, MemberService>();
         services.AddSingleton<IMemberRoleService, MemberRoleService>();
         services.AddSingleton<ILodestoneDutyService, LodestoneDutyService>();

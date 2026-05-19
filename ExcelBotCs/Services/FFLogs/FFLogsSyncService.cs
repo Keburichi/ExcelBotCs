@@ -2,6 +2,7 @@ using ExcelBotCs.Database.Interfaces;
 using ExcelBotCs.Extensions;
 using ExcelBotCs.Models.Config;
 using ExcelBotCs.Models.Database;
+using ExcelBotCs.Utilities;
 using Microsoft.Extensions.Options;
 
 namespace ExcelBotCs.Services.FFLogs;
@@ -11,6 +12,7 @@ public class FFLogsSyncService
     private readonly FFLogsOptions _options;
     private readonly FFLogsGraphQLService _graphQLService;
     private readonly IFightRepository _fightRepository;
+    private readonly IBossRepository _bossRepository;
     private readonly IMemberRepository _memberRepository;
     private readonly IFFLogsImportLogRepository _importLogRepository;
     private readonly ILogger<FFLogsSyncService> _logger;
@@ -22,6 +24,7 @@ public class FFLogsSyncService
         IOptions<FFLogsOptions> options,
         FFLogsGraphQLService graphQLService,
         IFightRepository fightRepository,
+        IBossRepository bossRepository,
         IMemberRepository memberRepository,
         IFFLogsImportLogRepository importLogRepository,
         ILogger<FFLogsSyncService> logger)
@@ -29,6 +32,7 @@ public class FFLogsSyncService
         _options = options.Value;
         _graphQLService = graphQLService;
         _fightRepository = fightRepository;
+        _bossRepository = bossRepository;
         _memberRepository = memberRepository;
         _importLogRepository = importLogRepository;
         _logger = logger;
@@ -74,6 +78,9 @@ public class FFLogsSyncService
                     .Select(f => f.FFLogsEncounterId!.Value)
             );
 
+            // Cache bosses by normalization key to avoid repeated DB lookups
+            var bossCache = new Dictionary<string, Boss>();
+
             // Process all expansions and zones in chronological order
             foreach (var expansion in worldData.worldData.expansions.OrderBy(x => x.id))
             {
@@ -105,17 +112,22 @@ public class FFLogsSyncService
                             continue;
                         }
 
+                        // Find or create the parent Boss
+                        var boss = await GetOrCreateBossAsync(
+                            encounter.name, expansion.id, fightMapping.fightType, bossCache);
+
                         // Attach the suffix to the fight name
                         var fightName = $"{encounter.name} ({fightMapping.fightType})";
 
-                        // Create new fight
+                        // Create new fight linked to boss
                         var fight = new Fight
                         {
                             Name = fightName,
                             Description = $"{zone.name} - {expansion.name}",
-                            ImageUrl = string.Empty, // No image URL from FFLogs API
+                            ImageUrl = string.Empty,
                             Type = fightMapping.fightType,
                             Raidplans = new List<Raidplan>(),
+                            BossId = boss.Id,
                             FFLogsEncounterId = encounter.id,
                             FFLogsZoneId = zone.id,
                             FFLogsZoneName = zone.name,
@@ -129,8 +141,8 @@ public class FFLogsSyncService
                         log.ItemsUpdated++;
 
                         _logger.LogDebug(
-                            "Imported fight: {FightName} (ID: {EncounterId}, Zone: {ZoneName}, Type: {FightType})",
-                            encounter.name, encounter.id, zone.name, fightMapping.fightType);
+                            "Imported fight: {FightName} (ID: {EncounterId}, Zone: {ZoneName}, Type: {FightType}, Boss: {BossName})",
+                            encounter.name, encounter.id, zone.name, fightMapping.fightType, boss.Name);
                     }
                 }
             }
@@ -323,6 +335,36 @@ public class FFLogsSyncService
             log.EndTime = DateTime.UtcNow;
             await _importLogRepository.CreateAsync(log);
         }
+    }
+
+    private async Task<Boss> GetOrCreateBossAsync(
+        string encounterName, int expansionId, FightType fightType, Dictionary<string, Boss> cache)
+    {
+        var normalizationKey = FightNormalization.GetNormalizationKey(encounterName);
+
+        if (cache.TryGetValue(normalizationKey, out var cached))
+            return cached;
+
+        var existing = await _bossRepository.GetByNormalizationKeyAsync(normalizationKey);
+        if (existing != null)
+        {
+            cache[normalizationKey] = existing;
+            return existing;
+        }
+
+        var boss = new Boss
+        {
+            Name = FightNormalization.GetCanonicalBossName(encounterName),
+            NormalizationKey = normalizationKey,
+            FFLogsExpansionId = expansionId,
+            IsUltimate = fightType == FightType.Ultimate
+        };
+
+        await _bossRepository.CreateAsync(boss);
+        cache[normalizationKey] = boss;
+
+        _logger.LogDebug("Created boss: {BossName} (Key: {NormalizationKey})", boss.Name, normalizationKey);
+        return boss;
     }
 
     /// <summary>

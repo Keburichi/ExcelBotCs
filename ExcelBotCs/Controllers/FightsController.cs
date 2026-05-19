@@ -1,7 +1,8 @@
-﻿using ExcelBotCs.Attributes;
+using ExcelBotCs.Attributes;
 using ExcelBotCs.Controllers.Interfaces;
 using ExcelBotCs.Mappers.Fights;
-using ExcelBotCs.Models.DTO;
+using ExcelBotCs.Models.Database;
+using ExcelBotCs.Models.DTO.Fights;
 using ExcelBotCs.Services.API.Interfaces;
 using Microsoft.AspNetCore.Mvc;
 
@@ -10,66 +11,88 @@ namespace ExcelBotCs.Controllers;
 [ApiController]
 [MemberAuth]
 [Route("api/[controller]")]
-public class FightsController : AuthorizedController, IBaseCrudController<FightDto>
+public class FightsController : AuthorizedController, IFightsController
 {
     private readonly IFightService _fightService;
+    private readonly IBossService _bossService;
+    private readonly IResourceService _resourceService;
 
-    public FightsController(ILogger<FightsController> logger, IFightService fightService) : base(logger)
+    public FightsController(
+        ILogger<FightsController> logger,
+        IFightService fightService,
+        IBossService bossService,
+        IResourceService resourceService) : base(logger)
     {
         _fightService = fightService;
+        _bossService = bossService;
+        _resourceService = resourceService;
     }
 
     [HttpGet]
-    public async Task<ActionResult<List<FightDto>>> GetEntities()
+    public async Task<ActionResult<List<FightResponse>>> GetFights()
     {
-        var entities = await _fightService.GetFightsAsync();
+        var fights = await _fightService.GetFightsAsync();
+        var bosses = await _bossService.GetBossesAsync();
+        var bossLookup = bosses.ToDictionary(b => b.Id);
 
-        if (entities is null)
-            return new List<FightDto>();
+        var responses = fights.Select(f =>
+        {
+            Boss? boss = f.BossId != null && bossLookup.TryGetValue(f.BossId, out var b) ? b : null;
+            return f.ToFightResponse(boss);
+        }).ToList();
 
-        var dtos = entities.Select(x => x.ToDto()).ToList();
-
-        return dtos;
+        return Ok(responses);
     }
 
     [HttpGet("{id:length(24)}")]
-    public async Task<ActionResult<FightDto>> GetEntity(string id)
+    public async Task<ActionResult<FightResponse>> GetFight(string id)
     {
-        var entity = await _fightService.GetFightAsync(id);
-
-        if (entity is null)
+        var fight = await _fightService.GetFightAsync(id);
+        if (fight == null)
             return NotFound();
 
-        return entity.ToDto();
+        Boss? boss = null;
+        if (fight.BossId != null)
+            boss = await _bossService.GetBossAsync(fight.BossId);
+
+        var resources = await _resourceService.GetByFightIdAsync(id);
+        return Ok(fight.ToFightResponse(boss, resources));
     }
 
     [HttpPost]
     [AdminAuth]
-    public async Task<ActionResult<FightDto>> CreateEntity(FightDto entity)
+    public async Task<ActionResult<FightResponse>> CreateFight([FromBody] CreateFightRequest request)
     {
-        var fight = entity.ToEntity();
+        var fight = request.ToEntity();
         await _fightService.CreateAsync(fight);
-        return CreatedAtAction(nameof(CreateEntity), new { id = fight.Id }, fight.ToDto());
+
+        Boss? boss = null;
+        if (fight.BossId != null)
+            boss = await _bossService.GetBossAsync(fight.BossId);
+
+        return CreatedAtAction(nameof(GetFight), new { id = fight.Id }, fight.ToFightResponse(boss));
     }
 
     [HttpPut("{id:length(24)}")]
     [AdminAuth]
-    public async Task<ActionResult<FightDto>> UpdateEntity(string id, FightDto updatedEntity)
+    public async Task<ActionResult> UpdateFight(string id, [FromBody] UpdateFightRequest request)
     {
-        Logger.LogInformation("Updating entity with id: {id}", id);
+        var fight = await _fightService.GetFightAsync(id);
+        if (fight == null)
+            return NotFound();
 
-        await _fightService.UpdateAsync(id, updatedEntity.ToEntity());
+        fight.ApplyUpdate(request);
+        await _fightService.UpdateAsync(id, fight);
 
         return NoContent();
     }
 
     [HttpDelete("{id:length(24)}")]
     [AdminAuth]
-    public async Task<ActionResult<FightDto>> DeleteEntity(string id)
+    public async Task<ActionResult> DeleteFight(string id)
     {
-        var entity = await _fightService.GetFightAsync(id);
-
-        if (entity is null)
+        var fight = await _fightService.GetFightAsync(id);
+        if (fight == null)
             return NotFound();
 
         await _fightService.DeleteAsync(id);
