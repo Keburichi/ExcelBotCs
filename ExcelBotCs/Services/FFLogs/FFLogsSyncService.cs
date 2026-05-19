@@ -2,6 +2,7 @@ using ExcelBotCs.Database.Interfaces;
 using ExcelBotCs.Extensions;
 using ExcelBotCs.Models.Config;
 using ExcelBotCs.Models.Database;
+using ExcelBotCs.Utilities;
 using Microsoft.Extensions.Options;
 
 namespace ExcelBotCs.Services.FFLogs;
@@ -11,6 +12,7 @@ public class FFLogsSyncService
     private readonly FFLogsOptions _options;
     private readonly FFLogsGraphQLService _graphQLService;
     private readonly IFightRepository _fightRepository;
+    private readonly IBossRepository _bossRepository;
     private readonly IMemberRepository _memberRepository;
     private readonly IFFLogsImportLogRepository _importLogRepository;
     private readonly ILogger<FFLogsSyncService> _logger;
@@ -22,6 +24,7 @@ public class FFLogsSyncService
         IOptions<FFLogsOptions> options,
         FFLogsGraphQLService graphQLService,
         IFightRepository fightRepository,
+        IBossRepository bossRepository,
         IMemberRepository memberRepository,
         IFFLogsImportLogRepository importLogRepository,
         ILogger<FFLogsSyncService> logger)
@@ -29,6 +32,7 @@ public class FFLogsSyncService
         _options = options.Value;
         _graphQLService = graphQLService;
         _fightRepository = fightRepository;
+        _bossRepository = bossRepository;
         _memberRepository = memberRepository;
         _importLogRepository = importLogRepository;
         _logger = logger;
@@ -65,72 +69,66 @@ public class FFLogsSyncService
             var worldData = await _graphQLService.GetWorldDataAsync();
             log.ApiRequestCount++;
 
-            // Get existing fights with FFLogs IDs
+            // Get existing fights keyed by (EncounterId, DifficultyId) composite
             var existingFights = await _fightRepository.GetAsync();
 
-            var existingFFLogsIds = new HashSet<int>(
+            var existingKeys = new HashSet<(int encounterId, int difficultyId)>(
                 existingFights
-                    .Where(f => f.FFLogsEncounterId.HasValue)
-                    .Select(f => f.FFLogsEncounterId!.Value)
+                    .Where(f => f.FFLogsEncounterId.HasValue && f.FFLogsDifficultyId.HasValue)
+                    .Select(f => (f.FFLogsEncounterId!.Value, f.FFLogsDifficultyId!.Value))
             );
+
+            // Cache bosses by normalization key to avoid repeated DB lookups
+            var bossCache = new Dictionary<string, Boss>();
 
             // Process all expansions and zones in chronological order
             foreach (var expansion in worldData.worldData.expansions.OrderBy(x => x.id))
             {
                 foreach (var zone in expansion.zones)
                 {
-                    // Determine fight type early to filter
-                    var fightMapping = MapFightType(zone.name, zone.difficulties);
+                    // Each zone can have multiple difficulties — create a fight per (encounter, difficulty)
+                    var difficultyMappings = MapFightTypes(zone.name, zone.difficulties);
 
-                    // Skip non-high-end content (Normal, Chaotic, etc.)
-                    if (fightMapping.fightType != FightType.Extreme &&
-                        fightMapping.fightType != FightType.Savage &&
-                        fightMapping.fightType != FightType.Ultimate &&
-                        fightMapping.fightType != FightType.Chaotic &&
-                        fightMapping.fightType != FightType.Unreal)
+                    foreach (var (fightType, difficulty) in difficultyMappings)
                     {
-                        _logger.LogDebug("Skipping non-high-end zone: {ZoneName} (Type: {FightType})",
-                            zone.name, fightMapping.fightType);
-                        continue;
-                    }
-
-                    foreach (var encounter in zone.encounters)
-                    {
-                        log.ItemsProcessed++;
-
-                        // Skip if already exists
-                        if (existingFFLogsIds.Contains(encounter.id))
+                        foreach (var encounter in zone.encounters)
                         {
-                            log.ItemsSkipped++;
-                            continue;
+                            log.ItemsProcessed++;
+
+                            // Skip if this (encounter, difficulty) combo already exists
+                            if (existingKeys.Contains((encounter.id, difficulty.id)))
+                            {
+                                log.ItemsSkipped++;
+                                continue;
+                            }
+
+                            // Find or create the parent Boss
+                            var boss = await GetOrCreateBossAsync(
+                                encounter.name, expansion.id, fightType, bossCache);
+
+                            // Create new fight linked to boss
+                            var fight = new Fight
+                            {
+                                Name = encounter.name,
+                                Type = fightType,
+                                Raidplans = new List<Raidplan>(),
+                                BossId = boss.Id,
+                                FFLogsEncounterId = encounter.id,
+                                FFLogsZoneId = zone.id,
+                                FFLogsZoneName = zone.name,
+                                FFLogsDifficultyId = difficulty.id,
+                                FFLogsExpansionId = expansion.id,
+                                FFLogsExpansionName = expansion.name,
+                                IsFrozen = zone.frozen
+                            };
+
+                            await _fightRepository.CreateAsync(fight);
+                            log.ItemsUpdated++;
+
+                            _logger.LogDebug(
+                                "Imported fight: {FightName} (ID: {EncounterId}, Zone: {ZoneName}, Type: {FightType}, Boss: {BossName})",
+                                encounter.name, encounter.id, zone.name, fightType, boss.Name);
                         }
-
-                        // Attach the suffix to the fight name
-                        var fightName = $"{encounter.name} ({fightMapping.fightType})";
-
-                        // Create new fight
-                        var fight = new Fight
-                        {
-                            Name = fightName,
-                            Description = $"{zone.name} - {expansion.name}",
-                            ImageUrl = string.Empty, // No image URL from FFLogs API
-                            Type = fightMapping.fightType,
-                            Raidplans = new List<Raidplan>(),
-                            FFLogsEncounterId = encounter.id,
-                            FFLogsZoneId = zone.id,
-                            FFLogsZoneName = zone.name,
-                            FFLogsDifficultyId = fightMapping.difficulty.id,
-                            FFLogsExpansionId = expansion.id,
-                            FFLogsExpansionName = expansion.name,
-                            IsFrozen = zone.frozen
-                        };
-
-                        await _fightRepository.CreateAsync(fight);
-                        log.ItemsUpdated++;
-
-                        _logger.LogDebug(
-                            "Imported fight: {FightName} (ID: {EncounterId}, Zone: {ZoneName}, Type: {FightType})",
-                            encounter.name, encounter.id, zone.name, fightMapping.fightType);
                     }
                 }
             }
@@ -215,22 +213,28 @@ public class FFLogsSyncService
                         continue;
                     }
 
-                    // gather which fights haven't been cleared yet that still accepts logs
-                    var unclearedFights = new List<Fight>();
-                    if (member.Experience != null && !member.Experience.IsNullOrEmpty())
-                        unclearedFights = allFights.Where(x => !x.IsFrozen && member.ExperienceIds.All(e => e != x.Id))
-                            .ToList();
-                    else
-                        unclearedFights = allFights;
+                    // Only sync high-end content for member activity
+                    var highEndTypes = new HashSet<FightType>
+                    {
+                        FightType.Savage, FightType.Ultimate, FightType.Extreme, FightType.Chaotic
+                    };
 
-                    // Build zone query requests for batched API call
+                    // Gather which fights haven't been cleared yet that still accept logs
+                    var unclearedFights = allFights
+                        .Where(x => highEndTypes.Contains(x.Type)
+                                    && !x.IsFrozen
+                                    && !(member.ExperienceIds ?? new List<string>()).Contains(x.Id))
+                        .ToList();
+
+                    // Build zone query requests — group by (ZoneId, DifficultyId) since
+                    // the same zone can have multiple difficulties
                     var zoneRequests = unclearedFights
                         .Where(x => x.FFLogsZoneId.HasValue && x.FFLogsDifficultyId.HasValue)
-                        .GroupBy(x => x.FFLogsZoneId!.Value)
+                        .GroupBy(x => (x.FFLogsZoneId!.Value, x.FFLogsDifficultyId!.Value))
                         .Select(g => new ZoneQueryRequest
                         {
-                            ZoneId = g.Key,
-                            DifficultyId = g.First().FFLogsDifficultyId!.Value
+                            ZoneId = g.Key.Item1,
+                            DifficultyId = g.Key.Item2
                         })
                         .ToList();
 
@@ -242,9 +246,10 @@ public class FFLogsSyncService
                         await _graphQLService.GetCharacterActivityBatchedAsync(lodestoneId, zoneRequests);
                     log.ApiRequestCount++;
 
-                    // Process each zone's rankings
-                    foreach (var (zoneId, zoneRankings) in batchedZoneRankings)
+                    // Process each zone+difficulty's rankings
+                    foreach (var entry in batchedZoneRankings)
                     {
+                        var zoneRankings = entry.Value;
                         if (zoneRankings?.rankings == null || !zoneRankings.rankings.Any())
                         {
                             continue;
@@ -325,49 +330,82 @@ public class FFLogsSyncService
         }
     }
 
+    private async Task<Boss> GetOrCreateBossAsync(
+        string encounterName, int expansionId, FightType fightType, Dictionary<string, Boss> cache)
+    {
+        var normalizationKey = FightNormalization.GetNormalizationKey(encounterName);
+
+        if (cache.TryGetValue(normalizationKey, out var cached))
+            return cached;
+
+        var existing = await _bossRepository.GetByNormalizationKeyAsync(normalizationKey);
+        if (existing != null)
+        {
+            cache[normalizationKey] = existing;
+            return existing;
+        }
+
+        var boss = new Boss
+        {
+            Name = FightNormalization.GetCanonicalBossName(encounterName),
+            NormalizationKey = normalizationKey,
+            FFLogsExpansionId = expansionId,
+            IsUltimate = fightType == FightType.Ultimate
+        };
+
+        await _bossRepository.CreateAsync(boss);
+        cache[normalizationKey] = boss;
+
+        _logger.LogDebug("Created boss: {BossName} (Key: {NormalizationKey})", boss.Name, normalizationKey);
+        return boss;
+    }
+
     /// <summary>
-    /// Maps FFLogs zone and difficulty information to FightType enum
+    /// Maps FFLogs zone and difficulty information to FightType entries.
+    /// Returns one entry per difficulty in the zone.
     /// </summary>
-    private static (FightType fightType, Difficulty difficulty) MapFightType(string zoneName,
+    private static List<(FightType fightType, Difficulty difficulty)> MapFightTypes(string zoneName,
         List<Difficulty> difficulties)
     {
         var lowerZoneName = zoneName.ToLowerInvariant();
-        var lowerDifficultyNames = difficulties.Select(x => x.name.ToLowerInvariant()).ToList();
 
-        // If the difficulty for savage exists, we know this is a savage fight
-        if (lowerDifficultyNames.Contains("savage"))
-            return (FightType.Savage, difficulties.First(x => x.name.ToLowerInvariant() == "savage"));
-
-        // Check for Ultimate (highest priority)
-        if (lowerZoneName.Contains("ultimate"))
-            return (FightType.Ultimate, difficulties.First());
-
-        if (lowerZoneName.Contains("unreal"))
-            return (FightType.Unreal, difficulties.First());
-
-        // Check for Extreme
-        if (lowerZoneName.Contains("extreme") || lowerZoneName.Contains("minstrel"))
-            return (FightType.Extreme, difficulties.First());
-
-        // Check for chaotic
-        if (lowerZoneName.Contains("chaotic"))
-            return (FightType.Chaotic, difficulties.First());
-
-        // Check for savage
-        if (lowerZoneName.Contains("savage"))
-            return (FightType.Savage, difficulties.First());
-
-        // This is a last ditch effort since the FFLogs API is kinda shite to identify 
-        // special fights that do not have their difficulty mentioned in the name or zone
-        if (lowerZoneName.Contains("futures rewritten")
+        // Ultimates identified by zone name — always a single difficulty
+        if (lowerZoneName.Contains("ultimate")
+            || lowerZoneName.Contains("futures rewritten")
             || lowerZoneName.Contains("omega protocol")
             || lowerZoneName.Contains("dragonsong's reprise")
             || lowerZoneName.Contains("the epic of alexander")
             || lowerZoneName.Contains("the unending coil of bahamut")
             || lowerZoneName.Contains("the weapon's refrain"))
-            return (FightType.Ultimate, difficulties.First());
+            return [(FightType.Ultimate, difficulties.First())];
 
-        // Default to Normal for all other content
-        return (FightType.Normal, difficulties.First());
+        if (lowerZoneName.Contains("unreal"))
+            return [(FightType.Unreal, difficulties.First())];
+
+        if (lowerZoneName.Contains("extreme") || lowerZoneName.Contains("minstrel"))
+            return [(FightType.Extreme, difficulties.First())];
+
+        if (lowerZoneName.Contains("chaotic"))
+            return [(FightType.Chaotic, difficulties.First())];
+
+        // For zones with multiple difficulties (e.g., Normal + Savage), create an entry per difficulty
+        var results = new List<(FightType fightType, Difficulty difficulty)>();
+
+        foreach (var difficulty in difficulties)
+        {
+            var fightType = difficulty.name.ToLowerInvariant() switch
+            {
+                "savage" => FightType.Savage,
+                "normal" => FightType.Normal,
+                _ => FightType.Normal
+            };
+            results.Add((fightType, difficulty));
+        }
+
+        // If no difficulties listed, default to Normal
+        if (results.Count == 0)
+            results.Add((FightType.Normal, new Difficulty { id = 0, name = "Normal" }));
+
+        return results;
     }
 }

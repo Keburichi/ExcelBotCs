@@ -17,8 +17,6 @@ public class FightMappingExtensionsTests
         dto.ShouldNotBeNull();
         dto.Id.ShouldBe(entity.Id);
         dto.Name.ShouldBe(entity.Name);
-        dto.Description.ShouldBe(entity.Description);
-        dto.ImageUrl.ShouldBe(entity.ImageUrl);
         dto.Type.ShouldBe(entity.Type);
         dto.FFLogsExpansionName.ShouldBe(entity.FFLogsExpansionName);
         dto.FFLogsZoneName.ShouldBe(entity.FFLogsZoneName);
@@ -36,8 +34,6 @@ public class FightMappingExtensionsTests
         entity.ShouldNotBeNull();
         entity.Id.ShouldBe(dto.Id);
         entity.Name.ShouldBe(dto.Name);
-        entity.Description.ShouldBe(dto.Description);
-        entity.ImageUrl.ShouldBe(dto.ImageUrl);
         entity.Type.ShouldBe(dto.Type);
         entity.FFLogsExpansionName.ShouldBe(dto.FFLogsExpansionName);
         entity.FFLogsZoneName.ShouldBe(dto.FFLogsZoneName);

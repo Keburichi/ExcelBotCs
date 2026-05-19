@@ -94,6 +94,7 @@ public class Program
             var options = sp.GetRequiredService<IOptions<LodestoneOptions>>();
             var fcMemberService = sp.GetRequiredService<IFcMemberService>();
             var fightService = sp.GetRequiredService<IFightService>();
+            var bossService = sp.GetRequiredService<IBossService>();
             var logger = sp.GetRequiredService<ILogger<LodestoneService>>();
             var httpClientFactory = sp.GetRequiredService<IHttpClientFactory>();
             var httpClient = httpClientFactory.CreateClient();
@@ -103,8 +104,8 @@ public class Program
             var scraperService = sp.GetRequiredService<LodestoneDutyScraperService>();
             var lodestoneClient = sp.GetRequiredService<ILodestoneClient>();
 
-            return new LodestoneService(options, fcMemberService, fightService, logger, httpClient, memberService,
-                lodestoneDutyService, dutyMatchingService, scraperService, lodestoneClient);
+            return new LodestoneService(options, fcMemberService, fightService, bossService, logger, httpClient,
+                memberService, lodestoneDutyService, dutyMatchingService, scraperService, lodestoneClient);
         });
 
         // Register underlying NetStone client and our abstraction
@@ -198,13 +199,6 @@ public class Program
 
         app.Use(async (context, next) =>
         {
-            var logger = context.RequestServices.GetRequiredService<ILogger<Program>>();
-            logger.LogInformation(
-                "[ForwardedHeaders] Scheme={Scheme} Host={Host} X-Forwarded-Proto={Proto} X-Forwarded-For={For}",
-                context.Request.Scheme,
-                context.Request.Host,
-                context.Request.Headers["X-Forwarded-Proto"].ToString(),
-                context.Request.Headers["X-Forwarded-For"].ToString());
             await next();
         });
 

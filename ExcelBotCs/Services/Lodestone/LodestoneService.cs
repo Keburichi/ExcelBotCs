@@ -13,6 +13,7 @@ public class LodestoneService
     private readonly IOptions<LodestoneOptions> _options;
     private readonly IFcMemberService _fcMemberService;
     private readonly IFightService _fightService;
+    private readonly IBossService _bossService;
     private readonly ILogger<LodestoneService> _logger;
     private readonly HttpClient _httpClient;
     private readonly IMemberService _memberService;
@@ -21,7 +22,7 @@ public class LodestoneService
     private readonly LodestoneDutyScraperService _scraperService;
 
     public LodestoneService(IOptions<LodestoneOptions> options, IFcMemberService fcMemberService,
-        IFightService fightService, ILogger<LodestoneService> logger, HttpClient httpClient,
+        IFightService fightService, IBossService bossService, ILogger<LodestoneService> logger, HttpClient httpClient,
         IMemberService memberService, ILodestoneDutyService lodestoneDutyService,
         DutyMatchingService dutyMatchingService, LodestoneDutyScraperService scraperService,
         ILodestoneClient lodestoneClient)
@@ -29,6 +30,7 @@ public class LodestoneService
         _options = options;
         _fcMemberService = fcMemberService;
         _fightService = fightService;
+        _bossService = bossService;
         _logger = logger;
         _httpClient = httpClient;
         _memberService = memberService;
@@ -109,54 +111,43 @@ public class LodestoneService
         };
     }
 
-    public async Task SyncFightImagesAsync()
+
+    public async Task SyncBossImagesAsync()
     {
         try
         {
-            _logger.LogInformation("Starting fight image synchronization from Lodestone");
+            _logger.LogInformation("Starting boss image synchronization from Lodestone");
 
-            // Get all fights that need images
-            var allFights = await _fightService.GetFightsAsync();
-            var fightsNeedingImages = allFights.Where(f =>
-                string.IsNullOrEmpty(f.ImageUrl) &&
-                (f.Type == FightType.Extreme || f.Type == FightType.Savage ||
-                 f.Type == FightType.Ultimate || f.Type == FightType.Chaotic)
-            ).ToList();
+            var allBosses = await _bossService.GetBossesAsync();
+            var bossesNeedingImages = allBosses.Where(b => string.IsNullOrEmpty(b.ImageUrl)).ToList();
 
-            if (!fightsNeedingImages.Any())
+            if (!bossesNeedingImages.Any())
             {
-                _logger.LogInformation("No fights require image synchronization");
+                _logger.LogInformation("No bosses require image synchronization");
                 return;
             }
 
-            _logger.LogInformation("Found {Count} fights needing images", fightsNeedingImages.Count);
+            _logger.LogInformation("Found {Count} bosses needing images", bossesNeedingImages.Count);
 
-            // Build or refresh duty cache
             var dutyLookup = await BuildDutyLookupAsync();
 
             var updated = 0;
             var failed = 0;
 
-            // Process each fight
-            foreach (var fight in fightsNeedingImages)
+            foreach (var boss in bossesNeedingImages)
                 try
                 {
-                    _logger.LogDebug("Processing fight: {FightName} ({FightType})", fight.Name, fight.Type);
+                    _logger.LogDebug("Processing boss: {BossName}", boss.Name);
 
-                    // Find best matching Lodestone duty (metadata already cached in database)
-                    var matchedDuty = _dutyMatchingService.FindBestMatch(fight, dutyLookup);
+                    var matchedDuty = _dutyMatchingService.FindBestMatchForBoss(boss, dutyLookup);
 
                     if (matchedDuty == null)
                     {
-                        _logger.LogWarning("No Lodestone match found for fight: {FightName}", fight.Name);
+                        _logger.LogWarning("No Lodestone match found for boss: {BossName}", boss.Name);
                         failed++;
                         continue;
                     }
 
-                    _logger.LogDebug("Matched fight '{FightName}' to Lodestone duty '{DutyName}' (ID: {DutyId})",
-                        fight.Name, matchedDuty.Name, matchedDuty.LodestoneId);
-
-                    // Use cached metadata from database (no HTTP request needed)
                     if (string.IsNullOrEmpty(matchedDuty.ImageUrl))
                     {
                         _logger.LogWarning("No cached image URL for matched duty: {DutyName}", matchedDuty.Name);
@@ -164,28 +155,27 @@ public class LodestoneService
                         continue;
                     }
 
-                    // Update fight with cached image URL and description
-                    fight.ImageUrl = matchedDuty.ImageUrl;
-                    fight.Description = matchedDuty.Description ?? fight.Description; // Preserve existing if null
-                    await _fightService.UpdateAsync(fight.Id, fight);
+                    boss.ImageUrl = matchedDuty.ImageUrl;
+                    boss.Description = matchedDuty.Description ?? boss.Description;
+                    await _bossService.UpdateAsync(boss.Id, boss);
 
                     _logger.LogInformation(
-                        "Updated metadata for fight '{FightName}': ImageUrl={ImageUrl}, HasDescription={HasDescription}",
-                        fight.Name, fight.ImageUrl, fight.Description != null);
+                        "Updated metadata for boss '{BossName}': ImageUrl={ImageUrl}",
+                        boss.Name, boss.ImageUrl);
                     updated++;
                 }
                 catch (Exception ex)
                 {
-                    _logger.LogError(ex, "Error processing fight: {FightName}", fight.Name);
+                    _logger.LogError(ex, "Error processing boss: {BossName}", boss.Name);
                     failed++;
                 }
 
-            _logger.LogInformation("Fight image synchronization complete. Updated: {Updated}, Failed: {Failed}",
+            _logger.LogInformation("Boss image synchronization complete. Updated: {Updated}, Failed: {Failed}",
                 updated, failed);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error during fight image synchronization");
+            _logger.LogError(ex, "Error during boss image synchronization");
         }
     }
 

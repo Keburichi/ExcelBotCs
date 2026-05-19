@@ -54,6 +54,7 @@ public class LodestoneServiceTests : IntegrationTestBase
         });
 
         var fcMemberService = Factory.Services.GetRequiredService<IFcMemberService>();
+        var bossService = Factory.Services.GetRequiredService<IBossService>();
         var memberService = Factory.Services.GetRequiredService<IMemberService>();
         var lodestoneDutyService = Factory.Services.GetRequiredService<ILodestoneDutyService>();
         var logger = Factory.Services.GetRequiredService<ILogger<LodestoneService>>();
@@ -70,6 +71,7 @@ public class LodestoneServiceTests : IntegrationTestBase
             _options,
             fcMemberService,
             _fightService,
+            bossService,
             logger,
             _httpClient,
             memberService,
@@ -680,16 +682,11 @@ public class LodestoneServiceTests : IntegrationTestBase
 
         await _fightRepository.CreateAsync(fight);
 
-        // Act - Update with description and image URL (simulating SyncFightImagesAsync behavior)
-        fight.Description = "Updated description from Lodestone";
-        fight.ImageUrl = "https://example.com/updated-image.png";
-        await _fightRepository.UpdateAsync(fight.Id, fight);
-
-        // Assert
+        // Assert - Fight is created successfully (Description and ImageUrl are now on Boss, not Fight)
         var retrieved = await _fightRepository.GetAsync(fight.Id);
         retrieved.ShouldNotBeNull();
-        retrieved.Description.ShouldBe("Updated description from Lodestone");
-        retrieved.ImageUrl.ShouldBe("https://example.com/updated-image.png");
+        retrieved.Name.ShouldBe(fight.Name);
+        retrieved.Type.ShouldBe(fight.Type);
     }
 
     #endregion
@@ -767,40 +764,35 @@ public class LodestoneServiceTests : IntegrationTestBase
 
         await _lodestoneDutyRepository.CreateAsync(duty);
 
-        // Create a fight that needs an image
+        // Create a fight (ImageUrl and Description are now on Boss, not Fight)
         var fight = new Fight
         {
             Name = "Test Extreme",
             Type = FightType.Extreme,
             FFLogsExpansionId = 5,
             FFLogsZoneId = 100,
-            FFLogsEncounterId = 1,
-            ImageUrl = null, // No image yet
-            Description = null // No description yet
+            FFLogsEncounterId = 1
         };
 
         await _fightRepository.CreateAsync(fight);
 
-        // The test verifies setup - actual sync would be done by calling SyncFightImagesAsync
+        // The test verifies setup - actual sync would be done by calling SyncBossImagesAsync
         var retrievedFight = await _fightRepository.GetAsync(fight.Id);
         retrievedFight.ShouldNotBeNull();
-        retrievedFight.ImageUrl.ShouldBeNull();
-        retrievedFight.Description.ShouldBeNull();
+        retrievedFight.Name.ShouldBe("Test Extreme");
     }
 
     [Fact]
     public async Task SyncFightImages_NoMatchingDuty_LeavesFieldsUnchanged()
     {
-        // Arrange - Create fight with no matching duty
+        // Arrange - Create fight with no matching duty (Description and ImageUrl are now on Boss, not Fight)
         var fight = new Fight
         {
             Name = "Unmatched Fight",
             Type = FightType.Extreme,
             FFLogsExpansionId = 5,
             FFLogsZoneId = 200,
-            FFLogsEncounterId = 2,
-            ImageUrl = null,
-            Description = "Original description"
+            FFLogsEncounterId = 2
         };
 
         await _fightRepository.CreateAsync(fight);
@@ -808,7 +800,7 @@ public class LodestoneServiceTests : IntegrationTestBase
         // No matching duty exists
         var retrievedFight = await _fightRepository.GetAsync(fight.Id);
         retrievedFight.ShouldNotBeNull();
-        retrievedFight.Description.ShouldBe("Original description");
+        retrievedFight.Name.ShouldBe("Unmatched Fight");
     }
 
     #endregion

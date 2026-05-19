@@ -32,7 +32,6 @@ const contentStats = computed(() => {
   const stats = {
     Extreme: new Set<string>(),
     Savage: new Set<string>(),
-    LegacySavage: new Set<string>(),
     Ultimate: new Set<string>(),
     Chaotic: new Set<string>(),
   }
@@ -41,7 +40,6 @@ const contentStats = computed(() => {
     return {
       Extreme: 0,
       Savage: 0,
-      LegacySavage: 0,
       Ultimate: 0,
       Chaotic: 0,
     }
@@ -63,7 +61,6 @@ const contentStats = computed(() => {
   return {
     Extreme: stats.Extreme.size,
     Savage: stats.Savage.size,
-    LegacySavage: stats.LegacySavage.size,
     Ultimate: stats.Ultimate.size,
     Chaotic: stats.Chaotic.size,
   }
@@ -143,26 +140,23 @@ function initCharts() {
       const contentConfig: ChartConfiguration = {
         type: 'pie',
         data: {
-          labels: ['Extreme', 'Savage', 'Legacy Savage', 'Ultimate', 'Chaotic'],
+          labels: ['Extreme', 'Savage', 'Ultimate', 'Chaotic'],
           datasets: [{
             data: [
               contentStats.value.Extreme,
               contentStats.value.Savage,
-              contentStats.value.LegacySavage,
               contentStats.value.Ultimate,
               contentStats.value.Chaotic,
             ],
             backgroundColor: [
               cssVar('--exp-extreme'),
               cssVar('--exp-savage'),
-              cssVar('--exp-legacy-savage'),
               cssVar('--exp-chaotic'),
               cssVar('--exp-chaotic-border'),
             ],
             borderColor: [
               cssVar('--exp-extreme-border'),
               cssVar('--exp-savage-border'),
-              cssVar('--exp-legacy-savage-border'),
               cssVar('--exp-chaotic-border'),
               cssVar('--exp-chaotic'),
             ],
@@ -230,7 +224,6 @@ function updateCharts() {
     contentChart.data.datasets[0].data = [
       contentStats.value.Extreme,
       contentStats.value.Savage,
-      contentStats.value.LegacySavage,
       contentStats.value.Ultimate,
       contentStats.value.Chaotic,
     ]

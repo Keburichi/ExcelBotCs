@@ -43,7 +43,6 @@ function getUltimateAbbreviation(fightName: string): string {
 
 const experienceSummary = computed(() => {
   const hasExtreme = props.experience.some(f => f.Type === FightType.Extreme)
-  const hasLegacySavage = props.experience.some(f => f.Type === FightType.LegacySavage)
   const hasSavage = props.experience.some(f => f.Type === FightType.Savage)
   const hasChaotic = props.experience.some(f => f.Type === FightType.Chaotic)
 
@@ -57,7 +56,6 @@ const experienceSummary = computed(() => {
 
   return {
     hasExtreme,
-    hasLegacySavage,
     hasSavage,
     hasChaotic,
     ultimates,
@@ -69,9 +67,6 @@ const experienceSummary = computed(() => {
   <div class="experience-tags">
     <span v-if="experienceSummary.hasExtreme" class="tag tag--extreme" title="Has Extreme experience">
       Extreme
-    </span>
-    <span v-if="experienceSummary.hasLegacySavage" class="tag tag--legacy-savage" title="Has Legacy Savage experience">
-      Legacy Savage
     </span>
     <span v-if="experienceSummary.hasSavage" class="tag tag--savage" title="Has Savage experience">
       Savage
@@ -114,12 +109,6 @@ const experienceSummary = computed(() => {
   background: var(--exp-extreme);
   color: var(--bg);
   border-color: var(--exp-extreme-border);
-}
-
-.tag--legacy-savage {
-  background: var(--exp-legacy-savage);
-  color: var(--bg);
-  border-color: var(--exp-legacy-savage-border);
 }
 
 .tag--savage {

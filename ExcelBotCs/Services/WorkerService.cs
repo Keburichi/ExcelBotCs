@@ -55,8 +55,8 @@ public class WorkerService : BackgroundService
             await _ffLogsSyncService.SyncFightsAsync(); // Daily check
             await _ffLogsSyncService.SyncMemberActivityAsync(); // Wave-based sync
 
-            // Lodestone fight image sync
-            await _lodestoneService.SyncFightImagesAsync();
+            // Lodestone boss image sync
+            await _lodestoneService.SyncBossImagesAsync();
 
             _logger.LogInformation("Imported external entities");
         }

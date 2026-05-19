@@ -28,6 +28,7 @@ function asArray(v: unknown | unknown[]) {
       <SelectMenu
         :options="f.options ?? []"
         :multiple="!!f.multiple"
+        :searchable="!!f.searchable"
         :model-value="modelValue[f.id] as any"
         :coerce="(v: unknown) => v as any"
         placeholder="All"

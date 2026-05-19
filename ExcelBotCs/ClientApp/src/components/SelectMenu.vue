@@ -1,16 +1,18 @@
 <script setup lang="ts" generic="V">
-import { computed, nextTick, onMounted, onUnmounted, ref } from 'vue'
+import { computed, nextTick, onMounted, onUnmounted, ref, watch } from 'vue'
 
 const props = withDefaults(defineProps<{
   options: { label: string, value: V }[]
   modelValue: V | V | null | undefined
   multiple?: boolean
   placeholder?: string
+  searchable?: boolean
   // Optional: when option values are numbers but come in as strings from templates
   coerce?: (v: unknown) => V
 }>(), {
   multiple: false,
   placeholder: 'Select…',
+  searchable: false,
 })
 
 const emit = defineEmits<{
@@ -21,9 +23,27 @@ const emit = defineEmits<{
 const open = ref(false)
 const buttonRef = ref<HTMLButtonElement | null>(null)
 const listRef = ref<HTMLUListElement | null>(null)
+const searchInputRef = ref<HTMLInputElement | null>(null)
 const activeIndex = ref(-1)
+const searchQuery = ref('')
+
+watch(open, (isOpen) => {
+  if (!isOpen) {
+    searchQuery.value = ''
+  }
+  else if (props.searchable) {
+    nextTick(() => searchInputRef.value?.focus())
+  }
+})
 
 const normalizedOptions = computed(() => props.options ?? [])
+
+const visibleOptions = computed(() => {
+  if (!props.searchable || !searchQuery.value.trim())
+    return normalizedOptions.value
+  const q = searchQuery.value.toLowerCase()
+  return normalizedOptions.value.filter(opt => opt.label.toLowerCase().includes(q))
+})
 
 function isSelected(v: V) {
   const mv = props.modelValue as any
@@ -33,7 +53,7 @@ function isSelected(v: V) {
 }
 
 function selectAt(index: number) {
-  const opt = normalizedOptions.value[index]
+  const opt = visibleOptions.value[index]
   if (!opt)
     return
   const value = props.coerce ? props.coerce(opt.value as unknown) : opt.value
@@ -69,7 +89,7 @@ function onButtonKeydown(e: KeyboardEvent) {
 }
 
 function onListKeydown(e: KeyboardEvent) {
-  const max = normalizedOptions.value.length - 1
+  const max = visibleOptions.value.length - 1
   if (e.key === 'Escape') {
     open.value = false
     nextTick(() => buttonRef.value?.focus())
@@ -90,6 +110,25 @@ function onListKeydown(e: KeyboardEvent) {
   if (e.key === 'Enter' || e.key === ' ') {
     e.preventDefault()
     selectAt(activeIndex.value)
+  }
+}
+
+function onSearchKeydown(e: KeyboardEvent) {
+  if (e.key === 'Escape') {
+    open.value = false
+    nextTick(() => buttonRef.value?.focus())
+    return
+  }
+  if (e.key === 'ArrowDown') {
+    e.preventDefault()
+    activeIndex.value = 0
+    focusActive()
+    return
+  }
+  if (e.key === 'Enter') {
+    e.preventDefault()
+    if (visibleOptions.value.length > 0)
+      selectAt(0)
   }
 }
 
@@ -163,8 +202,21 @@ onUnmounted(() => document.removeEventListener('mousedown', onClickOutside))
       tabindex="-1"
       @keydown.stop.prevent="onListKeydown"
     >
+      <li v-if="searchable" class="sm-search-row" @click.stop @mousedown.prevent>
+        <input
+          ref="searchInputRef"
+          v-model="searchQuery"
+          class="sm-search-input"
+          type="text"
+          placeholder="Search…"
+          @keydown.stop="onSearchKeydown"
+        >
+      </li>
+      <li v-if="visibleOptions.length === 0" class="sm-empty">
+        No results
+      </li>
       <li
-        v-for="(opt, i) in normalizedOptions"
+        v-for="(opt, i) in visibleOptions"
         :key="String(opt.value)"
         class="sm-option"
         role="option"
@@ -274,5 +326,34 @@ onUnmounted(() => document.removeEventListener('mousedown', onClickOutside))
 
 .sm-label {
   flex: 1 1 auto;
+}
+
+.sm-search-row {
+  padding: 0.25rem;
+  position: sticky;
+  top: 0;
+  background: rgb(var(--color-card));
+}
+
+.sm-search-input {
+  width: 100%;
+  padding: 0.375rem 0.5rem;
+  border: 1px solid rgb(var(--color-input-border));
+  border-radius: 6px;
+  background: rgb(var(--color-input-bg));
+  color: rgb(var(--color-input-fg));
+  font-size: 0.875rem;
+  outline: none;
+}
+
+.sm-search-input:focus {
+  box-shadow: var(--ring);
+}
+
+.sm-empty {
+  padding: 0.5rem;
+  text-align: center;
+  color: rgb(var(--color-muted));
+  font-size: 0.875rem;
 }
 </style>

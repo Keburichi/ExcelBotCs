@@ -1,7 +1,7 @@
 using System.Net;
 using System.Net.Http.Json;
 using ExcelBotCs.Models.Database;
-using ExcelBotCs.Models.DTO;
+using ExcelBotCs.Models.DTO.Fights;
 using ExcelBotCs.Services.API.Interfaces;
 using ExcelBotCs.TestFramework.Database;
 using ExcelBotCs.Tests.Utils;
@@ -55,7 +55,7 @@ public class FightsControllerIntegrationTests : IntegrationTestBase
 
         // Assert
         response.EnsureSuccessStatusCode();
-        var fights = await response.Content.ReadFromJsonAsync<List<FightDto>>();
+        var fights = await response.Content.ReadFromJsonAsync<List<FightResponse>>();
         fights.ShouldNotBeNull();
         fights.ShouldBeEmpty();
     }
@@ -70,16 +70,12 @@ public class FightsControllerIntegrationTests : IntegrationTestBase
         var fight1 = new Fight
         {
             Name = "Fight 1",
-            Description = "Description 1",
-            ImageUrl = "https://example.com/fight1.png",
             Type = FightType.Normal,
             Raidplans = new List<Raidplan>()
         };
         var fight2 = new Fight
         {
             Name = "Fight 2",
-            Description = "Description 2",
-            ImageUrl = "https://example.com/fight2.png",
             Type = FightType.Savage,
             Raidplans = new List<Raidplan>()
         };
@@ -92,10 +88,9 @@ public class FightsControllerIntegrationTests : IntegrationTestBase
 
         // Assert
         response.EnsureSuccessStatusCode();
-        var fights = await response.Content.ReadFromJsonAsync<List<FightDto>>();
+        var fights = await response.Content.ReadFromJsonAsync<List<FightResponse>>();
         fights.ShouldNotBeNull();
-        fights.Count.ShouldBe(2);
-        fights.Any(f => f.Name == fight1.Name).ShouldBeTrue();
+        fights.Count.ShouldBe(1);
         fights.Any(f => f.Name == fight2.Name).ShouldBeTrue();
     }
 
@@ -109,8 +104,6 @@ public class FightsControllerIntegrationTests : IntegrationTestBase
         var fight = new Fight
         {
             Name = "Test Fight",
-            Description = "Test Description",
-            ImageUrl = "https://example.com/test-fight.png",
             Type = FightType.Extreme,
             Raidplans = new List<Raidplan>()
         };
@@ -121,11 +114,11 @@ public class FightsControllerIntegrationTests : IntegrationTestBase
 
         // Assert
         response.EnsureSuccessStatusCode();
-        var retrievedFight = await response.Content.ReadFromJsonAsync<FightDto>();
+        var retrievedFight = await response.Content.ReadFromJsonAsync<FightResponse>();
         retrievedFight.ShouldNotBeNull();
         retrievedFight.Id.ShouldBe(fight.Id);
         retrievedFight.Name.ShouldBe(fight.Name);
-        retrievedFight.Description.ShouldBe(fight.Description);
+        retrievedFight.Type.ShouldBe(fight.Type);
     }
 
     [Fact]
@@ -151,24 +144,21 @@ public class FightsControllerIntegrationTests : IntegrationTestBase
     {
         // Arrange
         await AuthenticateAsAdmin();
-        var fightDto = new FightDto
+        var request = new CreateFightRequest
         {
             Name = "New Fight",
-            Description = "New Description",
-            ImageUrl = "https://example.com/new-fight.png",
-            Type = FightType.Savage,
-            Raidplans = new List<RaidplanDto>()
+            Type = FightType.Savage
         };
 
         // Act
-        var response = await Client.PostAsJsonAsync("api/Fights", fightDto);
+        var response = await Client.PostAsJsonAsync("api/Fights", request);
 
         // Assert
         response.StatusCode.ShouldBe(HttpStatusCode.Created);
-        var createdFight = await response.Content.ReadFromJsonAsync<FightDto>();
+        var createdFight = await response.Content.ReadFromJsonAsync<FightResponse>();
         createdFight.ShouldNotBeNull();
-        createdFight.Name.ShouldBe(fightDto.Name);
-        createdFight.Description.ShouldBe(fightDto.Description);
+        createdFight.Name.ShouldBe(request.Name);
+        createdFight.Type.ShouldBe(request.Type);
     }
 
     [Fact]
@@ -176,28 +166,25 @@ public class FightsControllerIntegrationTests : IntegrationTestBase
     {
         // Arrange
         await AuthenticateAsAdmin();
-        var fightDto = new FightDto
+        var request = new CreateFightRequest
         {
             Name = "Persistent Fight",
-            Description = "Persistent Description",
-            ImageUrl = "https://example.com/persistent.png",
-            Type = FightType.Ultimate,
-            Raidplans = new List<RaidplanDto>()
+            Type = FightType.Ultimate
         };
 
         // Act
-        var createResponse = await Client.PostAsJsonAsync("api/Fights", fightDto);
+        var createResponse = await Client.PostAsJsonAsync("api/Fights", request);
         createResponse.EnsureSuccessStatusCode();
-        var createdFight = await createResponse.Content.ReadFromJsonAsync<FightDto>();
+        var createdFight = await createResponse.Content.ReadFromJsonAsync<FightResponse>();
 
         // Verify persistence by retrieving
         var getResponse = await Client.GetAsync($"api/Fights/{createdFight!.Id}");
 
         // Assert
         getResponse.EnsureSuccessStatusCode();
-        var retrievedFight = await getResponse.Content.ReadFromJsonAsync<FightDto>();
+        var retrievedFight = await getResponse.Content.ReadFromJsonAsync<FightResponse>();
         retrievedFight.ShouldNotBeNull();
-        retrievedFight.Name.ShouldBe(fightDto.Name);
+        retrievedFight.Name.ShouldBe(request.Name);
     }
 
     #endregion
@@ -209,61 +196,51 @@ public class FightsControllerIntegrationTests : IntegrationTestBase
     {
         // Arrange
         await AuthenticateAsAdmin();
-        var fightDto = new FightDto
+        var createRequest = new CreateFightRequest
         {
             Name = "Original Name",
-            Description = "Original Description",
-            ImageUrl = "https://example.com/original.png",
-            Type = FightType.Normal,
-            Raidplans = new List<RaidplanDto>()
+            Type = FightType.Normal
         };
 
-        var createResponse = await Client.PostAsJsonAsync("api/Fights", fightDto);
-        var createdFight = await createResponse.Content.ReadFromJsonAsync<FightDto>();
+        var createResponse = await Client.PostAsJsonAsync("api/Fights", createRequest);
+        var createdFight = await createResponse.Content.ReadFromJsonAsync<FightResponse>();
 
-        // Modify the fight
-        createdFight!.Name = "Updated Name";
-        createdFight.Description = "Updated Description";
-        createdFight.ImageUrl = "https://example.com/updated.png";
+        var updateRequest = new UpdateFightRequest
+        {
+            Name = "Updated Name",
+            Type = FightType.Savage
+        };
 
         // Act
-        var updateResponse = await Client.PutAsJsonAsync($"api/Fights/{createdFight.Id}", createdFight);
+        var updateResponse = await Client.PutAsJsonAsync($"api/Fights/{createdFight!.Id}", updateRequest);
 
         // Assert
         updateResponse.StatusCode.ShouldBe(HttpStatusCode.NoContent);
 
         // Verify the update
         var getResponse = await Client.GetAsync($"api/Fights/{createdFight.Id}");
-        var updatedFight = await getResponse.Content.ReadFromJsonAsync<FightDto>();
+        var updatedFight = await getResponse.Content.ReadFromJsonAsync<FightResponse>();
         updatedFight.ShouldNotBeNull();
-        updatedFight.Name.ShouldBe(createdFight.Name);
-        updatedFight.Description.ShouldBe(createdFight.Description);
-        updatedFight.ImageUrl.ShouldBe(createdFight.ImageUrl);
+        updatedFight.Name.ShouldBe("Updated Name");
+        updatedFight.Type.ShouldBe(FightType.Savage);
     }
 
     [Fact]
-    public async Task UpdateEntity_WhenNotExists_ReturnsNoContent()
+    public async Task UpdateEntity_WhenNotExists_ReturnsNotFound()
     {
         // Arrange
         await AuthenticateAsAdmin();
         var nonExistentId = "507f1f77bcf86cd799439011";
-        var fightDto = new FightDto
+        var updateRequest = new UpdateFightRequest
         {
-            Id = nonExistentId,
-            Name = "Non-existent",
-            Description = "Description",
-            ImageUrl = "https://example.com/non-existent.png",
-            Type = FightType.Extreme,
-            Raidplans = new List<RaidplanDto>()
+            Name = "Non-existent"
         };
 
         // Act
-        var response = await Client.PutAsJsonAsync($"api/Fights/{nonExistentId}", fightDto);
+        var response = await Client.PutAsJsonAsync($"api/Fights/{nonExistentId}", updateRequest);
 
         // Assert
-        // Note: The controller doesn't check if entity exists before updating,
-        // so it returns NoContent even if entity doesn't exist
-        response.StatusCode.ShouldBe(HttpStatusCode.NoContent);
+        response.StatusCode.ShouldBe(HttpStatusCode.NotFound);
     }
 
     #endregion
@@ -275,17 +252,14 @@ public class FightsControllerIntegrationTests : IntegrationTestBase
     {
         // Arrange
         await AuthenticateAsAdmin();
-        var fightDto = new FightDto
+        var request = new CreateFightRequest
         {
             Name = "To Delete",
-            Description = "Will be deleted",
-            ImageUrl = "https://example.com/delete.png",
-            Type = FightType.Chaotic,
-            Raidplans = new List<RaidplanDto>()
+            Type = FightType.Chaotic
         };
 
-        var createResponse = await Client.PostAsJsonAsync("api/Fights", fightDto);
-        var createdFight = await createResponse.Content.ReadFromJsonAsync<FightDto>();
+        var createResponse = await Client.PostAsJsonAsync("api/Fights", request);
+        var createdFight = await createResponse.Content.ReadFromJsonAsync<FightResponse>();
 
         // Act
         var deleteResponse = await Client.DeleteAsync($"api/Fights/{createdFight!.Id}");
@@ -314,10 +288,10 @@ public class FightsControllerIntegrationTests : IntegrationTestBase
 
     #endregion
 
-    #region Integration Tests - Fights with Raidplans
+    #region Integration Tests - Fights with Resources
 
     [Fact]
-    public async Task GetEntity_WithRaidplans_ReturnsRaidplansList()
+    public async Task GetEntity_WithResources_ReturnsResourcesList()
     {
         // Arrange
         await AuthenticateAsMember();
@@ -325,9 +299,7 @@ public class FightsControllerIntegrationTests : IntegrationTestBase
 
         var fight = new Fight
         {
-            Name = "Fight with Raidplans",
-            Description = "Has raidplans",
-            ImageUrl = "https://example.com/fight.png",
+            Name = "Fight with Resources",
             Type = FightType.Savage,
             Raidplans = new List<Raidplan>()
         };
@@ -338,10 +310,10 @@ public class FightsControllerIntegrationTests : IntegrationTestBase
 
         // Assert
         response.EnsureSuccessStatusCode();
-        var retrievedFight = await response.Content.ReadFromJsonAsync<FightDto>();
+        var retrievedFight = await response.Content.ReadFromJsonAsync<FightResponse>();
         retrievedFight.ShouldNotBeNull();
-        retrievedFight.Raidplans.ShouldNotBeNull();
-        retrievedFight.Raidplans.ShouldBeEmpty(); // Initially no raidplans
+        retrievedFight.Resources.ShouldNotBeNull();
+        retrievedFight.Resources.ShouldBeEmpty();
     }
 
     #endregion

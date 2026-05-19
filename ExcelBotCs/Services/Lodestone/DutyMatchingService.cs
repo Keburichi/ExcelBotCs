@@ -125,6 +125,82 @@ public class DutyMatchingService
         return null;
     }
 
+    public LodestoneDuty? FindBestMatchForBoss(Boss boss, List<LodestoneDuty> duties)
+    {
+        var normalizedBossName = NormalizeName(boss.Name);
+
+        var expansionFiltered = boss.FFLogsExpansionId.HasValue
+            ? duties.Where(d => d.ExpansionId == boss.FFLogsExpansionId.Value).ToList()
+            : duties;
+
+        // 1. Exact duty name match within expansion
+        var exactMatch = expansionFiltered.FirstOrDefault(d =>
+            NormalizeName(d.Name).Equals(normalizedBossName, StringComparison.OrdinalIgnoreCase));
+
+        if (exactMatch != null)
+            return exactMatch;
+
+        // 2. Exact match across all expansions
+        var exactMatchGlobal = duties.FirstOrDefault(d =>
+            NormalizeName(d.Name).Equals(normalizedBossName, StringComparison.OrdinalIgnoreCase));
+
+        if (exactMatchGlobal != null)
+            return exactMatchGlobal;
+
+        // 3. Boss name exact match within expansion
+        var bossExactMatch = expansionFiltered.FirstOrDefault(d =>
+            d.BossNames.Any(b =>
+                NormalizeName(b).Equals(normalizedBossName, StringComparison.OrdinalIgnoreCase)));
+
+        if (bossExactMatch != null)
+            return bossExactMatch;
+
+        // 4. Contains match within expansion
+        var containsMatch = expansionFiltered.FirstOrDefault(d =>
+        {
+            var normalizedDutyName = NormalizeName(d.Name);
+            if (normalizedDutyName.Length >= 4 && normalizedBossName.Length >= 4)
+                return normalizedDutyName.Contains(normalizedBossName, StringComparison.OrdinalIgnoreCase) ||
+                       normalizedBossName.Contains(normalizedDutyName, StringComparison.OrdinalIgnoreCase);
+            return false;
+        });
+
+        if (containsMatch != null)
+            return containsMatch;
+
+        // 5. Boss name partial match
+        var bossPartialMatch = expansionFiltered.FirstOrDefault(d =>
+            d.BossNames.Any(b =>
+            {
+                var normalizedBoss = NormalizeName(b);
+                if (normalizedBoss.Length >= 4 && normalizedBossName.Length >= 4)
+                    return normalizedBoss.Contains(normalizedBossName, StringComparison.OrdinalIgnoreCase) ||
+                           normalizedBossName.Contains(normalizedBoss, StringComparison.OrdinalIgnoreCase);
+                return false;
+            }));
+
+        if (bossPartialMatch != null)
+            return bossPartialMatch;
+
+        // 6. Word-based matching
+        var bossWords = ExtractSignificantWords(normalizedBossName);
+        if (bossWords.Any())
+        {
+            var wordMatch = expansionFiltered.FirstOrDefault(d =>
+            {
+                var dutyWords = ExtractSignificantWords(NormalizeName(d.Name));
+                return bossWords.Intersect(dutyWords, StringComparer.OrdinalIgnoreCase).Any();
+            });
+
+            if (wordMatch != null)
+                return wordMatch;
+        }
+
+        _logger.LogWarning("No match found for boss: {BossName} (Expansion: {ExpId})",
+            boss.Name, boss.FFLogsExpansionId);
+        return null;
+    }
+
     /// <summary>
     ///     Extracts significant words from text, filtering out stopwords and short words.
     ///     Used for word-based matching strategy.

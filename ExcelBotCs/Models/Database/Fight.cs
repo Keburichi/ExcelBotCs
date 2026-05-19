@@ -3,10 +3,9 @@
 public class Fight : BaseEntity
 {
     public string Name { get; set; }
-    public string Description { get; set; }
-    public string ImageUrl { get; set; }
     public FightType Type { get; set; }
     public List<Raidplan> Raidplans { get; set; }
+    public string? BossId { get; set; }
 
     // FFLogs Integration Fields
     public int? FFLogsEncounterId { get; set; }      // Primary identifier from FFLogs
@@ -20,5 +19,16 @@ public class Fight : BaseEntity
     public override string ToString()
     {
         return $"{Name}";
+    }
+
+    public bool IsFightDifficult()
+    {
+        return Type switch
+        {
+            FightType.Normal => false,
+            FightType.Extreme or FightType.Savage or FightType.Ultimate or FightType.Chaotic
+                or FightType.Unreal => true,
+            _ => throw new ArgumentOutOfRangeException()
+        };
     }
 }

@@ -233,14 +233,14 @@ query GetCharacterClears($lodestoneID: Int!");
     /// Fetches character clears for multiple zones in a single batched request.
     /// Uses GraphQL aliases to query multiple zones at once.
     /// </summary>
-    public async Task<Dictionary<int, ZoneRankings?>> GetCharacterActivityBatchedAsync(
+    public async Task<Dictionary<(int ZoneId, int DifficultyId), ZoneRankings?>> GetCharacterActivityBatchedAsync(
         long lodestoneId,
         List<ZoneQueryRequest> zoneRequests)
     {
         if (zoneRequests.Count == 0)
-            return new Dictionary<int, ZoneRankings?>();
+            return new Dictionary<(int ZoneId, int DifficultyId), ZoneRankings?>();
 
-        // Build a batched GraphQL query with aliases for each zone
+        // Build a batched GraphQL query with aliases for each zone+difficulty combo
         var queryBuilder = new StringBuilder(@"
 query GetCharacterClearsBatched($lodestoneID: Int!) {
   characterData {
@@ -249,10 +249,10 @@ query GetCharacterClearsBatched($lodestoneID: Int!) {
       name
 ");
 
-        // Add aliased zoneRankings for each zone request
+        // Use composite alias: zone{ZoneId}_d{DifficultyId} to handle same zone with multiple difficulties
         foreach (var request in zoneRequests)
             queryBuilder.AppendLine(
-                $"      zone{request.ZoneId}: zoneRankings(zoneID: {request.ZoneId}, difficulty: {request.DifficultyId}, metric: rdps)");
+                $"      zone{request.ZoneId}_d{request.DifficultyId}: zoneRankings(zoneID: {request.ZoneId}, difficulty: {request.DifficultyId}, metric: rdps)");
 
         queryBuilder.Append(@"    }
   }
@@ -266,7 +266,7 @@ query GetCharacterClearsBatched($lodestoneID: Int!) {
         var queryString = queryBuilder.ToString();
 
         _logger.LogDebug("Fetching batched character activity for Lodestone ID {LodestoneId}, Zones: [{Zones}]",
-            lodestoneId, string.Join(", ", zoneRequests.Select(z => z.ZoneId)));
+            lodestoneId, string.Join(", ", zoneRequests.Select(z => $"{z.ZoneId}:{z.DifficultyId}")));
 
         var response = await ExecuteQueryAsync<JsonElement>(queryString, variables);
         return ParseBatchedZoneRankings(response, zoneRequests);
@@ -275,10 +275,10 @@ query GetCharacterClearsBatched($lodestoneID: Int!) {
     /// <summary>
     ///     Parses the batched zone rankings response from aliased GraphQL fields
     /// </summary>
-    private Dictionary<int, ZoneRankings?> ParseBatchedZoneRankings(JsonElement response,
+    private Dictionary<(int ZoneId, int DifficultyId), ZoneRankings?> ParseBatchedZoneRankings(JsonElement response,
         List<ZoneQueryRequest> zoneRequests)
     {
-        var result = new Dictionary<int, ZoneRankings?>();
+        var result = new Dictionary<(int ZoneId, int DifficultyId), ZoneRankings?>();
 
         try
         {
@@ -290,21 +290,22 @@ query GetCharacterClearsBatched($lodestoneID: Int!) {
 
             foreach (var request in zoneRequests)
             {
-                var alias = $"zone{request.ZoneId}";
+                var alias = $"zone{request.ZoneId}_d{request.DifficultyId}";
                 if (character.TryGetProperty(alias, out var zoneRankingsElement) &&
                     zoneRankingsElement.ValueKind != JsonValueKind.Null)
                     try
                     {
                         var zoneRankings = JsonSerializer.Deserialize<ZoneRankings>(zoneRankingsElement.GetRawText());
-                        result[request.ZoneId] = zoneRankings;
+                        result[(request.ZoneId, request.DifficultyId)] = zoneRankings;
                     }
                     catch (Exception ex)
                     {
-                        _logger.LogWarning(ex, "Failed to parse zone rankings for zone {ZoneId}", request.ZoneId);
-                        result[request.ZoneId] = null;
+                        _logger.LogWarning(ex, "Failed to parse zone rankings for zone {ZoneId} difficulty {DifficultyId}",
+                            request.ZoneId, request.DifficultyId);
+                        result[(request.ZoneId, request.DifficultyId)] = null;
                     }
                 else
-                    result[request.ZoneId] = null;
+                    result[(request.ZoneId, request.DifficultyId)] = null;
             }
         }
         catch (Exception ex)
