@@ -39,6 +39,7 @@ public class Event : BaseEntity
     public string? AuthorId { get; set; }
     public string? Organizer { get; set; }
     public int MaxNumberOfParticipants { get; set; }
+    public int RequiredParticipants { get; set; }
 
     // Signup button configuration (null = legacy 5-role buttons)
     public List<SignupButtonConfig>? SignupButtonConfigs { get; set; }

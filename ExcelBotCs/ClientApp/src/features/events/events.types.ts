@@ -39,6 +39,7 @@ export interface FCEvent {
   Organizer: string
   AvailableForSignup: boolean
   MaxNumberOfParticipants: number
+  RequiredParticipants: number
   SignupButtonConfigs?: SignupButtonConfig[]
   Signups: EventSignup[]
   Groups: EventGroupResponse[]
@@ -68,7 +69,7 @@ export interface EventOccurrence {
 
 export interface EventParticipant {
   DiscordUserId: string
-  Role: Role
+  Role?: Role | null
   SelectionDate: Date
 }
 

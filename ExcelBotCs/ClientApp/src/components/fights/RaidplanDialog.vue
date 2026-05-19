@@ -44,11 +44,11 @@ watch(() => [props.isOpen, props.fight?.Id], ([isOpen, fightId]) => {
 function canEditRaidplan(raidplan: Raidplan): boolean {
   if (!user.value)
     return false
-  return isAdmin.value || raidplan.AuthorId === user.value.Id
+  return !!isAdmin.value || raidplan.AuthorId === user.value.Id
 }
 
 function canDeleteRaidplan(): boolean {
-  return isAdmin.value
+  return !!isAdmin.value
 }
 
 function handleCreateNew() {

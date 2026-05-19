@@ -13,7 +13,8 @@ export function useAdmin() {
     Name: '',
     IsAdmin: false,
     IsMember: false,
-    DiscordId: 0,
+    IsDeveloper: false,
+    DiscordId: '',
   })
 
   async function importFights() {

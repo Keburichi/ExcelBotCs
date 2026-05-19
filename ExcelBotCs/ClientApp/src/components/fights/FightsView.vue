@@ -57,7 +57,7 @@ const filters = computed<FilterDef<Fight>[]>(() => [
       const arr = Array.isArray(selected) ? selected : [selected]
       if (arr.length === 0)
         return true
-      return fight.FFLogsExpansionName && arr.includes(fight.FFLogsExpansionName)
+      return !!fight.FFLogsExpansionName && arr.includes(fight.FFLogsExpansionName)
     },
   },
   {
@@ -69,7 +69,7 @@ const filters = computed<FilterDef<Fight>[]>(() => [
       const arr = Array.isArray(selected) ? selected : [selected]
       if (arr.length === 0)
         return true
-      return fight.FFLogsZoneName && arr.includes(fight.FFLogsZoneName)
+      return !!fight.FFLogsZoneName && arr.includes(fight.FFLogsZoneName)
     },
   },
   {

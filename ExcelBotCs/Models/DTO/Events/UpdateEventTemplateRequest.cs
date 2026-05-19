@@ -12,5 +12,6 @@ public class UpdateEventTemplateRequest
     public int Duration { get; set; }
     public string Organizer { get; set; }
     public int MaxNumberOfParticipants { get; set; }
+    public int RequiredParticipants { get; set; }
     public List<SignupButtonConfigDto>? SignupButtonConfigs { get; set; }
 }

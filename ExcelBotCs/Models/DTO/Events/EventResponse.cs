@@ -37,6 +37,7 @@ public class EventResponse : BaseDto
     public string? AuthorId { get; set; }
     public string? Organizer { get; set; }
     public int MaxNumberOfParticipants { get; set; }
+    public int RequiredParticipants { get; set; }
 
     public List<SignupButtonConfigDto>? SignupButtonConfigs { get; set; }
 

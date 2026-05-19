@@ -134,7 +134,8 @@ public class ICalService : IICalService
                     Occurrences = recurringEvent.Occurrences ?? new List<EventOccurrence>(),
                     AuthorId = recurringEvent.AuthorId,
                     Organizer = recurringEvent.Organizer ?? "",
-                    MaxNumberOfParticipants = recurringEvent.MaxNumberOfParticipants
+                    MaxNumberOfParticipants = recurringEvent.MaxNumberOfParticipants,
+                    RequiredParticipants = recurringEvent.RequiredParticipants
                 };
 
                 expandedEvents.Add(occurrenceEvent);

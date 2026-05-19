@@ -121,6 +121,8 @@ public class DiscordMessageCreator : IDiscordMessageCreator
             $"**Date:** {fcEvent.StartDate.ToLongDiscordDateLongTime()} - {fcEvent.EndDate.ToLongDiscordDateLongTime()} ({fcEvent.StartDate.ToRelativeDiscordTime()})");
         messageBuilder.AppendLine();
 
+        var hasRoles = fcEvent.Groups.Any(g => g.Participants.Any(p => p.Role != null));
+
         if (fcEvent.Groups.Count > 1)
         {
             foreach (var fcEventGroup in fcEvent.Groups)
@@ -128,13 +130,19 @@ public class DiscordMessageCreator : IDiscordMessageCreator
                 var participants = fcEventGroup.Participants;
 
                 messageBuilder.AppendLine($"{fcEventGroup.Name}:");
-                AppendRoleMentions(messageBuilder, participants);
+                if (hasRoles)
+                    AppendRoleMentions(messageBuilder, participants);
+                else
+                    AppendMentions(messageBuilder, participants);
             }
         }
         else
         {
             var participants = fcEvent.Groups.First().Participants;
-            AppendRoleMentions(messageBuilder, participants);
+            if (hasRoles)
+                AppendRoleMentions(messageBuilder, participants);
+            else
+                AppendMentions(messageBuilder, participants);
         }
 
         return messageBuilder.ToString();
@@ -147,6 +155,15 @@ public class DiscordMessageCreator : IDiscordMessageCreator
         messageBuilder.AppendLine($"{Constants.MeleeRoleEmote} {RoleMentions(participants, Role.Melee)}");
         messageBuilder.AppendLine($"{Constants.RangedRoleEmote} {RoleMentions(participants, Role.Ranged)}");
         messageBuilder.AppendLine($"{Constants.CasterRoleEmote} {RoleMentions(participants, Role.Caster)}");
+    }
+
+    private static void AppendMentions(StringBuilder messageBuilder, List<EventParticipant> participants)
+    {
+        if (participants.IsNullOrEmpty())
+            return;
+
+        var mentions = string.Join(" ", participants.Select(p => $"<@{p.DiscordUserId}>"));
+        messageBuilder.AppendLine(mentions);
     }
 
     private static string RoleMentions(List<EventParticipant> eventParticipants, Role role)

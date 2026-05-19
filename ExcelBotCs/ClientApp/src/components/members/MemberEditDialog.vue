@@ -27,6 +27,7 @@ const form = reactive<Member>({
   DiscordId: '',
   IsAdmin: false,
   IsMember: false,
+  IsDeveloper: false,
   Experience: [],
   Notes: [],
   Roles: [],
@@ -49,8 +50,8 @@ function editNote(note: MemberNote) {
 </script>
 
 <template>
-  <MemberNoteAddDialog v-model:is-open="editNoteOpen" v-model:member-note="addNoteBuffer" />
-  <MemberNoteEditDialog v-model:is-open="editNoteOpen" v-model:member-note="editNoteBuffer" />
+  <MemberNoteAddDialog v-if="addNoteBuffer" v-model:is-open="addNoteOpen" v-model:member-note="addNoteBuffer" />
+  <MemberNoteEditDialog v-if="editNoteBuffer" v-model:is-open="editNoteOpen" v-model:member-note="editNoteBuffer" />
 
   <BaseModal
     :model-value="props.modelValue" :title="`Edit - ${member.DiscordName}`" size="large"
@@ -85,7 +86,7 @@ function editNote(note: MemberNote) {
             </thead>
             <tbody>
               <tr v-for="m in form.Notes" :key="m.Id">
-                <td>{{ m.Author?.DiscordName }}</td>
+                <td>{{ m.Author }}</td>
                 <td>{{ m.Note }}</td>
                 <td><BaseButton title="Edit" size="small" @clicked="editNote(m)" /></td>
               </tr>

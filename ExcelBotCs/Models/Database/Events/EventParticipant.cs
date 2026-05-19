@@ -8,6 +8,6 @@ namespace ExcelBotCs.Models.Database.Events;
 public class EventParticipant
 {
     public string DiscordUserId { get; set; }
-    public Role Role { get; set; }
+    public Role? Role { get; set; }
     public DateTime SelectionDate { get; set; } = DateTime.UtcNow;
 }

@@ -90,14 +90,20 @@ const uniqueSignupCount = computed(() => {
   return (eventValue.value.Signups ?? []).filter(s => s.Roles.length > 0).length
 })
 
-const maxParticipants = computed(() => eventValue.value.MaxNumberOfParticipants)
+const requiredParticipants = computed(() => eventValue.value.RequiredParticipants ?? eventValue.value.MaxNumberOfParticipants)
+const groupSize = computed(() => Math.min(requiredParticipants.value || 8, 8))
+const numberOfGroups = computed(() => requiredParticipants.value === 0 ? 0 : Math.ceil(requiredParticipants.value / groupSize.value))
 
 const canAddGroup = computed(() => {
-  return uniqueSignupCount.value >= (groups.value.length + 1) * maxParticipants.value
+  if (numberOfGroups.value === 0) {
+    return unassigned.value.length > 0
+  }
+  return uniqueSignupCount.value >= (groups.value.length + 1) * groupSize.value
 })
 
 const signupsNeededForNextGroup = computed(() => {
-  const needed = (groups.value.length + 1) * maxParticipants.value
+  if (numberOfGroups.value === 0) return 0
+  const needed = (groups.value.length + 1) * groupSize.value
   return Math.max(0, needed - uniqueSignupCount.value)
 })
 
@@ -135,7 +141,8 @@ function getMemberAvatar(discordId: string): string | null {
   return member?.DiscordAvatar || null
 }
 
-function roleLabel(role: Role): string {
+function roleLabel(role: Role | null | undefined): string {
+  if (role == null) return ''
   const labels: Record<number, string> = {
     [ROLE.Tank]: 'Tank',
     [ROLE.Healer]: 'Healer',
@@ -190,7 +197,7 @@ function initGroups() {
 
 function addGroup() {
   if (!canAddGroup.value) {
-    openInfo(`Need at least ${(groups.value.length + 1) * maxParticipants.value} unique signups to create ${groups.value.length + 1} group(s). Currently have ${uniqueSignupCount.value}.`)
+    openInfo(`Need at least ${(groups.value.length + 1) * groupSize.value} unique signups to create ${groups.value.length + 1} group(s). Currently have ${uniqueSignupCount.value}.`)
     return
   }
   groups.value.push({
@@ -212,9 +219,9 @@ function onGroupChange(groupIndex: number, evt: any) {
   const group = groups.value[groupIndex]
 
   // Capacity check
-  if (group.Participants.length > maxParticipants.value) {
+  if (group.Participants.length > groupSize.value) {
     group.Participants.splice(addedIndex, 1)
-    openInfo(`This group already has ${maxParticipants.value} participants (maximum).`)
+    openInfo(`This group already has ${groupSize.value} participants (maximum).`)
     return
   }
 
@@ -225,17 +232,12 @@ function onGroupChange(groupIndex: number, evt: any) {
   group.Participants.splice(addedIndex, 1)
 
   const signupRoles = getSignupRoles(addedItem.DiscordUserId)
-  if (signupRoles.length === 0 && usesCustomButtons.value) {
-    rolePickerTarget.value = {
-      groupIndex,
-      signup: {
-        DiscordUserId: addedItem.DiscordUserId,
-        Roles: [ROLE.Tank, ROLE.Healer, ROLE.Melee, ROLE.Caster, ROLE.Ranged],
-        SignupDate: new Date(),
-      },
-      element: null,
-    }
-    rolePickerOpen.value = true
+  if (signupRoles.length === 0) {
+    group.Participants.splice(addedIndex, 0, {
+      DiscordUserId: addedItem.DiscordUserId,
+      Role: null,
+      SelectionDate: new Date(),
+    })
     return
   }
   if (signupRoles.length === 1) {
@@ -387,7 +389,7 @@ function handleSave() {
     return
   }
 
-  const allFull = groups.value.every(g => g.Participants.length === maxParticipants.value)
+  const allFull = groups.value.every(g => g.Participants.length === groupSize.value)
   if (!allFull) {
     isInsufficientParticipantsOpen.value = true
     return
@@ -438,7 +440,7 @@ watch(modelValue, (isOpen) => {
     <template #body>
       <p>
         Assign signups to groups for '<b>{{ eventValue.Name }}</b>'.
-        Each group can have up to <b>{{ maxParticipants }}</b> participants.
+        Each group can have up to <b>{{ groupSize }}</b> participants.
         Drag members from the pool into groups.
       </p>
       <p class="muted" style="font-size: 0.9rem; margin-bottom: 1rem;">
@@ -550,7 +552,7 @@ watch(modelValue, (isOpen) => {
                 type="text"
                 placeholder="Group name..."
               >
-              <span class="group-count">{{ group.Participants.length }}/{{ maxParticipants }}</span>
+              <span class="group-count">{{ group.Participants.length }}/{{ groupSize }}</span>
               <button class="btn-remove-group" title="Remove group" @click="removeGroup(gIdx)">
                 &times;
               </button>
@@ -575,14 +577,14 @@ watch(modelValue, (isOpen) => {
                     {{ getMemberName(element.DiscordUserId).charAt(0).toUpperCase() }}
                   </div>
                   <span class="member-name">{{ getMemberName(element.DiscordUserId) }}</span>
-                  <span class="assigned-role">{{ roleLabel(element.Role) }}</span>
+                  <span v-if="element.Role != null" class="assigned-role">{{ roleLabel(element.Role) }}</span>
                   <button class="btn-remove-member" title="Remove" @click="removeFromGroup(gIdx, index)">
                     &times;
                   </button>
                 </div>
               </template>
               <template #footer>
-                <div v-if="group.Participants.length < maxParticipants" class="dropzone-hint">
+                <div v-if="group.Participants.length < groupSize" class="dropzone-hint">
                   Drop here to add
                 </div>
               </template>
@@ -592,7 +594,7 @@ watch(modelValue, (isOpen) => {
           <BaseButton
             :disabled="!canAddGroup"
             :title="`+ Add Group`"
-            :tooltip="canAddGroup ? 'Create a new group' : `Need ${(groups.length + 1) * maxParticipants} signups to add another group`"
+            :tooltip="canAddGroup ? 'Create a new group' : `Need ${(groups.length + 1) * groupSize} signups to add another group`"
             size="small"
             state="secondary"
             @clicked="addGroup"
@@ -600,7 +602,7 @@ watch(modelValue, (isOpen) => {
           <div v-if="!canAddGroup" class="not-enough-signups">
             <template v-if="groups.length === 0">
               Need <b>{{ signupsNeededForNextGroup }}</b> more signup{{ signupsNeededForNextGroup === 1 ? '' : 's' }}
-              to create a group ({{ uniqueSignupCount }}/{{ maxParticipants }} required).
+              to create a group ({{ uniqueSignupCount }}/{{ groupSize }} required).
             </template>
             <template v-else>
               Need <b>{{ signupsNeededForNextGroup }}</b> more signup{{ signupsNeededForNextGroup === 1 ? '' : 's' }}
@@ -723,7 +725,7 @@ watch(modelValue, (isOpen) => {
       <div class="insufficient-warning">
         <p>
           Not all groups are full. Some groups have fewer than
-          <strong>{{ maxParticipants }}</strong> participants.
+          <strong>{{ groupSize }}</strong> participants.
         </p>
         <p class="warning-question">
           Do you want to save anyway?

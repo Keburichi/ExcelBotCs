@@ -315,7 +315,7 @@ onMounted(async () => {
           {{ occurrenceStatusToString(nextOccurrence.Status) }}
         </span>
         <span v-if="nextOccurrence" class="event-card__participants">
-          {{ getParticipantCount(fcEventValue) }}/{{ fcEventValue.MaxNumberOfParticipants }} participants
+          {{ getParticipantCount(fcEventValue) }}/{{ fcEventValue.RequiredParticipants || '∞' }} participants
         </span>
         <span class="event-card__organizer">Organized by {{ fcEventValue.Organizer }}</span>
       </div>
