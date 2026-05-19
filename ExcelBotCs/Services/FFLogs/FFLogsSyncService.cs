@@ -123,8 +123,6 @@ public class FFLogsSyncService
                         var fight = new Fight
                         {
                             Name = fightName,
-                            Description = $"{zone.name} - {expansion.name}",
-                            ImageUrl = string.Empty,
                             Type = fightMapping.fightType,
                             Raidplans = new List<Raidplan>(),
                             BossId = boss.Id,

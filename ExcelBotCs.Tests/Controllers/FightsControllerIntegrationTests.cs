@@ -71,16 +71,12 @@ public class FightsControllerIntegrationTests : IntegrationTestBase
         var fight1 = new Fight
         {
             Name = "Fight 1",
-            Description = "Description 1",
-            ImageUrl = "https://example.com/fight1.png",
             Type = FightType.Normal,
             Raidplans = new List<Raidplan>()
         };
         var fight2 = new Fight
         {
             Name = "Fight 2",
-            Description = "Description 2",
-            ImageUrl = "https://example.com/fight2.png",
             Type = FightType.Savage,
             Raidplans = new List<Raidplan>()
         };
@@ -110,8 +106,6 @@ public class FightsControllerIntegrationTests : IntegrationTestBase
         var fight = new Fight
         {
             Name = "Test Fight",
-            Description = "Test Description",
-            ImageUrl = "https://example.com/test-fight.png",
             Type = FightType.Extreme,
             Raidplans = new List<Raidplan>()
         };
@@ -308,8 +302,6 @@ public class FightsControllerIntegrationTests : IntegrationTestBase
         var fight = new Fight
         {
             Name = "Fight with Resources",
-            Description = "Has resources",
-            ImageUrl = "https://example.com/fight.png",
             Type = FightType.Savage,
             Raidplans = new List<Raidplan>()
         };

@@ -57,8 +57,6 @@ public class BossMigrationService
                         {
                             Name = bossName,
                             NormalizationKey = normalizationKey,
-                            ImageUrl = !string.IsNullOrEmpty(fight.ImageUrl) ? fight.ImageUrl : null,
-                            Description = !string.IsNullOrEmpty(fight.Description) ? fight.Description : null,
                             FFLogsExpansionId = fight.FFLogsExpansionId,
                             IsUltimate = fight.Type == FightType.Ultimate
                         };
@@ -69,14 +67,6 @@ public class BossMigrationService
                     }
 
                     bossCache[normalizationKey] = boss;
-                }
-
-                // Migrate image/description to boss if boss doesn't have one yet
-                if (string.IsNullOrEmpty(boss.ImageUrl) && !string.IsNullOrEmpty(fight.ImageUrl))
-                {
-                    boss.ImageUrl = fight.ImageUrl;
-                    boss.Description = fight.Description ?? boss.Description;
-                    await _bossRepository.UpdateAsync(boss.Id, boss);
                 }
 
                 // Link fight to boss

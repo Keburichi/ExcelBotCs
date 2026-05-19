@@ -82,8 +82,6 @@ public class ImportController : AuthorizedController
                     fights.Add(new Fight
                     {
                         Name = item.name.Trim(),
-                        Description = string.IsNullOrWhiteSpace(item.description) ? null : item.description.Trim(),
-                        ImageUrl = string.IsNullOrWhiteSpace(item.image_url) ? null : item.image_url.Trim(),
                         Type = type,
                         Raidplans = new List<Raidplan>()
                     });

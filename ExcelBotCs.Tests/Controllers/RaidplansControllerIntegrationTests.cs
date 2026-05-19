@@ -26,8 +26,6 @@ public class RaidplansControllerIntegrationTests : IntegrationTestBase
         var testFight = new Fight
         {
             Name = "Test Fight",
-            Description = "Test fight for raidplans",
-            ImageUrl = "https://example.com/fight.png",
             Raidplans = new List<Raidplan>()
         };
         await fightService.CreateAsync(testFight);

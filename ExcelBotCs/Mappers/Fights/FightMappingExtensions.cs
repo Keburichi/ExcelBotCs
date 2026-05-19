@@ -17,7 +17,7 @@ public static class FightMappingExtensions
             Type = fight.Type,
             BossId = fight.BossId,
             BossName = boss?.Name,
-            ImageUrl = boss?.ImageUrl ?? fight.ImageUrl,
+            ImageUrl = boss?.ImageUrl,
             FFLogsEncounterId = fight.FFLogsEncounterId,
             FFLogsZoneId = fight.FFLogsZoneId,
             FFLogsZoneName = fight.FFLogsZoneName,
@@ -63,8 +63,6 @@ public static class FightMappingExtensions
         {
             Id = fight.Id,
             Name = fight.Name,
-            Description = fight.Description,
-            ImageUrl = fight.ImageUrl,
             Type = fight.Type,
             Raidplans = fight.Raidplans?.Select(r => r.ToDto()).ToList(),
             FFLogsExpansionName = fight.FFLogsExpansionName,
@@ -79,8 +77,6 @@ public static class FightMappingExtensions
         {
             Id = fight.Id,
             Name = fight.Name,
-            Description = fight.Description,
-            ImageUrl = fight.ImageUrl,
             Type = fight.Type,
             Raidplans = fight.Raidplans?.Select(r => r.ToEntity()).ToList(),
             FFLogsExpansionName = fight.FFLogsExpansionName,
