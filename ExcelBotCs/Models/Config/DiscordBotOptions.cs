@@ -25,4 +25,6 @@ public class DiscordBotOptions
     public List<ulong> AdminRoleIds { get; set; } = [];
     public List<ulong> MemberRoleIds { get; set; } = [];
     public List<ulong> FriendOfFcRoleIds { get; set; } = [];
+
+    public TimeSpan DisconnectHealthThreshold { get; set; } = TimeSpan.FromMinutes(5);
 }

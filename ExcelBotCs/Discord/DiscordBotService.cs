@@ -1,8 +1,10 @@
 using System.Reflection;
 using Discord;
 using Discord.Interactions;
+using Discord.Net;
 using Discord.WebSocket;
 using ExcelBotCs.Extensions;
+using ExcelBotCs.HealthChecks;
 using ExcelBotCs.Models.Config;
 using Microsoft.Extensions.Options;
 
@@ -15,18 +17,21 @@ public class DiscordBotService : BackgroundService
     private readonly DiscordBotOptions _config;
     private readonly IServiceProvider _serviceProvider;
     private readonly ILogger<DiscordBotService> _logger;
+    private readonly IBotConnectionMonitor _monitor;
 
     public DiscordBotService(
         IServiceScopeFactory scopeFactory,
         IOptions<DiscordBotOptions> config,
         IServiceProvider serviceProvider,
         IDiscordBotClient discordBotClient,
+        IBotConnectionMonitor monitor,
         ILogger<DiscordBotService> logger) : base(scopeFactory)
     {
         _client = discordBotClient.Client;
         _config = config.Value;
         _serviceProvider = serviceProvider;
         _logger = logger;
+        _monitor = monitor;
 
         _interaction = new InteractionService(_client, new InteractionServiceConfig
         {
@@ -58,6 +63,16 @@ public class DiscordBotService : BackgroundService
 
         _client.Ready += ClientOnReady;
         _client.InteractionCreated += ClientOnInteractionCreated;
+        _client.Connected += () =>
+        {
+            _monitor.NotifyConnected();
+            return Task.CompletedTask;
+        };
+        _client.Disconnected += ex =>
+        {
+            _monitor.NotifyDisconnected(ex);
+            return Task.CompletedTask;
+        };
     }
 
     private async Task ClientOnReady()
@@ -79,7 +94,17 @@ public class DiscordBotService : BackgroundService
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
-        await _client.LoginAsync(TokenType.Bot, _config.Token);
+        try
+        {
+            await _client.LoginAsync(TokenType.Bot, _config.Token);
+        }
+        catch (HttpException ex) when ((int)ex.HttpCode is 401 or 403)
+        {
+            _monitor.NotifyAuthFailure();
+            _logger.LogCritical("Discord bot authentication failed — invalid token; bot will not start");
+            return;
+        }
+
         await _client.StartAsync();
         _logger.LogInformation("Discord bot started");
         await Task.Delay(Timeout.Infinite, stoppingToken)
