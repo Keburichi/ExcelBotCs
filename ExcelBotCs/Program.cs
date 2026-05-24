@@ -6,6 +6,7 @@ using ExcelBotCs.Authorization.Requirements;
 using ExcelBotCs.Discord;
 using ExcelBotCs.Extensions;
 using ExcelBotCs.Filters;
+using ExcelBotCs.HealthChecks;
 using ExcelBotCs.Middleware;
 using ExcelBotCs.Models.Config;
 using ExcelBotCs.Services;
@@ -59,6 +60,8 @@ public class Program
             var service = builder.Services.AddSingleton<T>();
             if (activate) service.ActivateSingleton<T>();
         }
+
+        builder.Services.AddSingleton<IBotConnectionMonitor, BotConnectionMonitor>();
 
         AddHostedService<DiscordBotService>();
         AddService<DiscordLogger>();
@@ -182,6 +185,10 @@ public class Program
                 options.JsonSerializerOptions.DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull;
             });
 
+        builder.Services.AddHealthChecks()
+            .AddCheck<DiscordBotHealthCheck>("discord-bot")
+            .AddCheck<MongoDbHealthCheck>("mongodb");
+
         // Configure the discord authentication
         builder.Services.AddAppAuthentication(builder.Configuration);
 
@@ -197,10 +204,7 @@ public class Program
         forwardedOptions.KnownProxies.Clear();
         app.UseForwardedHeaders(forwardedOptions);
 
-        app.Use(async (context, next) =>
-        {
-            await next();
-        });
+        app.UseMiddleware<RequestIdMiddleware>();
 
         app.UseHttpsRedirection();
 
@@ -210,6 +214,8 @@ public class Program
 
         app.UseAuthentication();
         app.UseAuthorization();
+
+        app.MapHealthChecks("/health");
 
         // Populate the current Member for authenticated requests (must run after authentication)
         app.UseMiddleware<CurrentMemberMiddleware>();
