@@ -44,8 +44,11 @@ public static class AuthenticationExtensions
                     user.GetString("avatar")!.StartsWith("a_") ? "gif" : "png"));
 
             options.Scope.Add("identify");
-            options.Scope.Add("guilds");
-            options.Scope.Add("guilds.members.read");
+
+            // Removed roles to read on which server users are and certain information since we don'T use that info.
+            // Leaving this in for now in case we do end up needing it. 
+            // options.Scope.Add("guilds");
+            // options.Scope.Add("guilds.members.read");
 
             options.Events.OnRemoteFailure = ctx =>
             {
