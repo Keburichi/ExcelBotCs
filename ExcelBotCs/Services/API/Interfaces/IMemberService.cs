@@ -18,4 +18,5 @@ public interface IMemberService
     Task<Member> GetByLodestoneId(string lodestoneId);
     Task<List<Member>> GetFcMembers();
     Task UpdateDiscordRoles(string id, List<string> roleIds);
+    Task SetVerifiedLodestoneAsync(string id, string lodestoneId);
 }

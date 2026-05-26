@@ -540,7 +540,10 @@ async function submit() {
     }
     form.MaxNumberOfParticipants = form.RequiredParticipants
     form.ICalString = generateICalString(form, recurrence.value)
-    form.SignupButtonConfigs = buttonMode.value !== 'standard' ? signupButtonConfigs.value : undefined
+    if (buttonMode.value === 'standard' || buttonMode.value === 'roles-helper') {
+      setButtonMode(buttonMode.value)
+    }
+    form.SignupButtonConfigs = signupButtonConfigs.value.length > 0 ? signupButtonConfigs.value : undefined
 
     if (isEditMode.value) {
       await EventsApi.update(form.Id, form)

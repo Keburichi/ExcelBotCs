@@ -121,9 +121,7 @@ public class MembersController : AuthorizedController, IMembersController
             if (!string.IsNullOrWhiteSpace(bio) &&
                 bio.Contains(me.LodestoneVerificationToken, StringComparison.OrdinalIgnoreCase))
             {
-                me.LodestoneId = lodestoneId;
-                me.LodestoneVerificationToken = null; // clear token after success
-                await _memberService.UpdateAsync(me.Id, me);
+                await _memberService.SetVerifiedLodestoneAsync(me.Id, lodestoneId);
                 return Ok(new { success = true, message = "Character verified and linked." });
             }
 
