@@ -235,6 +235,43 @@ public class MemberServiceTests
     }
 
     [Fact]
+    public async Task SetVerifiedLodestoneAsync_SetsLodestoneIdAndClearsToken()
+    {
+        // Arrange
+        var id = Guid.NewGuid().ToString();
+        var existingMember = new Member().PopulateWithRandomData();
+        existingMember.LodestoneVerificationToken = "some-token";
+
+        _memberRepositoryMock.Setup(x => x.GetAsync(id)).ReturnsAsync(existingMember);
+        _memberRepositoryMock.Setup(x => x.UpdateAsync(id, It.IsAny<Member>())).Returns(Task.CompletedTask);
+
+        // Act
+        await _memberService.SetVerifiedLodestoneAsync(id, "12345678");
+
+        // Assert
+        existingMember.LodestoneId.ShouldBe("12345678");
+        existingMember.LodestoneVerificationToken.ShouldBeNull();
+
+        _memberRepositoryMock.Verify(x => x.GetAsync(id), Times.Once());
+        _memberRepositoryMock.Verify(x => x.UpdateAsync(id, existingMember), Times.Once());
+    }
+
+    [Fact]
+    public async Task SetVerifiedLodestoneAsync_ThrowsNotFoundException_WhenMemberDoesNotExist()
+    {
+        // Arrange
+        var id = Guid.NewGuid().ToString();
+        _memberRepositoryMock.Setup(x => x.GetAsync(id)).ReturnsAsync((Member)null);
+
+        // Act & Assert
+        await Should.ThrowAsync<NotFoundException>(async () =>
+            await _memberService.SetVerifiedLodestoneAsync(id, "12345678"));
+
+        _memberRepositoryMock.Verify(x => x.GetAsync(id), Times.Once());
+        _memberRepositoryMock.Verify(x => x.UpdateAsync(It.IsAny<string>(), It.IsAny<Member>()), Times.Never());
+    }
+
+    [Fact]
     public async Task GetByLodestoneId_ReturnsNull()
     {
         // Arrange

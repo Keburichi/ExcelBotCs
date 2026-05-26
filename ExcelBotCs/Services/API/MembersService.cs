@@ -100,6 +100,18 @@ public class MemberService : IMemberService
         return await _memberRepository.GetByLodestoneId(lodestoneId);
     }
 
+    public async Task SetVerifiedLodestoneAsync(string id, string lodestoneId)
+    {
+        var dbEntity = await _memberRepository.GetAsync(id);
+        if (dbEntity is null)
+            throw new NotFoundException();
+
+        dbEntity.LodestoneId = lodestoneId;
+        dbEntity.LodestoneVerificationToken = null;
+
+        await _memberRepository.UpdateAsync(id, dbEntity);
+    }
+
     /// <summary>
     /// Get all members that are members of the fc.
     /// </summary>
