@@ -46,6 +46,29 @@ public static class AuthenticationExtensions
             options.Scope.Add("identify");
             options.Scope.Add("guilds");
             options.Scope.Add("guilds.members.read");
+
+            options.Events.OnRemoteFailure = ctx =>
+            {
+                ctx.HandleResponse();
+
+                var logger = ctx.HttpContext.RequestServices
+                    .GetRequiredService<ILoggerFactory>()
+                    .CreateLogger("DiscordOAuth");
+
+                var errorCode = ctx.Request.Query["error"].ToString();
+                var errorDescription = ctx.Request.Query["error_description"].ToString();
+
+                if (string.Equals(errorCode, "access_denied", StringComparison.OrdinalIgnoreCase))
+                    logger.LogInformation("User cancelled Discord OAuth login");
+                else
+                    logger.LogWarning(ctx.Failure,
+                        "Discord OAuth remote failure. Error: {Error}, Description: {Description}",
+                        string.IsNullOrEmpty(errorCode) ? "none" : errorCode,
+                        string.IsNullOrEmpty(errorDescription) ? "none" : errorDescription);
+
+                ctx.Response.Redirect("/login");
+                return Task.CompletedTask;
+            };
         });
 
         auth.AddCookie(options =>
