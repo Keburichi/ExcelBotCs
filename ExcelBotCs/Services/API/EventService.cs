@@ -357,8 +357,22 @@ public class EventService : IEventService
 
         await _eventRepository.UpdateAsync(id, updatedEntity);
 
-        if (!updatedEntity.SignupPostId.IsNullOrEmpty())
+        // Check if the signup post has been made successfully
+        // if not, create it and update the entity
+        if (updatedEntity.SignupPostId.IsNullOrEmpty())
+        {
+            var message = await _discordMessageService.PostEventSignupAsync(updatedEntity);
+
+            if (message != null)
+            {
+                updatedEntity.SignupPostId = message.Id.ToString();
+                await _eventRepository.UpdateAsync(updatedEntity.Id, updatedEntity);
+            }
+        }
+        else
+        {
             await _discordMessageService.UpdateSignupMessage(updatedEntity);
+        }
     }
 
     public async Task DeleteAsync(string id)
