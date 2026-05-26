@@ -46,6 +46,11 @@ public class SignupModule : InteractionModuleBase<SocketInteractionContext>
         if (fcEvent != null && !string.IsNullOrEmpty(fcEvent.SignupPostId))
             await _discordMessageService.UpdateSignupMessage(fcEvent);
 
-        await FollowupAsync("Your signup has been received!", ephemeral: true);
+        // Check if the user is still signed-up for the event
+        // If no sign-ups exist anymore, update the message so that the user knows they are no longer signed-up
+        if (fcEvent.Signups.Any(x => x.DiscordUserId == Context.User.Id.ToString()))
+            await FollowupAsync("Your signup has been received!", ephemeral: true);
+        else
+            await FollowupAsync("You have been removed from the event.", ephemeral: true);
     }
 }

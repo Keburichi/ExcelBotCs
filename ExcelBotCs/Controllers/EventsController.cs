@@ -74,7 +74,8 @@ public class EventsController : AuthorizedController, IEventsController
         var newFcEvent = createEvent.ToFcEvent();
 
         newFcEvent.AuthorId = member.Id;
-        newFcEvent.Organizer = member.PlayerName;
+        if (string.IsNullOrWhiteSpace(newFcEvent.Organizer))
+            newFcEvent.Organizer = member.PlayerName;
 
         await _eventService.CreateAsync(newFcEvent);
         return CreatedAtAction(nameof(CreateEvent), new { id = newFcEvent.Id }, newFcEvent);

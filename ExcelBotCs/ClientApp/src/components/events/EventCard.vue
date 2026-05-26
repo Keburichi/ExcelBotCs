@@ -317,7 +317,9 @@ onMounted(async () => {
         <span v-if="nextOccurrence" class="event-card__participants">
           {{ getParticipantCount(fcEventValue) }}/{{ fcEventValue.RequiredParticipants || '∞' }} participants
         </span>
-        <span class="event-card__organizer">Organized by {{ fcEventValue.Organizer }}</span>
+        <span v-if="fcEventValue.Organizer" class="event-card__organizer">Organized by {{
+          fcEventValue.Organizer
+        }}</span>
       </div>
 
       <!-- Actions -->

@@ -259,7 +259,7 @@ const previewEvent = computed<FCEvent>(() => {
     AvailableForSignup: true,
     MaxNumberOfParticipants: form.RequiredParticipants,
     RequiredParticipants: form.RequiredParticipants,
-    SignupButtonConfigs: buttonMode.value !== 'standard' ? signupButtonConfigs.value : undefined,
+    SignupButtonConfigs: signupButtonConfigs.value.length > 0 ? signupButtonConfigs.value : undefined,
     Signups: [],
     Groups: [],
     Occurrences: [{
@@ -364,7 +364,10 @@ async function saveTemplate() {
   saving.value = true
   error.value = ''
   try {
-    form.SignupButtonConfigs = buttonMode.value !== 'standard' ? signupButtonConfigs.value : undefined
+    if (buttonMode.value === 'standard' || buttonMode.value === 'roles-helper') {
+      setButtonMode(buttonMode.value)
+    }
+    form.SignupButtonConfigs = signupButtonConfigs.value.length > 0 ? signupButtonConfigs.value : undefined
 
     if (editingId.value) {
       await EventTemplatesApi.update(editingId.value, { ...form })
