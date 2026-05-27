@@ -1,3 +1,4 @@
+using ExcelBotCs.Caching;
 using ExcelBotCs.Database.Interfaces;
 using ExcelBotCs.Models.Database;
 using ExcelBotCs.Services.API;
@@ -11,11 +12,17 @@ public class MemberRoleServiceTests
 {
     private readonly IMemberRoleService _memberRoleService;
     private readonly Mock<IMemberRoleRepository> _memberRoleRepositoryMock;
+    private readonly Mock<ICacheAccessor<MemberRole>> _cacheMock;
+    private readonly Mock<IEntityCacheService> _cacheServiceMock;
 
     public MemberRoleServiceTests()
     {
         _memberRoleRepositoryMock = new Mock<IMemberRoleRepository>();
-        _memberRoleService = new MemberRoleService(_memberRoleRepositoryMock.Object);
+        _cacheMock = new Mock<ICacheAccessor<MemberRole>>();
+        _cacheMock.Setup(x => x.GetAll()).Returns([]);
+        _cacheMock.Setup(x => x.IsPopulated).Returns(false);
+        _cacheServiceMock = new Mock<IEntityCacheService>();
+        _memberRoleService = new MemberRoleService(_memberRoleRepositoryMock.Object, _cacheMock.Object, _cacheServiceMock.Object);
     }
 
     [Fact]

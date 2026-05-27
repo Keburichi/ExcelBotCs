@@ -1,3 +1,4 @@
+using ExcelBotCs.Caching;
 using ExcelBotCs.Database.Interfaces;
 using ExcelBotCs.Exceptions;
 using ExcelBotCs.Models.Database;
@@ -12,11 +13,15 @@ public class MemberServiceTests
 {
     private readonly IMemberService _memberService;
     private readonly Mock<IMemberRepository> _memberRepositoryMock;
+    private readonly Mock<ICacheAccessor<Member>> _cacheMock;
 
     public MemberServiceTests()
     {
         _memberRepositoryMock = new Mock<IMemberRepository>();
-        _memberService = new MemberService(_memberRepositoryMock.Object);
+        _cacheMock = new Mock<ICacheAccessor<Member>>();
+        _cacheMock.Setup(x => x.GetAll()).Returns([]);
+        _cacheMock.Setup(x => x.IsPopulated).Returns(false);
+        _memberService = new MemberService(_memberRepositoryMock.Object, _cacheMock.Object);
     }
 
     [Fact]

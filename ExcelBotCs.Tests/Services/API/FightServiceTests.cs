@@ -1,3 +1,4 @@
+using ExcelBotCs.Caching;
 using ExcelBotCs.Database.Interfaces;
 using ExcelBotCs.Models.Database;
 using ExcelBotCs.Services.API;
@@ -11,11 +12,17 @@ public class FightServiceTests
 {
     private readonly IFightService _fightService;
     private readonly Mock<IFightRepository> _fightRepositoryMock;
+    private readonly Mock<ICacheAccessor<Fight>> _cacheMock;
+    private readonly Mock<IEntityCacheService> _cacheServiceMock;
 
     public FightServiceTests()
     {
         _fightRepositoryMock = new Mock<IFightRepository>();
-        _fightService = new FightService(_fightRepositoryMock.Object);
+        _cacheMock = new Mock<ICacheAccessor<Fight>>();
+        _cacheMock.Setup(x => x.GetAll()).Returns([]);
+        _cacheMock.Setup(x => x.IsPopulated).Returns(false);
+        _cacheServiceMock = new Mock<IEntityCacheService>();
+        _fightService = new FightService(_fightRepositoryMock.Object, _cacheMock.Object, _cacheServiceMock.Object);
     }
 
     [Fact]

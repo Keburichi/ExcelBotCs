@@ -3,6 +3,7 @@ using DotNetEnv;
 using ExcelBotCs.Authorization;
 using ExcelBotCs.Authorization.Handlers;
 using ExcelBotCs.Authorization.Requirements;
+using ExcelBotCs.Caching;
 using ExcelBotCs.Discord;
 using ExcelBotCs.Extensions;
 using ExcelBotCs.Filters;
@@ -171,10 +172,12 @@ public class Program
 
         // register all custom services, repositories and mappers
         builder.Services.AddDatabaseRepositories();
+        builder.Services.AddCaching(builder.Configuration);
         builder.Services.AddApiServices();
         builder.Services.AddDomainServices();
         builder.Services.AddDiscordClient();
         builder.Services.AddFFLogsServices();
+        AddHostedService<CacheFreshnessService>();
         AddHostedService<WorkerService>();
 
         // configure the serialization settings to remove sensitive data

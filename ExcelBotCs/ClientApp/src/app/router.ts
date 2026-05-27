@@ -3,6 +3,7 @@ import { createRouter, createWebHistory } from 'vue-router'
 import ButtonShowcaseView from '@/app/ButtonShowcaseView.vue'
 import HomeView from '@/app/HomeView.vue'
 import AdminLayout from '@/components/adminPanel/AdminLayout.vue'
+import CacheView from '@/components/adminPanel/CacheView.vue'
 import DevResourcesView from '@/components/adminPanel/DevResourcesView.vue'
 import MemberRolesView from '@/components/adminPanel/MemberRolesView.vue'
 import EventTemplatesView from '@/components/adminPanel/EventTemplatesView.vue'
@@ -72,6 +73,7 @@ const routes: RouteRecordRaw[] = [
       { path: 'statistics', name: 'admin-statistics', component: StatisticsView },
       { path: 'templates', name: 'admin-templates', component: EventTemplatesView },
       { path: 'settings', name: 'admin-settings', component: SettingsView },
+      { path: 'cache', name: 'admin-cache', component: CacheView },
       { path: 'dev-resources', name: 'admin-dev-resources', component: DevResourcesView },
     ],
   },

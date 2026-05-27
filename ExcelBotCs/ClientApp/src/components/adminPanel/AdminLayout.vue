@@ -16,6 +16,7 @@ const tabs = computed<Tab[]>(() => {
   ]
 
   if (isDeveloper?.value) {
+    base.push({ name: 'Cache', path: '/admin/cache' })
     base.push({ name: 'Dev Resources', path: '/admin/dev-resources' })
   }
 

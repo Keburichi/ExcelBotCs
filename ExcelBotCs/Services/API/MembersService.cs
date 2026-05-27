@@ -1,3 +1,4 @@
+using ExcelBotCs.Caching;
 using ExcelBotCs.Database.Interfaces;
 using ExcelBotCs.Exceptions;
 using ExcelBotCs.Models.Database;
@@ -9,54 +10,57 @@ namespace ExcelBotCs.Services.API;
 public class MemberService : IMemberService
 {
     private readonly IMemberRepository _memberRepository;
+    private readonly ICacheAccessor<Member> _cache;
 
-    public MemberService(IMemberRepository memberRepository)
+    public MemberService(IMemberRepository memberRepository, ICacheAccessor<Member> cache)
     {
         _memberRepository = memberRepository;
+        _cache = cache;
     }
 
     public async Task<List<Member>> GetAsync()
     {
+        var cached = _cache.GetAll();
+        if (cached.Count > 0)
+            return cached.OrderBy(x => x.DiscordName).ToList();
+
         var members = await _memberRepository.GetAsync();
         return members is null ? null : members.OrderBy(x => x.DiscordName).ToList();
     }
 
     public async Task<Member?> GetAsync(string id)
     {
-        return await _memberRepository.GetAsync(id);
+        return _cache.GetById(id) ?? await _memberRepository.GetAsync(id);
     }
 
     public async Task CreateAsync(Member member)
     {
         await _memberRepository.CreateAsync(member);
+        _cache.Update(member);
     }
 
     public async Task UpdateAsync(string id, Member updatedMember)
     {
-        // Load the current DB state
         var dbEntity = await _memberRepository.GetAsync(id);
         if (dbEntity is null)
             throw new NotFoundException();
 
-        // Update all properties
         updatedMember.DateCreated = dbEntity.DateCreated;
         updatedMember.ExperienceIds = dbEntity.ExperienceIds;
-
-        // Enforce: LodestoneId can only be set/changed via the verification flow
-        // Prevent any modifications to LodestoneId through generic PUT updates
         updatedMember.LodestoneId = dbEntity.LodestoneId;
 
         await _memberRepository.UpdateAsync(id, updatedMember);
+        _cache.Update(updatedMember);
     }
 
     public async Task DeleteAsync(string id)
     {
         await _memberRepository.DeleteAsync(id);
+        _cache.Remove(id);
     }
 
     public async Task UpdateDiscordRoles(string id, List<string> roleIds)
     {
-        // Load the current DB state
         var dbEntity = await _memberRepository.GetAsync(id);
         if (dbEntity is null)
             throw new NotFoundException();
@@ -64,11 +68,11 @@ public class MemberService : IMemberService
         dbEntity.RoleIds = roleIds;
 
         await _memberRepository.UpdateAsync(id, dbEntity);
+        _cache.Update(dbEntity);
     }
 
     public async Task UpdateMemberProfileAsync(string id, UpdateMemberRequest request)
     {
-        // Load the current DB state
         var dbEntity = await _memberRepository.GetAsync(id);
         if (dbEntity is null)
             throw new NotFoundException();
@@ -78,10 +82,18 @@ public class MemberService : IMemberService
         dbEntity.LodestoneId = request.LodestoneId;
 
         await _memberRepository.UpdateAsync(id, dbEntity);
+        _cache.Update(dbEntity);
     }
 
     public async Task<Member> GetByDiscordId(string discordId)
     {
+        if (_cache.IsPopulated)
+        {
+            var cached = _cache.GetAll()
+                .FirstOrDefault(m => m.DiscordId == discordId);
+            if (cached != null) return cached;
+        }
+
         return await _memberRepository.GetByDiscordId(discordId);
     }
 
@@ -97,6 +109,13 @@ public class MemberService : IMemberService
 
     public async Task<Member> GetByLodestoneId(string lodestoneId)
     {
+        if (_cache.IsPopulated)
+        {
+            var cached = _cache.GetAll()
+                .FirstOrDefault(m => m.LodestoneId == lodestoneId);
+            if (cached != null) return cached;
+        }
+
         return await _memberRepository.GetByLodestoneId(lodestoneId);
     }
 
@@ -110,11 +129,9 @@ public class MemberService : IMemberService
         dbEntity.LodestoneVerificationToken = null;
 
         await _memberRepository.UpdateAsync(id, dbEntity);
+        _cache.Update(dbEntity);
     }
 
-    /// <summary>
-    /// Get all members that are members of the fc.
-    /// </summary>
     public async Task<List<Member>> GetFcMembers()
     {
         var allMembers = await GetAsync();

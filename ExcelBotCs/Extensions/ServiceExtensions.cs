@@ -1,12 +1,17 @@
 ﻿using Discord;
 using Discord.WebSocket;
+using ExcelBotCs.Caching;
 using ExcelBotCs.Database;
 using ExcelBotCs.Database.Interfaces;
 using ExcelBotCs.Discord;
+using ExcelBotCs.Models.Config;
+using ExcelBotCs.Models.Database;
 using ExcelBotCs.Services;
 using ExcelBotCs.Services.API;
 using ExcelBotCs.Services.API.Interfaces;
 using ExcelBotCs.Services.FFLogs;
+using Microsoft.Extensions.Options;
+using StackExchange.Redis;
 
 namespace ExcelBotCs.Extensions;
 
@@ -77,4 +82,32 @@ public static class ServiceExtensions
         services.AddSingleton<FFLogsSyncService>();
     }
 
+    public static void AddCaching(this IServiceCollection services, IConfiguration configuration)
+    {
+        var cacheOptions = configuration.GetSection("Cache").Get<CacheOptions>() ?? new CacheOptions();
+
+        if (cacheOptions.Provider == "Redis" && !string.IsNullOrEmpty(cacheOptions.RedisConnectionString))
+        {
+            services.AddSingleton<IConnectionMultiplexer>(
+                ConnectionMultiplexer.Connect(cacheOptions.RedisConnectionString));
+
+            services.AddSingleton<IEntityCacheStore<Boss>, RedisEntityCacheStore<Boss>>();
+            services.AddSingleton<IEntityCacheStore<Fight>, RedisEntityCacheStore<Fight>>();
+            services.AddSingleton<IEntityCacheStore<Member>, RedisEntityCacheStore<Member>>();
+            services.AddSingleton<IEntityCacheStore<MemberRole>, RedisEntityCacheStore<MemberRole>>();
+        }
+        else
+        {
+            services.AddSingleton<IEntityCacheStore<Boss>, InMemoryEntityCacheStore<Boss>>();
+            services.AddSingleton<IEntityCacheStore<Fight>, InMemoryEntityCacheStore<Fight>>();
+            services.AddSingleton<IEntityCacheStore<Member>, InMemoryEntityCacheStore<Member>>();
+            services.AddSingleton<IEntityCacheStore<MemberRole>, InMemoryEntityCacheStore<MemberRole>>();
+        }
+
+        services.AddSingleton<ICacheAccessor<Boss>, CacheAccessor<Boss>>();
+        services.AddSingleton<ICacheAccessor<Fight>, CacheAccessor<Fight>>();
+        services.AddSingleton<ICacheAccessor<Member>, CacheAccessor<Member>>();
+        services.AddSingleton<ICacheAccessor<MemberRole>, CacheAccessor<MemberRole>>();
+        services.AddSingleton<IEntityCacheService, EntityCacheService>();
+    }
 }
