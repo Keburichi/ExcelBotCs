@@ -76,11 +76,6 @@ function handleCellClick(num: number) {
   emit('guess', num)
 }
 
-function handleChipClick(num: number) {
-  inputError.value = ''
-  emit('select', num)
-}
-
 function getCellState(num: number): 'mine' | 'mine-selected' | 'taken' | 'available' {
   if (num === props.selectedNumber) return 'mine-selected'
   if (isMyGuess(num)) return 'mine'
@@ -127,25 +122,10 @@ const inputPlaceholder = computed(() => {
       <p v-if="inputError" class="input-error">{{ inputError }}</p>
     </div>
 
-    <div v-if="myGuesses.length > 0" class="my-guesses">
-      <span class="my-guesses-label">Your guesses</span>
-      <div class="guess-chips">
-        <button
-          v-for="num in myGuesses"
-          :key="num"
-          type="button"
-          class="guess-chip"
-          :class="{ 'guess-chip--active': num === selectedNumber }"
-          @click="handleChipClick(num)"
-        >
-          {{ num }}
-        </button>
-      </div>
-      <p v-if="selectedNumber !== null" class="reassign-hint">
-        Type a new number above or click one on the map to reassign #{{ selectedNumber }}.
-        <button type="button" class="cancel-link" @click="$emit('select', selectedNumber!)">Cancel</button>
-      </p>
-    </div>
+    <p v-if="selectedNumber !== null" class="reassign-hint">
+      Reassigning #{{ selectedNumber }}. Pick a new number above or on the grid.
+      <button type="button" class="cancel-link" @click="$emit('select', selectedNumber!)">Cancel</button>
+    </p>
 
     <div class="map">
       <div
@@ -241,60 +221,6 @@ const inputPlaceholder = computed(() => {
   margin: 0;
   font-size: 0.8rem;
   color: var(--danger);
-}
-
-/* My guesses chips */
-.my-guesses {
-  display: flex;
-  flex-direction: column;
-  gap: 0.375rem;
-}
-
-.my-guesses-label {
-  font-size: 0.8rem;
-  font-weight: 600;
-  color: var(--muted);
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
-}
-
-.guess-chips {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.375rem;
-}
-
-.guess-chip {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  min-width: 2.25rem;
-  height: 2rem;
-  padding: 0 0.5rem;
-  border-radius: 8px;
-  font-size: 0.85rem;
-  font-weight: 600;
-  font-variant-numeric: tabular-nums;
-  cursor: pointer;
-  border: 2px solid var(--lot-mine-border);
-  background: var(--lot-mine);
-  color: var(--bg);
-  transition: border-color 200ms ease, box-shadow 200ms ease;
-}
-
-.guess-chip:hover {
-  box-shadow: 0 0 0 2px color-mix(in oklab, var(--lot-mine) 40%, transparent);
-}
-
-.guess-chip--active {
-  border-color: var(--lot-selected-border);
-  background: var(--lot-selected);
-  box-shadow: 0 0 0 3px color-mix(in oklab, var(--lot-selected) 40%, transparent);
-}
-
-.guess-chip:focus-visible {
-  outline: none;
-  box-shadow: 0 0 0 3px var(--ring);
 }
 
 .reassign-hint {
