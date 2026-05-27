@@ -885,10 +885,71 @@ tr:hover td {
     transform: translateX(-50%) translateY(-4px);
 }
 
+/* Tooltip below variant — for elements near viewport top (e.g. header) */
+[data-tooltip-below] {
+    position: relative;
+    cursor: pointer;
+}
+
+[data-tooltip-below]::before {
+    content: attr(data-tooltip-below);
+    position: absolute;
+    top: calc(100% + 8px);
+    bottom: auto;
+    left: 50%;
+    transform: translateX(-50%);
+    padding: 8px 12px;
+    background: var(--card);
+    color: var(--fg);
+    border: 1px solid var(--card-border);
+    border-radius: 12px;
+    font-size: 13px;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.2s ease, transform 0.2s ease;
+    box-shadow: var(--elev);
+    z-index: 1001;
+    width: max-content;
+    min-width: 16ch;
+    max-width: 42ch;
+    white-space: normal;
+    overflow-wrap: break-word;
+    text-align: left;
+    box-sizing: border-box;
+    line-height: 1.4;
+}
+
+[data-tooltip-below]::after {
+    content: '';
+    position: absolute;
+    top: calc(100% + 2px);
+    bottom: auto;
+    left: 50%;
+    transform: translateX(-50%);
+    border: 6px solid transparent;
+    border-bottom-color: var(--card-border);
+    border-top-color: transparent;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.2s ease;
+    z-index: 1001;
+}
+
+[data-tooltip-below]:hover::before,
+[data-tooltip-below]:hover::after {
+    opacity: 1;
+}
+
+[data-tooltip-below]:hover::before {
+    transform: translateX(-50%) translateY(4px);
+}
+
 /* Respect prefers-reduced-motion for tooltips */
 @media (prefers-reduced-motion: reduce) {
     [data-tooltip]::before,
-    [data-tooltip]::after {
+    [data-tooltip]::after,
+    [data-tooltip-below]::before,
+    [data-tooltip-below]::after {
         transition: none !important;
     }
 }

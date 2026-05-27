@@ -13,6 +13,7 @@ const { isDark, toggleTheme } = useTheme()
     rounded
     size="small"
     state="secondary"
+    tooltip-position="below"
     variant="outlined"
     @clicked="toggleTheme"
   >

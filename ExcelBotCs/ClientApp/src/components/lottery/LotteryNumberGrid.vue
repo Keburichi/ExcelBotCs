@@ -200,6 +200,7 @@ const inputPlaceholder = computed(() => {
   flex: 1;
   min-width: 0;
   font-size: 0.95rem;
+  font-variant-numeric: tabular-nums;
   -moz-appearance: textfield;
 }
 
@@ -273,6 +274,7 @@ const inputPlaceholder = computed(() => {
   border-radius: 8px;
   font-size: 0.85rem;
   font-weight: 600;
+  font-variant-numeric: tabular-nums;
   cursor: pointer;
   border: 2px solid var(--lot-mine-border);
   background: var(--lot-mine);
@@ -318,8 +320,8 @@ const inputPlaceholder = computed(() => {
 
 /* Number map */
 .map {
-  display: flex;
-  flex-wrap: wrap;
+  display: grid;
+  grid-template-columns: repeat(11, 2rem);
   gap: 3px;
 }
 
@@ -331,6 +333,7 @@ const inputPlaceholder = computed(() => {
   justify-content: center;
   font-size: 0.7rem;
   font-weight: 600;
+  font-variant-numeric: tabular-nums;
   border-radius: 4px;
   cursor: pointer;
   transition: transform 150ms ease, box-shadow 150ms ease;
@@ -414,5 +417,11 @@ const inputPlaceholder = computed(() => {
 
 .legend-dot--taken {
   background: var(--lot-taken);
+}
+
+@media (max-width: 420px) {
+  .map {
+    grid-template-columns: repeat(9, 2rem);
+  }
 }
 </style>
