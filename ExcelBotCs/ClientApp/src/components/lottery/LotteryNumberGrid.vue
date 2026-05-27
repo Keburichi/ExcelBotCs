@@ -321,20 +321,19 @@ const inputPlaceholder = computed(() => {
 /* Number map */
 .map {
   display: grid;
-  grid-template-columns: repeat(11, 2rem);
-  gap: 3px;
+  grid-template-columns: repeat(11, 1fr);
+  gap: 4px;
 }
 
 .cell {
-  width: 2rem;
-  height: 2rem;
+  aspect-ratio: 1;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 0.7rem;
+  font-size: 0.8rem;
   font-weight: 600;
   font-variant-numeric: tabular-nums;
-  border-radius: 4px;
+  border-radius: 6px;
   cursor: pointer;
   transition: transform 150ms ease, box-shadow 150ms ease;
   user-select: none;
@@ -421,7 +420,7 @@ const inputPlaceholder = computed(() => {
 
 @media (max-width: 420px) {
   .map {
-    grid-template-columns: repeat(9, 2rem);
+    grid-template-columns: repeat(9, 1fr);
   }
 }
 </style>
