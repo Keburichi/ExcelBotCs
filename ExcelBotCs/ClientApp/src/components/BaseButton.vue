@@ -11,6 +11,7 @@ const props = withDefaults(defineProps<{
   variant?: 'elevated' | 'outlined' | 'text'
   clickable?: boolean
   tooltip?: string
+  tooltipPosition?: 'above' | 'below'
   iconOnly?: boolean
   rounded?: boolean
 }>(), {
@@ -21,6 +22,7 @@ const props = withDefaults(defineProps<{
   variant: 'elevated',
   clickable: true,
   size: 'medium',
+  tooltipPosition: 'above',
   iconOnly: false,
   rounded: false,
 })
@@ -46,7 +48,8 @@ const buttonClasses = computed(() => [
   <button
     :aria-label="props.iconOnly ? (props.tooltip || props.title) : undefined"
     :class="buttonClasses"
-    :data-tooltip="props.tooltip"
+    :data-tooltip="props.tooltip && props.tooltipPosition === 'above' ? props.tooltip : undefined"
+    :data-tooltip-below="props.tooltip && props.tooltipPosition === 'below' ? props.tooltip : undefined"
     :disabled="disabled"
     type="button"
     @click="emit('clicked')"

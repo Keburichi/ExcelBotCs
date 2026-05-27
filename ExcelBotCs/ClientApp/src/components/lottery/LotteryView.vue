@@ -47,7 +47,11 @@ function handleSelect(num: number) {
               :key="i"
               class="pip"
               :class="i <= lottery.usedGuesses.value ? 'pip--used' : 'pip--available'"
-            />
+            >
+              <span v-if="i <= lottery.myGuesses.value.length" class="pip-number">
+                {{ lottery.myGuesses.value[i - 1] }}
+              </span>
+            </span>
           </span>
           <span v-if="remainingGuesses > 0" class="status-count">
             {{ remainingGuesses }} of {{ lottery.totalGuesses.value }} remaining
@@ -164,10 +168,13 @@ function handleSelect(num: number) {
 }
 
 .pip {
-  width: 1.25rem;
-  height: 1.25rem;
+  width: 1.5rem;
+  height: 1.5rem;
   border-radius: 6px;
   transition: background 200ms ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .pip--available {
@@ -176,6 +183,14 @@ function handleSelect(num: number) {
 
 .pip--used {
   background: var(--border);
+}
+
+.pip-number {
+  font-size: 0.65rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  color: var(--muted);
+  line-height: 1;
 }
 
 .status-count {

@@ -63,6 +63,7 @@ defineProps<{
 
 .guess-num {
   font-weight: 600;
+  font-variant-numeric: tabular-nums;
   color: var(--link);
   min-width: 2rem;
   text-align: right;
