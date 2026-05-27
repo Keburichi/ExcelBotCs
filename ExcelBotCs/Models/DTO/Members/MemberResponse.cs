@@ -12,7 +12,7 @@ public class MemberResponse : BaseDto
 
     public string? PlayerName { get; set; }
 
-    [RequiresAdminRole] public bool? Subbed { get; set; }
+    [RequiresMemberRole] public bool? Subbed { get; set; }
 
     [RequiresMemberRole] public string? LodestoneId { get; set; }
 
