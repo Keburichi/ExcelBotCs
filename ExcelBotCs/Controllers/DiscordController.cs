@@ -87,7 +87,9 @@ public class DiscordController : ControllerBase
             });
         }
 
-        await _importService.ImportMembers(_discordBotOptions.Value.GuildId);
+        // only import the member if there are no roles assigned yet
+        if (member is null || member.Roles.Count == 0)
+            await _importService.ImportMembers(_discordBotOptions.Value.GuildId);
 
         // Redirect to SPA home where the cookie will authorize API calls
         return Results.Redirect("/");
