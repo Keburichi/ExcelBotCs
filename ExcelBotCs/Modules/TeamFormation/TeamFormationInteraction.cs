@@ -124,8 +124,7 @@ public class TeamFormationInteraction : InteractionModuleBase<SocketInteractionC
                         signupsMessage +=
                             $"{eventDetailsSignupButtonConfig.Label} ({signups.Count()}): {signupMentions.PrettyJoin()}";
                     }
-
-                    await Context.Channel.SendMessageAsync($"Total unique reactions: {uniqueSignups}");
+                    
                     await Context.Channel.SendMessageAsync(signupsMessage);
                 }
                 else
@@ -153,6 +152,7 @@ public class TeamFormationInteraction : InteractionModuleBase<SocketInteractionC
                         await Context.Channel.SendMessageAsync(reaction, allowedMentions: AllowedMentions.None);
                 }
 
+                await FollowupAsync("Done!", ephemeral: true);
                 break;
         }
     }
