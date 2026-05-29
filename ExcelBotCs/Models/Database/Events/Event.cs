@@ -42,7 +42,7 @@ public class Event : BaseEntity
     public int RequiredParticipants { get; set; }
 
     // Signup button configuration (null = legacy 5-role buttons)
-    public List<SignupButtonConfig>? SignupButtonConfigs { get; set; }
+    public List<SignupButtonConfig> SignupButtonConfigs { get; set; } = new();
 
     // Occurrences - always has at least one
     public List<EventOccurrence> Occurrences { get; set; } = new();

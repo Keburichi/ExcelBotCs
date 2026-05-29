@@ -6,6 +6,7 @@ using ExcelBotCs.Database.Interfaces;
 using ExcelBotCs.Discord;
 using ExcelBotCs.Extensions;
 using ExcelBotCs.Models.Config;
+using ExcelBotCs.Services.API.Interfaces;
 using Microsoft.Extensions.Options;
 
 namespace ExcelBotCs.Modules.TeamFormation;
@@ -15,14 +16,17 @@ public class TeamFormationInteraction : InteractionModuleBase<SocketInteractionC
 {
     private readonly IEventDetailsRepository _eventDetails;
     private readonly IDiscordBotClient _discordClient;
+    private readonly IEventService _eventService;
     private readonly DiscordBotOptions _discordBotOptions;
     private readonly string _rootUrl;
 
     public TeamFormationInteraction(Prng rng, IEventDetailsRepository eventDetailsRepository,
-        IDiscordBotClient discordClient, IOptions<DiscordBotOptions> discordBotOptions)
+        IDiscordBotClient discordClient, IOptions<DiscordBotOptions> discordBotOptions, IEventService eventService)
     {
         _eventDetails = eventDetailsRepository;
         _discordClient = discordClient;
+        _eventService = eventService;
+
         _discordBotOptions = discordBotOptions.Value;
         _rootUrl = Utils.GetEnvVar("EVENT_ENDPOINT_URL", nameof(TeamFormationInteraction));
     }
@@ -84,28 +88,69 @@ public class TeamFormationInteraction : InteractionModuleBase<SocketInteractionC
                 break;
 
             case SuccessMessageResponse msg:
-                var useEmoji = ExtractEmotes(checkEmoji ?? string.Empty).ToList();
-                var emotes = useEmoji.Any()
-                    ? msg.Message.Reactions.Keys.Where(useEmoji.Contains)
-                    : msg.Message.Reactions.Keys;
-                var group = await GetSignupsFromMessage(emotes, msg.Message);
-                var allSignups = group.Values.SelectMany(list => list.Select(id => id)).ToList();
-
-                string GenerateInlineText(IEmote emote, HashSet<ulong> ids)
+                // get the message id and check if we have any event that corresponds to it
+                var messageId = msg.Message.Id;
+                var eventDetails = await _eventService.GetAsync().ContinueWith(x =>
+                    x.Result.FirstOrDefault(e => e.SignupPostId == messageId.ToString()));
+                if (eventDetails != null)
                 {
-                    return
-                        $"{ToDisplay(emote)} ({ids.Count}): {ids.Select(id => allSignups.Count(signupId => signupId == id) == 1 ? $"⭐<@{id}>" : $"<@{id}>").ToList().PrettyJoin()}\n";
+                    var uniqueSignups = eventDetails.Signups.Select(x => x.DiscordUserId).Distinct().Count();
+                    await Context.Channel.SendMessageAsync($"Event found: {eventDetails.Name}");
+                    await Context.Channel.SendMessageAsync($"Total unique signups: {uniqueSignups}");
+
+                    var signupsMessage = "";
+
+                    foreach (var eventDetailsSignupButtonConfig in eventDetails.SignupButtonConfigs)
+                    {
+                        // Check if signup config has an emoji
+                        // If there is one, show it, otherwise use the label of the button
+                        var signups = eventDetails.Signups.Where(x =>
+                            x.SignupSlugs.Contains(eventDetailsSignupButtonConfig.Slug));
+
+                        var signupMentions = signups.Select(x => x.DiscordUserId)
+                            .Select(signupUserId => $"<@{signupUserId}> ").ToList();
+
+                        Emote? emote = null;
+                        if (!string.IsNullOrWhiteSpace(eventDetailsSignupButtonConfig.EmojiId))
+                        {
+                            emote = _discordClient.GetEmoteById(ulong.Parse(eventDetailsSignupButtonConfig.EmojiId));
+                            if (emote != null)
+                            {
+                                signupsMessage += $"{emote} ({signups.Count()}): {signupMentions.PrettyJoin()}";
+                                continue;
+                            }
+                        }
+
+                        signupsMessage +=
+                            $"{eventDetailsSignupButtonConfig.Label} ({signups.Count()}): {signupMentions.PrettyJoin()}";
+                    }
+
+                    await Context.Channel.SendMessageAsync($"Total unique reactions: {uniqueSignups}");
+                    await Context.Channel.SendMessageAsync(signupsMessage);
                 }
-
-                await FollowupAsync($"### Reactions from {postUrl}");
-                await Context.Channel.SendMessageAsync($"Total unique reactions: {allSignups.Distinct().Count()}");
-                if (useEmoji.Any())
-                    await Context.Channel.SendMessageAsync(
-                        $"Checking specified emotes: {string.Join(string.Empty, emotes.Select(ToDisplay) ?? [])}");
-
-                foreach (var reaction in group.Select(kvp => GenerateInlineText(kvp.Key, kvp.Value)))
+                else
                 {
-                    await Context.Channel.SendMessageAsync(reaction, allowedMentions: AllowedMentions.None);
+                    var useEmoji = ExtractEmotes(checkEmoji ?? string.Empty).ToList();
+                    var emotes = useEmoji.Any()
+                        ? msg.Message.Reactions.Keys.Where(useEmoji.Contains)
+                        : msg.Message.Reactions.Keys;
+                    var group = await GetSignupsFromMessage(emotes, msg.Message);
+                    var allSignups = group.Values.SelectMany(list => list.Select(id => id)).ToList();
+
+                    string GenerateInlineText(IEmote emote, HashSet<ulong> ids)
+                    {
+                        return
+                            $"{ToDisplay(emote)} ({ids.Count}): {ids.Select(id => allSignups.Count(signupId => signupId == id) == 1 ? $"⭐<@{id}>" : $"<@{id}>").ToList().PrettyJoin()}\n";
+                    }
+
+                    await FollowupAsync($"### Reactions from {postUrl}");
+                    await Context.Channel.SendMessageAsync($"Total unique reactions: {allSignups.Distinct().Count()}");
+                    if (useEmoji.Any())
+                        await Context.Channel.SendMessageAsync(
+                            $"Checking specified emotes: {string.Join(string.Empty, emotes.Select(ToDisplay) ?? [])}");
+
+                    foreach (var reaction in group.Select(kvp => GenerateInlineText(kvp.Key, kvp.Value)))
+                        await Context.Channel.SendMessageAsync(reaction, allowedMentions: AllowedMentions.None);
                 }
 
                 break;

@@ -1,9 +1,10 @@
 {
   "$schema": "https://docs.renovatebot.com/renovate-schema.json",
   "extends": [
-    "config:recommended"
+    "config:recommended",
+    "mergeConfidence:all"
   ],
-  "schedule": ["before 6am on monday"],
+  "schedule": ["before 6am", "after 3pm before 7pm"],
   "prConcurrentLimit": 5,
   "platformAutomerge": true,
   "ignorePaths": [
@@ -11,9 +12,10 @@
   ],
   "packageRules": [
     {
-      "description": "Auto-merge NuGet patch and minor updates when CI passes",
+      "description": "Auto-merge NuGet patch and minor updates when CI passes and confidence is high",
       "matchManagers": ["nuget"],
       "matchUpdateTypes": ["patch", "minor"],
+      "matchConfidence": ["high", "very high"],
       "automerge": true,
       "automergeType": "pr"
     },
@@ -36,15 +38,17 @@
       "groupName": "Testcontainers packages"
     },
     {
-      "description": "Auto-merge npm patch updates",
+      "description": "Auto-merge npm patch updates when confidence is high",
       "matchManagers": ["npm"],
       "matchUpdateTypes": ["patch"],
+      "matchConfidence": ["high", "very high"],
       "automerge": true,
       "automergeType": "pr"
     },
     {
-      "description": "Auto-merge GitHub Actions updates",
+      "description": "Auto-merge GitHub Actions updates when confidence is high",
       "matchManagers": ["github-actions"],
+      "matchConfidence": ["high", "very high"],
       "automerge": true,
       "automergeType": "pr"
     }
