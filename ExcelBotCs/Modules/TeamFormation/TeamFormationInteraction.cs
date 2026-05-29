@@ -110,10 +110,10 @@ public class TeamFormationInteraction : InteractionModuleBase<SocketInteractionC
                         var signupMentions = signups.Select(x => x.DiscordUserId)
                             .Select(signupUserId => $"<@{signupUserId}> ").ToList();
 
-                        Emote? emote = null;
                         if (!string.IsNullOrWhiteSpace(eventDetailsSignupButtonConfig.EmojiId))
                         {
-                            emote = _discordClient.GetEmoteById(ulong.Parse(eventDetailsSignupButtonConfig.EmojiId));
+                            var emote = _discordClient.GetEmoteById(
+                                ulong.Parse(eventDetailsSignupButtonConfig.EmojiId));
                             if (emote != null)
                             {
                                 signupsMessage += $"{emote} ({signups.Count()}): {signupMentions.PrettyJoin()}";
@@ -122,7 +122,7 @@ public class TeamFormationInteraction : InteractionModuleBase<SocketInteractionC
                         }
 
                         signupsMessage +=
-                            $"{eventDetailsSignupButtonConfig.Label} ({signups.Count()}): {signupMentions.PrettyJoin()}";
+                            $"{eventDetailsSignupButtonConfig.Label} ({signups.Count()}): {signupMentions.PrettyJoin()}{Environment.NewLine}";
                     }
                     
                     await Context.Channel.SendMessageAsync(signupsMessage);
