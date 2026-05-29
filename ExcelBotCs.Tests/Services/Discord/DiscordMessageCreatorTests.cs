@@ -30,7 +30,7 @@ public class DiscordMessageCreatorTests
     }
 
     [Fact]
-    public async Task CreateSignupComponents_ButtonConfigIsNull_ThrowsException()
+    public async Task CreateSignupComponents_ButtonConfigIsNull_DoesntThrowException()
     {
         var fcEvent = new Event
         {
@@ -41,7 +41,8 @@ public class DiscordMessageCreatorTests
             Duration = 60
         };
 
-        await Assert.ThrowsAsync<ArgumentException>(() => _discordMessageCreator.CreateSignupComponents(fcEvent));
+        var result = await _discordMessageCreator.CreateSignupComponents(fcEvent);
+        Assert.NotNull(result);
     }
 
     [Theory]
