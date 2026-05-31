@@ -17,3 +17,21 @@ export interface AwardUsersRequest {
   Reason: string
   UserNames: string[] // Discord usernames
 }
+
+export interface BonusLotteryEntry {
+  DiscordId: number
+  DiscordName: string
+  Reason: string
+}
+
+export interface BonusLotteryDrawResponse {
+  HasWinner: boolean
+  Winner: BonusLotteryEntry | null
+  AllEntries: BonusLotteryEntry[]
+  Prize: string
+  WinnerIndex: number
+}
+
+export interface BonusLotteryRequest {
+  Prize: string
+}

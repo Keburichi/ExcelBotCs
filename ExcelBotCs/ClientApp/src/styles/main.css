@@ -88,6 +88,9 @@ ol, ul { list-style: none; margin: 0; padding: 0; }
     --lot-taken: oklch(0.62 0.16 25);
     --lot-taken-border: oklch(0.52 0.18 25);
 
+    /* Bonus lottery wheel */
+    --wheel-pointer: #e63946;
+
     /* Experience tag fills (saturated, white-on-color) */
     --exp-extreme: oklch(0.60 0.16 165);
     --exp-extreme-border: oklch(0.50 0.18 165);

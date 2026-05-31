@@ -1,3 +1,4 @@
+using ExcelBotCs.Modules.Lottery;
 using ExcelBotCs.Services.Lottery.Enums;
 using ExcelBotCs.Services.Lottery.Records;
 
@@ -22,4 +23,7 @@ public interface ILotteryService
     Task RemindAsync(ulong discordUserId);
     Task<IAwardResponse> TryAwardUsersAsync(string reason, List<ulong> userIds);
     Task AwardUsersAsync(SuccessAwardResponse success);
+
+    Task<BonusLotteryDrawResponse> RunBonusLotteryAsync(ulong discordUserId, string prize);
+    Task<List<BonusLotteryEntry>> GetBonusLotteryEntriesAsync();
 }

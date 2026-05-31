@@ -1,4 +1,4 @@
-import type { AwardUsersRequest, ChangeGuessRequest, GuessInfo } from './lottery.types'
+import type { AwardUsersRequest, BonusLotteryDrawResponse, BonusLotteryEntry, BonusLotteryRequest, ChangeGuessRequest, GuessInfo } from './lottery.types'
 import { MembersApi } from '@/features/members/members.api'
 import { http } from '@/services/http'
 
@@ -47,4 +47,11 @@ export const LotteryApi = {
       method: 'POST',
       body: JSON.stringify({ Reason: reason, UserNames: userNames } as AwardUsersRequest),
     }),
+  runBonusLottery: (prize: string) =>
+    http<BonusLotteryDrawResponse>('/api/lottery/bonus-lottery', {
+      method: 'POST',
+      body: JSON.stringify({ Prize: prize } as BonusLotteryRequest),
+    }),
+  getBonusLotteryEntries: () =>
+    http<BonusLotteryEntry[]>('/api/lottery/bonus-lottery/entries'),
 }

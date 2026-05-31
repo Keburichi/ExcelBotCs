@@ -1,3 +1,4 @@
+using ExcelBotCs.Modules.Lottery;
 using ExcelBotCs.Services.Lottery.Interfaces;
 
 namespace ExcelBotCs.Services.Lottery.Records;
@@ -55,5 +56,17 @@ public record WhoGuessedResponse(int Number, List<LotteryUser> Users);
 #region Unused Numbers Response
 
 public record UnusedNumbersResponse(List<int> UsedNumbers, List<int> UnusedNumbers);
+
+#endregion
+
+#region Bonus Lottery Responses
+
+public record BonusLotteryDrawResponse(
+    bool HasWinner,
+    BonusLotteryEntry? Winner,
+    List<BonusLotteryEntry> AllEntries,
+    string Prize,
+    int WinnerIndex
+);
 
 #endregion

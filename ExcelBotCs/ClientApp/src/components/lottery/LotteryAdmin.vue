@@ -1,7 +1,9 @@
 <script lang="ts" setup>
 import { computed, onMounted, ref } from 'vue'
 import BaseButton from '@/components/BaseButton.vue'
+import BonusLotteryModal from './BonusLotteryModal.vue'
 import { LotteryApi } from '@/features/lottery/lottery.api'
+import type { BonusLotteryDrawResponse } from '@/features/lottery/lottery.types'
 
 const emit = defineEmits<{
   refresh: []
@@ -15,6 +17,11 @@ const awardUserInput = ref('')
 const selectedUsers = ref<string[]>([])
 const fcMembers = ref<string[]>([])
 const showSuggestions = ref(false)
+
+const bonusPrize = ref('')
+const bonusEntryCount = ref(0)
+const showBonusModal = ref(false)
+const bonusDrawResult = ref<BonusLotteryDrawResponse | null>(null)
 
 const filteredMembers = computed(() => {
   if (!awardUserInput.value.trim())
@@ -32,6 +39,14 @@ onMounted(async () => {
   }
   catch (e: any) {
     console.error('Failed to load FC members:', e)
+  }
+
+  try {
+    const entries = await LotteryApi.getBonusLotteryEntries()
+    bonusEntryCount.value = entries.length
+  }
+  catch (e: any) {
+    // Non-critical, just won't show entry count
   }
 })
 
@@ -102,6 +117,30 @@ async function awardUsers() {
   }
   catch (e: any) {
     error.value = e.message || 'Failed to award users'
+  }
+  finally {
+    loading.value = false
+  }
+}
+
+async function triggerBonusLottery() {
+  if (!bonusPrize.value.trim()) {
+    error.value = 'Please enter a prize for the bonus lottery'
+    return
+  }
+
+  loading.value = true
+  error.value = ''
+  success.value = ''
+
+  try {
+    const result = await LotteryApi.runBonusLottery(bonusPrize.value)
+    bonusDrawResult.value = result
+    showBonusModal.value = true
+    bonusPrize.value = ''
+  }
+  catch (e: any) {
+    error.value = e.message || 'Failed to run bonus lottery'
   }
   finally {
     loading.value = false
@@ -194,6 +233,41 @@ async function awardUsers() {
         @clicked="awardUsers"
       />
     </div>
+
+    <div class="admin-group">
+      <h4 class="group-title">Bonus Lottery</h4>
+      <p class="group-desc">
+        Run a bonus draw using extra guesses as raffle tickets. Each extra guess = 1 entry.
+        Entries are not consumed by the bonus draw.
+      </p>
+
+      <div class="field">
+        <label for="bonus-prize">Prize</label>
+        <input
+          id="bonus-prize"
+          v-model="bonusPrize"
+          placeholder="e.g., 5M gil"
+          type="text"
+        >
+      </div>
+
+      <p v-if="bonusEntryCount > 0" class="entry-info">
+        {{ bonusEntryCount }} entries currently in the pool
+      </p>
+
+      <BaseButton
+        :disabled="loading || !bonusPrize.trim() || bonusEntryCount === 0"
+        state="tertiary"
+        title="Run Bonus Lottery"
+        size="small"
+        @clicked="triggerBonusLottery"
+      />
+    </div>
+
+    <BonusLotteryModal
+      v-model="showBonusModal"
+      :draw-result="bonusDrawResult"
+    />
   </div>
 </template>
 
@@ -333,5 +407,11 @@ async function awardUsers() {
 
 .chip-remove:hover {
   background: rgba(255, 255, 255, 0.2);
+}
+
+.entry-info {
+  margin: 0 0 0.75rem 0;
+  font-size: 0.8rem;
+  color: var(--muted);
 }
 </style>

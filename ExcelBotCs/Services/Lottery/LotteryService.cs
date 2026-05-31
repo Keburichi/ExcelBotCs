@@ -11,6 +11,7 @@ namespace ExcelBotCs.Services.Lottery;
 
 public class LotteryService : ILotteryService
 {
+    private readonly IBonusLotteryResultRepository _bonusLotteryResults;
     private readonly IDiscordMessageService _discordMessageService;
     private readonly IExtraLotteryGuessRepository _extraLotteryGuesses;
     private readonly ILotteryGuessRepository _lotteryGuesses;
@@ -22,6 +23,7 @@ public class LotteryService : ILotteryService
         ILotteryGuessRepository lotteryGuessRepository,
         IExtraLotteryGuessRepository extraLotteryGuessRepository,
         ILotteryResultRepository lotteryResultRepository,
+        IBonusLotteryResultRepository bonusLotteryResultRepository,
         IMemberService memberService, IDiscordMessageService discordMessageService)
     {
         _rng = rng;
@@ -30,6 +32,7 @@ public class LotteryService : ILotteryService
         _lotteryGuesses = lotteryGuessRepository;
         _extraLotteryGuesses = extraLotteryGuessRepository;
         _lotteryResults = lotteryResultRepository;
+        _bonusLotteryResults = bonusLotteryResultRepository;
     }
 
     public async Task<IGuessResponse> GuessAsync(ulong discordUserId, int number)
@@ -423,6 +426,97 @@ public class LotteryService : ILotteryService
         else
             await _discordMessageService.PostInLotteryChannelAsync(
                 $"{success.PrettyUsersAwarded} have all been granted another lottery guess for {success.Reason}! Use `/lottery guess` to make your choice.");
+    }
+
+    #endregion
+
+    #region Bonus Lottery
+
+    public async Task<BonusLotteryDrawResponse> RunBonusLotteryAsync(ulong discordUserId, string prize)
+    {
+        var executingUser = await _memberService.GetByDiscordId(discordUserId);
+
+        if (executingUser == null)
+            throw new ArgumentException($"The user with the id {discordUserId} was not found.");
+
+        if (!executingUser.IsAdmin.GetValueOrDefault())
+            throw new UnauthorizedAccessException("Only admins can run the bonus lottery.");
+
+        var extraGuesses = await _extraLotteryGuesses.GetAsync();
+
+        if (extraGuesses.Count == 0)
+            throw new InvalidOperationException("No entries in the bonus lottery pool.");
+
+        var discordIds = extraGuesses.Select(g => g.DiscordId).Distinct().ToList();
+        var members = await _memberService.GetByDiscordIds(discordIds);
+
+        var entries = extraGuesses.Select(g =>
+        {
+            var member = members.FirstOrDefault(m => m.DiscordId == g.DiscordId.ToString());
+            return new BonusLotteryEntry
+            {
+                DiscordId = g.DiscordId,
+                DiscordName = member?.DiscordName ?? $"Unknown ({g.DiscordId})",
+                Reason = g.Reason
+            };
+        }).ToList();
+
+        var hasWinner = _rng.NextFloat() < 0.2f;
+
+        BonusLotteryEntry? winner = null;
+        var winnerIndex = -1;
+
+        if (hasWinner)
+        {
+            winnerIndex = (int)(_rng.NextFloat() * entries.Count);
+            if (winnerIndex >= entries.Count) winnerIndex = entries.Count - 1;
+            winner = entries[winnerIndex];
+        }
+
+        var result = new BonusLotteryResult
+        {
+            HasWinner = hasWinner,
+            WinnerDiscordId = winner?.DiscordId,
+            WinnerName = winner?.DiscordName,
+            Prize = prize,
+            Entries = entries
+        };
+        await _bonusLotteryResults.CreateAsync(result);
+
+        if (hasWinner)
+        {
+            await _discordMessageService.PostInLotteryChannelAsync(
+                $"## Bonus Lottery!\nA bonus draw was held for: **{prize}**\nCongratulations to <@{winner!.DiscordId}>!");
+        }
+        else
+        {
+            await _discordMessageService.PostInLotteryChannelAsync(
+                $"## Bonus Lottery!\nA bonus draw was held for: **{prize}**\nThe wheel of fortune says... no winner this time! Better luck next draw.");
+        }
+
+        return new BonusLotteryDrawResponse(hasWinner, winner, entries, prize, winnerIndex);
+    }
+
+    public async Task<List<BonusLotteryEntry>> GetBonusLotteryEntriesAsync()
+    {
+        var extraGuesses = await _extraLotteryGuesses.GetAsync();
+
+        if (extraGuesses.Count == 0)
+            return [];
+
+        var discordIds = extraGuesses.Select(g => g.DiscordId).Distinct().ToList();
+        var members = await _memberService.GetByDiscordIds(discordIds);
+
+        return extraGuesses.Select(g =>
+        {
+            var member = members.FirstOrDefault(m => m.DiscordId == g.DiscordId.ToString());
+            return new BonusLotteryEntry
+            {
+                DiscordId = g.DiscordId,
+                DiscordName = member?.DiscordName ?? $"Unknown ({g.DiscordId})",
+                Reason = g.Reason
+            };
+        }).ToList();
     }
 
     #endregion

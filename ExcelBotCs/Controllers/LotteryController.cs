@@ -137,6 +137,33 @@ public class LotteryController : AuthorizedController
         return BadRequest(new { message = "No users to award" });
     }
 
+    [HttpPost]
+    [Route("bonus-lottery")]
+    [AdminAuth]
+    public async Task<IActionResult> RunBonusLottery([FromBody] BonusLotteryRequest request)
+    {
+        try
+        {
+            var result = await _lotteryService.RunBonusLotteryAsync(
+                await GetCurrentUserDiscordId(),
+                request.Prize);
+            return Ok(result);
+        }
+        catch (InvalidOperationException ex)
+        {
+            return BadRequest(new { message = ex.Message });
+        }
+    }
+
+    [HttpGet]
+    [Route("bonus-lottery/entries")]
+    [AdminAuth]
+    public async Task<IActionResult> GetBonusLotteryEntries()
+    {
+        var entries = await _lotteryService.GetBonusLotteryEntriesAsync();
+        return Ok(entries);
+    }
+
     private async Task<ulong> GetCurrentUserDiscordId()
     {
         var user = await _currentMemberAccessor.GetCurrentAsync();
@@ -147,3 +174,5 @@ public class LotteryController : AuthorizedController
 public record ChangeGuessRequest(int OldNumber, int NewNumber);
 
 public record AwardUsersRequest(string Reason, List<string> UserNames);
+
+public record BonusLotteryRequest(string Prize);

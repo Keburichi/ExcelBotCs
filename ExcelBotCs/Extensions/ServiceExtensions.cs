@@ -27,6 +27,7 @@ public static class ServiceExtensions
         services.AddSingleton<ILotteryGuessRepository, LotteryGuessRepository>();
         services.AddSingleton<IExtraLotteryGuessRepository, ExtraLotteryGuessRepository>();
         services.AddSingleton<ILotteryResultRepository, LotteryResultRepository>();
+        services.AddSingleton<IBonusLotteryResultRepository, BonusLotteryResultRepository>();
         services.AddSingleton<IEventDetailsRepository, EventDetailsRepository>();
         services.AddSingleton<IEventTemplateRepository, EventTemplateRepository>();
     }

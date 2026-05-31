@@ -21,6 +21,7 @@ public class LotteryServiceTests : MongoDbTest
     private ILotteryGuessRepository _lotteryGuessRepository = null!;
     private IExtraLotteryGuessRepository _extraLotteryGuessRepository = null!;
     private ILotteryResultRepository _lotteryResultRepository = null!;
+    private IBonusLotteryResultRepository _bonusLotteryResultRepository = null!;
     private ILotteryService _lotteryService = null!;
     private Mock<IMemberService> _memberService = null!;
     private Mock<IDiscordMessageService> _discordMessageService = null!;
@@ -34,6 +35,7 @@ public class LotteryServiceTests : MongoDbTest
         _lotteryGuessRepository = new LotteryGuessRepository(mongoClient, databaseOptions);
         _extraLotteryGuessRepository = new ExtraLotteryGuessRepository(mongoClient, databaseOptions);
         _lotteryResultRepository = new LotteryResultRepository(mongoClient, databaseOptions);
+        _bonusLotteryResultRepository = new BonusLotteryResultRepository(mongoClient, databaseOptions);
     }
 
     protected override Task OnAfterInitializeAsync()
@@ -43,7 +45,7 @@ public class LotteryServiceTests : MongoDbTest
         _discordMessageService = new Mock<IDiscordMessageService>();
 
         _lotteryService = new LotteryService(rng, _lotteryGuessRepository, _extraLotteryGuessRepository,
-            _lotteryResultRepository, _memberService.Object, _discordMessageService.Object);
+            _lotteryResultRepository, _bonusLotteryResultRepository, _memberService.Object, _discordMessageService.Object);
 
         return Task.CompletedTask;
     }
