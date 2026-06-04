@@ -376,7 +376,8 @@ public class FFLogsSyncService
             || lowerZoneName.Contains("dragonsong's reprise")
             || lowerZoneName.Contains("the epic of alexander")
             || lowerZoneName.Contains("the unending coil of bahamut")
-            || lowerZoneName.Contains("the weapon's refrain"))
+            || lowerZoneName.Contains("the weapon's refrain")
+            || lowerZoneName.Contains("dancing mad"))
             return [(FightType.Ultimate, difficulties.First())];
 
         if (lowerZoneName.Contains("unreal"))
