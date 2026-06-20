@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import type { EventGroupRequest, EventParticipant, EventSignup, FCEvent, Role } from '@/features/events/events.types'
+import type { EventGroupRequest, EventSignup, FCEvent, Role, SignupButtonConfig } from '@/features/events/events.types'
 import { computed, onMounted, ref, watch } from 'vue'
 import draggable from 'vuedraggable'
 import BaseButton from '@/components/BaseButton.vue'
@@ -25,8 +25,10 @@ const groups = ref<EventGroupRequest[]>([])
 const rolePickerOpen = ref(false)
 const rolePickerTarget = ref<{
   groupIndex: number
-  signup: EventSignup
-  element: HTMLElement | null
+  discordUserId: string
+  roles?: Role[]
+  slugOptions?: SignupButtonConfig[]
+  allowNoRole?: boolean
 } | null>(null)
 
 // Info/confirmation modals
@@ -52,16 +54,19 @@ const usesCustomButtons = computed(() =>
 )
 
 function isHelperSignup(signup: EventSignup | UnassignedItem): boolean {
-  if (!usesCustomButtons.value || !eventValue.value.SignupButtonConfigs) return false
+  if (!usesCustomButtons.value || !eventValue.value.SignupButtonConfigs)
+    return false
   const slugs = 'SignupSlugs' in signup ? signup.SignupSlugs : (signup as EventSignup).SignupSlugs
-  if (!slugs) return false
+  if (!slugs)
+    return false
   return slugs.some(slug =>
     eventValue.value.SignupButtonConfigs!.find(c => c.Slug === slug)?.IsHelper === true,
   )
 }
 
 function getSlugLabels(slugs?: string[]): string[] {
-  if (!slugs || !eventValue.value.SignupButtonConfigs) return []
+  if (!slugs || !eventValue.value.SignupButtonConfigs)
+    return []
   return slugs
     .map(slug => eventValue.value.SignupButtonConfigs!.find(c => c.Slug === slug)?.Label ?? slug)
 }
@@ -102,7 +107,8 @@ const canAddGroup = computed(() => {
 })
 
 const signupsNeededForNextGroup = computed(() => {
-  if (numberOfGroups.value === 0) return 0
+  if (numberOfGroups.value === 0)
+    return 0
   const needed = (groups.value.length + 1) * groupSize.value
   return Math.max(0, needed - uniqueSignupCount.value)
 })
@@ -142,7 +148,8 @@ function getMemberAvatar(discordId: string): string | null {
 }
 
 function roleLabel(role: Role | null | undefined): string {
-  if (role == null) return ''
+  if (role == null)
+    return ''
   const labels: Record<number, string> = {
     [ROLE.Tank]: 'Tank',
     [ROLE.Healer]: 'Healer',
@@ -166,9 +173,11 @@ function roleShort(role: Role): string {
 
 function getSignupRoles(discordUserId: string): Role[] {
   const signup = eventValue.value.Signups?.find(s => s.DiscordUserId === discordUserId)
-  if (!signup) return []
+  if (!signup)
+    return []
 
-  if (!usesCustomButtons.value) return signup.Roles ?? []
+  if (!usesCustomButtons.value)
+    return signup.Roles ?? []
 
   const configs = eventValue.value.SignupButtonConfigs!
   const roles: Role[] = []
@@ -212,7 +221,8 @@ function removeGroup(index: number) {
 
 // Unified handler for all drops into a group
 function onGroupChange(groupIndex: number, evt: any) {
-  if (!evt.added) return
+  if (!evt.added)
+    return
 
   const addedItem = evt.added.element
   const addedIndex = evt.added.newIndex
@@ -226,13 +236,26 @@ function onGroupChange(groupIndex: number, evt: any) {
   }
 
   // If the item already has a Role (inter-group move), keep it as-is
-  if (addedItem.Role !== undefined) return
+  if (addedItem.Role !== undefined)
+    return
 
   // Item came from the pool (UnassignedItem) — remove it, then assign a role
   group.Participants.splice(addedIndex, 1)
 
   const signupRoles = getSignupRoles(addedItem.DiscordUserId)
   if (signupRoles.length === 0) {
+    if (usesCustomButtons.value) {
+      // Helper or unmapped slug — let admin pick from the event's non-helper role slugs
+      const nonHelperConfigs = eventValue.value.SignupButtonConfigs!.filter(c => !c.IsHelper)
+      rolePickerTarget.value = {
+        groupIndex,
+        discordUserId: addedItem.DiscordUserId,
+        slugOptions: nonHelperConfigs,
+        allowNoRole: true,
+      }
+      rolePickerOpen.value = true
+      return
+    }
     group.Participants.splice(addedIndex, 0, {
       DiscordUserId: addedItem.DiscordUserId,
       Role: null,
@@ -250,26 +273,40 @@ function onGroupChange(groupIndex: number, evt: any) {
   else if (signupRoles.length > 1) {
     rolePickerTarget.value = {
       groupIndex,
-      signup: {
-        DiscordUserId: addedItem.DiscordUserId,
-        Roles: signupRoles,
-        SignupDate: new Date(),
-      },
-      element: null,
+      discordUserId: addedItem.DiscordUserId,
+      roles: signupRoles,
     }
     rolePickerOpen.value = true
   }
 }
 
-function selectRoleForDrop(role: Role) {
-  if (!rolePickerTarget.value) return
+function selectRoleForDrop(role: Role | null) {
+  if (!rolePickerTarget.value)
+    return
 
-  const { groupIndex, signup } = rolePickerTarget.value
+  const { groupIndex, discordUserId } = rolePickerTarget.value
   const group = groups.value[groupIndex]
 
   group.Participants.push({
-    DiscordUserId: signup.DiscordUserId,
+    DiscordUserId: discordUserId,
     Role: role,
+    SelectionDate: new Date(),
+  })
+
+  rolePickerOpen.value = false
+  rolePickerTarget.value = null
+}
+
+function selectSlugForDrop(config: SignupButtonConfig) {
+  if (!rolePickerTarget.value)
+    return
+
+  const { groupIndex, discordUserId } = rolePickerTarget.value
+  const group = groups.value[groupIndex]
+
+  group.Participants.push({
+    DiscordUserId: discordUserId,
+    Role: config.MappedRole ?? null,
     SelectionDate: new Date(),
   })
 
@@ -311,11 +348,14 @@ function toggleManualSlug(slug: string) {
 }
 
 async function confirmManualSignup() {
-  if (!manualRolePickerMember.value) return
+  if (!manualRolePickerMember.value)
+    return
 
   const isCustom = usesCustomButtons.value
-  if (isCustom && manualSelectedSlugs.value.length === 0) return
-  if (!isCustom && manualSelectedRoles.value.length === 0) return
+  if (isCustom && manualSelectedSlugs.value.length === 0)
+    return
+  if (!isCustom && manualSelectedRoles.value.length === 0)
+    return
 
   try {
     if (isCustom) {
@@ -458,7 +498,9 @@ watch(modelValue, (isOpen) => {
       <div class="org-layout">
         <!-- Left: Unassigned pool -->
         <div class="pool-panel">
-          <h4 class="panel-title">Unassigned Pool ({{ unassigned.length }})</h4>
+          <h4 class="panel-title">
+            Unassigned Pool ({{ unassigned.length }})
+          </h4>
           <draggable
             :list="unassigned"
             :group="{ name: 'group-drop', pull: 'clone', put: false }"
@@ -593,7 +635,7 @@ watch(modelValue, (isOpen) => {
 
           <BaseButton
             :disabled="!canAddGroup"
-            :title="`+ Add Group`"
+            title="+ Add Group"
             :tooltip="canAddGroup ? 'Create a new group' : `Need ${(groups.length + 1) * groupSize} signups to add another group`"
             size="small"
             state="secondary"
@@ -624,25 +666,43 @@ watch(modelValue, (isOpen) => {
     v-model="rolePickerOpen"
     :close-on-outside-click="false"
     size="small"
-    title="Select Role"
+    title="Assign Role"
   >
     <template #body>
       <p v-if="rolePickerTarget">
-        Assign a role for <b>{{ getMemberName(rolePickerTarget.signup.DiscordUserId) }}</b>:
+        Assign a role for <b>{{ getMemberName(rolePickerTarget.discordUserId) }}</b>:
       </p>
       <div v-if="rolePickerTarget" class="role-picker-options">
-        <button
-          v-for="role in rolePickerTarget.signup.Roles"
-          :key="role"
-          class="role-picker-btn"
-          @click="selectRoleForDrop(role)"
-        >
-          {{ roleLabel(role) }}
-        </button>
+        <template v-if="rolePickerTarget.slugOptions">
+          <button
+            v-for="config in rolePickerTarget.slugOptions"
+            :key="config.Slug"
+            class="role-picker-btn"
+            @click="selectSlugForDrop(config)"
+          >
+            {{ config.Label }}
+          </button>
+        </template>
+        <template v-else-if="rolePickerTarget.roles">
+          <button
+            v-for="role in rolePickerTarget.roles"
+            :key="role"
+            class="role-picker-btn"
+            @click="selectRoleForDrop(role)"
+          >
+            {{ roleLabel(role) }}
+          </button>
+        </template>
       </div>
     </template>
     <template #actions>
       <BaseButton state="secondary" title="Cancel" @clicked="cancelRolePicker" />
+      <BaseButton
+        v-if="rolePickerTarget?.allowNoRole"
+        state="secondary"
+        title="No role"
+        @clicked="selectRoleForDrop(null)"
+      />
     </template>
   </BaseModal>
 
