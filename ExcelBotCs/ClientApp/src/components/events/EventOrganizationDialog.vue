@@ -43,6 +43,12 @@ const manualRolePickerMember = ref<{ DiscordId: string, DiscordName: string, Pla
 const manualSelectedRoles = ref<Role[]>([])
 const manualSelectedSlugs = ref<string[]>([])
 
+// Edit signup state
+const editSignupOpen = ref(false)
+const editSignupTarget = ref<{ DiscordId: string } | null>(null)
+const editSelectedSlugs = ref<string[]>([])
+const editSelectedRoles = ref<Role[]>([])
+
 interface UnassignedItem {
   DiscordUserId: string
   Roles: Role[]
@@ -406,6 +412,68 @@ function cancelManualRolePicker() {
   manualSelectedSlugs.value = []
 }
 
+function openEditSignup(discordUserId: string) {
+  const signup = eventValue.value.Signups?.find(s => s.DiscordUserId === discordUserId)
+  editSignupTarget.value = { DiscordId: discordUserId }
+  editSelectedSlugs.value = [...(signup?.SignupSlugs ?? [])]
+  editSelectedRoles.value = [...(signup?.Roles ?? [])]
+  editSignupOpen.value = true
+}
+
+function toggleEditSlug(slug: string) {
+  const i = editSelectedSlugs.value.indexOf(slug)
+  if (i >= 0)
+    editSelectedSlugs.value.splice(i, 1)
+  else editSelectedSlugs.value.push(slug)
+}
+
+function toggleEditRole(role: Role) {
+  const i = editSelectedRoles.value.indexOf(role)
+  if (i >= 0)
+    editSelectedRoles.value.splice(i, 1)
+  else editSelectedRoles.value.push(role)
+}
+
+function cancelEditSignup() {
+  editSignupOpen.value = false
+  editSignupTarget.value = null
+  editSelectedSlugs.value = []
+  editSelectedRoles.value = []
+}
+
+async function confirmEditSignup() {
+  if (!editSignupTarget.value)
+    return
+  const isCustom = usesCustomButtons.value
+  if (isCustom && editSelectedSlugs.value.length === 0)
+    return
+  if (!isCustom && editSelectedRoles.value.length === 0)
+    return
+
+  const targetId = editSignupTarget.value.DiscordId
+  try {
+    if (isCustom) {
+      await EventsApi.manualSignupWithSlugs(eventValue.value.Id, targetId, [...editSelectedSlugs.value])
+    }
+    else {
+      await EventsApi.manualSignup(eventValue.value.Id, targetId, [...editSelectedRoles.value])
+    }
+
+    const signup = eventValue.value.Signups?.find(s => s.DiscordUserId === targetId)
+    if (signup) {
+      if (isCustom)
+        signup.SignupSlugs = [...editSelectedSlugs.value]
+      else signup.Roles = [...editSelectedRoles.value]
+    }
+
+    cancelEditSignup()
+  }
+  catch (error) {
+    console.error('Error updating signup:', error)
+    openInfo('Failed to update signup. Please try again.')
+  }
+}
+
 function onManualSearchKeydown(event: KeyboardEvent) {
   if (event.key === 'Enter' && manualSearchResults.value.length > 0) {
     const first = manualSearchResults.value[0]
@@ -538,6 +606,13 @@ watch(modelValue, (isOpen) => {
                   </span>
                   <span v-if="isHelperSignup(element)" class="helper-badge">Helper</span>
                 </div>
+                <button
+                  class="btn-edit-signup"
+                  title="Edit signup"
+                  @click.stop="openEditSignup(element.DiscordUserId)"
+                >
+                  ✏
+                </button>
               </div>
             </template>
           </draggable>
@@ -759,6 +834,59 @@ watch(modelValue, (isOpen) => {
     </template>
   </BaseModal>
 
+  <!-- Edit signup modal -->
+  <BaseModal
+    v-model="editSignupOpen"
+    :close-on-outside-click="false"
+    :title="usesCustomButtons ? 'Edit Signups' : 'Edit Roles'"
+    size="small"
+  >
+    <template #body>
+      <p v-if="editSignupTarget">
+        Edit {{ usesCustomButtons ? 'signup(s)' : 'role(s)' }} for
+        <b>{{ getMemberName(editSignupTarget.DiscordId) }}</b>:
+      </p>
+      <div v-if="usesCustomButtons && eventValue.SignupButtonConfigs" class="role-picker-options">
+        <button
+          v-for="config in eventValue.SignupButtonConfigs"
+          :key="config.Slug"
+          :class="{ 'role-picker-btn--selected': editSelectedSlugs.includes(config.Slug) }"
+          class="role-picker-btn"
+          @click="toggleEditSlug(config.Slug)"
+        >
+          {{ config.Label }}
+        </button>
+      </div>
+      <div v-else class="role-picker-options">
+        <button
+          v-for="role in [ROLE.Tank, ROLE.Healer, ROLE.Melee, ROLE.Caster, ROLE.Ranged]"
+          :key="role"
+          :class="{ 'role-picker-btn--selected': editSelectedRoles.includes(role) }"
+          class="role-picker-btn"
+          @click="toggleEditRole(role)"
+        >
+          {{ roleLabel(role) }}
+        </button>
+      </div>
+
+      <p
+        v-if="(usesCustomButtons ? editSelectedSlugs.length : editSelectedRoles.length) === 0"
+        class="manual-role-hint"
+      >
+        Select at least one {{ usesCustomButtons ? 'signup' : 'role' }}.
+      </p>
+    </template>
+    <template #actions>
+      <BaseButton state="secondary" title="Cancel" @clicked="cancelEditSignup" />
+      <BaseButton
+        :disabled="usesCustomButtons ? editSelectedSlugs.length === 0 : editSelectedRoles.length === 0"
+        state="primary"
+        title="Save"
+        @clicked="confirmEditSignup"
+      />
+    </template>
+  </BaseModal>
+
   <!-- Info modal -->
   <BaseModal
     v-model="isInfoOpen"
@@ -870,6 +998,23 @@ watch(modelValue, (isOpen) => {
 
 .pool-item:active {
   cursor: grabbing;
+}
+
+.btn-edit-signup {
+  margin-left: auto;
+  background: none;
+  border: none;
+  font-size: 0.9rem;
+  cursor: pointer;
+  color: var(--muted);
+  padding: 2px 4px;
+  border-radius: 4px;
+  flex-shrink: 0;
+}
+
+.btn-edit-signup:hover {
+  color: var(--link);
+  background: var(--muted-bg);
 }
 
 .pool-item-info {
