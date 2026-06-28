@@ -6,6 +6,7 @@ using ExcelBotCs.Database.Interfaces;
 using ExcelBotCs.Discord;
 using ExcelBotCs.Extensions;
 using ExcelBotCs.Models.Config;
+using ExcelBotCs.Models.Database.Events;
 using ExcelBotCs.Services.API.Interfaces;
 using Microsoft.Extensions.Options;
 
@@ -17,15 +18,22 @@ public class TeamFormationInteraction : InteractionModuleBase<SocketInteractionC
     private readonly IEventDetailsRepository _eventDetails;
     private readonly IDiscordBotClient _discordClient;
     private readonly IEventService _eventService;
+    private readonly IMemberRepository _memberRepository;
+    private readonly IFightService _fightService;
+    private readonly IBossService _bossService;
     private readonly DiscordBotOptions _discordBotOptions;
     private readonly string _rootUrl;
 
     public TeamFormationInteraction(Prng rng, IEventDetailsRepository eventDetailsRepository,
-        IDiscordBotClient discordClient, IOptions<DiscordBotOptions> discordBotOptions, IEventService eventService)
+        IDiscordBotClient discordClient, IOptions<DiscordBotOptions> discordBotOptions, IEventService eventService,
+        IMemberRepository memberRepository, IFightService fightService, IBossService bossService)
     {
         _eventDetails = eventDetailsRepository;
         _discordClient = discordClient;
         _eventService = eventService;
+        _memberRepository = memberRepository;
+        _fightService = fightService;
+        _bossService = bossService;
 
         _discordBotOptions = discordBotOptions.Value;
         _rootUrl = Utils.GetEnvVar("EVENT_ENDPOINT_URL", nameof(TeamFormationInteraction));
@@ -266,6 +274,153 @@ public class TeamFormationInteraction : InteractionModuleBase<SocketInteractionC
 
         await RespondAsync(
             $"[Subscribe to an auto-updating Calendar]({subLink})\n-# This is a personalised calender that will automatically update with events you sign up to and can be added to iOS/Android notifications, Google Calendar, Apple Calendar and more \n\n-# [Download a single-use .ics calendar instead]({downloadLink})",
+            ephemeral: true);
+    }
+
+    private static int RequiredParticipantsFor(PartySize partySize)
+    {
+        return partySize switch
+        {
+            PartySize.Light => 4,
+            PartySize.Full => 8,
+            PartySize.Alliance => 24,
+            PartySize.Any => 0,
+            _ => 0
+        };
+    }
+
+    // Mirrors the `standard` / `roles-helper` presets in CreateEventView.vue (L196-216).
+    private static List<SignupButtonConfig> BuildSignupButtonConfigs(SignupPreset preset)
+    {
+        var configs = new List<SignupButtonConfig>
+        {
+            new()
+            {
+                Slug = "tank", Label = "Tank", EmojiId = Constants.TankRoleEmoteId.ToString(), IsHelper = false,
+                MappedRole = Role.Tank
+            },
+            new()
+            {
+                Slug = "healer", Label = "Healer", EmojiId = Constants.HealerRoleEmoteId.ToString(), IsHelper = false,
+                MappedRole = Role.Healer
+            },
+            new()
+            {
+                Slug = "melee", Label = "Melee", EmojiId = Constants.MeleeRoleEmoteId.ToString(), IsHelper = false,
+                MappedRole = Role.Melee
+            },
+            new()
+            {
+                Slug = "caster", Label = "Caster", EmojiId = Constants.CasterRoleEmoteId.ToString(), IsHelper = false,
+                MappedRole = Role.Caster
+            },
+            new()
+            {
+                Slug = "ranged", Label = "Ranged", EmojiId = Constants.RangedRoleEmoteId.ToString(), IsHelper = false,
+                MappedRole = Role.Ranged
+            }
+        };
+
+        if (preset == SignupPreset.RolesHelper)
+            configs.Add(new SignupButtonConfig
+                { Slug = "helper", Label = "Helper", EmojiId = null, IsHelper = true, MappedRole = null });
+
+        return configs;
+    }
+
+    [SlashCommand("create", "Create and post an event to the events channel")]
+    public async Task CreateEvent(
+        [Summary("name", "The event name")] string name,
+        [Summary("type", "The type of event")] EventType type,
+        [Summary("month", "Start month (ST/UTC)")]
+        Month month,
+        [Summary("day", "Start day of month (ST/UTC)")] [MinValue(1)] [MaxValue(31)]
+        int day,
+        [Summary("hour", "Start hour 0-23 (ST/UTC)")] [MinValue(0)] [MaxValue(23)]
+        int hour,
+        [Summary("duration", "Duration in minutes")] [MinValue(1)]
+        int duration,
+        [Summary("party-size", "Required party size")]
+        PartySize partySize,
+        [Summary("signups", "Signup buttons to show")]
+        SignupPreset signups,
+        [Summary("minute", "Start minute 0-59 (ST/UTC)")] [MinValue(0)] [MaxValue(59)]
+        int minute = 0,
+        [Summary("description", "Optional event description")]
+        string? description = null,
+        [Summary("fight", "Optional fight (auto-fills the event image)")]
+        [Autocomplete(typeof(FightAutocompleteHandler))]
+        string? fight = null)
+    {
+        if (!Context.GuildUser().IsOfficer(_discordBotOptions))
+        {
+            await RespondAsync("Only officers can use this command!", ephemeral: true);
+            return;
+        }
+
+        await DeferAsync(true);
+
+        var member = await _memberRepository.GetByDiscordId(Context.User.Id.ToString());
+        if (member is null)
+        {
+            await FollowupAsync("Member not found for the current user.", ephemeral: true);
+            return;
+        }
+
+        // start is parsed as UTC, which equals FFXIV server time (ST) - no timezone conversion needed.
+        // Use the current year, rolling to next year if the chosen date has already passed.
+        DateTime startTime;
+        try
+        {
+            var year = DateTime.UtcNow.Year;
+            startTime = new DateTime(year, (int)month, day, hour, minute, 0, DateTimeKind.Utc);
+            if (startTime < DateTime.UtcNow)
+                startTime = new DateTime(year + 1, (int)month, day, hour, minute, 0, DateTimeKind.Utc);
+        }
+        catch (ArgumentOutOfRangeException)
+        {
+            await FollowupAsync($"{month} {day} is not a valid date. Please check the day for the chosen month.",
+                ephemeral: true);
+            return;
+        }
+
+        string? fightId = null;
+        string? pictureUrl = null;
+        if (!string.IsNullOrWhiteSpace(fight))
+        {
+            var selectedFight = await _fightService.GetFightAsync(fight);
+            if (selectedFight is not null)
+            {
+                fightId = selectedFight.Id;
+                if (!string.IsNullOrWhiteSpace(selectedFight.BossId))
+                    pictureUrl = (await _bossService.GetBossAsync(selectedFight.BossId))?.ImageUrl;
+            }
+        }
+
+        var requiredParticipants = RequiredParticipantsFor(partySize);
+
+        var newEvent = new Event
+        {
+            Name = name,
+            Description = description ?? string.Empty,
+            Type = type,
+            StartDate = startTime,
+            Duration = duration,
+            SignupType = SignupType.SingleEvent,
+            ICalString = string.Empty,
+            RequiredParticipants = requiredParticipants,
+            MaxNumberOfParticipants = requiredParticipants,
+            SignupButtonConfigs = BuildSignupButtonConfigs(signups),
+            FightId = fightId,
+            PictureUrl = pictureUrl,
+            AuthorId = member.Id,
+            Organizer = member.PlayerName
+        };
+
+        await _eventService.CreateAsync(newEvent);
+
+        var epoch = ((DateTimeOffset)startTime).ToUnixTimeSeconds();
+        await FollowupAsync($"Created **{name}** starting <t:{epoch}:F> — posted to the events channel.",
             ephemeral: true);
     }
 }
