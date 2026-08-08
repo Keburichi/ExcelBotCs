@@ -9,6 +9,7 @@ export interface Member {
   Subbed: boolean
   LodestoneId: string
   LodestoneVerificationToken?: string
+  MinecraftUsername?: string
   Experience: Fight[]
   Notes: MemberNote[]
   Roles: MemberRole[]

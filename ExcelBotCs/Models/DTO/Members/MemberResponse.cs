@@ -19,6 +19,8 @@ public class MemberResponse : BaseDto
     // Token the user must place in their Lodestone Bio to verify ownership
     [RequiresMemberRole] public string? LodestoneVerificationToken { get; set; }
 
+    [RequiresMemberRole] public string? MinecraftUsername { get; set; }
+
     [RequiresAdminRole] public List<FightDto>? Experience { get; set; }
 
     [RequiresAdminRole] public List<NoteResponse>? Notes { get; set; }

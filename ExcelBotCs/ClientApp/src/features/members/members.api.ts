@@ -8,6 +8,7 @@ export const MembersApi = {
   update: (id: string, m: Member) => http<void>(`/api/members/${id}`, { method: 'PUT', body: JSON.stringify(m) }),
   generateLodestoneToken: (id: string) => http<{ token: string }>(`/api/members/${id}/lodestone-token`, { method: 'POST' }),
   verifyLodestone: (id: string, lodestoneInput: string) => http<{ success: boolean, message: string }>(`/api/members/${id}/verify-lodestone`, { method: 'POST', body: JSON.stringify({ LodestoneInput: lodestoneInput }) }),
+  setMinecraftUsername: (id: string, minecraftUsername: string | null) => http<{ success: boolean, message: string }>(`/api/members/${id}/minecraft`, { method: 'POST', body: JSON.stringify({ MinecraftUsername: minecraftUsername }) }),
 
   // Note operations using dedicated endpoints
   addNote: (memberId: string, noteText: string) =>

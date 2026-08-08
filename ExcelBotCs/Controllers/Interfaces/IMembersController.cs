@@ -15,6 +15,9 @@ public interface IMembersController
     public Task<ActionResult<string>> GenerateLodestoneToken(string id);
     public Task<ActionResult<object>> VerifyLodestone(string id, LodestoneVerifyRequest token);
 
+    // Minecraft whitelist link operations
+    public Task<ActionResult<object>> SetMinecraftUsername(string id, SetMinecraftUsernameRequest request);
+
     // Note operations
     public Task<ActionResult<NoteResponse>> AddNote(string memberId, AddNoteRequest request);
     public Task<ActionResult> UpdateNote(string memberId, string noteId, UpdateNoteRequest request);

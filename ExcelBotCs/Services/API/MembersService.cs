@@ -3,16 +3,19 @@ using ExcelBotCs.Exceptions;
 using ExcelBotCs.Models.Database;
 using ExcelBotCs.Models.DTO.Members;
 using ExcelBotCs.Services.API.Interfaces;
+using ExcelBotCs.Services.Minecraft;
 
 namespace ExcelBotCs.Services.API;
 
 public class MemberService : IMemberService
 {
     private readonly IMemberRepository _memberRepository;
+    private readonly IMinecraftRconService _minecraftRconService;
 
-    public MemberService(IMemberRepository memberRepository)
+    public MemberService(IMemberRepository memberRepository, IMinecraftRconService minecraftRconService)
     {
         _memberRepository = memberRepository;
+        _minecraftRconService = minecraftRconService;
     }
 
     public async Task<List<Member>> GetAsync()
@@ -42,9 +45,10 @@ public class MemberService : IMemberService
         updatedMember.DateCreated = dbEntity.DateCreated;
         updatedMember.ExperienceIds = dbEntity.ExperienceIds;
 
-        // Enforce: LodestoneId can only be set/changed via the verification flow
-        // Prevent any modifications to LodestoneId through generic PUT updates
+        // Enforce: LodestoneId and MinecraftUsername can only be changed via their own dedicated
+        // flows (verification / whitelist push). Prevent modification through the generic PUT.
         updatedMember.LodestoneId = dbEntity.LodestoneId;
+        updatedMember.MinecraftUsername = dbEntity.MinecraftUsername;
 
         await _memberRepository.UpdateAsync(id, updatedMember);
     }
@@ -110,6 +114,37 @@ public class MemberService : IMemberService
         dbEntity.LodestoneVerificationToken = null;
 
         await _memberRepository.UpdateAsync(id, dbEntity);
+    }
+
+    public async Task<(bool Success, string Message)> SetMinecraftUsernameAsync(string id, string? minecraftUsername)
+    {
+        var dbEntity = await _memberRepository.GetAsync(id);
+        if (dbEntity is null)
+            throw new NotFoundException();
+
+        var newUsername = string.IsNullOrWhiteSpace(minecraftUsername) ? null : minecraftUsername.Trim();
+        var oldUsername = dbEntity.MinecraftUsername;
+
+        if (string.Equals(oldUsername, newUsername, StringComparison.OrdinalIgnoreCase))
+            return (true, "Minecraft username unchanged.");
+
+        // Best-effort: an old entry failing to remove shouldn't block linking the new one.
+        if (!string.IsNullOrWhiteSpace(oldUsername))
+            await _minecraftRconService.WhitelistRemoveAsync(oldUsername);
+
+        if (newUsername is not null)
+        {
+            var (success, message) = await _minecraftRconService.WhitelistAddAsync(newUsername);
+            if (!success)
+                return (false, message);
+        }
+
+        dbEntity.MinecraftUsername = newUsername;
+        await _memberRepository.UpdateAsync(id, dbEntity);
+
+        return (true, newUsername is null
+            ? "Removed from the Minecraft whitelist."
+            : $"Whitelisted as {newUsername}.");
     }
 
     /// <summary>

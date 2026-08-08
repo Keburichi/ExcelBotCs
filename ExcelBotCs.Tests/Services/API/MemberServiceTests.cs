@@ -3,6 +3,7 @@ using ExcelBotCs.Exceptions;
 using ExcelBotCs.Models.Database;
 using ExcelBotCs.Services.API;
 using ExcelBotCs.Services.API.Interfaces;
+using ExcelBotCs.Services.Minecraft;
 using ExcelBotCs.TestFramework.Utils;
 using Moq;
 
@@ -12,11 +13,13 @@ public class MemberServiceTests
 {
     private readonly IMemberService _memberService;
     private readonly Mock<IMemberRepository> _memberRepositoryMock;
+    private readonly Mock<IMinecraftRconService> _minecraftRconServiceMock;
 
     public MemberServiceTests()
     {
         _memberRepositoryMock = new Mock<IMemberRepository>();
-        _memberService = new MemberService(_memberRepositoryMock.Object);
+        _minecraftRconServiceMock = new Mock<IMinecraftRconService>();
+        _memberService = new MemberService(_memberRepositoryMock.Object, _minecraftRconServiceMock.Object);
     }
 
     [Fact]

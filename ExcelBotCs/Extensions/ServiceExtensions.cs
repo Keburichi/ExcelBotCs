@@ -7,6 +7,7 @@ using ExcelBotCs.Services;
 using ExcelBotCs.Services.API;
 using ExcelBotCs.Services.API.Interfaces;
 using ExcelBotCs.Services.FFLogs;
+using ExcelBotCs.Services.Minecraft;
 
 namespace ExcelBotCs.Extensions;
 
@@ -75,6 +76,11 @@ public static class ServiceExtensions
         services.AddSingleton<FFLogsAuthService>();
         services.AddSingleton<FFLogsGraphQLService>();
         services.AddSingleton<FFLogsSyncService>();
+    }
+
+    public static void AddMinecraftServices(this IServiceCollection services)
+    {
+        services.AddSingleton<IMinecraftRconService, MinecraftRconService>();
     }
 
 }

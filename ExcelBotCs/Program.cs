@@ -175,6 +175,7 @@ public class Program
         builder.Services.AddDomainServices();
         builder.Services.AddDiscordClient();
         builder.Services.AddFFLogsServices();
+        builder.Services.AddMinecraftServices();
         AddHostedService<WorkerService>();
 
         // configure the serialization settings to remove sensitive data
