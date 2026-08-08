@@ -11,6 +11,7 @@ public class Member : BaseEntity
     public string? PlayerName { get; set; }
     public bool? Subbed { get; set; } = false;
     public string? LodestoneId { get; set; }
+    public string? MinecraftUsername { get; set; }
 
     // Token the user must place in their Lodestone Bio to verify ownership
     public string? LodestoneVerificationToken { get; set; }

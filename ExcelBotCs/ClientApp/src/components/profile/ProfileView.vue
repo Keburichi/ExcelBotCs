@@ -32,6 +32,7 @@ function hydrateForm() {
   form.PlayerName = u.PlayerName
   form.LodestoneId = u.LodestoneId
   form.Subbed = u.Subbed
+  form.MinecraftUsername = u.MinecraftUsername
 }
 
 const avatarUrl = computed(() => auth.user.value?.DiscordAvatar || '')
@@ -76,7 +77,19 @@ async function save() {
       Subbed: form.Subbed ?? current.Subbed,
     }
     await MembersApi.update(form.Id, payload)
-    success.value = 'Profile updated successfully.'
+
+    let minecraftMessage = ''
+    if ((form.MinecraftUsername ?? '') !== (current.MinecraftUsername ?? '')) {
+      const mcResult = await MembersApi.setMinecraftUsername(form.Id, form.MinecraftUsername || null)
+      if (!mcResult.success) {
+        error.value = `Profile updated, but Minecraft whitelist failed: ${mcResult.message}`
+        await auth.loadMe()
+        return
+      }
+      minecraftMessage = ` ${mcResult.message}`
+    }
+
+    success.value = `Profile updated successfully.${minecraftMessage}`
     editMode.value = false
     await auth.loadMe()
   }
@@ -247,6 +260,16 @@ async function verifyClaim() {
               />
             </div>
           </div>
+        </div>
+
+        <div class="kv-row">
+          <label for="minecraftUsername" class="kv-label">Minecraft Username</label>
+          <template v-if="editMode">
+            <input id="minecraftUsername" v-model="form.MinecraftUsername" placeholder="Your exact Minecraft username">
+          </template>
+          <span v-else class="kv-value">
+            {{ auth.user.value?.MinecraftUsername || 'Not linked' }}
+          </span>
         </div>
 
         <div class="kv-row">

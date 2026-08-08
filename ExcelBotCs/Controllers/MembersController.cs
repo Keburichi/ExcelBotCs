@@ -138,6 +138,18 @@ public class MembersController : AuthorizedController, IMembersController
         }
     }
 
+    [HttpPost("{id:length(24)}/minecraft")]
+    public async Task<ActionResult<object>> SetMinecraftUsername(string id, [FromBody] SetMinecraftUsernameRequest request)
+    {
+        // Only allow users to update their own Minecraft link, unless they are an admin
+        var me = await _currentMemberAccessor.GetCurrentAsync();
+        if (me is null || (me.Id != id && !me.IsAdmin.GetValueOrDefault()))
+            return Forbid();
+
+        var (success, message) = await _memberService.SetMinecraftUsernameAsync(id, request?.MinecraftUsername);
+        return Ok(new { success, message });
+    }
+
     private static string ParseLodestoneId(string input)
     {
         if (string.IsNullOrWhiteSpace(input)) return string.Empty;

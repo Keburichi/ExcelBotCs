@@ -19,4 +19,5 @@ public interface IMemberService
     Task<List<Member>> GetFcMembers();
     Task UpdateDiscordRoles(string id, List<string> roleIds);
     Task SetVerifiedLodestoneAsync(string id, string lodestoneId);
+    Task<(bool Success, string Message)> SetMinecraftUsernameAsync(string id, string? minecraftUsername);
 }
