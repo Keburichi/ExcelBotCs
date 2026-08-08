@@ -1,5 +1,6 @@
 using System.Net.Sockets;
 using System.Text;
+using System.Text.RegularExpressions;
 using ExcelBotCs.Models.Config;
 using Microsoft.Extensions.Options;
 
@@ -7,11 +8,17 @@ namespace ExcelBotCs.Services.Minecraft;
 
 // Minimal Source RCON client (https://developer.valvesoftware.com/wiki/Source_RCON_Protocol),
 // which Minecraft's built-in RCON server implements. Only what whitelist add/remove needs.
-public class MinecraftRconService : IMinecraftRconService
+public partial class MinecraftRconService : IMinecraftRconService
 {
     private const int TypeAuth = 3;
     private const int TypeExecCommand = 2;
     private static readonly TimeSpan CommandTimeout = TimeSpan.FromSeconds(10);
+
+    // Real Mojang usernames are 3-16 characters, letters/digits/underscore only. Enforcing this
+    // before building the RCON command body prevents a username containing control characters
+    // (e.g. embedded newlines) from being interpreted as extra console commands by the server.
+    [GeneratedRegex("^[A-Za-z0-9_]{3,16}$")]
+    private static partial Regex ValidUsernameRegex();
 
     private readonly MinecraftOptions _options;
     private readonly ILogger<MinecraftRconService> _logger;
@@ -23,12 +30,20 @@ public class MinecraftRconService : IMinecraftRconService
     }
 
     public Task<(bool Success, string Message)> WhitelistAddAsync(string username) =>
-        RunWhitelistCommandAsync($"whitelist add {username}");
+        RunWhitelistCommandAsync("add", username);
 
     public Task<(bool Success, string Message)> WhitelistRemoveAsync(string username) =>
-        RunWhitelistCommandAsync($"whitelist remove {username}");
+        RunWhitelistCommandAsync("remove", username);
 
-    private async Task<(bool Success, string Message)> RunWhitelistCommandAsync(string command)
+    private Task<(bool Success, string Message)> RunWhitelistCommandAsync(string action, string username)
+    {
+        if (!ValidUsernameRegex().IsMatch(username))
+            return Task.FromResult((false, "Not a valid Minecraft username."));
+
+        return RunCommandAsync($"whitelist {action} {username}");
+    }
+
+    private async Task<(bool Success, string Message)> RunCommandAsync(string command)
     {
         try
         {
@@ -54,17 +69,19 @@ public class MinecraftRconService : IMinecraftRconService
         }
     }
 
-    // Vanilla whitelist responses look like:
+    // Fail closed: only recognized vanilla whitelist success phrasing counts as success.
+    // Anything else - "That player does not exist", "Unknown command", a truncated/garbled
+    // response, server-language differences - is treated as failure so a bad or unexpected
+    // response can never get silently persisted as a successful whitelist change.
     //   "Added <name> to the whitelist" / "Removed <name> from the whitelist"
-    //   "Nothing changed. The player already is whitelisted" / "...is not whitelisted" (treated as success, idempotent)
-    //   "That player does not exist" (bad/unknown username - the one failure case worth surfacing)
+    //   "Nothing changed. The player already is whitelisted" / "...is not whitelisted" (idempotent, still success)
     private static bool IsSuccessResponse(string response)
     {
         if (string.IsNullOrWhiteSpace(response))
             return false;
-        if (response.Contains("does not exist", StringComparison.OrdinalIgnoreCase))
-            return false;
-        return true;
+        return response.Contains("Added", StringComparison.OrdinalIgnoreCase) ||
+               response.Contains("Removed", StringComparison.OrdinalIgnoreCase) ||
+               response.Contains("Nothing changed", StringComparison.OrdinalIgnoreCase);
     }
 
     private async Task<bool> AuthenticateAsync(NetworkStream stream, CancellationToken ct)
