@@ -63,8 +63,17 @@ public class Program
 
         builder.Services.AddSingleton<IBotConnectionMonitor, BotConnectionMonitor>();
 
-        AddHostedService<DiscordBotService>();
-        AddService<DiscordLogger>();
+        // The bot is a singleton resource: a second process on the same token opens a second gateway
+        // session, duplicates every handler/import, and re-registers (deleting) global slash commands.
+        // Parallel checkouts therefore run botless via DiscordBot:Enabled=false.
+        var discordBotEnabled = builder.Configuration.GetValue("DiscordBot:Enabled", true);
+
+        if (discordBotEnabled)
+        {
+            AddHostedService<DiscordBotService>();
+            AddService<DiscordLogger>();
+        }
+
         AddInstance(new Prng());
 
 
@@ -194,6 +203,10 @@ public class Program
         builder.Services.AddAppAuthentication(builder.Configuration);
 
         var app = builder.Build();
+
+        if (!discordBotEnabled)
+            app.Logger.LogWarning(
+                "Discord bot disabled (DiscordBot:Enabled=false): no gateway connection and no slash-command registration.");
 
         var forwardedOptions = new ForwardedHeadersOptions
         {
