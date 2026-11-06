@@ -204,6 +204,16 @@ public class Program
 
         var app = builder.Build();
 
+        // One-shot lottery data maintenance (docs/lottery/operations.md): create the indexes or run the legacy
+        // lottery_results backfill, then exit. The web server and the Discord gateway never start in this mode.
+        var maintenanceRequest = LotteryMaintenanceRequest.Parse(args);
+        if (maintenanceRequest.IsRequested)
+        {
+            Environment.ExitCode = LotteryMaintenanceRunner.RunAsync(app.Services, maintenanceRequest)
+                .GetAwaiter().GetResult();
+            return;
+        }
+
         if (!discordBotEnabled)
             app.Logger.LogWarning(
                 "Discord bot disabled (DiscordBot:Enabled=false): no gateway connection and no slash-command registration.");

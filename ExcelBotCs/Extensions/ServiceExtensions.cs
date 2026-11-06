@@ -7,6 +7,8 @@ using ExcelBotCs.Services;
 using ExcelBotCs.Services.API;
 using ExcelBotCs.Services.API.Interfaces;
 using ExcelBotCs.Services.FFLogs;
+using ExcelBotCs.Services.Lottery;
+using ExcelBotCs.Services.Lottery.Interfaces;
 using ExcelBotCs.Services.Minecraft;
 
 namespace ExcelBotCs.Extensions;
@@ -28,6 +30,15 @@ public static class ServiceExtensions
         services.AddSingleton<ILotteryGuessRepository, LotteryGuessRepository>();
         services.AddSingleton<IExtraLotteryGuessRepository, ExtraLotteryGuessRepository>();
         services.AddSingleton<ILotteryResultRepository, LotteryResultRepository>();
+        services.AddSingleton<ILotteryRoundRepository, LotteryRoundRepository>();
+        services.AddSingleton<ILotteryEntryRepository, LotteryEntryRepository>();
+        services.AddSingleton<ILotteryWinnerRepository, LotteryWinnerRepository>();
+        services.AddSingleton<ILotteryPotLedgerRepository, LotteryPotLedgerRepository>();
+        services.AddSingleton<ILotteryReminderOptinRepository, LotteryReminderOptinRepository>();
+        services.AddSingleton<ILotteryAwardRepository, LotteryAwardRepository>();
+        services.AddSingleton<ILotteryPrizePoolRepository, LotteryPrizePoolRepository>();
+        services.AddSingleton<ILotterySettingsRepository, LotterySettingsRepository>();
+        services.AddSingleton<ILotterySettingsHistoryRepository, LotterySettingsHistoryRepository>();
         services.AddSingleton<IEventDetailsRepository, EventDetailsRepository>();
         services.AddSingleton<IEventTemplateRepository, EventTemplateRepository>();
     }
@@ -49,6 +60,10 @@ public static class ServiceExtensions
     public static void AddDomainServices(this IServiceCollection services)
     {
         services.AddSingleton<IICalService, ICalService>();
+
+        // Lottery data maintenance: the index migration and the one-time lottery_results backfill (§6, §12).
+        services.AddSingleton<ILotteryIndexInitializer, LotteryIndexInitializer>();
+        services.AddSingleton<ILotteryArchiveBackfillService, LotteryArchiveBackfillService>();
     }
 
     public static void AddDiscordClient(this IServiceCollection services)
