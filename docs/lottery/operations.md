@@ -87,6 +87,25 @@ The collections are additive. Rolling back is a deploy of the previous version p
 nothing in this migration deletes data and `lottery_results` remains. If the backfill must be undone on a scratch
 database, drop the new lottery collections — never `lottery_results` — and start the cutover again.
 
+## Operating notes
+
+Three things the maintenance commands do **not** do, and one day-to-day recovery path:
+
+- **The opening pot is manual only.** Nothing in the application creates the opening ledger entry (spec §6 "no auto
+  set"). With an empty ledger the balance is the newest `BalanceAfter`, or the configured
+  `Lottery:Automation:BasePot` until the first write — so an unseeded deployment reports 1,000,000 Gil rather than the
+  historical pot. Insert exactly one opening-balance entry with the shape in
+  [`manual-seed.md`](manual-seed.md#shape-2--the-opening-pot).
+- **`WebBaseUrl` is the public URL, not a placeholder.** The repository's `appsettings.fc-server.json` ships
+  `https://localhost:5032`; the startup check only verifies that it is an absolute `http(s)` URL, so a forgotten value
+  does not degrade the start — it silently points every announcement, void annotation and alert link at the operator's
+  own machine. Set it to the public site URL (no trailing slash).
+- **A wrong draw is recovered by voiding it and running the date again.** **Void last draw** reverses the round's
+  ledger movements and annotates the post; **Run now** then re-opens the voided due round and draws it again with
+  attempt-scoped ledger keys. A round on the wrong date is moved with **Move one round** on the Schedule tab
+  (`POST /api/lottery/admin/reschedule`). Both procedures are in the
+  [cutover runbook](cutover-runbook.md#recovering-a-wrong-draw-or-a-moved-round).
+
 ## Related
 
 - [cutover, rollout and rollback runbook](cutover-runbook.md) — the sequence these commands sit in

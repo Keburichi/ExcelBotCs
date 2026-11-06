@@ -31,6 +31,12 @@ Check it took, through the two surfaces you will use for the rest of the runbook
   is reported in `automationNote` (see [Reading `/health`](#reading-health)).
 - `/lottery/admin` → status pill **Disabled**, scheduler off.
 
+While you are here, set `WebBaseUrl` to the **public** site URL (`https://lottery.example.com`, no trailing slash).
+Every announcement carries a `/lottery/history` link, the void annotation carries a `/lottery/admin` link, and the
+needs-admin alerts link the admin page too. The repository's `appsettings.fc-server.json` ships
+`https://localhost:5032` as a **placeholder**: the startup check accepts it because it is an absolute URL, so a
+forgotten value does not degrade the start — it just sends every operator and member to their own machine.
+
 ## 2. Create the collections and indexes
 
 Back up MongoDB first, then:
@@ -45,9 +51,13 @@ loudly if existing data violates a unique index (fix the data, then re-run). Det
 
 ## 3. Insert the manual history and the opening pot
 
-The application never seeds these. Insert the 35 historical winner rows and exactly one opening-balance ledger entry
-with the shapes in [`manual-seed.md`](manual-seed.md). Two rules matter at cutover:
+The application never seeds these and **never creates the opening pot**. Insert the 35 historical winner rows and
+exactly one opening-balance ledger entry with the shapes in [`manual-seed.md`](manual-seed.md). Three rules matter at
+cutover:
 
+- the opening pot is **manual only** (§6 "no auto set"): the ledger starts empty, and the app derives the balance as
+  the newest `BalanceAfter` — or the configured `Lottery:Automation:BasePot` while there is no entry. A deployment
+  that skips this step therefore runs at 1,000,000 Gil, it does not silently acquire a seeded pot;
 - the opening-balance entry is a `correction` with `IdempotencyKey: "opening-balance"` — the unique index makes a
   second insert fail instead of doubling the pot;
 - no `lottery_rounds` documents are needed for the historical rows: the history page reads `lottery_winners`.
@@ -94,14 +104,24 @@ Review:
 You can repeat the check on demand with **Dry run now** on the admin Overview; it uses the same preview path and never
 writes. The dry-run tick only posts once per round key — a minute-by-minute scheduler does not spam the log channel.
 
+The dry-run week is inert in two more ways worth confirming:
+
+- **the reminder is suppressed.** The scheduled pre-draw reminder pings real opted-in members, so it is gated by
+  `DryRun` like the rest of the automated path (`dry-run` disposition, `POST /lottery` reminders untouched). The
+  officer's `/lottery remind` and the admin **Send test reminder** stay live — they are explicit human actions;
+- **the previewed slot is remembered.** The tick stores the round key in `lottery_settings.LastDryRunRoundKey`, so
+  promoting the deployment does not draw that date for real (see step 7).
+
 ## 7. Promote
 
 1. Redeploy with `Lottery:Automation:DryRun=false` (`Enabled` still `false`). Nothing runs; this only removes the
    prefix for the next step.
 2. Redeploy with `Lottery:Automation:Enabled=true`.
 
-The first live run is the **next scheduled round**. Watch the first two live weeks against the checklist in
-[Monitoring](#monitoring-checklist).
+The first live run is the **next scheduled round** — the dry-run week is not replayed live. A dry run writes no round
+row, so without `lottery_settings.LastDryRunRoundKey` the planner would treat the previewed date as a missed slot and
+draw it on the first live tick; the marker makes that slot count as satisfied. Watch the first two live weeks against
+the checklist in [Monitoring](#monitoring-checklist).
 
 ### Cutover gotcha: enabling mid-week runs a round immediately
 
@@ -146,12 +166,17 @@ no round is pending or failed, degraded when one is — and that the rollout fla
 | `dry-run` | Healthy | draws are simulated and posted as `[DRY RUN]`; the reason is in `automationNote` |
 | `paused` | Healthy | admin pause; manual **Run now** still works; the reason is in `automationNote` |
 | `disabled` | Healthy | `Enabled=false`; nothing is scheduled; the reason is in `automationNote` |
-| any | Degraded | a round is pending/failed: see `pendingRoundKey`, `pendingStatus`, `failedStep`, `attempts`, `nextRetryAtUtc`, `lastError` |
-| any | Degraded | `startupCheck` is `degraded` (`problems`) or `pending` (the check has not finished) |
+| any | Degraded | a round is pending/failed: see `pendingRoundKey`, `pendingStatus`, `failedStep`, `attempts`, `nextRetryAtUtc`, `lastErrorReason` |
+| any | Degraded | `startupCheck` is `degraded` (`problemCount`) or `pending` (the check has not finished) |
 | `unknown` | Degraded | the status could not be read within the read budget |
 
 A dry-run or paused week is therefore a **healthy** probe; only a stuck round or a broken startup check degrades the
 detail. Read `automationNote` when you want to know which rollout state produced the detail.
+
+`/health` is **anonymous**, so the report never carries raw exception text: the round's error appears as a coarse
+`lastErrorReason` (for example `"a Discord error is recorded"`) and the startup problems as a `problemCount`. The full
+`LastError` and the problem list are on the authenticated `GET /api/lottery/admin/status`, which is where you debug
+from; the writer redacts `lastError`, `problems`, `exception`, `error` and `stackTrace` from any check's `data`.
 
 Response shape (trimmed):
 
@@ -176,7 +201,7 @@ Response shape (trimmed):
         "failedStep": "announcement",
         "attempts": 3,
         "nextRetryAtUtc": "2026-11-10T20:30:00.0000000Z",
-        "lastError": "Discord is unreachable",
+        "lastErrorReason": "a Discord error is recorded",
         "nextRoundKey": "2026-11-17",
         "nextRunAtUtc": "2026-11-17T19:00:00.0000000Z"
       }
@@ -225,10 +250,45 @@ Rolling back is a flag, not a migration:
 
 What a rollback does **not** do: it does not delete rounds, winners, entries, ledger rows, opt-ins or settings, and
 it does not roll the pot back. If a draw must be undone, use **Void last draw** on the admin page — that reverses the
-round's ledger entries and annotates the post.
+round's ledger entries and annotates the post — and then **Run now** to draw the date again (see
+[Recovering a wrong draw](#a-wrong-draw-void-then-run-the-date-again)).
 
 Do not drop `lottery_*` collections or `lottery_results` as part of a rollback. On a **scratch** database where the
 cutover must be restarted, drop only the new lottery collections and repeat this runbook from step 2.
+
+## Recovering a wrong draw or a moved round
+
+Two operator mistakes have a documented, audited recovery path. Neither is automatic: nothing redraws a date unless an
+admin asks for it (§5.1 "Redo", "Reschedule").
+
+### A wrong draw: void, then run the date again
+
+1. `/lottery/admin` → **Overview** → **Void last draw**, with a reason. The reason is required: it is stored on the
+   round and in the audit trail, the round becomes `voided`, the announcement is annotated as void, and the round's
+   own ledger movements (`payout`/`reset`/`weekly_increment`) are reversed by audited `correction` entries.
+2. Confirm `/health` shows the round as finished (no `pendingRoundKey`) — a `voided` round does not block the
+   schedule — and that the pot is back where it was before the draw.
+3. **Run now** on the same page draws the date again. It re-opens the voided round: `scheduled` again with the old
+   result cleared, and `Attempt` incremented. The fresh draw uses the guesses that exist *now*, writes attempt-scoped
+   ledger keys (`2026-11-10:payout:1`, `2026-11-10:reset:1`, …) and leaves the voided attempt's movements and their
+   reversals untouched, so the ledger still balances and the audit still shows what was undone. The void reason, actor
+   and time stay on the round.
+4. Confirm the new announcement in the lottery channel, the new winners on `/lottery/history` and the pot on
+   **Pot & payouts**.
+
+Do not try to recover by running a *different* date: **Run now** targets the most recent due slot. Once a new week has
+started, the voided date is history and is not re-opened — void early, while the date is still the due slot.
+
+### A round on the wrong date: reschedule it
+
+1. `/lottery/admin` → **Schedule & reminders** → **Move one round**.
+2. Leave the round field blank to move the next round, or type its key (`YYYY-MM-DD`) to move a specific one.
+3. Pick the new local date and time and confirm.
+
+The round key follows the new **local** date (a 00:30 Berlin instant belongs to the next day), guesses stay with the
+round, and the pot is untouched until the run. Moving onto a date that already has a round fails with a typed
+conflict — nothing moves — and only a `scheduled` round can be moved: one that already ran, was skipped or was voided
+must be recovered another way. The same action exists as `POST /api/lottery/admin/reschedule`.
 
 ## Afterwards
 

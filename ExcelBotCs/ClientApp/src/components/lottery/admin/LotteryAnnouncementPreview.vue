@@ -147,4 +147,23 @@ const budgetNote = computed(() => {
   font-size: 0.78rem;
   line-height: 1.5;
 }
+
+/* Tablet: the variant bar stacks above the preview instead of squeezing it. */
+@media (max-width: 768px) {
+  .preview__bar {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .preview__text {
+    padding: 0.75rem;
+  }
+}
+
+/* Phone: the pre-wrap post wraps at the viewport, so the type shrinks one step. */
+@media (max-width: 480px) {
+  .preview__text {
+    font-size: 0.78rem;
+  }
+}
 </style>

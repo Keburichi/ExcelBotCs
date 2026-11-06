@@ -62,6 +62,13 @@ const failure = computed(() => {
 })
 
 const canRetry = computed(() => Boolean(status.value?.PendingRound))
+
+// A voided round has a recovery path (spec §5.1 "Redo"): Run now re-opens that due date and draws it again, so the
+// page says so instead of leaving the admin to guess.
+const voidedRound = computed(() => {
+  const round = status.value?.LatestRound
+  return round && round.Status === 'voided' ? round : null
+})
 const canVoid = computed(() => {
   const round = status.value?.LatestRound
   if (!round)
@@ -151,7 +158,7 @@ function togglePause() {
             <dt>Pot</dt>
             <dd class="fact__strong">
               {{ formatGil(status.Pot) }} Gil
-              <span v-if="status.PrizeCount > 0" class="fact__muted">+ {{ status.PrizeCount }} prize{{ status.PrizeCount === 1 ? '' : 's' }}</span>
+              <span v-if="status.PoolPrizes > 0" class="fact__muted">+ {{ status.PoolPrizes }} prize{{ status.PoolPrizes === 1 ? '' : 's' }}</span>
             </dd>
           </div>
           <div class="fact">
@@ -256,7 +263,12 @@ function togglePause() {
             @clicked="voidLastDraw"
           />
         </div>
-        <p v-if="!canRetry" class="hint">
+        <p v-if="voidedRound" class="hint">
+          Round {{ voidedRound.RoundKey }} is voided. <strong>Run now</strong> draws that date again as a new attempt
+          (its own ledger keys, the voided movements and their reversals left intact) — a void is never re-drawn on its
+          own.
+        </p>
+        <p v-else-if="!canRetry" class="hint">
           Nothing is pending, so there is no announcement to retry.
         </p>
       </section>

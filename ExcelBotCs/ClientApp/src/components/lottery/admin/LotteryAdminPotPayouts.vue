@@ -330,4 +330,11 @@ async function adjust() {
     grid-template-columns: 1fr;
   }
 }
+
+/* Phone: tighter card padding (the guideline's 480 step). */
+@media (max-width: 480px) {
+  .card {
+    padding: 0.875rem;
+  }
+}
 </style>

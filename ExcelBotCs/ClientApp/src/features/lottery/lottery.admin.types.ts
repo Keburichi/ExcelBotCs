@@ -20,7 +20,6 @@ export interface LotteryAdminStatus {
   Degraded: boolean
   Blocked: boolean
   Pot: number
-  PrizeCount: number
   PendingPayouts: number
   PoolPrizes: number
   OptedIn: number

@@ -42,7 +42,8 @@ const fieldErrors = ref<Record<string, string>>({})
 
 const hasMoreLedger = computed(() => ledgerCursor.value !== null)
 const pendingPayouts = computed(() => status.value?.PendingPayouts ?? 0)
-const inPoolPrizes = computed(() => prizes.value?.InPoolCount ?? status.value?.PoolPrizes ?? 0)
+// One source of truth for the pot summary: the status payload already carries the in-pool count.
+const inPoolPrizes = computed(() => status.value?.PoolPrizes ?? 0)
 
 /**
  * A per-submit idempotency key. `crypto.randomUUID` needs a secure context, so a deployment served over plain HTTP
@@ -401,6 +402,15 @@ async function dryRunNow(): Promise<boolean> {
   })
 }
 
+// Moves one scheduled round (spec §5.1 "Reschedule"): the round key follows the new local date, guesses stay and the
+// pot is untouched until the run. A target date that already has a round comes back as a typed conflict.
+async function rescheduleRound(roundKey: string | null, scheduledAt: Date): Promise<boolean> {
+  return mutate(async () => {
+    const result = await LotteryAdminApi.reschedule(roundKey, scheduledAt)
+    return { Ok: result.Ok, Message: result.Data?.Message ?? result.Message }
+  })
+}
+
 export function useLotteryAdmin() {
   return {
     // state
@@ -446,5 +456,6 @@ export function useLotteryAdmin() {
     voidLastDraw,
     retryAnnouncement,
     dryRunNow,
+    rescheduleRound,
   }
 }

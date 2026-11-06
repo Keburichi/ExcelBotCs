@@ -1,6 +1,7 @@
 using System.Globalization;
 using System.Text;
 using ExcelBotCs.Database.Interfaces;
+using ExcelBotCs.Utilities;
 
 namespace ExcelBotCs.Services.Lottery;
 
@@ -20,7 +21,7 @@ public static class LotteryLedgerCursor
 			anchor.DateCreatedUtc.Ticks.ToString(CultureInfo.InvariantCulture),
 			anchor.Id);
 
-		return ToBase64Url(Encoding.UTF8.GetBytes(payload));
+		return Base64Url.Encode(Encoding.UTF8.GetBytes(payload));
 	}
 
 	/// <summary>
@@ -31,7 +32,7 @@ public static class LotteryLedgerCursor
 	{
 		anchor = null!;
 		if (string.IsNullOrWhiteSpace(cursor)) return false;
-		if (!TryFromBase64Url(cursor, out var bytes)) return false;
+		if (!Base64Url.TryDecode(cursor, out var bytes)) return false;
 
 		var payload = Encoding.UTF8.GetString(bytes);
 		var parts = payload.Split(Separator);
@@ -43,32 +44,5 @@ public static class LotteryLedgerCursor
 
 		anchor = new LotteryLedgerPageAnchor(new DateTime(ticks, DateTimeKind.Utc), parts[1]);
 		return true;
-	}
-
-	private static string ToBase64Url(byte[] bytes)
-	{
-		return Convert.ToBase64String(bytes).TrimEnd('=').Replace('+', '-').Replace('/', '_');
-	}
-
-	private static bool TryFromBase64Url(string value, out byte[] bytes)
-	{
-		var padded = value.Replace('-', '+').Replace('_', '/');
-		padded = (padded.Length % 4) switch
-		{
-			2 => padded + "==",
-			3 => padded + "=",
-			_ => padded
-		};
-
-		try
-		{
-			bytes = Convert.FromBase64String(padded);
-			return true;
-		}
-		catch (FormatException)
-		{
-			bytes = [];
-			return false;
-		}
 	}
 }

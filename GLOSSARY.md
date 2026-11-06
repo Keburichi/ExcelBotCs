@@ -23,7 +23,10 @@ The natural number from 1 to 99 drawn for a round.
 _Avoid_: Roll, result, winning digit
 
 **Guess**:
-A member's chosen number for a round.
+A member's chosen number for a round. A live guess lives in `lottery_guesses` (cleared when a round completes); when
+the draw freezes the guess set it is copied to `lottery_entries`, one row per guess and round. That collection name is
+fixed by the data model (spec §6), so code, specs and queries say `lottery_entries` — it is the persisted guess, not a
+separate concept. Say "entry" only when naming the collection or the `LotteryEntry` type.
 _Avoid_: Entry, ticket, pick
 
 **Extra guess**:

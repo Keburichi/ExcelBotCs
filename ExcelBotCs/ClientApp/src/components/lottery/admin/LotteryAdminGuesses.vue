@@ -306,4 +306,24 @@ async function award() {
   color: var(--msg-success-fg);
   border: 1px solid var(--msg-success-border);
 }
+
+/* Tablet: the card uses the full width once the sidebar is gone. */
+@media (max-width: 768px) {
+  .card {
+    max-width: none;
+    padding: 1rem;
+  }
+}
+
+/* Phone: full-width action row. */
+@media (max-width: 480px) {
+  .card {
+    padding: 0.875rem;
+  }
+
+  .actions {
+    flex-direction: column;
+    align-items: stretch;
+  }
+}
 </style>

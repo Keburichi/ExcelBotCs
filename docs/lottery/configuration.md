@@ -35,7 +35,7 @@ are final over anything stored, while `PauseAutomation` is the admin's own switc
 | `DiscordBot:LotteryMemberRoleId` | `0` | role the announcement pings |
 | `DiscordBot:LotteryCustomEmojiId` | `0` | `kekDoggo` id; `0` means the template keeps the literal text |
 | `DiscordBot:LogChannel` | `0` | audit notices and alerts; `0` falls back to `DiscordBot:LotteryChannel` |
-| `WebBaseUrl` | falls back to `Jwt:Issuer` | public base URL for `/lottery/history` links, no trailing slash |
+| `WebBaseUrl` | falls back to `Jwt:Issuer` | **public** base URL for the `/lottery/history` and `/lottery/admin` links, no trailing slash; `appsettings.fc-server.json` ships a `localhost` placeholder |
 | `Lottery:Automation:Enabled` | `false` | deploy kill switch — nothing is scheduled or posted |
 | `Lottery:Automation:DryRun` | `true` | post a `[DRY RUN]` message with mentions suppressed |
 | `Lottery:Automation:BasePot` | `1000000` | pot after a win / opening balance; **not** admin-editable |
@@ -44,6 +44,11 @@ are final over anything stored, while `PauseAutomation` is the admin's own switc
 `WebBaseUrl` is a top-level scalar, so it is registered specially in `ConfigExtensions.LoadSettings` instead of
 through `[OptionsSection]` (`WebBaseUrlOptions.Resolve`). The three `DiscordBot` ids are `ulong` options without
 `[Required]`: a deployment that has not filled them in still boots, and the startup check reports them.
+
+The `localhost` values in `appsettings.json` (`https://localhost:8080`) and `appsettings.fc-server.json`
+(`https://localhost:5032`) are **placeholders**. The startup check only rejects an empty or non-absolute value, so a
+forgotten placeholder does not degrade the start — it just makes every announcement, void annotation and needs-admin
+alert link point at the operator's machine. Set `WebBaseUrl` to the public site URL before the dry-run week.
 
 ## Operational settings and their defaults
 

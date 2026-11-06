@@ -33,7 +33,8 @@ run, not paused), **Dry run**, **Paused**, **Disabled** (`Lottery:Automation:Ena
   prize pool. Read-only; it posts nothing.
 - **Run now** — runs the due round **live**, immediately, whatever the flags say. It is the escape hatch and it is
   irreversible: the draw, the winners, the ledger entries and the announcement are the real thing. A second click in
-  the same week answers "already run" instead of drawing again.
+  the same week answers "already run" instead of drawing again. On a **voided** due round it is also the recovery: it
+  re-opens the round and draws the date again from the guesses that exist now (see **When something looks wrong**).
 - **Dry run now** — the same announcement as a real run, prefixed with `[DRY RUN]`, posted to the log channel with
   mentions suppressed. Nothing is written: no round, entries, winners or ledger, and guesses are not flushed.
 - **Skip week** — marks the upcoming round `skipped`. No draw, no pot change, guesses carry to the next round.
@@ -98,9 +99,10 @@ same operation stays available to officers as `/lottery award` in Discord.
 
 | Action | What it does | Reversible? |
 |---|---|---|
-| **Run now** | draws, pays, posts and completes the due round live | no — undo it with **Void last draw**, which is audited and leaves the post annotated |
+| **Run now** | draws, pays, posts and completes the due round live; on a voided due round it draws that date again | no — undo it with **Void last draw**, which is audited and leaves the post annotated |
 | **Dry run now** | posts `[DRY RUN]` to the log channel, writes nothing | yes — nothing changed |
-| **Void last draw** | reverses the round's ledger entries, marks the round void, annotates the announcement | no — audited, and the pot moves back |
+| **Void last draw** | reverses the round's ledger entries, marks the round void, annotates the announcement | no — audited, and the pot moves back; **Run now** then re-draws the same date |
+| **Move one round** | moves a scheduled round to a new date/time; the round key follows the new local date, guesses stay | yes — move it again while it is still `scheduled` |
 | **Retry announcement** | resumes an unfinished round with the same result | yes — it never re-draws |
 | **Skip week** | marks the upcoming round skipped, guesses carry | not directly; the round stays `skipped` |
 | **Pause automation** | stops the scheduler (draw and reminder) until unpaused | yes — toggle back |
@@ -120,8 +122,12 @@ round is voided before a new one is run, and a drawn round always retries the sa
    deployment config and restart; the admin page cannot change it. While it is degraded, neither the draw nor the
    scheduled reminder runs (the manual actions still do).
 3. **A wrong draw was completed** — **Void last draw** with a reason. The ledger is reversed and the announcement is
-   annotated so nobody pays out the old result; then let the next scheduled round run (or **Run now**).
-4. **A payout went wrong** — **Forfeit** returns the prize items to the pool; the Gil ledger is untouched by payout
+   annotated so nobody pays out the old result; then **Run now** draws the same date again (the round is re-opened with
+   a new attempt, and the ledger keys of the two attempts never collide).
+4. **A round is on the wrong date** — **Schedule & reminders** → **Move one round**: leave the round blank for the next
+   one or type its key, pick the new local date and time, confirm. Guesses stay and the pot is untouched until the run.
+   Moving onto a date that already has a round is refused with a conflict, and only a `scheduled` round can be moved.
+5. **A payout went wrong** — **Forfeit** returns the prize items to the pool; the Gil ledger is untouched by payout
    statuses and can only be corrected with an explicit pot adjustment.
 
 Never restart the container to "fix" a degraded lottery detail: a restart re-runs the startup check but changes no

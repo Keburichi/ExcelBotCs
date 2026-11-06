@@ -431,4 +431,33 @@ textarea:focus-visible {
   color: var(--muted);
   font-size: 0.85rem;
 }
+
+/* Tablet: the editor head stacks so the character count does not crowd the label. */
+@media (max-width: 768px) {
+  .card {
+    padding: 1rem;
+  }
+
+  .editor__head {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.25rem;
+  }
+}
+
+/* Phone: full-width actions and a slightly smaller monospace editor. */
+@media (max-width: 480px) {
+  .card {
+    padding: 0.875rem;
+  }
+
+  .actions {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  textarea {
+    font-size: 0.78rem;
+  }
+}
 </style>

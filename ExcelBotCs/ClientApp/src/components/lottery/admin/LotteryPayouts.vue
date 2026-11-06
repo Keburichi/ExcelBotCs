@@ -357,4 +357,45 @@ const inPool = computed(() => prizes.value?.Items.filter(item => item.Status ===
   color: var(--muted);
   font-size: 0.85rem;
 }
+
+/* Tablet: each payout row stacks so the actions do not squeeze the name. */
+@media (max-width: 768px) {
+  .card {
+    padding: 1rem;
+  }
+
+  .payout__row {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .payout__actions {
+    width: 100%;
+  }
+
+  .note {
+    flex: 1 1 100%;
+  }
+}
+
+/* Phone: filters and actions take the full width. */
+@media (max-width: 480px) {
+  .card {
+    padding: 0.875rem;
+  }
+
+  .filters {
+    width: 100%;
+  }
+
+  .filter {
+    flex: 1 1 auto;
+    text-align: center;
+  }
+
+  .payout__actions {
+    flex-direction: column;
+    align-items: stretch;
+  }
+}
 </style>
