@@ -96,10 +96,23 @@ public abstract class IntegrationTestBase : MongoDbTest
                     var mockDiscordMessageService = new Mock<IDiscordMessageService>();
                     mockDiscordMessageService.Setup(x => x.PostInLotteryChannelAsync(It.IsAny<string>()))
                         .Returns(Task.CompletedTask);
+                    // The admin page's "Send test reminder" is a DM to the requesting admin; the fake accepts it so
+                    // the success path is testable without a live Discord socket.
+                    mockDiscordMessageService.Setup(x =>
+                            x.SendLotteryReminderDirectMessageAsync(It.IsAny<ulong>(), It.IsAny<string>()))
+                        .ReturnsAsync(true);
                     mockDiscordMessageService.Setup(x => x.PostInAnnouncementChannelAsync(It.IsAny<string>()))
                         .Returns(Task.CompletedTask);
                     mockDiscordMessageService.Setup(x => x.PostInEventChannelAsync(It.IsAny<string>()))
                         .Returns(Task.CompletedTask);
+                    // The lottery announcement and dry-run paths expect a posted message back; a fake one keeps the
+                    // admin run/dry-run endpoints testable end to end without a live Discord socket.
+                    var postedMessage = new Mock<IUserMessage>();
+                    postedMessage.SetupGet(message => message.Id).Returns(900000000000000001);
+                    mockDiscordMessageService.Setup(x => x.PostLotteryAnnouncementAsync(It.IsAny<string>()))
+                        .ReturnsAsync(postedMessage.Object);
+                    mockDiscordMessageService.Setup(x => x.PostDryRunAsync(It.IsAny<string>()))
+                        .ReturnsAsync(postedMessage.Object);
                     mockDiscordMessageService.Setup(x => x.PostInUpcomingRosterChannelAsync(It.IsAny<string>()))
                         .ReturnsAsync((IUserMessage?)null);
                     mockDiscordMessageService.Setup(x => x.DeleteUpcomingRosterMessageAsync(It.IsAny<string>()))

@@ -107,4 +107,38 @@ public class LotteryWinnerRepository : BaseRepository<LotteryWinner>, ILotteryWi
 		var result = await Collection.UpdateOneAsync(filter, update, new UpdateOptions { IsUpsert = true });
 		return result.UpsertedId != null;
 	}
+
+	public async Task<int> CountByPayoutStatusAsync(string payoutStatus)
+	{
+		return (int)await Collection.CountDocumentsAsync(w => w.PayoutStatus == payoutStatus);
+	}
+
+	public async Task<List<LotteryWinner>> GetPayoutPageAsync(string? payoutStatus,
+		LotteryWinnerPageAnchor? after, int limit)
+	{
+		var sort = Builders<LotteryWinner>.Sort
+			.Descending(w => w.RoundKey)
+			.Ascending(w => w.DateCreated)
+			.Ascending(w => w.Id);
+
+		var filter = Builders<LotteryWinner>.Filter.Empty;
+		if (payoutStatus is not null)
+			filter &= Builders<LotteryWinner>.Filter.Eq(w => w.PayoutStatus, payoutStatus);
+
+		if (after is not null)
+		{
+			var inSameRound = Builders<LotteryWinner>.Filter.Eq(w => w.RoundKey, after.RoundKey);
+			var afterTheAnchor = Builders<LotteryWinner>.Filter.Or(
+				Builders<LotteryWinner>.Filter.Gt(w => w.DateCreated, after.DateCreatedUtc),
+				Builders<LotteryWinner>.Filter.And(
+					Builders<LotteryWinner>.Filter.Eq(w => w.DateCreated, after.DateCreatedUtc),
+					Builders<LotteryWinner>.Filter.Gt(w => w.Id, after.Id)));
+
+			filter &= Builders<LotteryWinner>.Filter.Or(
+				Builders<LotteryWinner>.Filter.Lt(w => w.RoundKey, after.RoundKey),
+				Builders<LotteryWinner>.Filter.And(inSameRound, afterTheAnchor));
+		}
+
+		return await Collection.Find(filter).Sort(sort).Limit(limit).ToListAsync();
+	}
 }

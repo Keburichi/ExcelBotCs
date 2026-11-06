@@ -1,4 +1,4 @@
-﻿using Discord;
+using Discord;
 using Discord.WebSocket;
 using ExcelBotCs.Database;
 using ExcelBotCs.Database.Interfaces;
@@ -82,6 +82,10 @@ public static class ServiceExtensions
         services.AddSingleton<ILotteryAnnouncementPublisher, LotteryAnnouncementPublisher>();
         services.AddSingleton<ILotteryAnnouncementPreviewer, LotteryAnnouncementPreviewer>();
         services.AddSingleton<ILotteryRoundRunner, LotteryRoundRunner>();
+
+        // The admin page's read models and audited mutations (#114). It composes the engine above, so the admin API
+        // never re-implements a money, prize or state-machine rule.
+        services.AddSingleton<ILotteryAdminService, LotteryAdminService>();
 
         // The reminder opt-in, audience and post (§5.7). Registering it here is what makes the scheduler's reminder
         // tick, the slash commands and the member API resolve in production.

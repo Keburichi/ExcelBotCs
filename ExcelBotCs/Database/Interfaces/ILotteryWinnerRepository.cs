@@ -38,4 +38,14 @@ public interface ILotteryWinnerRepository : IBaseRepository<LotteryWinner>
 	/// </summary>
 	/// <returns><c>true</c> when the row was created, <c>false</c> when it was already present.</returns>
 	Task<bool> AddIfMissingAsync(LotteryWinner winner);
+
+	/// <summary>How many winners are in one payout state; the admin Overview shows the pending count.</summary>
+	Task<int> CountByPayoutStatusAsync(string payoutStatus);
+
+	/// <summary>
+	///     One page of the admin payouts table, newest round first, optionally restricted to one payout status. It uses
+	///     the same total ordering and keyset filter as the member timeline, so a shared draw is never split when the
+	///     page boundary falls between its two rows.
+	/// </summary>
+	Task<List<LotteryWinner>> GetPayoutPageAsync(string? payoutStatus, LotteryWinnerPageAnchor? after, int limit);
 }

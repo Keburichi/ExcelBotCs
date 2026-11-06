@@ -1,15 +1,12 @@
 <script lang="ts" setup>
 import { computed, onMounted } from 'vue'
 import BaseButton from '@/components/BaseButton.vue'
-import { useAuth } from '@/composables/useAuth'
 import { useLottery } from '@/composables/useLottery'
-import LotteryAdmin from './LotteryAdmin.vue'
 import LotteryGuesses from './LotteryGuesses.vue'
 import LotteryNumberGrid from './LotteryNumberGrid.vue'
 import LotteryReminderToggle from './LotteryReminderToggle.vue'
 import LotteryTabs from './LotteryTabs.vue'
 
-const { isAdmin } = useAuth()
 const lottery = useLottery()
 
 const remainingGuesses = computed(() =>
@@ -118,10 +115,6 @@ function handleSelect(num: number) {
 
       <div class="lottery-secondary">
         <LotteryGuesses :guesses="lottery.allGuesses.value" />
-
-        <div v-if="isAdmin" class="admin-divider">
-          <LotteryAdmin @refresh="lottery.load" />
-        </div>
       </div>
     </div>
   </section>
@@ -279,11 +272,6 @@ function handleSelect(num: number) {
   display: flex;
   flex-direction: column;
   gap: 2rem;
-}
-
-.admin-divider {
-  padding-top: 2rem;
-  border-top: 1px solid var(--border);
 }
 
 @media (max-width: 900px) {

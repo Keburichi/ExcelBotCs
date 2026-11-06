@@ -50,4 +50,23 @@ public class LotteryPotLedgerRepository : BaseRepository<LotteryPotLedgerEntry>,
 	{
 		return await Collection.Find(e => e.IdempotencyKey == idempotencyKey).FirstOrDefaultAsync();
 	}
+
+	public async Task<List<LotteryPotLedgerEntry>> GetPageAsync(LotteryLedgerPageAnchor? after, int limit)
+	{
+		var sort = Builders<LotteryPotLedgerEntry>.Sort
+			.Descending(e => e.DateCreated)
+			.Descending(e => e.Id);
+
+		var filter = Builders<LotteryPotLedgerEntry>.Filter.Empty;
+		if (after is not null)
+		{
+			filter = Builders<LotteryPotLedgerEntry>.Filter.Or(
+				Builders<LotteryPotLedgerEntry>.Filter.Lt(e => e.DateCreated, after.DateCreatedUtc),
+				Builders<LotteryPotLedgerEntry>.Filter.And(
+					Builders<LotteryPotLedgerEntry>.Filter.Eq(e => e.DateCreated, after.DateCreatedUtc),
+					Builders<LotteryPotLedgerEntry>.Filter.Lt(e => e.Id, after.Id)));
+		}
+
+		return await Collection.Find(filter).Sort(sort).Limit(limit).ToListAsync();
+	}
 }
