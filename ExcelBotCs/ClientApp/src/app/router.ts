@@ -14,6 +14,7 @@ import CreateEventView from '@/components/events/CreateEventView.vue'
 import EventsListView from '@/components/events/EventsListView.vue'
 import FcMembersListView from '@/components/fcMembers/FcMembersListView.vue'
 import FightsView from '@/components/fights/FightsView.vue'
+import LotteryHistoryView from '@/components/lottery/LotteryHistoryView.vue'
 import LotteryView from '@/components/lottery/LotteryView.vue'
 import MemberEditView from '@/components/members/MemberEditView.vue'
 import MembersListView from '@/components/members/MembersListView.vue'
@@ -57,8 +58,15 @@ const routes: RouteRecordRaw[] = [
   // Profile routes
   { path: '/profile', name: 'profile', component: ProfileView, meta: { requiresAuth: true } },
 
-  // Lottery routes
+  // Lottery routes: the Play tab keeps the guessing UI, History is its own deep-linkable route. The tab bar in
+  // LotteryTabs.vue is what links them, so the URL is the source of truth.
   { path: '/lottery', name: 'lottery', component: LotteryView, meta: { requiresAuth: true } },
+  {
+    path: '/lottery/history',
+    name: 'lottery-history',
+    component: LotteryHistoryView,
+    meta: { requiresAuth: true },
+  },
 
   // Admin routes - nested under AdminLayout
   {
