@@ -46,12 +46,15 @@ public class LotterySettingsService : ILotterySettingsService
 	public async Task<LotterySettingsSaveResult> SaveAsync(LotterySettingsUpdate update, ulong? actorDiscordId,
 		CancellationToken cancellationToken = default)
 	{
-		var errors = LotterySettingsValidator.Validate(update);
+		// A blank template means "use the default" (the admin form sends an empty field after a reset), so the
+		// defaults are applied before validation: an empty field is never an invalid template.
+		var request = WithTemplateDefaults(update);
+		var errors = LotterySettingsValidator.Validate(request);
 		if (errors.Count > 0)
 			return LotterySettingsSaveResult.Rejected(errors);
 
 		var stored = await _settingsRepository.GetSingletonAsync();
-		var storedValues = LotterySettingsValidator.Normalize(WithTemplateDefaults(update));
+		var storedValues = LotterySettingsValidator.Normalize(request);
 		var before = BuildEffective(stored);
 
 		// A save is a no-op when it would not change an effective value (so rewriting "tuesday" as "Tuesday" is not

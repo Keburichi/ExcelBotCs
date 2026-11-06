@@ -426,4 +426,78 @@ public class LotterySettingsServiceTests : MongoDbTest
 		history[0].OldValues["RunDay"].ShouldBe("Funday");
 		history[0].NewValues["RunDay"].ShouldBe("Tuesday");
 	}
+
+	[Fact]
+	public async Task SaveAsync_RejectsAnUnknownPlaceholderWithoutWritingAnything()
+	{
+		var update = LotterySettingsUpdate.FromDefaults() with
+		{
+			WinTemplate = "the winning number was {number}! Congratulations to {winners}! They take {prize} {jackpot}."
+		};
+
+		var result = await _service.SaveAsync(update, 123);
+
+		result.Success.ShouldBeFalse();
+		result.Errors.Select(error => error.Field).ShouldBe(["WinTemplate"]);
+		result.Errors[0].Message.ShouldContain("{jackpot}");
+		(await _settingsRepository.GetSingletonAsync()).ShouldBeNull();
+		(await _historyRepository.GetBySettingsKeyAsync(LotterySettings.SingletonKey)).ShouldBeEmpty();
+		_discordMessageService.Verify(x => x.PostInLogChannelAsync(It.IsAny<string>()), Times.Never);
+	}
+
+	[Fact]
+	public async Task SaveAsync_RejectsAMissingRequiredPlaceholder()
+	{
+		var update = LotterySettingsUpdate.FromDefaults() with { NoWinTemplate = "the winning number was {number}!" };
+
+		var result = await _service.SaveAsync(update, 123);
+
+		result.Success.ShouldBeFalse();
+		result.Errors.Select(error => error.Field).ShouldBe(["NoWinTemplate"]);
+		result.Errors[0].Message.ShouldContain("{pot}");
+		(await _settingsRepository.GetSingletonAsync()).ShouldBeNull();
+	}
+
+	[Fact]
+	public async Task SaveAsync_RejectsATemplateThatWouldProduceAnOverLimitMessage()
+	{
+		var update = LotterySettingsUpdate.FromDefaults() with
+		{
+			WinTemplate = LotterySettingsDefaults.WinTemplate + "\n" + new string('x', 1_500)
+		};
+
+		var result = await _service.SaveAsync(update, 123);
+
+		result.Success.ShouldBeFalse();
+		result.Errors.Select(error => error.Field).ShouldBe(["WinTemplate"]);
+		result.Errors[0].Message.ShouldContain("2,000");
+		(await _settingsRepository.GetSingletonAsync()).ShouldBeNull();
+	}
+
+	[Fact]
+	public async Task SaveAsync_ResetToDefaults_RestoresTheTemplatesAndAuditsTheChange()
+	{
+		var custom = LotterySettingsUpdate.FromDefaults() with
+		{
+			WinTemplate = "the winning number was {number}! Congratulations to {winners}! They take {prize}.",
+			NoWinTemplate = "the winning number was {number}! The jackpot goes up to {pot}!!"
+		};
+		await _service.SaveAsync(custom, 123);
+
+		var reset = await _service.SaveAsync(
+			LotterySettingsValidator.ResetTemplates((await _service.GetEffectiveAsync()).ToUpdate()), 456);
+
+		reset.Success.ShouldBeTrue();
+		reset.Changed.ShouldBeTrue();
+		reset.Settings!.WinTemplate.ShouldBe(LotterySettingsDefaults.WinTemplate);
+		reset.Settings.NoWinTemplate.ShouldBe(LotterySettingsDefaults.NoWinTemplate);
+
+		var stored = await _settingsRepository.GetSingletonAsync();
+		stored!.WinTemplate.ShouldBe(LotterySettingsDefaults.WinTemplate);
+		stored.NoWinTemplate.ShouldBe(LotterySettingsDefaults.NoWinTemplate);
+
+		var history = await _historyRepository.GetBySettingsKeyAsync(LotterySettings.SingletonKey);
+		history.Count.ShouldBe(2);
+		history[1].NewValues.Keys.ShouldBe(["WinTemplate", "NoWinTemplate"]);
+	}
 }

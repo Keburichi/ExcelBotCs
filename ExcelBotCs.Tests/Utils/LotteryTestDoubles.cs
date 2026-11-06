@@ -136,6 +136,21 @@ public sealed class FakeLotteryAnnouncementPublisher : ILotteryAnnouncementPubli
 }
 
 /// <summary>
+///     The alert seam: records every alert the runner or the publisher raises, so a test can assert that a terminal
+///     failure pings the admins once and that a scheduled retry stays quiet.
+/// </summary>
+public sealed class FakeLotteryAlertService : ILotteryAlertService
+{
+	public List<LotteryAlert> Alerts { get; } = [];
+
+	public Task PublishAsync(LotteryAlert alert, CancellationToken cancellationToken = default)
+	{
+		Alerts.Add(alert);
+		return Task.CompletedTask;
+	}
+}
+
+/// <summary>
 ///     A controllable clock for the scheduler's own tests. Kept separate from <see cref="FakeTimeProvider" /> so a test
 ///     can move the clock without changing a runner's view of time.
 /// </summary>
