@@ -1,8 +1,8 @@
 <script setup lang="ts">
 import { useAuth } from '@/composables/useAuth'
 
-// The Admin link only appears for admins; the page itself lands in #114, so the link is the contract between the
-// member views and the admin view.
+// The Admin link only appears for admins; the page it opens lives at /lottery/admin (#114) and the router guard keeps
+// members out even if they type the URL.
 const { isAdmin } = useAuth()
 </script>
 

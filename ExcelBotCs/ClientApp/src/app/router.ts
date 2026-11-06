@@ -14,6 +14,7 @@ import CreateEventView from '@/components/events/CreateEventView.vue'
 import EventsListView from '@/components/events/EventsListView.vue'
 import FcMembersListView from '@/components/fcMembers/FcMembersListView.vue'
 import FightsView from '@/components/fights/FightsView.vue'
+import LotteryAdminView from '@/components/lottery/admin/LotteryAdminView.vue'
 import LotteryHistoryView from '@/components/lottery/LotteryHistoryView.vue'
 import LotteryView from '@/components/lottery/LotteryView.vue'
 import MemberEditView from '@/components/members/MemberEditView.vue'
@@ -66,6 +67,14 @@ const routes: RouteRecordRaw[] = [
     name: 'lottery-history',
     component: LotteryHistoryView,
     meta: { requiresAuth: true },
+  },
+  // The admin page is its own route and its own page (spec §5.9): members never see it, and the lottery tab bar is
+  // what links all three views together.
+  {
+    path: '/lottery/admin',
+    name: 'lottery-admin',
+    component: LotteryAdminView,
+    meta: { requiresAuth: true, requiresAdmin: true },
   },
 
   // Admin routes - nested under AdminLayout
