@@ -123,6 +123,56 @@ second mechanism. The scheduler must not schedule while `LotteryStartupResult.Is
 `DiscordBot:Enabled=false` the check is skipped (info log): a botless checkout has no automation and nobody to
 alert.
 
+## Dry run (spec §5.6, §13 criterion 20)
+
+`Lottery:Automation:DryRun=true` — the shipped default, and the first rollout week — keeps the scheduler running but
+turns every draw into a rehearsal:
+
+- the scheduler reads the live guesses, draws a number and builds the announcement exactly as the live path does;
+- the **same assembled message** is posted with a `[DRY RUN] ` prefix to `DiscordBot:LogChannel` (falling back to
+  `DiscordBot:LotteryChannel` when it is `0`) with `AllowedMentions.None`, so no role and no member is pinged;
+- **nothing** is written: no `lottery_rounds`, `lottery_entries`, `lottery_winners` or `lottery_pot_ledger` row, no
+  guess flush, no pot change. The live guesses carry to the next round;
+- the preview is posted once per round key, so a minute-by-minute tick does not repeat it. A failed preview is retried
+  on the next tick.
+
+The admin **Dry run now** action uses the same preview path (`ILotteryRoundRunner.PreviewAsync`) and the same
+guarantees, whatever the flags say. Because the dry run uses the same renderer as the live post, the templates, role
+fallback, emoji and history link are all reviewed under real conditions before promotion.
+
+Promotion is a deploy, not a button: `DryRun=false` first, then `Enabled=true`
+([cutover runbook](cutover-runbook.md#7-promote)).
+
+## Rollback
+
+`Lottery:Automation:Enabled=false` is the rollback. It is the final override (see the status table above): the
+scheduler stops on the next process start, and the manual admin **Run now** stays live. Nothing else changes — the
+`lottery_*` collections and `lottery_results` are additive, and no data is deleted. The step-by-step procedure,
+including the mid-week catch-up gotcha, is in the [cutover runbook](cutover-runbook.md#rollback).
+
+## Automatic mid-week catch-up
+
+Enabling the automation does not wait for the next run day. The scheduler runs the most recent due slot that has no
+round yet and records the older missed dates as `skipped` (spec §5.10). A deployment with no rounds at all waits for
+the next slot unless it is switched on after that day's run time. The operator-facing consequences are documented in
+the [cutover runbook](cutover-runbook.md#cutover-gotcha-enabling-mid-week-runs-a-round-immediately).
+
+## The `lottery` health detail
+
+`/health` registers a third check, `lottery` (`LotteryHealthCheck`), next to `discord-bot` and `mongodb`. It reuses
+the round engine's `ILotteryRoundRunner.GetStatusAsync()` snapshot and the startup verdict, with a bounded read
+(3 seconds, like the Mongo check's 5) so a slow database cannot hang a probe.
+
+- `Healthy` only while the automation is `live`, no round is pending and the startup check passed;
+- `Degraded` for a `dry-run`, `paused` or `disabled` scheduler, a pending/failed round (with the round key, failed
+  step, attempts, next retry and last error) and a degraded or still-pending startup check;
+- **never** `Unhealthy`. `Program` maps `Degraded` to `200` and only an `Unhealthy` **core** check (Discord, MongoDB)
+  to `503`, so the lottery detail can never fail the container.
+
+The response body is the JSON report written by `HealthResponseWriter`; see
+[Reading `/health`](cutover-runbook.md#reading-health) for the shape and the data keys. The status code remains the
+probe contract.
+
 ## Contracts for the later tickets
 
 - Read settings only through `ILotterySettingsService.GetEffectiveAsync()` — never through

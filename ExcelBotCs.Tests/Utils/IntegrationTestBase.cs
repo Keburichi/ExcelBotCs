@@ -30,6 +30,12 @@ public abstract class IntegrationTestBase : MongoDbTest
     protected HttpClient Client = null!;
     protected WebApplicationFactory<Program> Factory = null!;
 
+    /// <summary>
+    ///     The fake Discord seam the host's services are given. Tests assert on it when what reached Discord is part of
+    ///     the behaviour under test (for example the <c>[DRY RUN]</c> announcement of spec §5.6).
+    /// </summary>
+    protected Mock<IDiscordMessageService> DiscordMessages { get; private set; } = null!;
+
     protected IntegrationTestBase(MongoDbFixture fixture) : base(fixture)
     {
     }
@@ -94,6 +100,7 @@ public abstract class IntegrationTestBase : MongoDbTest
 
                     services.RemoveAll<IDiscordMessageService>();
                     var mockDiscordMessageService = new Mock<IDiscordMessageService>();
+                    DiscordMessages = mockDiscordMessageService;
                     mockDiscordMessageService.Setup(x => x.PostInLotteryChannelAsync(It.IsAny<string>()))
                         .Returns(Task.CompletedTask);
                     // The admin page's "Send test reminder" is a DM to the requesting admin; the fake accepts it so

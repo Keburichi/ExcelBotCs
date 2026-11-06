@@ -97,6 +97,28 @@ public class LotteryAnnouncementPublisherTests
 	}
 
 	[Fact]
+	public async Task PublishAsync_DryRun_PostsTheSameAnnouncementAsTheLivePost()
+	{
+		// criterion 20: the dry run is the *same* announcement, only prefixed and quietened. Rendering it twice from
+		// one announcement must therefore differ by exactly the prefix.
+		string? dryRunText = null;
+		string? liveText = null;
+		_messages.Setup(x => x.PostDryRunAsync(It.IsAny<string>()))
+			.Callback<string>(message => dryRunText = message)
+			.ReturnsAsync(_postedMessage.Object);
+		_messages.Setup(x => x.PostLotteryAnnouncementAsync(It.IsAny<string>()))
+			.Callback<string>(message => liveText = message)
+			.ReturnsAsync(_postedMessage.Object);
+
+		await BuildPublisher().PublishAsync(Announcement(dryRun: true));
+		await BuildPublisher().PublishAsync(Announcement());
+
+		dryRunText.ShouldNotBeNull();
+		liveText.ShouldNotBeNull();
+		dryRunText.ShouldBe("[DRY RUN] " + liveText);
+	}
+
+	[Fact]
 	public async Task PublishAsync_DryRun_ShowsTheSimulatedWinnerInTheLastFive()
 	{
 		string? posted = null;

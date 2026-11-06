@@ -11,6 +11,7 @@ namespace ExcelBotCs.Services.Lottery;
 public sealed class LotteryStartupCheckService : IHostedService
 {
 	private readonly ILotteryStartupCheck _check;
+	private readonly TaskCompletionSource _completion = new(TaskCreationOptions.RunContinuationsAsynchronously);
 	private readonly ILogger<LotteryStartupCheckService> _logger;
 
 	public LotteryStartupCheckService(ILotteryStartupCheck check, ILogger<LotteryStartupCheckService> logger)
@@ -21,6 +22,12 @@ public sealed class LotteryStartupCheckService : IHostedService
 
 	/// <summary>The last check result, or <c>null</c> while the background check is still running.</summary>
 	public LotteryStartupResult? Result { get; private set; }
+
+	/// <summary>
+	///     Completes once <see cref="Result" /> holds the outcome. The scheduler and the health check read the result
+	///     without waiting; this lets a test (and a diagnostic) await the fire-and-forget start deterministically.
+	/// </summary>
+	public Task Completion => _completion.Task;
 
 	public Task StartAsync(CancellationToken cancellationToken)
 	{
@@ -45,6 +52,10 @@ public sealed class LotteryStartupCheckService : IHostedService
 			// start so nothing becomes an unobserved task exception.
 			Result = LotteryStartupResult.Degraded([$"The lottery startup check failed: {exception.Message}"]);
 			_logger.LogError(exception, "Lottery startup check could not run; lottery automation starts degraded");
+		}
+		finally
+		{
+			_completion.TrySetResult();
 		}
 	}
 }

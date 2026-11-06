@@ -22,7 +22,9 @@ using ExcelBotCs.Utilities;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.DataProtection.KeyManagement;
+using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 using Microsoft.AspNetCore.HttpOverrides;
+using Microsoft.Extensions.Diagnostics.HealthChecks;
 using Microsoft.Extensions.Options;
 using MongoDB.Driver;
 using NetStone;
@@ -197,7 +199,9 @@ public class Program
 
         builder.Services.AddHealthChecks()
             .AddCheck<DiscordBotHealthCheck>("discord-bot")
-            .AddCheck<MongoDbHealthCheck>("mongodb");
+            .AddCheck<MongoDbHealthCheck>("mongodb")
+            // The lottery detail (#115, spec §5.10): informational only, it can degrade but never fail the probe.
+            .AddCheck<LotteryHealthCheck>(LotteryHealthCheck.Name);
 
         // Configure the discord authentication
         builder.Services.AddAppAuthentication(builder.Configuration);
@@ -239,7 +243,18 @@ public class Program
         app.UseAuthentication();
         app.UseAuthorization();
 
-        app.MapHealthChecks("/health");
+        app.MapHealthChecks("/health", new HealthCheckOptions
+        {
+            ResponseWriter = HealthResponseWriter.WriteAsync,
+            // Degraded is informational: no lottery state may fail the container's probe. Only an unhealthy core
+            // dependency (Discord gateway, MongoDB) turns the endpoint into a 503.
+            ResultStatusCodes =
+            {
+                [HealthStatus.Healthy] = StatusCodes.Status200OK,
+                [HealthStatus.Degraded] = StatusCodes.Status200OK,
+                [HealthStatus.Unhealthy] = StatusCodes.Status503ServiceUnavailable
+            }
+        });
 
         // Populate the current Member for authenticated requests (must run after authentication)
         app.UseMiddleware<CurrentMemberMiddleware>();
