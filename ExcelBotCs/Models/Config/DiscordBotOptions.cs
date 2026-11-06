@@ -39,6 +39,21 @@ public class DiscordBotOptions : IValidatableObject
 
     [Required] public ulong LogChannel { get; set; }
 
+    /// <summary>
+    /// The channel the lottery announcement links to for riddle top-ups (spec §7). Unlike the ids above it is not
+    /// marked required: a deployment without it still starts and the lottery startup check reports it as degraded.
+    /// </summary>
+    public ulong RiddlesChannel { get; set; }
+
+    /// <summary>The FC member role the lottery announcement pings (spec §7). 0 means "not configured".</summary>
+    public ulong LotteryMemberRoleId { get; set; }
+
+    /// <summary>
+    /// The custom <c>kekDoggo</c> emoji id used by the no-winner template (spec §5.6). 0 means the template falls
+    /// back to the literal text, so it is never a degraded condition.
+    /// </summary>
+    public ulong LotteryCustomEmojiId { get; set; }
+
     public List<ulong> AdminRoleIds { get; set; } = [];
     public List<ulong> MemberRoleIds { get; set; } = [];
     public List<ulong> FriendOfFcRoleIds { get; set; } = [];

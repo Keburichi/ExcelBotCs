@@ -1,4 +1,5 @@
 using System.Reflection;
+using ExcelBotCs.Models.Config;
 using Microsoft.Extensions.Options;
 
 namespace ExcelBotCs.Extensions;
@@ -16,12 +17,28 @@ public static class ConfigExtensions
                 reloadOnChange: true)
             .AddEnvironmentVariables();
 
+        services.LoadSettings(config);
+    }
+
+    /// <summary>
+    ///     Registers every <see cref="Attributes.OptionsSectionAttribute" /> options type from an already-built
+    ///     configuration. Split out from the <see cref="WebApplicationBuilder" /> overload so tests can bind the
+    ///     real provider stack (JSON file plus environment variables) without starting a web host.
+    /// </summary>
+    public static void LoadSettings(this IServiceCollection services, IConfiguration configuration)
+    {
         var optionsAttributes = Assembly.GetExecutingAssembly().GetOptionTypes();
 
         foreach (var optionsAttribute in optionsAttributes)
         {
-            RegisterOptionsBySection(services, config, optionsAttribute.Type, optionsAttribute.Attribute!.Name);
+            RegisterOptionsBySection(services, configuration, optionsAttribute.Type, optionsAttribute.Attribute!.Name);
         }
+
+        // WebBaseUrl is a top-level scalar rather than a section, so the attribute-driven binder cannot reach it.
+        // It falls back to Jwt:Issuer (spec §7) and an empty value is reported by the lottery startup check
+        // instead of failing the host.
+        services.AddOptions<WebBaseUrlOptions>()
+            .Configure<IConfiguration>((options, config) => options.BaseUrl = WebBaseUrlOptions.Resolve(config));
     }
 
     private static void RegisterOptionsBySection(IServiceCollection services, IConfiguration configuration,
