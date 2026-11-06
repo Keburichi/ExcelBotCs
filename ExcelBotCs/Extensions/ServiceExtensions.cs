@@ -87,6 +87,9 @@ public static class ServiceExtensions
         // tick, the slash commands and the member API resolve in production.
         services.AddSingleton<ILotteryReminderService, LotteryReminderService>();
 
+        // The member history timeline (§5.8): a read-only view over winners, the pot ledger and member avatars.
+        services.AddSingleton<ILotteryHistoryService, LotteryHistoryService>();
+
         // The in-process scheduler. It is a singleton as well as a hosted service so tests and the admin page can
         // reach TickOnceAsync; removing the IHostedService registrations leaves the singleton intact.
         services.AddSingleton<LotterySchedulerService>();

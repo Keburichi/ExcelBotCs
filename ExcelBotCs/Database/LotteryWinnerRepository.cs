@@ -45,6 +45,44 @@ public class LotteryWinnerRepository : BaseRepository<LotteryWinner>, ILotteryWi
 			.ToListAsync();
 	}
 
+	public async Task<List<LotteryWinner>> GetHistoryPageAsync(LotteryWinnerPageAnchor? after, int limit)
+	{
+		// Newest round first, then creation order and finally the id within the round. The id makes the order total,
+		// so the keyset filter below can resume in the middle of a shared draw without losing or repeating a row.
+		var sort = Builders<LotteryWinner>.Sort
+			.Descending(w => w.RoundKey)
+			.Ascending(w => w.DateCreated)
+			.Ascending(w => w.Id);
+
+		var filter = Builders<LotteryWinner>.Filter.Empty;
+		if (after is not null)
+		{
+			var inSameRound = Builders<LotteryWinner>.Filter.Eq(w => w.RoundKey, after.RoundKey);
+			var afterTheAnchor = Builders<LotteryWinner>.Filter.Or(
+				Builders<LotteryWinner>.Filter.Gt(w => w.DateCreated, after.DateCreatedUtc),
+				Builders<LotteryWinner>.Filter.And(
+					Builders<LotteryWinner>.Filter.Eq(w => w.DateCreated, after.DateCreatedUtc),
+					Builders<LotteryWinner>.Filter.Gt(w => w.Id, after.Id)));
+
+			filter = Builders<LotteryWinner>.Filter.Or(
+				Builders<LotteryWinner>.Filter.Lt(w => w.RoundKey, after.RoundKey),
+				Builders<LotteryWinner>.Filter.And(inSameRound, afterTheAnchor));
+		}
+
+		return await Collection.Find(filter).Sort(sort).Limit(limit).ToListAsync();
+	}
+
+	public async Task<LotteryWinnerHistoryCounts> GetHistoryCountsAsync()
+	{
+		var winners = (int)await Collection.CountDocumentsAsync(FilterDefinition<LotteryWinner>.Empty);
+
+		var roundKeys = await (await Collection.DistinctAsync(w => w.RoundKey, FilterDefinition<LotteryWinner>.Empty))
+			.ToListAsync();
+
+		var newest = roundKeys.Count == 0 ? null : roundKeys.Max(StringComparer.Ordinal);
+		return new LotteryWinnerHistoryCounts(winners, roundKeys.Count, newest);
+	}
+
 	public async Task<bool> AddIfMissingAsync(LotteryWinner winner)
 	{
 		// Winners have no unique index (historical rows share a round with a null DiscordId and a shared draw has

@@ -1,3 +1,4 @@
+using System.Globalization;
 using ExcelBotCs.Attributes;
 using ExcelBotCs.Models.DTO;
 using ExcelBotCs.Services;
@@ -15,16 +16,18 @@ namespace ExcelBotCs.Controllers;
 public class LotteryController : AuthorizedController
 {
     private readonly ICurrentMemberAccessor _currentMemberAccessor;
+    private readonly ILotteryHistoryService _historyService;
     private readonly ILotteryService _lotteryService;
     private readonly ILotteryReminderService _reminderService;
     private readonly IMemberService _memberService;
 
     public LotteryController(ILogger<LotteryController> logger, ILotteryService lotteryService,
-        ILotteryReminderService reminderService, ICurrentMemberAccessor currentMemberAccessor,
-        IMemberService memberService) : base(logger)
+        ILotteryReminderService reminderService, ILotteryHistoryService historyService,
+        ICurrentMemberAccessor currentMemberAccessor, IMemberService memberService) : base(logger)
     {
         _lotteryService = lotteryService;
         _reminderService = reminderService;
+        _historyService = historyService;
         _currentMemberAccessor = currentMemberAccessor;
         _memberService = memberService;
     }
@@ -122,6 +125,37 @@ public class LotteryController : AuthorizedController
         var preference = await _reminderService.SetPreferenceAsync(await GetCurrentUserDiscordId(),
             request.Enabled!.Value);
         return Ok(new ReminderPreferenceResponse(preference.Enabled));
+    }
+
+    /// <summary>
+    ///     The member history timeline (spec §5.8, §8, #113): winners newest first, keyset paginated so a shared draw is
+    ///     never split or duplicated, with the pot, draw and winner totals the page shows. Payout status is admin-only
+    ///     and does not appear here.
+    /// </summary>
+    [HttpGet]
+    [Route("history")]
+    public async Task<IActionResult> GetHistory([FromQuery] string? cursor = null, [FromQuery] int? limit = null)
+    {
+        var result = await _historyService.GetPageAsync(cursor, limit, HttpContext.RequestAborted);
+
+        if (result is LotteryHistoryInvalidCursorResult invalid)
+            return BadRequest(new LotteryHistoryError("invalid_cursor", invalid.Message));
+
+        var page = (LotteryHistoryPageResult)result;
+        return Ok(new LotteryHistoryPage(
+            page.Items.Select(item => new LotteryHistoryItem(
+                item.Id,
+                item.RoundKey,
+                item.Date,
+                item.DisplayName,
+                item.DiscordId?.ToString(CultureInfo.InvariantCulture),
+                item.AvatarUrl,
+                item.Guess,
+                item.GilPrize,
+                item.PrizeItems)).ToList(),
+            page.NextCursor,
+            new LotteryHistoryTotals(page.Totals.Winners, page.Totals.Draws, page.Totals.CurrentPot,
+                page.Totals.LastDrawRoundKey)));
     }
 
     [HttpPost]

@@ -1,4 +1,10 @@
-import type { AwardUsersRequest, ChangeGuessRequest, GuessInfo } from './lottery.types'
+import type {
+  AwardUsersRequest,
+  ChangeGuessRequest,
+  GuessInfo,
+  LotteryHistoryPage,
+  ReminderPreference,
+} from './lottery.types'
 import { MembersApi } from '@/features/members/members.api'
 import { http } from '@/services/http'
 
@@ -30,6 +36,20 @@ export const LotteryApi = {
     return response.whoGuessed
   },
   allGuesses: () => http<GuessInfo[]>('/api/lottery/all-guesses'),
+  // The member history timeline: newest first, keyset paginated; omit the cursor for the first page.
+  history: (cursor?: string | null, limit = 10) => {
+    const params = new URLSearchParams({ limit: String(limit) })
+    if (cursor)
+      params.set('cursor', cursor)
+    return http<LotteryHistoryPage>(`/api/lottery/history?${params.toString()}`)
+  },
+  // The member reminder opt-in. The PUT returns the state the server stored, so the toggle never has to guess.
+  getReminders: () => http<ReminderPreference>('/api/lottery/reminders'),
+  setReminders: (enabled: boolean) =>
+    http<ReminderPreference>('/api/lottery/reminders', {
+      method: 'PUT',
+      body: JSON.stringify({ enabled }),
+    }),
   runLottery: () => http<{ message: string }>('/api/lottery/run', { method: 'POST' }),
   // Return FC member names as a simple string[] for the UI autocomplete.
   // We map Member objects to a displayable name, preferring PlayerName, then DiscordName.
