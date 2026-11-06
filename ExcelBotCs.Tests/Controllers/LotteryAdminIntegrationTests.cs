@@ -1020,6 +1020,7 @@ public class LotteryAdminIntegrationTests : IntegrationTestBase
     public async Task Prizes_AssignAnItemAndItBecomesTheWinnersBonusItemOnHistory()
     {
         await AuthenticateAsAdmin();
+        await SeedPotAsync(5_000_000);
         var winner = await SeedWinnerAsync("2026-07-28", "Elara", 94, 7_500_000, LotteryPayoutStatus.Pending,
             discordId: 123456789012345678);
         var prize = await SeedPrizeAsync("Chaotic Mount");
@@ -1038,6 +1039,9 @@ public class LotteryAdminIntegrationTests : IntegrationTestBase
         body.Winner!.Items.ShouldBe(new[] { "Chaotic Mount" });
 
         (await GetPrizesAsync()).InPoolCount.ShouldBe(0);
+
+        // A prize is not money: assigning it moves no Gil and writes no ledger entry (spec §3).
+        (await GetStatusAsync()).Pot.ShouldBe(5_000_000);
 
         // The same write is what the public history reads: the item appears on the winner card.
         var historyResponse = await Client.GetAsync("api/Lottery/history");

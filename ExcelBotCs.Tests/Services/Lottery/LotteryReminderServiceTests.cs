@@ -13,6 +13,7 @@ using ExcelBotCs.Services.Lottery.Records;
 using ExcelBotCs.TestFramework.Database;
 using ExcelBotCs.Tests.Utils;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;
 using MongoDB.Driver;
 using Moq;
@@ -95,12 +96,40 @@ public class LotteryReminderServiceTests : MongoDbTest
 		BuildService();
 	}
 
-	private void BuildService()
+	private void BuildService(LotteryStartupCheckService? startupCheck = null)
 	{
 		var schedules = new LotteryScheduleService(_settings, _rounds, _time);
 		_service = new LotteryReminderService(_settings, schedules, _optIns, _rounds, _guesses, _extraGuesses,
 			_members.Object, _messages.Object, _alerts, _time,
-			Mock.Of<ILogger<LotteryReminderService>>());
+			Mock.Of<ILogger<LotteryReminderService>>(), startupCheck);
+	}
+
+	/// <summary>A startup check whose verdict the test decides; the scheduler reads it once at startup.</summary>
+	private sealed class StubStartupCheck(LotteryStartupResult result) : ILotteryStartupCheck
+	{
+		public Task<LotteryStartupResult> CheckAsync(CancellationToken cancellationToken = default)
+		{
+			return Task.FromResult(result);
+		}
+	}
+
+	/// <summary>A startup check that has been constructed but not run: <c>Result</c> is still null.</summary>
+	private LotteryStartupCheckService PendingStartupCheck()
+	{
+		return new LotteryStartupCheckService(new StubStartupCheck(LotteryStartupResult.Healthy),
+			NullLogger<LotteryStartupCheckService>.Instance);
+	}
+
+	/// <summary>A startup check that has finished degraded, the bad-config startup state of spec §5.10.</summary>
+	private async Task<LotteryStartupCheckService> DegradedStartupCheckAsync()
+	{
+		var service = new LotteryStartupCheckService(
+			new StubStartupCheck(LotteryStartupResult.Degraded(["DiscordBot:GuildId is not configured (0)."])),
+			NullLogger<LotteryStartupCheckService>.Instance);
+
+		await service.StartAsync(CancellationToken.None);
+		await service.Completion;
+		return service;
 	}
 
 	private void SetFcMembers(params ulong[] discordIds)
@@ -302,6 +331,9 @@ public class LotteryReminderServiceTests : MongoDbTest
 			"<1 guess remaining: <@22>\n" +
 			"Only members who opted in are pinged. The draw runs Tuesday at 20:00.");
 		post.Mentions.ShouldBe([11UL, 22UL]);
+
+		// One channel post with intentional mentions, never a DM per member (spec §5.7).
+		_directMessages.ShouldBeEmpty();
 	}
 
 	[Fact]
@@ -366,6 +398,69 @@ public class LotteryReminderServiceTests : MongoDbTest
 
 		outcome.Disposition.ShouldBe(LotteryReminderDisposition.Paused);
 		_posted.ShouldBeEmpty();
+	}
+
+	// §5.10 and criterion 19: a degraded or still-running startup check disables *all* automation, the reminder
+	// included. Before #116 the reminder honoured only the toggles, so a degraded start could still ping the audience.
+	[Fact]
+	public async Task TickAsync_WhileTheStartupCheckIsStillRunning_DoesNotPost()
+	{
+		await SeedTwoRecipientsAsync();
+		BuildService(PendingStartupCheck());
+		_time.Set(AtReminder);
+
+		var outcome = await _service.TickAsync();
+
+		outcome.Disposition.ShouldBe(LotteryReminderDisposition.StartupPending);
+		outcome.Posted.ShouldBeFalse();
+		_posted.ShouldBeEmpty();
+		_alerts.Alerts.ShouldBeEmpty("the startup check owns the single alert");
+	}
+
+	[Fact]
+	public async Task TickAsync_WhenTheStartupCheckIsDegraded_DoesNotPostAndDoesNotAlertAgain()
+	{
+		await SeedTwoRecipientsAsync();
+		BuildService(await DegradedStartupCheckAsync());
+		_time.Set(AtReminder);
+
+		var outcome = await _service.TickAsync();
+
+		outcome.Disposition.ShouldBe(LotteryReminderDisposition.StartupDegraded);
+		outcome.Posted.ShouldBeFalse();
+		_posted.ShouldBeEmpty();
+		_alerts.Alerts.ShouldBeEmpty("the degraded startup already raised exactly one alert");
+	}
+
+	[Fact]
+	public async Task RemindNowAsync_WhenTheStartupCheckIsDegraded_StillPostsTheManualReminder()
+	{
+		// The manual reminder is the documented escape hatch, exactly like the admin's Run now: the startup verdict
+		// stops the schedule, not an officer who explicitly asks for a post.
+		await SeedTwoRecipientsAsync();
+		BuildService(await DegradedStartupCheckAsync());
+		_time.Set(AtReminder);
+
+		var outcome = await _service.RemindNowAsync();
+
+		outcome.Disposition.ShouldBe(LotteryReminderDisposition.Sent);
+		_posted.ShouldHaveSingleItem();
+	}
+
+	[Fact]
+	public async Task TickAsync_AfterAHealthyStartupCheck_PostsTheReminder()
+	{
+		await SeedTwoRecipientsAsync();
+		var startup = PendingStartupCheck();
+		await startup.StartAsync(CancellationToken.None);
+		await startup.Completion;
+		BuildService(startup);
+		_time.Set(AtReminder);
+
+		var outcome = await _service.TickAsync();
+
+		outcome.Disposition.ShouldBe(LotteryReminderDisposition.Sent);
+		_posted.ShouldHaveSingleItem();
 	}
 
 	[Fact]

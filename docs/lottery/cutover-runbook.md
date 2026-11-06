@@ -27,7 +27,8 @@ Lottery__Automation__DryRun=true
 
 Check it took, through the two surfaces you will use for the rest of the runbook:
 
-- `/health` → the `lottery` entry reports `state: "disabled"` (see [Reading `/health`](#reading-health)).
+- `/health` → the `lottery` entry reports `state: "disabled"` and stays **Healthy**: nothing is pending, and the flag
+  is reported in `automationNote` (see [Reading `/health`](#reading-health)).
 - `/lottery/admin` → status pill **Disabled**, scheduler off.
 
 ## 2. Create the collections and indexes
@@ -71,6 +72,10 @@ On `/lottery/admin` → **Schedule & reminders** and **Messages**: run day/time/
 the reminder toggle, and the two result templates. Save once; every save writes one `lottery_settings_history` row and
 one log-channel notice. The version number is the "what changed when" record.
 
+The reminder is part of the automated path: pausing automation, the deployment kill switch, a degraded startup check
+and the reminder toggle all stop the scheduled post. A member's opt-in is off by default, so expect the first real
+reminder only after a few members have opted in on `/lottery`.
+
 ## 6. Dry-run one scheduled week
 
 Leave `DryRun=true` and let a full scheduled week pass with members guessing. On the run date the scheduler draws,
@@ -82,6 +87,8 @@ Review:
 - the `[DRY RUN]` post in the log channel — role ping rendered as text, mention suppressed, history link, pot and the
   winner block as you expect from the templates;
 - `/lottery/admin` → the pot is unchanged and no new round exists;
+- `/health` → the `lottery` detail is **Healthy** with `state: "dry-run"` and the reason in `automationNote` (a dry
+  run is an operator decision, not a fault);
 - the log for `Dry run preview for round <key>`.
 
 You can repeat the check on demand with **Dry run now** on the admin Overview; it uses the same preview path and never
@@ -130,18 +137,21 @@ slot.
 | `503` | a **core** check is unhealthy: the Discord gateway or MongoDB |
 
 The `lottery` entry never returns `Unhealthy`, so a stuck round, a paused scheduler or a slow database can never make
-the container fail its probe. Its `status` is `Healthy` only while the automation is **live**, nothing is pending and
-the startup check passed; every other state is `Degraded`:
+the container fail its probe. The accepted rule (#105) is that the **round state** decides the status — healthy while
+no round is pending or failed, degraded when one is — and that the rollout flags are reported without flipping it:
 
 | `data.state` | `status` | Why |
 |---|---|---|
 | `live` | Healthy | enabled, not a dry run, not paused, no unfinished round |
-| `dry-run` | Degraded | draws are simulated and posted as `[DRY RUN]` |
-| `paused` | Degraded | admin pause; manual **Run now** still works |
-| `disabled` | Degraded | `Enabled=false`; nothing is scheduled |
+| `dry-run` | Healthy | draws are simulated and posted as `[DRY RUN]`; the reason is in `automationNote` |
+| `paused` | Healthy | admin pause; manual **Run now** still works; the reason is in `automationNote` |
+| `disabled` | Healthy | `Enabled=false`; nothing is scheduled; the reason is in `automationNote` |
 | any | Degraded | a round is pending/failed: see `pendingRoundKey`, `pendingStatus`, `failedStep`, `attempts`, `nextRetryAtUtc`, `lastError` |
 | any | Degraded | `startupCheck` is `degraded` (`problems`) or `pending` (the check has not finished) |
 | `unknown` | Degraded | the status could not be read within the read budget |
+
+A dry-run or paused week is therefore a **healthy** probe; only a stuck round or a broken startup check degrades the
+detail. Read `automationNote` when you want to know which rollout state produced the detail.
 
 Response shape (trimmed):
 

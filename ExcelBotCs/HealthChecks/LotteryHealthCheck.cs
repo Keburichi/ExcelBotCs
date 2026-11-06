@@ -60,14 +60,19 @@ public sealed class LotteryHealthCheck : IHealthCheck
 
 	/// <summary>
 	///     Maps a status snapshot and the startup verdict to the detail (spec §5.10, criterion 17). The mapping is pure
-	///     and lives here so it is testable and so the runbook has exactly one place to read it from:
-	///     healthy only while the automation is <c>live</c>, nothing is pending and the startup check passed; degraded
-	///     for a dry run, a paused or disabled scheduler, an unfinished round and a degraded (or still pending) startup
-	///     check. Never unhealthy.
+	///     and lives here so it is testable and so the runbook has exactly one place to read it from.
+	///     <para>
+	///         The accepted rule (#105): <b>healthy</b> when no round is pending or failed — the last round completed or
+	///         was skipped and the next is scheduled — and the startup check passed; <b>degraded</b> when a round is
+	///         pending/failed or the startup check is degraded or still running. The rollout flags (dry run, paused,
+	///         disabled) are an operator decision rather than a fault, so they are reported in <c>automationNote</c> and
+	///         in the description without flipping the status. Never unhealthy.
+	///     </para>
 	/// </summary>
 	public static HealthCheckResult Describe(LotteryStatusSnapshot snapshot, LotteryStartupResult? startup)
 	{
 		var reasons = new List<string>();
+		var notes = new List<string>();
 
 		switch (snapshot.AutomationStatus)
 		{
@@ -75,16 +80,17 @@ public sealed class LotteryHealthCheck : IHealthCheck
 				break;
 
 			case LotteryAutomationStatus.DryRunKind:
-				reasons.Add("Lottery automation is a dry run: draws are simulated and posted to the log channel as " +
-				           "[DRY RUN].");
+				notes.Add("Lottery automation is a dry run: draws are simulated and posted to the log channel as " +
+				          "[DRY RUN].");
 				break;
 
 			case LotteryAutomationStatus.PausedKind:
-				reasons.Add("Lottery automation is paused by the stored settings; the manual Run now still works.");
+				notes.Add("Lottery automation is paused by the stored settings; the manual Run now still works.");
 				break;
 
 			default:
-				reasons.Add("Lottery automation is disabled (Lottery:Automation:Enabled=false); nothing is scheduled.");
+				notes.Add("Lottery automation is disabled (Lottery:Automation:Enabled=false); nothing is scheduled " +
+				          "automatically and the manual Run now stays live.");
 				break;
 		}
 
@@ -101,6 +107,8 @@ public sealed class LotteryHealthCheck : IHealthCheck
 			["degraded"] = reasons.Count > 0,
 			["startupCheck"] = startupState
 		};
+
+		if (notes.Count > 0) data["automationNote"] = string.Join(" ", notes);
 
 		if (pending is not null)
 		{
@@ -123,7 +131,10 @@ public sealed class LotteryHealthCheck : IHealthCheck
 			? "No next round is scheduled."
 			: $"The next round is {snapshot.NextRoundKey}.";
 
-		return HealthCheckResult.Healthy($"Lottery automation is live. {next}", data);
+		// With nothing to flag, say plainly that the automation is live; otherwise the informational note leads.
+		var summary = notes.Count > 0 ? notes : ["Lottery automation is live."];
+
+		return HealthCheckResult.Healthy(string.Join(" ", summary.Append(next)), data);
 	}
 
 	private static string StartupState(LotteryStartupResult? startup, List<string> reasons)

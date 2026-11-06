@@ -58,11 +58,13 @@ public class LotteryHealthEndpointTests : IntegrationTestBase
         checks.TryGetProperty("mongodb", out _).ShouldBeTrue();
         checks.GetProperty("mongodb").GetProperty("status").GetString().ShouldBe("Healthy");
 
-        // The test deployment leaves the deployment kill switch off, so the detail reports it as a degraded state
-        // rather than pretending the automation is live.
+        // The test deployment leaves the deployment kill switch off. That flag is reported informationally in the
+        // detail (the accepted #105 rule: the round state decides the status, not the rollout flags), so the note
+        // names it. The detail is degraded here only because the integration host never starts the startup check.
         var data = LotteryDetail(report).GetProperty("data");
         data.GetProperty("state").GetString().ShouldBe(LotteryAutomationStatus.DisabledKind);
         data.GetProperty("schedulerEnabled").GetBoolean().ShouldBeFalse();
+        data.GetProperty("automationNote").GetString().ShouldContain("disabled");
     }
 
     private async Task SeedStuckRoundAsync()

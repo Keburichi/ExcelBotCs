@@ -10,9 +10,11 @@ using Moq;
 namespace ExcelBotCs.Tests.HealthChecks;
 
 /// <summary>
-///     The <c>lottery</c> detail of <c>/health</c> (spec §5.10, §14; criterion 17). The detail is healthy only while the
-///     automation is live and nothing is pending; every other state is reported as degraded, and the check never
-///     returns unhealthy — a stuck round or a slow database must not fail the container's probe.
+///     The <c>lottery</c> detail of <c>/health</c> (spec §5.10, §14; criterion 17). The mapping is the accepted one from
+///     #105: healthy when no round is pending and the startup check passed, degraded when a round is pending or failed
+///     or the startup check is degraded. The automation flags (dry run, paused, disabled) are reported informationally
+///     in the detail and never flip the status; the check never returns unhealthy, so a stuck round or a slow database
+///     cannot fail the container's probe.
 /// </summary>
 public class LotteryHealthCheckTests
 {
@@ -80,17 +82,51 @@ public class LotteryHealthCheckTests
     [InlineData(LotteryAutomationStatus.DryRunKind)]
     [InlineData(LotteryAutomationStatus.PausedKind)]
     [InlineData(LotteryAutomationStatus.DisabledKind)]
-    public async Task CheckHealthAsync_WhenTheSchedulerIsNotLive_DegradesTheDetailWithTheState(string kind)
+    public async Task CheckHealthAsync_WhenTheSchedulerIsNotLive_StaysHealthyAndReportsTheFlagInformationally(string kind)
     {
+        // The accepted rule from #105: the round state decides the status, not the rollout flags. A dry run, a paused
+        // scheduler or the kill switch is an operator decision, so the detail reports it without degrading the probe.
         var check = CreateCheck(Snapshot(kind: kind, schedulerEnabled: kind == LotteryAutomationStatus.DryRunKind),
             await StartupCheckAsync(LotteryStartupResult.Healthy));
 
         var result = await check.CheckHealthAsync(_context);
 
-        result.Status.ShouldBe(HealthStatus.Degraded);
+        result.Status.ShouldBe(HealthStatus.Healthy);
         result.Data["state"].ShouldBe(kind);
+        result.Data["degraded"].ShouldBe(false);
+        result.Data["automationNote"].ShouldBeOfType<string>().ShouldNotBeNullOrWhiteSpace();
+
+        // The reason is still readable for an operator, just not a degradation.
+        result.Description.ShouldContain((string)result.Data["automationNote"]);
+        result.Description.ShouldContain("The next round is 2026-11-17.");
+    }
+
+    [Theory]
+    [InlineData(LotteryAutomationStatus.LiveKind)]
+    [InlineData(LotteryAutomationStatus.DryRunKind)]
+    [InlineData(LotteryAutomationStatus.PausedKind)]
+    [InlineData(LotteryAutomationStatus.DisabledKind)]
+    public async Task CheckHealthAsync_WithAPendingRound_DegradesWhicheverAutomationFlagIsSet(string kind)
+    {
+        // The other half of the accepted rule: a pending or failed round degrades the detail in every rollout state.
+        var pending = new LotteryRound
+        {
+            RoundKey = "2026-11-10",
+            Status = LotteryRoundStatus.Failed,
+            FailedStep = LotteryFailedStep.Draw,
+            Attempts = 5
+        };
+
+        var check = CreateCheck(Snapshot(kind: kind, schedulerEnabled: kind == LotteryAutomationStatus.LiveKind,
+            pendingRound: pending), await StartupCheckAsync(LotteryStartupResult.Healthy));
+
+        var result = await check.CheckHealthAsync(_context);
+
+        result.Status.ShouldBe(HealthStatus.Degraded);
         result.Data["degraded"].ShouldBe(true);
-        result.Description.ShouldNotBeNullOrWhiteSpace();
+        result.Data["pendingRoundKey"].ShouldBe("2026-11-10");
+        result.Description.ShouldContain("2026-11-10");
+        result.Description.ShouldContain("draw");
     }
 
     [Fact]
