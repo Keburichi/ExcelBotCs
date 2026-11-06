@@ -78,7 +78,9 @@ public static class ServiceExtensions
         services.AddSingleton<ILotteryNumberGenerator, PrngLotteryNumberGenerator>();
         services.AddSingleton<ILotteryPotLedgerService, LotteryPotLedgerService>();
         services.AddSingleton<ILotteryScheduleService, LotteryScheduleService>();
+        services.AddSingleton<ILotteryAlertService, LotteryAlertService>();
         services.AddSingleton<ILotteryAnnouncementPublisher, LotteryAnnouncementPublisher>();
+        services.AddSingleton<ILotteryAnnouncementPreviewer, LotteryAnnouncementPreviewer>();
         services.AddSingleton<ILotteryRoundRunner, LotteryRoundRunner>();
 
         // The in-process scheduler. It is a singleton as well as a hosted service so tests and the admin page can

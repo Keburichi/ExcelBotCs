@@ -1,4 +1,5 @@
 using System.Globalization;
+using ExcelBotCs.Modules.Lottery;
 using ExcelBotCs.Services.Lottery.Records;
 
 namespace ExcelBotCs.Services.Lottery;
@@ -25,7 +26,7 @@ public sealed record LotteryFieldValidation(string Normalized, string? Error)
 ///     Schedule validation for <c>lottery_settings</c> (spec §7): a run/reminder day is an English day name, a time
 ///     is <c>HH:mm</c> on a 24-hour clock, and a timezone is an id the runtime knows. The same rules run on save and
 ///     when a stored document is read, so a hand-edited or corrupted document is repaired instead of scheduled.
-///     Result-template rules are #111's; here templates are only defaulted when blank.
+///     Result-template rules are in <see cref="LotteryTemplateValidator" /> and are part of the same save validation.
 /// </summary>
 public static class LotterySettingsValidator
 {
@@ -90,6 +91,8 @@ public static class LotterySettingsValidator
 		AddIfInvalid(errors, "ReminderDay", ValidateDay(update.ReminderDay));
 		AddIfInvalid(errors, "ReminderTime", ValidateTime(update.ReminderTime));
 		AddIfInvalid(errors, "ReminderTimezone", ValidateTimezone(update.ReminderTimezone));
+		AddIfInvalid(errors, "WinTemplate", LotteryTemplateValidator.ValidateWinTemplate(update.WinTemplate));
+		AddIfInvalid(errors, "NoWinTemplate", LotteryTemplateValidator.ValidateNoWinTemplate(update.NoWinTemplate));
 
 		return errors;
 	}
@@ -107,7 +110,22 @@ public static class LotterySettingsValidator
 			RunTimezone = ValidateTimezone(update.RunTimezone).Normalized,
 			ReminderDay = ValidateDay(update.ReminderDay).Normalized,
 			ReminderTime = ValidateTime(update.ReminderTime).Normalized,
-			ReminderTimezone = ValidateTimezone(update.ReminderTimezone).Normalized
+			ReminderTimezone = ValidateTimezone(update.ReminderTimezone).Normalized,
+			WinTemplate = LotteryTemplateValidator.ValidateWinTemplate(update.WinTemplate).Normalized,
+			NoWinTemplate = LotteryTemplateValidator.ValidateNoWinTemplate(update.NoWinTemplate).Normalized
+		};
+	}
+
+	/// <summary>
+	///     "Reset to defaults" for the admin Messages tab (#114): only the result templates go back to the §5.6 copy,
+	///     every other setting is left alone. The result passes <see cref="Validate" /> again.
+	/// </summary>
+	public static LotterySettingsUpdate ResetTemplates(LotterySettingsUpdate update)
+	{
+		return update with
+		{
+			WinTemplate = LotterySettingsDefaults.WinTemplate,
+			NoWinTemplate = LotterySettingsDefaults.NoWinTemplate
 		};
 	}
 

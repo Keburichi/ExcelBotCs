@@ -24,6 +24,7 @@ public sealed class LotteryRoundRunner : ILotteryRoundRunner
 {
 	private const ulong NoActor = 0;
 
+	private readonly ILotteryAlertService? _alerts;
 	private readonly ILotteryAnnouncementPublisher _announcements;
 	private readonly IExtraLotteryGuessRepository _extraGuesses;
 	private readonly ILotteryEntryRepository _entries;
@@ -53,7 +54,8 @@ public sealed class LotteryRoundRunner : ILotteryRoundRunner
 		ILotteryAnnouncementPublisher announcements,
 		TimeProvider time,
 		ILogger<LotteryRoundRunner> logger,
-		LotteryStartupCheckService? startupCheck = null)
+		LotteryStartupCheckService? startupCheck = null,
+		ILotteryAlertService? alerts = null)
 	{
 		_settingsService = settingsService;
 		_rounds = rounds;
@@ -68,6 +70,7 @@ public sealed class LotteryRoundRunner : ILotteryRoundRunner
 		_time = time;
 		_logger = logger;
 		_startupCheck = startupCheck;
+		_alerts = alerts;
 
 		// Informational only: there is a single replica, and the claim is settled by the conditional status update.
 		ClaimOwner = $"runner-{Environment.MachineName}-{Guid.NewGuid():N}";
@@ -604,6 +607,9 @@ public sealed class LotteryRoundRunner : ILotteryRoundRunner
 				"Lottery round {RoundKey} failed at the draw step after {Attempts} attempt(s); the round is terminal " +
 				"and blocks the schedule until an admin retries or voids it", roundKey, attempts);
 
+			await RaiseNeedsAdminAlertAsync(roundKey, LotteryFailedStep.Draw, error, attempts,
+				$"Round {roundKey} failed at the draw step after {attempts} attempt(s)", cancellationToken);
+
 			return new LotteryRunResult(LotteryRunDisposition.Failed,
 				$"Round {roundKey} failed at the draw step after {attempts} attempt(s): {error}",
 				await _rounds.GetByRoundKeyAsync(roundKey));
@@ -699,6 +705,11 @@ public sealed class LotteryRoundRunner : ILotteryRoundRunner
 				"attempt(s); the round failed at the announcement step, was not re-drawn, and needs an admin",
 				round.RoundKey, LotteryRetryPolicy.AnnouncementWindow, attempts);
 
+			await RaiseNeedsAdminAlertAsync(round.RoundKey, LotteryFailedStep.Announcement, error, attempts,
+				$"Round {round.RoundKey} could not be announced within the " +
+				$"{LotteryRetryPolicy.AnnouncementWindow.TotalHours:0} hour window. The result was not re-drawn.",
+				cancellationToken);
+
 			return new LotteryRunResult(LotteryRunDisposition.Failed,
 				$"Round {round.RoundKey} could not be announced: {error}", round, round.PotAfter);
 		}
@@ -772,6 +783,10 @@ public sealed class LotteryRoundRunner : ILotteryRoundRunner
 			_logger.LogError(exception,
 				"Lottery round {RoundKey} failed at the cleanup step after {Attempts} attempt(s); the round is " +
 				"terminal and needs an admin", round.RoundKey, attempts);
+
+			await RaiseNeedsAdminAlertAsync(round.RoundKey, LotteryFailedStep.Cleanup, error, attempts,
+				$"Round {round.RoundKey} was announced but its cleanup failed after {attempts} attempt(s)",
+				cancellationToken);
 
 			return new LotteryRunResult(LotteryRunDisposition.Failed,
 				$"Round {round.RoundKey} failed at the cleanup step: {error}",
@@ -933,6 +948,27 @@ public sealed class LotteryRoundRunner : ILotteryRoundRunner
 	}
 
 	#endregion
+
+	/// <summary>
+	///     Raises one needs-admin alert (spec §5.10, criterion 16). Only terminal states call this: a scheduled retry is
+	///     logged, not pinged. The alert service already swallows Discord failures; this guard keeps an alert that
+	///     still throws from turning a recorded failure into a new exception.
+	/// </summary>
+	private async Task RaiseNeedsAdminAlertAsync(string roundKey, string failedStep, string error, int attempts,
+		string title, CancellationToken cancellationToken)
+	{
+		if (_alerts is null) return;
+
+		try
+		{
+			await _alerts.PublishAsync(new LotteryAlert(title, roundKey, failedStep, error, attempts,
+				NextRetryAt: null, NeedsAdmin: true), cancellationToken);
+		}
+		catch (Exception exception)
+		{
+			_logger.LogWarning(exception, "The needs-admin alert for round {RoundKey} could not be raised", roundKey);
+		}
+	}
 
 	#region Helpers
 

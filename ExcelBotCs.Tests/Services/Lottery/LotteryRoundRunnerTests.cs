@@ -43,6 +43,7 @@ public class LotteryRoundRunnerTests : MongoDbTest
 	private StubLotterySettingsService _settings = null!;
 	private FakeLotteryNumberGenerator _numbers = null!;
 	private FakeLotteryAnnouncementPublisher _publisher = null!;
+	private FakeLotteryAlertService _alerts = null!;
 	private Mock<IMemberService> _members = null!;
 	private LotteryPotLedgerService _pot = null!;
 	private LotteryRoundRunner _runner = null!;
@@ -78,6 +79,7 @@ public class LotteryRoundRunnerTests : MongoDbTest
 			weeklyIncrement: Increment));
 		_numbers = new FakeLotteryNumberGenerator();
 		_publisher = new FakeLotteryAnnouncementPublisher();
+		_alerts = new FakeLotteryAlertService();
 		_members = new Mock<IMemberService>();
 		_members.Setup(service => service.GetByDiscordIds(It.IsAny<IEnumerable<ulong>>()))
 			.ReturnsAsync((IEnumerable<ulong> ids) => ids
@@ -91,7 +93,8 @@ public class LotteryRoundRunnerTests : MongoDbTest
 	{
 		_pot = new LotteryPotLedgerService(_ledger, Mock.Of<ILogger<LotteryPotLedgerService>>());
 		_runner = new LotteryRoundRunner(_settings, _rounds, entries ?? _flakyEntries, _winners, _pot, _guesses,
-			_extraGuesses, _members.Object, _numbers, _publisher, _time, Mock.Of<ILogger<LotteryRoundRunner>>());
+			_extraGuesses, _members.Object, _numbers, _publisher, _time, Mock.Of<ILogger<LotteryRoundRunner>>(),
+			alerts: _alerts);
 	}
 
 	#region Scheduled round
@@ -496,6 +499,9 @@ public class LotteryRoundRunnerTests : MongoDbTest
 		round.PostingStartedAt.ShouldNotBeNull();
 		round.NextRetryAt.ShouldNotBeNull();
 
+		// A scheduled retry is not a needs-admin state: it must not ping the admins.
+		_alerts.Alerts.ShouldBeEmpty();
+
 		// The same result is retried: no second number, no second winner, no second ledger movement.
 		_publisher.PublishFailure = null;
 		_time.Set(round.NextRetryAt!.Value);
@@ -531,6 +537,18 @@ public class LotteryRoundRunnerTests : MongoDbTest
 		round.WinningNumber.ShouldBe(50);
 		_numbers.Draws.ShouldBe(1);
 
+		// Exactly one needs-admin alert for the terminal state, carrying what an admin needs to act on.
+		var alert = _alerts.Alerts.ShouldHaveSingleItem();
+		alert.RoundKey.ShouldBe("2026-11-10");
+		alert.FailedStep.ShouldBe(LotteryFailedStep.Announcement);
+		alert.Error.ShouldNotBeNullOrWhiteSpace();
+		alert.Attempts.ShouldBeGreaterThan(0);
+		alert.NextRetryAt.ShouldBeNull();
+		alert.NeedsAdmin.ShouldBeTrue();
+
+		// The retry inside the window never pinged.
+		_alerts.Alerts.Count.ShouldBe(1);
+
 		// And a failed round blocks the next scheduled date.
 		_time.Set(TestInstants.Utc("2026-11-17T19:05:00"));
 		var blocked = await _runner.TickAsync();
@@ -554,6 +572,38 @@ public class LotteryRoundRunnerTests : MongoDbTest
 		retried.Disposition.ShouldBe(LotteryRunDisposition.Ran);
 		_numbers.Draws.ShouldBe(1);
 		(await ReadRoundAsync("2026-11-10"))!.Status.ShouldBe(LotteryRoundStatus.Completed);
+	}
+
+	[Fact]
+	public async Task TickAsync_ExhaustedDrawRetries_PostsOneNeedsAdminAlert()
+	{
+		await SeedCompletedRoundAsync("2026-11-03");
+		await SeedGuessAsync(7001UL, 50);
+		_numbers.DefaultNumber = 50;
+		_flakyEntries.FailuresRemaining = 6;
+
+		for (var attempt = 1; attempt <= 5; attempt++)
+		{
+			var failing = await _runner.TickAsync();
+			failing.Action.ShouldBe(LotteryRunDisposition.Retrying);
+
+			var pending = await ReadRoundAsync("2026-11-10");
+			pending!.NextRetryAt.ShouldNotBeNull();
+			_time.Set(pending.NextRetryAt!.Value);
+		}
+
+		var terminal = await _runner.TickAsync();
+
+		terminal.Action.ShouldBe(LotteryRunDisposition.Failed);
+		(await ReadRoundAsync("2026-11-10"))!.Status.ShouldBe(LotteryRoundStatus.Failed);
+
+		// One alert, at the end of the backoff, and it pings because the round is terminal.
+		var alert = _alerts.Alerts.ShouldHaveSingleItem();
+		alert.RoundKey.ShouldBe("2026-11-10");
+		alert.FailedStep.ShouldBe(LotteryFailedStep.Draw);
+		alert.Attempts.ShouldBe(6);
+		alert.NextRetryAt.ShouldBeNull();
+		alert.NeedsAdmin.ShouldBeTrue();
 	}
 
 	[Fact]
