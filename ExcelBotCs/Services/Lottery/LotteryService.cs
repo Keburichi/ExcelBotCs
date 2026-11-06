@@ -17,12 +17,20 @@ public class LotteryService : ILotteryService
     private readonly ILotteryResultRepository _lotteryResults;
     private readonly IMemberService _memberService;
     private readonly Prng _rng;
+    private readonly ILotteryAwardRepository _awards;
+    private readonly ILotteryRoundRepository _rounds;
+    private readonly ILotteryRoundRunner _runner;
+    private readonly ILotteryScheduleService _schedule;
 
     public LotteryService(Prng rng,
         ILotteryGuessRepository lotteryGuessRepository,
         IExtraLotteryGuessRepository extraLotteryGuessRepository,
         ILotteryResultRepository lotteryResultRepository,
-        IMemberService memberService, IDiscordMessageService discordMessageService)
+        IMemberService memberService, IDiscordMessageService discordMessageService,
+        ILotteryRoundRunner runner,
+        ILotteryRoundRepository roundRepository,
+        ILotteryAwardRepository awardRepository,
+        ILotteryScheduleService scheduleService)
     {
         _rng = rng;
         _memberService = memberService;
@@ -30,6 +38,10 @@ public class LotteryService : ILotteryService
         _lotteryGuesses = lotteryGuessRepository;
         _extraLotteryGuesses = extraLotteryGuessRepository;
         _lotteryResults = lotteryResultRepository;
+        _runner = runner;
+        _rounds = roundRepository;
+        _awards = awardRepository;
+        _schedule = scheduleService;
     }
 
     public async Task<IGuessResponse> GuessAsync(ulong discordUserId, int number)
@@ -149,7 +161,7 @@ public class LotteryService : ILotteryService
         return new ViewResponse(guesses, currentGuesses.Count, 1 + extraAwardedGuesses.Count, displayAmount);
     }
 
-    public async Task RunLotteryAsync(ulong discordUserId)
+    public async Task<LotteryRunResult> RunLotteryAsync(ulong discordUserId)
     {
         var executingUser = await _memberService.GetByDiscordId(discordUserId);
 
@@ -157,33 +169,11 @@ public class LotteryService : ILotteryService
             throw new ArgumentException($"The user with the id {discordUserId} was not found.");
 
         if (!executingUser.IsAdmin.GetValueOrDefault())
-            return;
+            return new LotteryRunResult(LotteryRunDisposition.NotAllowed,
+                "Only admins can run the lottery.");
 
-        var randomNumber = _rng.NextInt(0, 99);
-        var randomNumberDisplay = $"# The winning number is {randomNumber}";
-
-        var allResults = await _lotteryGuesses.GetAsync();
-        var winners = allResults.Where(guess => guess.Number == randomNumber).ToList();
-
-        await SaveGuesses(randomNumber, allResults);
-
-        if (winners.Count == 0)
-        {
-            await _discordMessageService.PostInLotteryChannelAsync(
-                $"{randomNumberDisplay}.\nNobody won, better luck next time!");
-        }
-        else
-        {
-            var winnersDisplay = winners.Select(user => $"<@{user.DiscordId}>").ToList().PrettyJoin();
-            await _discordMessageService.PostInLotteryChannelAsync(
-                $"{randomNumberDisplay}. Congratulations to {winnersDisplay}!");
-        }
-
-        var grouped = allResults.GroupBy(guess => guess.DiscordId).OrderBy(group => group.Count());
-        await _discordMessageService.PostInLotteryChannelAsync(
-            $"## Participants\n{string.Join('\n', grouped.Select(group => $"<@{group.Key}>: {group.Select(guess => guess.Number.ToString()).ToList().PrettyJoin()}"))}");
-
-        await Flush();
+        // The scheduler and the manual run share one code path; the manual run simply has a real actor.
+        return await _runner.RunNowAsync(discordUserId);
     }
 
     public async Task RemindAsync(ulong discordUserId)
@@ -242,22 +232,7 @@ public class LotteryService : ILotteryService
         await _discordMessageService.PostInLotteryChannelAsync(intersectionOutput);
     }
 
-    private async Task SaveGuesses(int winningNumber, List<LotteryGuess> allResults)
-    {
-        var result = new LotteryResult
-        {
-            WinningNumber = winningNumber,
-            Guesses = allResults
-        };
 
-        await _lotteryResults.CreateAsync(result);
-    }
-
-    private async Task Flush()
-    {
-        await _lotteryGuesses.DeleteAllAsync();
-        await _extraLotteryGuesses.DeleteAllAsync();
-    }
 
     private async Task<List<int>> GetGuessedNumbersAsync()
     {
@@ -303,6 +278,16 @@ public class LotteryService : ILotteryService
         return user?.IsMember != null && user.IsMember.Value;
     }
 
+    /// <summary>
+    ///     Once a round owns the guess set — drawing, announcing or blocked on a failure — guessing is refused instead
+    ///     of racing the draw or being flushed away by the cleanup. The caller gets a typed response, not an exception.
+    /// </summary>
+    private async Task<bool> IsRunInFlightAsync()
+    {
+        var blocking = await _rounds.GetNewestBlockingAsync();
+        return blocking is not null && LotteryRoundStatus.BlocksGuessing(blocking.Status);
+    }
+
     #region Guess
 
     private async Task<IGuessResponse> TryRandomGuessAsync(ulong discordUserId, CancellationToken ctx,
@@ -335,6 +320,9 @@ public class LotteryService : ILotteryService
     {
         if (!await CanParticipateAsync(discordUserId))
             return new NotFcMemberGuessResponse();
+
+        if (await IsRunInFlightAsync())
+            return new LotteryRunningGuessResponse();
 
         if (number is <= 0 or >= 100)
             return new OutOfRangeGuessResponse();
@@ -371,6 +359,9 @@ public class LotteryService : ILotteryService
     {
         if (!await CanParticipateAsync(discordUserId))
             return new NotFcMemberGuessResponse();
+
+        if (await IsRunInFlightAsync())
+            return new LotteryRunningGuessResponse();
 
         if (newNumber is <= 0 or >= 100)
             return new OutOfRangeGuessResponse();
@@ -411,11 +402,25 @@ public class LotteryService : ILotteryService
         return new SuccessAwardResponse(userIds, text, reason);
     }
 
-    public async Task AwardUsersAsync(SuccessAwardResponse success)
+    public async Task AwardUsersAsync(SuccessAwardResponse success, ulong? actorDiscordId = null)
     {
+        // The award belongs to the round the next draw will use. The legacy row drives the weekly allowance (and is
+        // flushed only when the round completes); the lottery_awards row is the permanent audit.
+        var roundKey = await _schedule.GetCurrentRoundKeyAsync();
+
         foreach (var userId in success.DiscordUserIds)
+        {
             await _extraLotteryGuesses.CreateAsync(new ExtraLotteryGuess
                 { DiscordId = userId, Reason = success.Reason });
+
+            await _awards.CreateAsync(new LotteryAward
+            {
+                RoundKey = roundKey,
+                DiscordId = userId,
+                Reason = success.Reason,
+                AwardedByDiscordId = actorDiscordId
+            });
+        }
 
         if (success.DiscordUserIds.Count() == 1)
             await _discordMessageService.PostInLotteryChannelAsync(

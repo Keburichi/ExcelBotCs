@@ -22,6 +22,9 @@ public record RandomGuessTimeoutResponse : IGuessResponse;
 
 public record RandomGuessErrorResponse : IGuessResponse;
 
+/// <summary>Guessing is refused while a round owns the guess set (drawing, announcing or blocked on a failure).</summary>
+public record LotteryRunningGuessResponse : IGuessResponse;
+
 #endregion
 
 #region Award Responses

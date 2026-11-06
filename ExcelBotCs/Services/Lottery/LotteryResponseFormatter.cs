@@ -20,6 +20,8 @@ public static class LotteryResponseFormatter
                 $"Your guess for {r.Number} was recorded! Current guesses: {r.PrettyCurrentGuesses}. You can use `/lottery change` to change an existing guess.",
             RandomGuessTimeoutResponse => "Picking a number took too long, try again later. If this keeps happening, contact one of the officers",
             RandomGuessErrorResponse => "Something went wrong, try again later. If this keeps happening, let Zahrymm know.",
+            LotteryRunningGuessResponse =>
+                "The lottery draw is running right now, so guessing is closed until it finishes. Try again in a moment.",
             _ => throw new NotImplementedException()
         };
     }
@@ -35,6 +37,8 @@ public static class LotteryResponseFormatter
                 $"You have not guessed {oldNumber}. You need to use a number you have already guessed in order to change it.",
             SuccessGuessResponse r =>
                 $"Your guess for {oldNumber} was changed to {newNumber}! Current guesses: {r.PrettyCurrentGuesses}. You can use `/lottery change` to change an existing guess.",
+            LotteryRunningGuessResponse =>
+                "The lottery draw is running right now, so guesses are closed until it finishes. Try again in a moment.",
             _ => throw new NotImplementedException()
         };
     }

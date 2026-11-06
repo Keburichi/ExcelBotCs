@@ -2,6 +2,7 @@ using ExcelBotCs.Database;
 using ExcelBotCs.Database.Interfaces;
 using ExcelBotCs.Models.Config;
 using ExcelBotCs.Models.Database;
+using ExcelBotCs.Modules.Lottery;
 using ExcelBotCs.Services.API.Interfaces;
 using ExcelBotCs.Services.Discord.Interfaces;
 using ExcelBotCs.Services.Lottery;
@@ -9,6 +10,8 @@ using ExcelBotCs.Services.Lottery.Enums;
 using ExcelBotCs.Services.Lottery.Interfaces;
 using ExcelBotCs.Services.Lottery.Records;
 using ExcelBotCs.TestFramework.Database;
+using ExcelBotCs.Tests.Utils;
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using MongoDB.Driver;
 using Moq;
@@ -21,9 +24,18 @@ public class LotteryServiceTests : MongoDbTest
     private ILotteryGuessRepository _lotteryGuessRepository = null!;
     private IExtraLotteryGuessRepository _extraLotteryGuessRepository = null!;
     private ILotteryResultRepository _lotteryResultRepository = null!;
+    private ILotteryRoundRepository _lotteryRoundRepository = null!;
+    private ILotteryEntryRepository _lotteryEntryRepository = null!;
+    private ILotteryWinnerRepository _lotteryWinnerRepository = null!;
+    private ILotteryPotLedgerRepository _lotteryPotLedgerRepository = null!;
+    private ILotteryAwardRepository _lotteryAwardRepository = null!;
     private ILotteryService _lotteryService = null!;
     private Mock<IMemberService> _memberService = null!;
     private Mock<IDiscordMessageService> _discordMessageService = null!;
+    private FakeTimeProvider _time = null!;
+    private StubLotterySettingsService _settings = null!;
+    private FakeLotteryNumberGenerator _numbers = null!;
+    private FakeLotteryAnnouncementPublisher _publisher = null!;
 
     public LotteryServiceTests(MongoDbFixture fixture) : base(fixture)
     {
@@ -34,18 +46,41 @@ public class LotteryServiceTests : MongoDbTest
         _lotteryGuessRepository = new LotteryGuessRepository(mongoClient, databaseOptions);
         _extraLotteryGuessRepository = new ExtraLotteryGuessRepository(mongoClient, databaseOptions);
         _lotteryResultRepository = new LotteryResultRepository(mongoClient, databaseOptions);
+        _lotteryRoundRepository = new LotteryRoundRepository(mongoClient, databaseOptions);
+        _lotteryEntryRepository = new LotteryEntryRepository(mongoClient, databaseOptions);
+        _lotteryWinnerRepository = new LotteryWinnerRepository(mongoClient, databaseOptions);
+        _lotteryPotLedgerRepository = new LotteryPotLedgerRepository(mongoClient, databaseOptions);
+        _lotteryAwardRepository = new LotteryAwardRepository(mongoClient, databaseOptions);
     }
 
-    protected override Task OnAfterInitializeAsync()
+    protected override async Task OnAfterInitializeAsync()
     {
+        // The unique round key and ledger idempotency key indexes exist in the deployed database; the round tests
+        // depend on them exactly as production does.
+        await _lotteryRoundRepository.EnsureIndexesAsync();
+        await _lotteryPotLedgerRepository.EnsureIndexesAsync();
+
         var rng = new Prng();
         _memberService = new Mock<IMemberService>();
+        _memberService.Setup(x => x.GetByDiscordIds(It.IsAny<IEnumerable<ulong>>()))
+            .ReturnsAsync(new List<Member>());
         _discordMessageService = new Mock<IDiscordMessageService>();
 
-        _lotteryService = new LotteryService(rng, _lotteryGuessRepository, _extraLotteryGuessRepository,
-            _lotteryResultRepository, _memberService.Object, _discordMessageService.Object);
+        _time = new FakeTimeProvider(TestInstants.Utc("2026-11-10T19:00:00"));
+        _settings = new StubLotterySettingsService(TestLotterySettings.Create());
+        _numbers = new FakeLotteryNumberGenerator();
+        _publisher = new FakeLotteryAnnouncementPublisher();
 
-        return Task.CompletedTask;
+        var pot = new LotteryPotLedgerService(_lotteryPotLedgerRepository,
+            Mock.Of<ILogger<LotteryPotLedgerService>>());
+        var schedule = new LotteryScheduleService(_settings, _lotteryRoundRepository, _time);
+        var runner = new LotteryRoundRunner(_settings, _lotteryRoundRepository, _lotteryEntryRepository,
+            _lotteryWinnerRepository, pot, _lotteryGuessRepository, _extraLotteryGuessRepository,
+            _memberService.Object, _numbers, _publisher, _time, Mock.Of<ILogger<LotteryRoundRunner>>());
+
+        _lotteryService = new LotteryService(rng, _lotteryGuessRepository, _extraLotteryGuessRepository,
+            _lotteryResultRepository, _memberService.Object, _discordMessageService.Object, runner,
+            _lotteryRoundRepository, _lotteryAwardRepository, schedule);
     }
 
     protected override Task BeforeTearDownAsync()
@@ -679,7 +714,7 @@ public class LotteryServiceTests : MongoDbTest
     }
 
     [Fact]
-    public async Task RunLotteryAsync_NotAdmin()
+    public async Task RunLotteryAsync_NotAdmin_IsRejected()
     {
         var userId = Convert.ToUInt64(GenerateRandomDiscordId());
         var user = new Member
@@ -689,99 +724,116 @@ public class LotteryServiceTests : MongoDbTest
         };
         _memberService.Setup(x => x.GetByDiscordId(userId)).ReturnsAsync(user);
 
-        await _lotteryService.RunLotteryAsync(userId);
+        var result = await _lotteryService.RunLotteryAsync(userId);
 
-        _discordMessageService.Verify(x => x.PostInLotteryChannelAsync(It.IsAny<string>()), Times.Never);
+        result.Disposition.ShouldBe(LotteryRunDisposition.NotAllowed);
+        (await _lotteryRoundRepository.GetLatestAsync(10)).ShouldBeEmpty();
     }
 
     [Fact]
-    public async Task RunLotteryAsync_NoWinners()
+    public async Task RunLotteryAsync_AsAdmin_UsesTheRoundEngine()
     {
         var adminId = Convert.ToUInt64(GenerateRandomDiscordId());
-        var admin = new Member
+        _memberService.Setup(x => x.GetByDiscordId(adminId)).ReturnsAsync(new Member
         {
             Id = adminId.ToString(),
             Roles = new List<MemberRole> { new() { IsAdmin = true } }
-        };
-        _memberService.Setup(x => x.GetByDiscordId(adminId)).ReturnsAsync(admin);
+        });
 
         var userId = Convert.ToUInt64(GenerateRandomDiscordId());
-        var user = new Member
+        _memberService.Setup(x => x.GetByDiscordId(userId)).ReturnsAsync(new Member
         {
-            Id = userId.ToString(),
+            DiscordId = userId.ToString(),
+            DiscordName = "Winner",
             Roles = new List<MemberRole> { new() { IsMember = true } }
-        };
-        _memberService.Setup(x => x.GetByDiscordId(userId)).ReturnsAsync(user);
-
-        // Make guesses for all numbers to ensure someone doesn't win
-        for (var i = 1; i <= 99; i++)
-        {
-            await _lotteryService.GuessAsync(userId, i);
-            if (i < 99)
-                await _lotteryService.AwardUsersAsync(new SuccessAwardResponse([userId], "", "testing"));
-        }
-
-        await _lotteryService.RunLotteryAsync(adminId);
-
-        // Verify messages were posted (winning number announcement + participants list)
-        _discordMessageService.Verify(x => x.PostInLotteryChannelAsync(
-            It.Is<string>(s => s.Contains("winning number") || s.Contains("Participants"))), Times.AtLeast(2));
-    }
-
-    [Fact]
-    public async Task RunLotteryAsync_WithWinners()
-    {
-        var adminId = Convert.ToUInt64(GenerateRandomDiscordId());
-        var admin = new Member
-        {
-            Id = adminId.ToString(),
-            Roles = new List<MemberRole> { new() { IsAdmin = true } }
-        };
-        _memberService.Setup(x => x.GetByDiscordId(adminId)).ReturnsAsync(admin);
-
-        var userId = Convert.ToUInt64(GenerateRandomDiscordId());
-        var user = new Member
-        {
-            Id = userId.ToString(),
-            Roles = new List<MemberRole> { new() { IsMember = true } }
-        };
-        _memberService.Setup(x => x.GetByDiscordId(userId)).ReturnsAsync(user);
-
-        // Make a single guess - with only one guess, if we run the lottery enough times, it should hit
-        await _lotteryService.GuessAsync(userId, 50);
-
-        await _lotteryService.RunLotteryAsync(adminId);
-
-        // Verify lottery was run (messages posted)
-        _discordMessageService.Verify(x => x.PostInLotteryChannelAsync(It.IsAny<string>()), Times.AtLeast(2));
-    }
-
-    [Fact]
-    public async Task RunLotteryAsync_ClearsGuesses()
-    {
-        var adminId = Convert.ToUInt64(GenerateRandomDiscordId());
-        var admin = new Member
-        {
-            Id = adminId.ToString(),
-            Roles = new List<MemberRole> { new() { IsAdmin = true } }
-        };
-        _memberService.Setup(x => x.GetByDiscordId(adminId)).ReturnsAsync(admin);
-
-        var userId = Convert.ToUInt64(GenerateRandomDiscordId());
-        var user = new Member
-        {
-            Id = userId.ToString(),
-            Roles = new List<MemberRole> { new() { IsMember = true } }
-        };
-        _memberService.Setup(x => x.GetByDiscordId(userId)).ReturnsAsync(user);
+        });
+        _memberService.Setup(x => x.GetByDiscordIds(It.IsAny<IEnumerable<ulong>>()))
+            .ReturnsAsync([new Member { DiscordId = userId.ToString(), DiscordName = "Winner" }]);
 
         await _lotteryService.GuessAsync(userId, 50);
+        _numbers.DefaultNumber = 50;
 
-        await _lotteryService.RunLotteryAsync(adminId);
+        var result = await _lotteryService.RunLotteryAsync(adminId);
 
-        // Verify guesses were cleared
-        var unusedNumbers = await _lotteryService.GetUnusedNumbersAsync();
-        unusedNumbers.UsedNumbers.ShouldBeEmpty();
+        result.Disposition.ShouldBe(LotteryRunDisposition.Ran);
+        var round = await _lotteryRoundRepository.GetByRoundKeyAsync("2026-11-10");
+        round.ShouldNotBeNull();
+        round!.Status.ShouldBe(LotteryRoundStatus.Completed);
+        round.WinningNumber.ShouldBe(50);
+        _publisher.Published.ShouldHaveSingleItem();
+
+        // The live guesses are cleared only at completed, and the round is completed now.
+        (await _lotteryGuessRepository.GetAsync()).ShouldBeEmpty();
+    }
+
+    [Fact]
+    public async Task GuessAsync_WhileTheRoundIsDrawing_IsRefusedInsteadOfRacing()
+    {
+        await CreateRoundAsync("2026-11-10", LotteryRoundStatus.Drawing);
+
+        var userId = Convert.ToUInt64(GenerateRandomDiscordId());
+        _memberService.Setup(x => x.GetByDiscordId(userId)).ReturnsAsync(new Member
+        {
+            Roles = new List<MemberRole> { new() { IsMember = true } }
+        });
+
+        (await _lotteryService.GuessAsync(userId, 17)).ShouldBeOfType<LotteryRunningGuessResponse>();
+        (await _lotteryService.ChangeGuessAsync(userId, 17, 18)).ShouldBeOfType<LotteryRunningGuessResponse>();
+        (await _lotteryGuessRepository.GetAsync()).ShouldBeEmpty();
+    }
+
+    [Fact]
+    public async Task GuessAsync_WhileTheAnnouncementIsPending_IsRefused()
+    {
+        await CreateRoundAsync("2026-11-10", LotteryRoundStatus.Drawn);
+
+        var userId = Convert.ToUInt64(GenerateRandomDiscordId());
+        _memberService.Setup(x => x.GetByDiscordId(userId)).ReturnsAsync(new Member
+        {
+            Roles = new List<MemberRole> { new() { IsMember = true } }
+        });
+
+        (await _lotteryService.GuessAsync(userId, 17)).ShouldBeOfType<LotteryRunningGuessResponse>();
+    }
+
+    [Fact]
+    public async Task GuessAsync_AfterTheRoundCompleted_IsAcceptedAgain()
+    {
+        await CreateRoundAsync("2026-11-10", LotteryRoundStatus.Completed);
+
+        var userId = Convert.ToUInt64(GenerateRandomDiscordId());
+        _memberService.Setup(x => x.GetByDiscordId(userId)).ReturnsAsync(new Member
+        {
+            Roles = new List<MemberRole> { new() { IsMember = true } }
+        });
+
+        (await _lotteryService.GuessAsync(userId, 17)).ShouldBeOfType<SuccessGuessResponse>();
+    }
+
+    [Fact]
+    public async Task AwardUsersAsync_WritesTheAuditRowForTheCurrentRound()
+    {
+        var userId = Convert.ToUInt64(GenerateRandomDiscordId());
+        var officerId = Convert.ToUInt64(GenerateRandomDiscordId());
+
+        await _lotteryService.AwardUsersAsync(new SuccessAwardResponse([userId], "", "event"), officerId);
+
+        var awards = await _lotteryAwardRepository.GetByRoundKeyAsync("2026-11-10");
+        awards.ShouldHaveSingleItem();
+        awards[0].DiscordId.ShouldBe(userId);
+        awards[0].Reason.ShouldBe("event");
+        awards[0].AwardedByDiscordId.ShouldBe(officerId);
+        (await _extraLotteryGuessRepository.GetByDiscordIdAsync(userId)).ShouldHaveSingleItem();
+    }
+
+    private async Task CreateRoundAsync(string roundKey, string status)
+    {
+        await _lotteryRoundRepository.CreateAsync(new LotteryRound
+        {
+            RoundKey = roundKey,
+            ScheduledAt = TestInstants.UtcTime("2026-11-10T19:00:00"),
+            Status = status
+        });
     }
 
     #endregion
