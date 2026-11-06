@@ -71,4 +71,10 @@ public class LotteryEntryRepository : BaseRepository<LotteryEntry>, ILotteryEntr
 
 		return result.UpsertedId != null;
 	}
+
+	public async Task<long> DeleteByRoundKeyAsync(string roundKey)
+	{
+		var result = await Collection.DeleteManyAsync(e => e.RoundKey == roundKey);
+		return result.DeletedCount;
+	}
 }

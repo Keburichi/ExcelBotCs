@@ -159,7 +159,8 @@ public class LotteryCutoverTests : MongoDbTest
 
 		return new LotteryRoundRunner(settings, _rounds, _entries, _winners, _pot, _guesses, _extraGuesses,
 			members.Object, numbers, new FakeLotteryAnnouncementPublisher(), time,
-			Mock.Of<ILogger<LotteryRoundRunner>>());
+			Mock.Of<ILogger<LotteryRoundRunner>>(), TestStartupCheck.Healthy(),
+			new FakeLotteryAlertService());
 	}
 
 	/// <summary>The 35-row seed reduced to the shapes the cutover can break: no Discord id, paid, one with an item.</summary>

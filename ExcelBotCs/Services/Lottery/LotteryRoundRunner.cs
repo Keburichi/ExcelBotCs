@@ -24,7 +24,7 @@ public sealed class LotteryRoundRunner : ILotteryRoundRunner
 {
 	private const ulong NoActor = 0;
 
-	private readonly ILotteryAlertService? _alerts;
+	private readonly ILotteryAlertService _alerts;
 	private readonly ILotteryAnnouncementPublisher _announcements;
 	private readonly IExtraLotteryGuessRepository _extraGuesses;
 	private readonly ILotteryEntryRepository _entries;
@@ -35,7 +35,7 @@ public sealed class LotteryRoundRunner : ILotteryRoundRunner
 	private readonly ILotteryRoundRepository _rounds;
 	private readonly ILotterySettingsService _settingsService;
 	private readonly ILogger<LotteryRoundRunner> _logger;
-	private readonly LotteryStartupCheckService? _startupCheck;
+	private readonly LotteryStartupCheckService _startupCheck;
 	private readonly TimeProvider _time;
 	private readonly ILotteryWinnerRepository _winners;
 
@@ -54,8 +54,8 @@ public sealed class LotteryRoundRunner : ILotteryRoundRunner
 		ILotteryAnnouncementPublisher announcements,
 		TimeProvider time,
 		ILogger<LotteryRoundRunner> logger,
-		LotteryStartupCheckService? startupCheck = null,
-		ILotteryAlertService? alerts = null)
+		LotteryStartupCheckService startupCheck,
+		ILotteryAlertService alerts)
 	{
 		_settingsService = settingsService;
 		_rounds = rounds;
@@ -115,6 +115,25 @@ public sealed class LotteryRoundRunner : ILotteryRoundRunner
 
 		var target = await ResolveDueTargetAsync(lotterySchedule, now);
 		var existing = await _rounds.GetByRoundKeyAsync(target.RoundKey);
+
+		if (existing is { Status: LotteryRoundStatus.Voided })
+		{
+			// Spec §5.1 "Redo": an admin voids a wrong round and then runs the date again. Only this explicit action
+			// re-opens a voided round, and only the due round can be re-opened — an older voided date stays voided
+			// because "Run now" never targets it. The voided attempt's frozen entries and winners are removed first so
+			// a crash between the writes leaves the round voided and the re-run repeatable.
+			await _entries.DeleteByRoundKeyAsync(target.RoundKey);
+			await _winners.DeleteByRoundKeyAsync(target.RoundKey);
+			if (!await _rounds.TryReopenVoidedAsync(target.RoundKey, now.UtcDateTime))
+				return new LotteryRunResult(LotteryRunDisposition.AlreadyRun,
+					$"Round {target.RoundKey} changed state before it could be re-run.",
+					await _rounds.GetByRoundKeyAsync(target.RoundKey));
+
+			existing = await _rounds.GetByRoundKeyAsync(target.RoundKey);
+			_logger.LogInformation("Voided lottery round {RoundKey} re-opened by {Actor} for attempt {Attempt}",
+				target.RoundKey, Actor(actorDiscordId), existing?.Attempt);
+		}
+
 		if (existing is not null && existing.Status != LotteryRoundStatus.Scheduled)
 			return AlreadyClaimed(existing);
 
@@ -241,6 +260,10 @@ public sealed class LotteryRoundRunner : ILotteryRoundRunner
 		var schedule = LotterySchedule.CreateFrom(await _settingsService.GetEffectiveAsync(cancellationToken));
 		var now = Now();
 
+		if (newScheduledAtUtc == default)
+			return new LotteryRunResult(LotteryRunDisposition.InvalidRequest,
+				"A new scheduled instant is required to move a round.");
+
 		string currentRoundKey;
 		if (roundKey is null)
 		{
@@ -249,7 +272,7 @@ public sealed class LotteryRoundRunner : ILotteryRoundRunner
 		else
 		{
 			if (!LotteryRoundKey.TryParse(roundKey, out _))
-				return new LotteryRunResult(LotteryRunDisposition.NotAllowed,
+				return new LotteryRunResult(LotteryRunDisposition.InvalidRequest,
 					$"'{roundKey}' is not a round key in YYYY-MM-DD format.");
 			currentRoundKey = roundKey;
 		}
@@ -275,10 +298,24 @@ public sealed class LotteryRoundRunner : ILotteryRoundRunner
 			return new LotteryRunResult(LotteryRunDisposition.Rescheduled,
 				$"Round {currentRoundKey} is already scheduled for {newInstant:O}.", existing);
 
+		// "One round per date" is checked before the write as well as by the unique index, so a deployment whose index
+		// migration has not run still answers a typed conflict instead of creating a second round on that date.
+		if (newRoundKey != currentRoundKey && await _rounds.GetByRoundKeyAsync(newRoundKey) is not null)
+			return new LotteryRunResult(LotteryRunDisposition.RescheduleConflict,
+				$"Round {currentRoundKey} cannot move to {newRoundKey}: that date already has a round.", existing);
+
 		if (!await _rounds.TryRescheduleAsync(currentRoundKey, newRoundKey, newInstant))
+		{
+			// The unique RoundKey index is what rejected the move: either the target date already has a round, or the
+			// source round left the scheduled state in between. The page needs to tell those apart.
+			if (await _rounds.GetByRoundKeyAsync(newRoundKey) is not null)
+				return new LotteryRunResult(LotteryRunDisposition.RescheduleConflict,
+					$"Round {currentRoundKey} cannot move to {newRoundKey}: that date already has a round.", existing);
+
 			return new LotteryRunResult(LotteryRunDisposition.NotAllowed,
-				$"Round {currentRoundKey} could not be moved to {newRoundKey}: the date may already have a round.",
-				existing);
+				$"Round {currentRoundKey} changed state before it could be moved.",
+				await _rounds.GetByRoundKeyAsync(currentRoundKey));
+		}
 
 		_logger.LogInformation("Lottery round {RoundKey} rescheduled to {NewRoundKey} at {ScheduledAt} by {Actor}",
 			currentRoundKey, newRoundKey, newInstant, Actor(actorDiscordId));
@@ -306,18 +343,18 @@ public sealed class LotteryRoundRunner : ILotteryRoundRunner
 	public async Task<long> GetPotAsync(CancellationToken cancellationToken = default)
 	{
 		var settings = await _settingsService.GetEffectiveAsync(cancellationToken);
-		return await _pot.EnsureBalanceAsync(settings.BasePot, cancellationToken);
+		return await _pot.GetBalanceAsync(settings.BasePot, cancellationToken);
 	}
 
 	#region Tick
 
 	private async Task<LotteryTickResult> TickCoreAsync(CancellationToken cancellationToken)
 	{
-		if (_startupCheck is { Result: null })
+		if (_startupCheck.Result is null)
 			return new LotteryTickResult(LotteryTickAction.Nothing,
 				"The lottery startup check has not finished yet; nothing is scheduled on this tick.");
 
-		if (_startupCheck?.Result is { IsDegraded: true })
+		if (_startupCheck.Result is { IsDegraded: true })
 			return new LotteryTickResult(LotteryTickAction.Nothing,
 				"Lottery automation starts degraded; nothing is scheduled until the configuration is fixed.");
 
@@ -378,8 +415,10 @@ public sealed class LotteryRoundRunner : ILotteryRoundRunner
 		var dueSlot = schedule.MostRecentDueSlot(now);
 		var dueRound = await _rounds.GetByRoundKeyAsync(dueSlot.RoundKey);
 		var latest = (await _rounds.GetLatestAsync(1)).FirstOrDefault();
+		// The dry-run marker lives in the settings singleton because a dry run writes no round row (§12 step 7).
+		var lastDryRunRoundKey = await _settingsService.GetLastDryRunRoundKeyAsync(cancellationToken);
 
-		return new LotteryTickState(blocking, scheduledDue, dueRound, latest);
+		return new LotteryTickState(blocking, scheduledDue, dueRound, latest, lastDryRunRoundKey);
 	}
 
 	private async Task SkipMissedSlotsAsync(LotteryTickPlan plan, CancellationToken cancellationToken)
@@ -401,6 +440,11 @@ public sealed class LotteryRoundRunner : ILotteryRoundRunner
 			return new LotteryTickResult(LotteryTickAction.Nothing, "The dry-run plan has no slot to preview.");
 
 		var preview = await PreviewForSlotAsync(plan.Slot, settings, cancellationToken);
+
+		// Only the scheduled tick claims the slot. The marker makes the planner skip it once the deployment is live, so
+		// the previewed week is never drawn a second time; the manual "Dry run now" action writes nothing.
+		await _settingsService.MarkDryRunRoundAsync(plan.Slot.RoundKey, cancellationToken);
+
 		return new LotteryTickResult(LotteryRunDisposition.DryRun, preview.Message, preview.Round, preview.Pot);
 	}
 
@@ -451,6 +495,10 @@ public sealed class LotteryRoundRunner : ILotteryRoundRunner
 		var roundKey = round.RoundKey;
 		var now = Now();
 
+		// The attempt scopes every ledger key this draw writes: attempt 0 (the first run) keeps the plain keys, while a
+		// re-run after a void writes `:1`, `:2`, ... so the fresh draw cannot collide with the voided attempt.
+		var attempt = round.Attempt;
+
 		// Freeze the guess set first: the draw reads lottery_entries, never the live guesses again, so a resumed
 		// attempt and the winner calculation both work on exactly the same set.
 		if (round.WinningNumber is null) await CopyEntriesAsync(roundKey, cancellationToken);
@@ -466,7 +514,7 @@ public sealed class LotteryRoundRunner : ILotteryRoundRunner
 		}
 		else
 		{
-			potBefore = await ResolvePotBeforeAsync(roundKey, settings, cancellationToken);
+			potBefore = await ResolvePotBeforeAsync(roundKey, attempt, settings, cancellationToken);
 			winningNumber = round.WinningNumber ?? _numbers.DrawWinningNumber();
 
 			var stored = await _rounds.TrySetWinningNumberAsync(roundKey, winningNumber, now.UtcDateTime, potBefore);
@@ -497,14 +545,14 @@ public sealed class LotteryRoundRunner : ILotteryRoundRunner
 			potAfter = LotteryPotMath.AfterNoWinner(balance, settings.WeeklyIncrement);
 			await _pot.AppendAsync(roundKey, LotteryPotLedgerType.WeeklyIncrement, settings.WeeklyIncrement, potAfter,
 				$"No winner in round {roundKey}; the pot grows by the weekly increment.", null,
-				LotteryPotLedgerKeys.WeeklyIncrement(roundKey), cancellationToken);
+				LotteryPotLedgerKeys.WeeklyIncrement(roundKey, attempt), cancellationToken);
 
 			_logger.LogInformation("Lottery round {RoundKey} had no winner; the pot grows from {PotBefore} to {PotAfter}",
 				roundKey, balance, potAfter);
 		}
 		else
 		{
-			potAfter = await WriteWinnersAsync(roundKey, winningNumber, winningEntries, potBefore, settings,
+			potAfter = await WriteWinnersAsync(roundKey, winningNumber, winningEntries, potBefore, attempt, settings,
 				cancellationToken);
 		}
 
@@ -516,7 +564,7 @@ public sealed class LotteryRoundRunner : ILotteryRoundRunner
 	}
 
 	private async Task<long> WriteWinnersAsync(string roundKey, int winningNumber,
-		IReadOnlyList<LotteryEntry> winningEntries, long potBefore, LotteryEffectiveSettings settings,
+		IReadOnlyList<LotteryEntry> winningEntries, long potBefore, int attempt, LotteryEffectiveSettings settings,
 		CancellationToken cancellationToken)
 	{
 		var shares = LotteryPotMath.Split(potBefore, winningEntries.Count);
@@ -544,20 +592,20 @@ public sealed class LotteryRoundRunner : ILotteryRoundRunner
 
 		// The payout debits the pot at the draw; the reset then returns it to the base. The balances are taken from an
 		// existing entry when a previous attempt already wrote it, so a retry cannot move the pot twice.
-		var payout = await _pot.FindAsync(LotteryPotLedgerKeys.Payout(roundKey), cancellationToken);
+		var payout = await _pot.FindAsync(LotteryPotLedgerKeys.Payout(roundKey, attempt), cancellationToken);
 		var payoutBalanceAfter = payout?.BalanceAfter
 		                         ?? await _pot.GetBalanceAsync(settings.BasePot, cancellationToken) - potBefore;
 
 		await _pot.AppendAsync(roundKey, LotteryPotLedgerType.Payout, -potBefore, payoutBalanceAfter,
 			$"Prize payout for round {roundKey}: {winningEntries.Count} winner(s) share the {potBefore} Gil pot.",
-			null, LotteryPotLedgerKeys.Payout(roundKey), cancellationToken);
+			null, LotteryPotLedgerKeys.Payout(roundKey, attempt), cancellationToken);
 
-		var reset = await _pot.FindAsync(LotteryPotLedgerKeys.Reset(roundKey), cancellationToken);
+		var reset = await _pot.FindAsync(LotteryPotLedgerKeys.Reset(roundKey, attempt), cancellationToken);
 		var potAfter = reset?.BalanceAfter ?? payoutBalanceAfter + settings.BasePot;
 
 		await _pot.AppendAsync(roundKey, LotteryPotLedgerType.Reset, settings.BasePot, potAfter,
 			$"The pot resets to the base after round {roundKey} was won.", null,
-			LotteryPotLedgerKeys.Reset(roundKey), cancellationToken);
+			LotteryPotLedgerKeys.Reset(roundKey, attempt), cancellationToken);
 
 		return potAfter;
 	}
@@ -576,17 +624,18 @@ public sealed class LotteryRoundRunner : ILotteryRoundRunner
 			});
 	}
 
-	private async Task<long> ResolvePotBeforeAsync(string roundKey, LotteryEffectiveSettings settings,
+	private async Task<long> ResolvePotBeforeAsync(string roundKey, int attempt, LotteryEffectiveSettings settings,
 		CancellationToken cancellationToken)
 	{
 		// A resumed draw must reuse the pot its first attempt froze, even when that attempt got as far as the ledger.
-		var payout = await _pot.FindAsync(LotteryPotLedgerKeys.Payout(roundKey), cancellationToken);
+		var payout = await _pot.FindAsync(LotteryPotLedgerKeys.Payout(roundKey, attempt), cancellationToken);
 		if (payout is not null) return -payout.Amount;
 
-		var increment = await _pot.FindAsync(LotteryPotLedgerKeys.WeeklyIncrement(roundKey), cancellationToken);
+		var increment = await _pot.FindAsync(LotteryPotLedgerKeys.WeeklyIncrement(roundKey, attempt),
+			cancellationToken);
 		if (increment is not null) return increment.BalanceAfter - increment.Amount;
 
-		return await _pot.EnsureBalanceAsync(settings.BasePot, cancellationToken);
+		return await _pot.GetBalanceAsync(settings.BasePot, cancellationToken);
 	}
 
 	private async Task<LotteryRunResult> RegisterDrawFailureAsync(string roundKey, Exception exception,
@@ -914,20 +963,30 @@ public sealed class LotteryRoundRunner : ILotteryRoundRunner
 	private async Task<int> ReverseLedgerAsync(LotteryRound round, string reason, ulong actorDiscordId,
 		LotteryEffectiveSettings settings, CancellationToken cancellationToken)
 	{
-		// Only the round's own movements are reversed; a correction is an admin decision and is never undone silently.
-		var entries = (await _pot.GetByRoundKeyAsync(round.RoundKey, cancellationToken))
-			.Where(entry => entry.Type is LotteryPotLedgerType.Payout or LotteryPotLedgerType.Reset
-				or LotteryPotLedgerType.WeeklyIncrement)
-			.OrderBy(entry => entry.DateCreated)
-			.ThenBy(entry => entry.Id, StringComparer.Ordinal)
-			.ToList();
+		// Only the round's own movements of this attempt are reversed; a correction is an admin decision and is never
+		// undone silently. The run writes exactly three known keys, so they are looked up instead of scanning the
+		// round: a voided-then-re-run round targets its current attempt and never re-reverses an earlier attempt.
+		var attempt = round.Attempt;
+		var keys = new[]
+		{
+			LotteryPotLedgerKeys.Payout(round.RoundKey, attempt),
+			LotteryPotLedgerKeys.Reset(round.RoundKey, attempt),
+			LotteryPotLedgerKeys.WeeklyIncrement(round.RoundKey, attempt)
+		};
+
+		var entries = new List<LotteryPotLedgerEntry>();
+		foreach (var key in keys)
+		{
+			var entry = await _pot.FindAsync(key, cancellationToken);
+			if (entry is not null) entries.Add(entry);
+		}
 
 		var balance = await _pot.GetBalanceAsync(settings.BasePot, cancellationToken);
 		var reversed = 0;
 
 		foreach (var entry in entries)
 		{
-			var key = LotteryPotLedgerKeys.VoidReversal(round.RoundKey, entry.Type);
+			var key = LotteryPotLedgerKeys.VoidReversal(round.RoundKey, entry.Type, attempt);
 			if (await _pot.FindAsync(key, cancellationToken) is not null) continue;
 
 			var requested = -entry.Amount;
@@ -957,8 +1016,6 @@ public sealed class LotteryRoundRunner : ILotteryRoundRunner
 	private async Task RaiseNeedsAdminAlertAsync(string roundKey, string failedStep, string error, int attempts,
 		string title, CancellationToken cancellationToken)
 	{
-		if (_alerts is null) return;
-
 		try
 		{
 			await _alerts.PublishAsync(new LotteryAlert(title, roundKey, failedStep, error, attempts,

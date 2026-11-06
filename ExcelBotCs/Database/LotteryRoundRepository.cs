@@ -301,6 +301,34 @@ public class LotteryRoundRepository : BaseRepository<LotteryRound>, ILotteryRoun
 		return await UpdateAppliedAsync(filter, update);
 	}
 
+	public async Task<bool> TryReopenVoidedAsync(string roundKey, DateTime nowUtc)
+	{
+		var filter = Builders<LotteryRound>.Filter.Eq(r => r.RoundKey, roundKey) &
+		             Builders<LotteryRound>.Filter.Eq(r => r.Status, LotteryRoundStatus.Voided);
+
+		// The result of the voided attempt is cleared and the attempt number bumped, so the fresh draw computes a new
+		// number, a new pot and attempt-scoped ledger keys. The void reason/actor/time stay: the date's history keeps
+		// the audit of what was undone.
+		var update = Builders<LotteryRound>.Update
+			.Set(r => r.Status, LotteryRoundStatus.Scheduled)
+			.Set(r => r.WinningNumber, null)
+			.Set(r => r.PotBefore, null)
+			.Set(r => r.PotAfter, null)
+			.Set(r => r.AnnouncementMessageId, null)
+			.Set(r => r.PostingStartedAt, null)
+			.Set(r => r.FailedStep, null)
+			.Set(r => r.Attempts, 0)
+			.Set(r => r.NextRetryAt, null)
+			.Set(r => r.LastError, null)
+			.Set(r => r.RetryUntil, null)
+			.Set(r => r.ClaimedAt, null)
+			.Set(r => r.ClaimOwner, null)
+			.Inc(r => r.Attempt, 1)
+			.Set(r => r.DateModified, nowUtc);
+
+		return await UpdateAppliedAsync(filter, update);
+	}
+
 	public async Task<bool> TryRescheduleAsync(string currentRoundKey, string newRoundKey,
 		DateTime scheduledAtUtc)
 	{

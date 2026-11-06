@@ -41,6 +41,19 @@ public class LotteryControllerIntegrationTests : IntegrationTestBase
     }
 
     [Fact]
+    public async Task Guess_WithAnUnresolvableDiscordId_ReturnsATypedUnauthorizedInsteadOfA500OrActorZero()
+    {
+        // The member endpoints share one actor helper with the admin ones: a member whose stored Discord id cannot be
+        // parsed is a typed 401, never a `ulong.Parse` 500 and never a guess attributed to actor 0.
+        await CreateAndAuthenticateAsMember("not-a-snowflake");
+
+        var response = await Client.PostAsync("api/Lottery/guess/42", null);
+
+        response.StatusCode.ShouldBe(HttpStatusCode.Unauthorized);
+        (await response.Content.ReadAsStringAsync()).ShouldContain("unauthenticated");
+    }
+
+    [Fact]
     public async Task GetUnusedNumbers_CheckPermissions()
     {
         // No Auth = Unauthorized

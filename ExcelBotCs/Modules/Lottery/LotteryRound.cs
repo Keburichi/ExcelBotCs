@@ -20,6 +20,13 @@ public class LotteryRound : BaseEntity
 	/// <summary>Consecutive failures of the current step; reset when the step succeeds or an admin reopens the round.</summary>
 	public int Attempts { get; set; }
 
+	/// <summary>
+	///     How many times this round key has been drawn: 0 for the first run, incremented when an admin re-runs a voided
+	///     round (§5.1 "Redo"). Ledger idempotency keys are attempt-scoped, so a re-run writes fresh movements instead of
+	///     colliding with the voided attempt's keys. Not to be confused with <see cref="Attempts" />, the retry count.
+	/// </summary>
+	public int Attempt { get; set; }
+
 	public DateTime? NextRetryAt { get; set; }
 	public string? LastError { get; set; }
 

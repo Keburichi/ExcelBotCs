@@ -1,6 +1,7 @@
 using Discord;
 using ExcelBotCs.Database;
 using ExcelBotCs.Database.Interfaces;
+using ExcelBotCs.HealthChecks;
 using ExcelBotCs.Models.Config;
 using ExcelBotCs.Models.Database;
 using ExcelBotCs.Modules.Lottery;
@@ -115,7 +116,8 @@ public class LotteryLastFiveAcceptanceTests : MongoDbTest
 			new StubLotterySettingsService(TestLotterySettings.Create(
 				winTemplate: LotterySettingsDefaults.WinTemplate,
 				noWinTemplate: LotterySettingsDefaults.NoWinTemplate)),
-			_winners, _prizes.Object, _alerts.Object, Options.Create(discord),
+			_winners, _prizes.Object, _alerts.Object, Mock.Of<IBotConnectionMonitor>(
+				monitor => monitor.IsHealthy(It.IsAny<TimeSpan>())), Options.Create(discord),
 			Options.Create(new WebBaseUrlOptions { BaseUrl = "https://lottery.test" }),
 			Mock.Of<ILogger<LotteryAnnouncementPublisher>>());
 	}

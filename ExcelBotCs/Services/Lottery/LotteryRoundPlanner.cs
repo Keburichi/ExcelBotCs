@@ -67,6 +67,15 @@ public static class LotteryRoundPlanner
 
 		var dueSlot = schedule.MostRecentDueSlot(now);
 
+		// A dry run persists no round row, so the previewed date would look like a missed slot and be drawn live after
+		// the promotion. The marker the dry-run tick writes makes that slot count as satisfied instead (§12 step 7:
+		// "the first live run is the next scheduled round").
+		if (state.LastDryRunRoundKey is { } dryRunKey && string.Equals(dryRunKey, dueSlot.RoundKey,
+			    StringComparison.Ordinal))
+			return LotteryTickPlan.Of(LotteryTickAction.Nothing, dryRun,
+				$"The due round {dueSlot.RoundKey} was a dry-run week; it is not replayed live. " +
+				"The next live run is the next scheduled round.");
+
 		// The due date already has a round in any state: it ran, it was skipped, it was voided, or it is scheduled for
 		// later. Nothing to do.
 		if (state.DueRound is not null || state.LatestRound is null)
@@ -120,7 +129,8 @@ public sealed record LotteryTickState(
 	LotteryRound? BlockingRound,
 	LotteryRound? ScheduledDueRound,
 	LotteryRound? DueRound,
-	LotteryRound? LatestRound);
+	LotteryRound? LatestRound,
+	string? LastDryRunRoundKey = null);
 
 /// <summary>The possible values of <see cref="LotteryTickPlan.Action" />.</summary>
 public static class LotteryTickAction

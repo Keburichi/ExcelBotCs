@@ -43,6 +43,19 @@ public class LotterySettingsService : ILotterySettingsService
 		return BuildEffective(stored);
 	}
 
+	public async Task<string?> GetLastDryRunRoundKeyAsync(CancellationToken cancellationToken = default)
+	{
+		var stored = await _settingsRepository.GetSingletonAsync();
+		return stored?.LastDryRunRoundKey;
+	}
+
+	public async Task MarkDryRunRoundAsync(string roundKey, CancellationToken cancellationToken = default)
+	{
+		// A dry-run marker is scheduler bookkeeping, not an operational setting: it writes no history row and no audit
+		// notice, and it never changes the effective settings.
+		await _settingsRepository.SetLastDryRunRoundKeyAsync(roundKey);
+	}
+
 	public async Task<LotterySettingsSaveResult> SaveAsync(LotterySettingsUpdate update, ulong? actorDiscordId,
 		CancellationToken cancellationToken = default)
 	{
@@ -70,6 +83,9 @@ public class LotterySettingsService : ILotterySettingsService
 		var settings = ToDocument(storedValues);
 		settings.Version = version;
 		settings.UpdatedByDiscordId = actorDiscordId;
+
+		// The dry-run marker is scheduler bookkeeping that lives in the same singleton; a settings save must not clear it.
+		settings.LastDryRunRoundKey = stored?.LastDryRunRoundKey;
 		await _settingsRepository.SaveAsync(settings);
 
 		// The audit "old" side is what was really stored, so a repair is traceable ("Funday" -> "Tuesday").

@@ -74,7 +74,8 @@ public class LotteryServiceTests : MongoDbTest
         var schedule = new LotteryScheduleService(_settings, _lotteryRoundRepository, _time);
         var runner = new LotteryRoundRunner(_settings, _lotteryRoundRepository, _lotteryEntryRepository,
             _lotteryWinnerRepository, pot, _lotteryGuessRepository, _extraLotteryGuessRepository,
-            _memberService.Object, _numbers, _publisher, _time, Mock.Of<ILogger<LotteryRoundRunner>>());
+            _memberService.Object, _numbers, _publisher, _time, Mock.Of<ILogger<LotteryRoundRunner>>(),
+            TestStartupCheck.Healthy(), Mock.Of<ILotteryAlertService>());
 
         _lotteryService = new LotteryService(rng, _lotteryGuessRepository, _extraLotteryGuessRepository,
             _memberService.Object, _discordMessageService.Object, runner, _lotteryRoundRepository,

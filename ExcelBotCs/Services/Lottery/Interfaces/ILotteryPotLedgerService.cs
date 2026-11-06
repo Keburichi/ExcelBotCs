@@ -9,15 +9,12 @@ namespace ExcelBotCs.Services.Lottery.Interfaces;
 /// </summary>
 public interface ILotteryPotLedgerService
 {
-	/// <summary>The current pot: the newest entry's balance, or the base pot when the ledger is empty. Never writes.</summary>
-	Task<long> GetBalanceAsync(long basePot, CancellationToken cancellationToken = default);
-
 	/// <summary>
-	///     Returns the current pot, establishing the opening balance first when the ledger is empty: a fresh
-	///     deployment without the manual seed gets one <c>reset</c> entry of the base pot under the
-	///     <see cref="LotteryPotLedgerKeys.BasePot" /> key before the first change.
+	///     The current pot: the newest entry's balance, or the base pot when the ledger is empty. Never writes — spec §6
+	///     "Opening pot (exactly one document at cutover; no auto set)": the opening balance is a manual seed, so an
+	///     unseeded deployment starts at the configured base pot until the first ledger write.
 	/// </summary>
-	Task<long> EnsureBalanceAsync(long basePot, CancellationToken cancellationToken = default);
+	Task<long> GetBalanceAsync(long basePot, CancellationToken cancellationToken = default);
 
 	/// <summary>The entry stored under an idempotency key, or <c>null</c>.</summary>
 	Task<LotteryPotLedgerEntry?> FindAsync(string idempotencyKey, CancellationToken cancellationToken = default);

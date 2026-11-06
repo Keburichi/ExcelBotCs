@@ -42,7 +42,27 @@ public class LotteryHealthEndpointTests : IntegrationTestBase
         data.GetProperty("pendingRoundKey").GetString().ShouldBe("2026-07-28");
         data.GetProperty("pendingStatus").GetString().ShouldBe(LotteryRoundStatus.Drawn);
         data.GetProperty("failedStep").GetString().ShouldBe(LotteryFailedStep.Announcement);
-        data.GetProperty("lastError").GetString().ShouldBe("Discord is unreachable");
+        // The anonymous report carries the coarse reason, never the raw exception text.
+        data.GetProperty("lastErrorReason").GetString().ShouldBe("a Discord error is recorded");
+        data.TryGetProperty("lastError", out _).ShouldBeFalse();
+
+        (await response.Content.ReadAsStringAsync()).ShouldNotContain("Discord is unreachable");
+    }
+
+    [Fact]
+    public async Task GetHealth_RedactsTheRawErrorWhileTheAdminStatusEndpointKeepsIt()
+    {
+        // §5.9/§14: /health is anonymous, so the admin status endpoint is the surface that keeps the detail.
+        await SeedStuckRoundAsync();
+        await AuthenticateAsAdmin();
+
+        var body = await (await Client.GetAsync("/health")).Content.ReadAsStringAsync();
+        body.ShouldNotContain("Discord is unreachable");
+
+        var status = await Client.GetAsync("/api/lottery/admin/status");
+        status.StatusCode.ShouldBe(HttpStatusCode.OK);
+
+        (await status.Content.ReadAsStringAsync()).ShouldContain("Discord is unreachable");
     }
 
     [Fact]

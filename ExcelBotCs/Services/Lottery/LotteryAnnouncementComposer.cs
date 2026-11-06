@@ -90,6 +90,8 @@ public static class LotteryAnnouncementComposer
 			.Replace(LotteryTemplateValidator.Emoji, EmojiMention(request.Deployment), StringComparison.Ordinal);
 
 		// A shared pot is split: the accepted copy keeps the template's prize line and only changes the verb (§5.6).
+		// This is a wording transform on the template, not a rewrite: a template that does not contain "They take the "
+		// is emitted untouched, so a custom result block is never rewritten behind the admin's back.
 		return request.Winners.Count > 1
 			? filled.Replace("They take the ", "They split the ", StringComparison.Ordinal)
 			: filled;

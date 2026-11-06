@@ -141,4 +141,10 @@ public class LotteryWinnerRepository : BaseRepository<LotteryWinner>, ILotteryWi
 
 		return await Collection.Find(filter).Sort(sort).Limit(limit).ToListAsync();
 	}
+
+	public async Task<long> DeleteByRoundKeyAsync(string roundKey)
+	{
+		var result = await Collection.DeleteManyAsync(w => w.RoundKey == roundKey);
+		return result.DeletedCount;
+	}
 }

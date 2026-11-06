@@ -1,5 +1,6 @@
 using Discord;
 using ExcelBotCs.Database.Interfaces;
+using ExcelBotCs.HealthChecks;
 using ExcelBotCs.Models.Config;
 using ExcelBotCs.Modules.Lottery;
 using ExcelBotCs.Services.Discord.Interfaces;
@@ -34,6 +35,7 @@ public class LotteryAnnouncementPublisherTests
 
 	private readonly Mock<ILotteryAlertService> _alerts = new();
 	private readonly Mock<ILogger<LotteryAnnouncementPublisher>> _logger = new();
+	private readonly Mock<IBotConnectionMonitor> _monitor = new();
 	private readonly Mock<IDiscordMessageService> _messages = new();
 	private readonly Mock<IUserMessage> _postedMessage = new();
 	private readonly Mock<ILotteryPrizePoolRepository> _prizes = new();
@@ -49,6 +51,7 @@ public class LotteryAnnouncementPublisherTests
 		_winners.Setup(x => x.GetLatestAsync(It.IsAny<int>())).ReturnsAsync([Aurora, Siegward, Elara]);
 		_winners.Setup(x => x.GetByRoundKeyAsync(It.IsAny<string>())).ReturnsAsync([Aurora]);
 		_prizes.Setup(x => x.GetInPoolAsync()).ReturnsAsync([]);
+		_monitor.Setup(monitor => monitor.IsHealthy(It.IsAny<TimeSpan>())).Returns(true);
 	}
 
 	[Fact]
@@ -331,6 +334,32 @@ public class LotteryAnnouncementPublisherTests
 		posted.ShouldContain("https://lottery.test/lottery/admin");
 	}
 
+	[Fact]
+	public async Task PublishAsync_WhenTheBotIsConnected_PostsTheAnnouncement()
+	{
+		// Spec §10: the connection is checked before posting; a healthy gateway is the normal path.
+		_monitor.Setup(monitor => monitor.IsHealthy(It.IsAny<TimeSpan>())).Returns(true);
+
+		var result = await BuildPublisher().PublishAsync(Announcement());
+
+		result.MessageId.ShouldNotBeNull();
+		_messages.Verify(messages => messages.PostLotteryAnnouncementAsync(It.IsAny<string>()), Times.Once);
+	}
+
+	[Fact]
+	public async Task PublishAsync_WhenTheBotIsDisconnected_FailsTheAttemptWithoutPosting()
+	{
+		// Spec §10: a disconnected gateway fails the attempt so the runner's retry window reposts the same result
+		// after the reconnect — the post is never silently skipped.
+		_monitor.Setup(monitor => monitor.IsHealthy(It.IsAny<TimeSpan>())).Returns(false);
+
+		var exception = await Should.ThrowAsync<InvalidOperationException>(
+			() => BuildPublisher().PublishAsync(Announcement()));
+
+		exception.Message.ShouldContain("disconnected");
+		_messages.Verify(messages => messages.PostLotteryAnnouncementAsync(It.IsAny<string>()), Times.Never);
+	}
+
 	private LotteryAnnouncementPublisher BuildPublisher()
 	{
 		var discord = new DiscordBotOptions
@@ -349,7 +378,7 @@ public class LotteryAnnouncementPublisherTests
 		};
 
 		return new LotteryAnnouncementPublisher(_messages.Object, _settings, _winners.Object, _prizes.Object,
-			_alerts.Object, Options.Create(discord),
+			_alerts.Object, _monitor.Object, Options.Create(discord),
 			Options.Create(new WebBaseUrlOptions { BaseUrl = "https://lottery.test" }), _logger.Object);
 	}
 

@@ -1,5 +1,6 @@
 using System.Globalization;
 using ExcelBotCs.Database.Interfaces;
+using ExcelBotCs.HealthChecks;
 using ExcelBotCs.Models.Config;
 using ExcelBotCs.Modules.Lottery;
 using ExcelBotCs.Services.Discord.Interfaces;
@@ -28,6 +29,7 @@ public class LotteryAnnouncementPublisher : ILotteryAnnouncementPublisher
 	private readonly IOptions<DiscordBotOptions> _discordOptions;
 	private readonly ILogger<LotteryAnnouncementPublisher> _logger;
 	private readonly IDiscordMessageService _messages;
+	private readonly IBotConnectionMonitor _monitor;
 	private readonly ILotteryPrizePoolRepository _prizes;
 	private readonly ILotterySettingsService _settings;
 	private readonly IOptions<WebBaseUrlOptions> _webOptions;
@@ -39,6 +41,7 @@ public class LotteryAnnouncementPublisher : ILotteryAnnouncementPublisher
 		ILotteryWinnerRepository winners,
 		ILotteryPrizePoolRepository prizes,
 		ILotteryAlertService alerts,
+		IBotConnectionMonitor monitor,
 		IOptions<DiscordBotOptions> discordOptions,
 		IOptions<WebBaseUrlOptions> webOptions,
 		ILogger<LotteryAnnouncementPublisher> logger)
@@ -48,6 +51,7 @@ public class LotteryAnnouncementPublisher : ILotteryAnnouncementPublisher
 		_winners = winners;
 		_prizes = prizes;
 		_alerts = alerts;
+		_monitor = monitor;
 		_discordOptions = discordOptions;
 		_webOptions = webOptions;
 		_logger = logger;
@@ -56,6 +60,10 @@ public class LotteryAnnouncementPublisher : ILotteryAnnouncementPublisher
 	public async Task<LotteryAnnouncementPost> PublishAsync(LotteryAnnouncement announcement,
 		CancellationToken cancellationToken = default)
 	{
+		// Spec §10: check the bot connection before posting. A disconnected gateway fails the attempt, so the runner's
+		// retry window brings the same result back after a reconnect instead of losing the post.
+		EnsureBotConnected();
+
 		var message = await RenderAsync(announcement, cancellationToken);
 		var roundKey = announcement.Round.RoundKey;
 
@@ -224,5 +232,18 @@ public class LotteryAnnouncementPublisher : ILotteryAnnouncementPublisher
 	{
 		var baseUrl = _webOptions.Value.BaseUrl;
 		return string.IsNullOrWhiteSpace(baseUrl) ? "/lottery/admin" : baseUrl.TrimEnd('/') + "/lottery/admin";
+	}
+
+	/// <summary>
+	///     Throws when the gateway has been disconnected for longer than the configured threshold. A bot that never
+	///     connected counts as connected (the health check's rule), so a botless deployment behaves exactly as before.
+	/// </summary>
+	private void EnsureBotConnected()
+	{
+		if (_monitor.IsHealthy(_discordOptions.Value.DisconnectHealthThreshold)) return;
+
+		throw new InvalidOperationException(
+			"The lottery announcement was not posted: the Discord bot is disconnected. It is retried when the " +
+			"connection returns.");
 	}
 }

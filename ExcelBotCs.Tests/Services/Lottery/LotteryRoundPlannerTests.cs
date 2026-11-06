@@ -246,6 +246,34 @@ public class LotteryRoundPlannerTests
 	}
 
 	[Fact]
+	public void Plan_DueSlotThatWasADryRunWeek_IsNotRunLiveAfterPromotion()
+	{
+		// Spec §12 step 7: a previewed week is not replayed once the deployment goes live.
+		var latest = Round("2026-11-03", LotteryRoundStatus.Completed);
+		var now = Utc("2026-11-10T19:30:00");
+
+		var plan = LotteryRoundPlanner.Plan(Schedule, now,
+			new LotteryTickState(null, null, null, latest, LastDryRunRoundKey: "2026-11-10"), true, false, false);
+
+		plan.Action.ShouldBe(LotteryTickAction.Nothing);
+		plan.Slot.ShouldBeNull();
+	}
+
+	[Fact]
+	public void Plan_TheSlotAfterADryRunWeek_StillRunsLive()
+	{
+		var latest = Round("2026-11-03", LotteryRoundStatus.Completed);
+		var now = Utc("2026-11-17T19:30:00");
+
+		var plan = LotteryRoundPlanner.Plan(Schedule, now,
+			new LotteryTickState(null, null, null, latest, LastDryRunRoundKey: "2026-11-10"), true, false, false);
+
+		plan.Action.ShouldBe(LotteryTickAction.Run);
+		plan.Slot.ShouldNotBeNull();
+		plan.Slot!.RoundKey.ShouldBe("2026-11-17");
+	}
+
+	[Fact]
 	public void Statuses_ClassifyBlockingResumableAndGuessWindows()
 	{
 		LotteryRoundStatus.BlocksTheSchedule(LotteryRoundStatus.Drawing).ShouldBeTrue();

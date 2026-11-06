@@ -1,3 +1,4 @@
+using ExcelBotCs.Services.Lottery;
 using ExcelBotCs.Services.Lottery.Interfaces;
 using ExcelBotCs.Services.Lottery.Records;
 using ExcelBotCs.Modules.Lottery;
@@ -60,17 +61,30 @@ public static class TestLotterySettings
 
 /// <summary>An <see cref="ILotterySettingsService" /> that returns a fixed effective settings value.</summary>
 public sealed class StubLotterySettingsService : ILotterySettingsService
-{
-	public StubLotterySettingsService(LotteryEffectiveSettings? settings = null)
+{	public StubLotterySettingsService(LotteryEffectiveSettings? settings = null)
 	{
 		Settings = settings ?? TestLotterySettings.Create();
 	}
 
 	public LotteryEffectiveSettings Settings { get; set; }
 
+	/// <summary>The persisted dry-run marker the scheduler reads back on the next tick.</summary>
+	public string? LastDryRunRoundKey { get; private set; }
+
 	public Task<LotteryEffectiveSettings> GetEffectiveAsync(CancellationToken cancellationToken = default)
 	{
 		return Task.FromResult(Settings);
+	}
+
+	public Task<string?> GetLastDryRunRoundKeyAsync(CancellationToken cancellationToken = default)
+	{
+		return Task.FromResult(LastDryRunRoundKey);
+	}
+
+	public Task MarkDryRunRoundAsync(string roundKey, CancellationToken cancellationToken = default)
+	{
+		LastDryRunRoundKey = roundKey;
+		return Task.CompletedTask;
 	}
 
 	public Task<LotterySettingsSaveResult> SaveAsync(LotterySettingsUpdate update, ulong? actorDiscordId,
@@ -154,13 +168,37 @@ public sealed class FakeLotteryAlertService : ILotteryAlertService
 	}
 }
 
+/// <summary>A startup check that answers with a fixed verdict; tests that are not about the startup gate use it.</summary>
+public sealed class FixedStartupCheck(LotteryStartupResult result) : ILotteryStartupCheck
+{
+	public Task<LotteryStartupResult> CheckAsync(CancellationToken cancellationToken = default)
+	{
+		return Task.FromResult(result);
+	}
+}
+
+/// <summary>
+///     The host's startup verdict, already resolved. The runner's startup gate is required (it is never optional in
+///     production), so a test that constructs one directly supplies this rather than leaving the gate unset.
+/// </summary>
+public static class TestStartupCheck
+{
+	public static LotteryStartupCheckService Healthy()
+	{
+		var service = new LotteryStartupCheckService(new FixedStartupCheck(LotteryStartupResult.Healthy),
+			Microsoft.Extensions.Logging.Abstractions.NullLogger<LotteryStartupCheckService>.Instance);
+		service.StartAsync(CancellationToken.None).GetAwaiter().GetResult();
+		service.Completion.GetAwaiter().GetResult();
+		return service;
+	}
+}
+
 /// <summary>
 ///     A controllable clock for the scheduler's own tests. Kept separate from <see cref="FakeTimeProvider" /> so a test
 ///     can move the clock without changing a runner's view of time.
 /// </summary>
 public static class TestInstants
-{
-	public static DateTimeOffset Utc(string instant)
+{	public static DateTimeOffset Utc(string instant)
 	{
 		return DateTimeOffset.Parse(instant + "Z", System.Globalization.CultureInfo.InvariantCulture);
 	}
@@ -231,4 +269,6 @@ public sealed class FlakyLotteryEntryRepository : ExcelBotCs.Database.Interfaces
 		FailuresRemaining--;
 		throw new InvalidOperationException("Simulated lottery entry write failure");
 	}
+
+	public Task<long> DeleteByRoundKeyAsync(string roundKey) => _inner.DeleteByRoundKeyAsync(roundKey);
 }

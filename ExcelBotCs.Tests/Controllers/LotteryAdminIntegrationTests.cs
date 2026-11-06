@@ -36,6 +36,7 @@ public class LotteryAdminIntegrationTests : IntegrationTestBase
     private const string VoidUrl = "api/lottery/admin/void";
     private const string RetryUrl = "api/lottery/admin/retry";
     private const string DryRunUrl = "api/lottery/admin/dry-run";
+    private const string RescheduleUrl = "api/lottery/admin/reschedule";
 
     public LotteryAdminIntegrationTests(MongoDbFixture fixture) : base(fixture)
     {
@@ -54,7 +55,6 @@ public class LotteryAdminIntegrationTests : IntegrationTestBase
         bool Degraded,
         bool Blocked,
         long Pot,
-        int PrizeCount,
         int PendingPayouts,
         int PoolPrizes,
         int OptedIn,
@@ -219,6 +219,8 @@ public class LotteryAdminIntegrationTests : IntegrationTestBase
         string? RoundKey,
         long? Pot);
 
+    public sealed record RescheduleBody(string? RoundKey, DateTimeOffset? ScheduledAtUtc);
+
     #endregion
 
     #region Permission matrix
@@ -287,7 +289,6 @@ public class LotteryAdminIntegrationTests : IntegrationTestBase
         var status = await GetStatusAsync();
 
         status.Pot.ShouldBe(7_500_000);
-        status.PrizeCount.ShouldBe(2);
         status.PoolPrizes.ShouldBe(2);
         status.PendingPayouts.ShouldBe(1);
         status.OptedIn.ShouldBe(2);
@@ -1309,6 +1310,21 @@ public class LotteryAdminIntegrationTests : IntegrationTestBase
     }
 
     [Fact]
+    public async Task AdminMutations_WithAnUnresolvableDiscordId_ReturnATypedUnauthorizedInsteadOfAuditingActorZero()
+    {
+        // §8 audit trail: an admin mutation is never recorded against actor 0. A session whose Discord id cannot be
+        // parsed is a typed `unauthenticated` 401 and writes nothing.
+        await CreateAndAuthenticateAsMember("not-a-snowflake", isAdmin: true);
+
+        var response = await Client.PostAsJsonAsync(SkipUrl, new ManualActionRequest("Holiday week", null));
+
+        response.StatusCode.ShouldBe(HttpStatusCode.Unauthorized);
+        (await response.Content.ReadAsStringAsync()).ShouldContain("unauthenticated");
+
+        (await Factory.Services.GetRequiredService<ILotteryRoundRepository>().GetLatestAsync(10)).ShouldBeEmpty();
+    }
+
+    [Fact]
     public async Task Run_RunsTheDueRoundOnceAndASecondClickIsAlreadyRun()
     {
         await AuthenticateAsAdmin();
@@ -1444,11 +1460,75 @@ public class LotteryAdminIntegrationTests : IntegrationTestBase
         noReason.StatusCode.ShouldBe(HttpStatusCode.BadRequest);
         var noReasonBody = await ReadAsync<ManualAction>(noReason);
         noReasonBody.Success.ShouldBeFalse();
-        noReasonBody.Disposition.ShouldBe(LotteryRunDisposition.NotAllowed);
+        noReasonBody.Disposition.ShouldBe(LotteryRunDisposition.InvalidRequest);
 
         var noRound = await Client.PostAsJsonAsync(VoidUrl, new ManualActionRequest("Nothing to void", null));
         noRound.StatusCode.ShouldBe(HttpStatusCode.NotFound);
         (await ReadAsync<ManualAction>(noRound)).Disposition.ShouldBe(LotteryRunDisposition.NotFound);
+    }
+
+    [Fact]
+    public async Task Reschedule_MovesTheRoundKeyToTheNewLocalDateAndLeavesTheGuessesAndThePot()
+    {
+        await AuthenticateAsAdmin();
+        await SeedPotAsync(3_000_000);
+        var guesses = Factory.Services.GetRequiredService<ILotteryGuessRepository>();
+        await guesses.UpsertAsync(new LotteryGuess { DiscordId = 7001, Number = 42 });
+
+        // The round key follows the new local date: 2026-12-03T23:30Z is already 2026-12-04 in Europe/Berlin.
+        var response = await Client.PostAsJsonAsync(RescheduleUrl,
+            new RescheduleBody("2026-07-28", new DateTimeOffset(2026, 12, 3, 23, 30, 0, TimeSpan.Zero)));
+
+        response.StatusCode.ShouldBe(HttpStatusCode.OK);
+        var body = await ReadAsync<ManualAction>(response);
+        body.Success.ShouldBeTrue();
+        body.Disposition.ShouldBe(LotteryRunDisposition.Rescheduled);
+        body.RoundKey.ShouldBe("2026-12-04");
+
+        var rounds = Factory.Services.GetRequiredService<ILotteryRoundRepository>();
+        (await rounds.GetByRoundKeyAsync("2026-07-28")).ShouldBeNull();
+        (await rounds.GetByRoundKeyAsync("2026-12-04")).ShouldNotBeNull();
+
+        // Guesses stay with the round and the pot is untouched until the run.
+        (await guesses.GetAsync()).ShouldHaveSingleItem();
+        (await Factory.Services.GetRequiredService<ILotteryPotLedgerService>().GetBalanceAsync(1_000_000))
+            .ShouldBe(3_000_000);
+    }
+
+    [Fact]
+    public async Task Reschedule_IsATypedConflictWhenTheTargetDateAlreadyHasARound()
+    {
+        await AuthenticateAsAdmin();
+        var rounds = Factory.Services.GetRequiredService<ILotteryRoundRepository>();
+        await rounds.ImportCompletedRoundAsync("2026-12-04",
+            new DateTime(2026, 12, 4, 19, 0, 0, DateTimeKind.Utc), 17);
+
+        var response = await Client.PostAsJsonAsync(RescheduleUrl,
+            new RescheduleBody("2026-07-28", new DateTimeOffset(2026, 12, 3, 23, 30, 0, TimeSpan.Zero)));
+
+        response.StatusCode.ShouldBe(HttpStatusCode.Conflict);
+        var body = await ReadAsync<ManualAction>(response);
+        body.Success.ShouldBeFalse();
+        body.Disposition.ShouldBe(LotteryRunDisposition.RescheduleConflict);
+
+        // Neither round moved: the source still exists on its original date.
+        (await rounds.GetByRoundKeyAsync("2026-07-28")).ShouldNotBeNull();
+        (await rounds.GetByRoundKeyAsync("2026-12-04"))!.Status.ShouldBe(LotteryRoundStatus.Completed);
+    }
+
+    [Fact]
+    public async Task Reschedule_RejectsAMissingInstantAndAMalformedRoundKeyWithTypedBadRequests()
+    {
+        await AuthenticateAsAdmin();
+
+        var noInstant = await Client.PostAsJsonAsync(RescheduleUrl, new RescheduleBody("2026-07-28", null));
+        noInstant.StatusCode.ShouldBe(HttpStatusCode.BadRequest);
+        (await ReadAsync<ManualAction>(noInstant)).Disposition.ShouldBe(LotteryRunDisposition.InvalidRequest);
+
+        var badKey = await Client.PostAsJsonAsync(RescheduleUrl,
+            new RescheduleBody("next-week", new DateTimeOffset(2026, 12, 4, 17, 0, 0, TimeSpan.Zero)));
+        badKey.StatusCode.ShouldBe(HttpStatusCode.BadRequest);
+        (await ReadAsync<ManualAction>(badKey)).Disposition.ShouldBe(LotteryRunDisposition.InvalidRequest);
     }
 
     [Fact]
@@ -1518,7 +1598,7 @@ public class LotteryAdminIntegrationTests : IntegrationTestBase
     private static IEnumerable<string> ActionRoutes()
     {
         return ["api/lottery/admin/run", "api/lottery/admin/skip", "api/lottery/admin/void",
-            "api/lottery/admin/retry", "api/lottery/admin/dry-run"];
+            "api/lottery/admin/retry", "api/lottery/admin/dry-run", "api/lottery/admin/reschedule"];
     }
 
     private async Task<Preview> GetPreviewAsync(string result)

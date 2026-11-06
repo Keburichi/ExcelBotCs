@@ -73,6 +73,9 @@ public static class LotteryReminderDisposition
 	/// <summary>The admin paused automation.</summary>
 	public const string Paused = "paused";
 
+	/// <summary>The deployment is in its dry-run week, which previews the draw and posts no live side effects.</summary>
+	public const string DryRun = "dry-run";
+
 	/// <summary>The startup check has not finished yet, so nothing is scheduled or reminded until it does.</summary>
 	public const string StartupPending = "startup-pending";
 

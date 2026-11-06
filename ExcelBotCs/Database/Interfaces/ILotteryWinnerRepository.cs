@@ -48,4 +48,10 @@ public interface ILotteryWinnerRepository : IBaseRepository<LotteryWinner>
 	///     page boundary falls between its two rows.
 	/// </summary>
 	Task<List<LotteryWinner>> GetPayoutPageAsync(string? payoutStatus, LotteryWinnerPageAnchor? after, int limit);
+
+	/// <summary>
+	///     Removes the winner rows of one round. A voided round re-run for the same date (spec §5.1 "Redo") must pay and
+	///     announce the winners of the new draw, not the voided attempt's rows.
+	/// </summary>
+	Task<long> DeleteByRoundKeyAsync(string roundKey);
 }
