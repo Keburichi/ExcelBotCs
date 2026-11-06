@@ -64,6 +64,13 @@ public static class ServiceExtensions
         // Lottery data maintenance: the index migration and the one-time lottery_results backfill (§6, §12).
         services.AddSingleton<ILotteryIndexInitializer, LotteryIndexInitializer>();
         services.AddSingleton<ILotteryArchiveBackfillService, LotteryArchiveBackfillService>();
+
+        // Lottery settings precedence, validation and the settings audit trail (§7).
+        services.AddSingleton<ILotterySettingsService, LotterySettingsService>();
+
+        // Lottery startup guard (§5.10): bad or missing config degrades the scheduler and raises one alert.
+        services.AddSingleton<ILotteryStartupCheck, LotteryStartupCheck>();
+        services.AddHostedService<LotteryStartupCheckService>();
     }
 
     public static void AddDiscordClient(this IServiceCollection services)

@@ -120,6 +120,18 @@ public class DiscordMessageService : IDiscordMessageService
         await channel.SendMessageAsync(message);
     }
 
+    public async Task PostInLogChannelAsync(string message)
+    {
+        // Spec §7: alerts and audit notices belong in DiscordBot:LogChannel; when it is unset (0) — the shipped
+        // appsettings value — the lottery channel is the documented fallback (§5.10).
+        var channelId = _config.Value.LogChannel != 0 ? _config.Value.LogChannel : _config.Value.LotteryChannel;
+        var channel = await GetTextChannelFromChannelId(channelId);
+        if (channel == null)
+            return;
+
+        await channel.SendMessageAsync(message);
+    }
+
     public async Task<List<IMessage>> GetAnnouncementChannelMessagesAsync()
     {
         var channel = await GetTextChannelFromChannelId(_config.Value.AnnouncementChannel);
