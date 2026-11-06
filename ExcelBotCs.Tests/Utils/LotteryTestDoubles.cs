@@ -46,11 +46,15 @@ public static class TestLotterySettings
 		long basePot = 1_000_000,
 		long weeklyIncrement = 1_000_000,
 		string winTemplate = "win {number}",
-		string noWinTemplate = "no win {number}")
+		string noWinTemplate = "no win {number}",
+		string reminderDay = "Monday",
+		string reminderTime = "18:00",
+		string reminderTimezone = "Europe/Berlin",
+		bool remindersEnabled = false)
 	{
-		return new LotteryEffectiveSettings(runDay, runTime, runTimezone, "Monday", "18:00", "Europe/Berlin",
-			false, pauseAutomation, winTemplate, noWinTemplate, 1, null, automationEnabled, dryRun, basePot,
-			weeklyIncrement, []);
+		return new LotteryEffectiveSettings(runDay, runTime, runTimezone, reminderDay, reminderTime,
+			reminderTimezone, remindersEnabled, pauseAutomation, winTemplate, noWinTemplate, 1, null,
+			automationEnabled, dryRun, basePot, weeklyIncrement, []);
 	}
 }
 

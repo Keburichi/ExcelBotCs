@@ -15,10 +15,14 @@ namespace ExcelBotCs.Tests.Services.Lottery;
 public class LotterySchedulerServiceTests
 {
 	private readonly Mock<ILotteryRoundRunner> _runner = new();
+	private readonly Mock<ILotteryReminderService> _reminders = new();
 
 	private LotterySchedulerService CreateService()
 	{
-		return new LotterySchedulerService(Mock.Of<IServiceScopeFactory>(), _runner.Object,
+		_reminders.Setup(reminders => reminders.TickAsync(It.IsAny<CancellationToken>()))
+			.ReturnsAsync(new LotteryReminderOutcome(LotteryReminderDisposition.OutsideWindow, "not due"));
+
+		return new LotterySchedulerService(Mock.Of<IServiceScopeFactory>(), _runner.Object, _reminders.Object,
 			new FakeTimeProvider(), Mock.Of<ILogger<LotterySchedulerService>>());
 	}
 
@@ -44,6 +48,44 @@ public class LotterySchedulerServiceTests
 
 		result.Action.ShouldBe(LotteryTickAction.Nothing);
 		result.Message.ShouldContain("boom");
+	}
+
+	[Fact]
+	public async Task TickOnceAsync_AlsoRunsTheReminderTick()
+	{
+		_runner.Setup(runner => runner.TickAsync(It.IsAny<CancellationToken>()))
+			.ReturnsAsync(new LotteryTickResult(LotteryTickAction.Nothing, "nothing due"));
+
+		await CreateService().TickOnceAsync();
+
+		_reminders.Verify(reminders => reminders.TickAsync(It.IsAny<CancellationToken>()), Times.Once);
+	}
+
+	[Fact]
+	public async Task TickOnceAsync_WhenTheReminderTickThrows_StillReturnsTheRoundResult()
+	{
+		_runner.Setup(runner => runner.TickAsync(It.IsAny<CancellationToken>()))
+			.ReturnsAsync(new LotteryTickResult(LotteryTickAction.Nothing, "nothing due"));
+
+		var service = CreateService();
+		_reminders.Setup(reminders => reminders.TickAsync(It.IsAny<CancellationToken>()))
+			.ThrowsAsync(new InvalidOperationException("reminder boom"));
+
+		var result = await service.TickOnceAsync();
+
+		result.Action.ShouldBe(LotteryTickAction.Nothing);
+	}
+
+	[Fact]
+	public async Task TickOnceAsync_WhenTheRoundTickThrows_StillRunsTheReminderTick()
+	{
+		_runner.Setup(runner => runner.TickAsync(It.IsAny<CancellationToken>()))
+			.ThrowsAsync(new InvalidOperationException("round boom"));
+
+		var result = await CreateService().TickOnceAsync();
+
+		result.Action.ShouldBe(LotteryTickAction.Nothing);
+		_reminders.Verify(reminders => reminders.TickAsync(It.IsAny<CancellationToken>()), Times.Once);
 	}
 
 	[Fact]

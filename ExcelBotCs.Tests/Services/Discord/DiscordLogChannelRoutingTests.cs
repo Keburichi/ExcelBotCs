@@ -30,7 +30,8 @@ public class DiscordLogChannelRoutingTests
 				LotteryChannel = LotteryChannel,
 				LogChannel = logChannel
 			}),
-			new Mock<IDiscordMessageCreator>().Object);
+			new Mock<IDiscordMessageCreator>().Object,
+			Options.Create(new WebBaseUrlOptions()));
 	}
 
 	[Fact]

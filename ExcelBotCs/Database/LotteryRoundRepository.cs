@@ -75,6 +75,13 @@ public class LotteryRoundRepository : BaseRepository<LotteryRound>, ILotteryRoun
 			.FirstOrDefaultAsync();
 	}
 
+	public async Task<LotteryRound?> GetNextScheduledAsync(DateTime nowUtc)
+	{
+		return await Collection.Find(r => r.Status == LotteryRoundStatus.Scheduled && r.ScheduledAt > nowUtc)
+			.SortBy(r => r.ScheduledAt)
+			.FirstOrDefaultAsync();
+	}
+
 	public async Task<LotteryRound> EnsureScheduledAsync(string roundKey, DateTime scheduledAtUtc)
 	{
 		var update = Builders<LotteryRound>.Update

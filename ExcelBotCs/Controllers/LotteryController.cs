@@ -16,12 +16,15 @@ public class LotteryController : AuthorizedController
 {
     private readonly ICurrentMemberAccessor _currentMemberAccessor;
     private readonly ILotteryService _lotteryService;
+    private readonly ILotteryReminderService _reminderService;
     private readonly IMemberService _memberService;
 
     public LotteryController(ILogger<LotteryController> logger, ILotteryService lotteryService,
-        ICurrentMemberAccessor currentMemberAccessor, IMemberService memberService) : base(logger)
+        ILotteryReminderService reminderService, ICurrentMemberAccessor currentMemberAccessor,
+        IMemberService memberService) : base(logger)
     {
         _lotteryService = lotteryService;
+        _reminderService = reminderService;
         _currentMemberAccessor = currentMemberAccessor;
         _memberService = memberService;
     }
@@ -98,6 +101,29 @@ public class LotteryController : AuthorizedController
             .ToList());
     }
 
+    /// <summary>
+    ///     The member-facing reminder toggle (spec §5.7). Default off; the web record is the source of truth, and the
+    ///     response is the resulting state so the toggle never has to guess.
+    /// </summary>
+    [HttpGet]
+    [Route("reminders")]
+    public async Task<IActionResult> GetReminders()
+    {
+        var preference = await _reminderService.GetPreferenceAsync(await GetCurrentUserDiscordId());
+        return Ok(new ReminderPreferenceResponse(preference.Enabled));
+    }
+
+    /// <summary>Sets the caller's reminder opt-in and returns the resulting state. Member auth comes from the controller.</summary>
+    [HttpPut]
+    [Route("reminders")]
+    public async Task<IActionResult> SetReminders([FromBody] SetRemindersRequest request)
+    {
+        // [ApiController] rejects a missing/invalid Enabled before this runs and returns typed validation errors.
+        var preference = await _reminderService.SetPreferenceAsync(await GetCurrentUserDiscordId(),
+            request.Enabled!.Value);
+        return Ok(new ReminderPreferenceResponse(preference.Enabled));
+    }
+
     [HttpPost]
     [Route("run")]
     [AdminAuth]
@@ -147,3 +173,8 @@ public class LotteryController : AuthorizedController
 public record ChangeGuessRequest(int OldNumber, int NewNumber);
 
 public record AwardUsersRequest(string Reason, List<string> UserNames);
+/// <summary>The reminder toggle request; <c>Enabled</c> is required so a typo cannot silently turn reminders off.</summary>
+public sealed record SetRemindersRequest([System.ComponentModel.DataAnnotations.Required] bool? Enabled);
+
+/// <summary>The reminder toggle response: the state the member now has.</summary>
+public sealed record ReminderPreferenceResponse(bool Enabled);
