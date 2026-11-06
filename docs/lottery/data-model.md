@@ -36,9 +36,10 @@ migration and the backfill are registered in `AddDomainServices`.
 ## Fields
 
 `lottery_rounds` — `RoundKey`, `ScheduledAt` (UTC), `RunAt` (UTC, nullable), `Status`, `FailedStep` (nullable),
-`Attempts`, `NextRetryAt` (nullable), `LastError` (nullable), `WinningNumber` (nullable), `PotBefore` /
+`Attempts`, `Attempt` (0 for the first draw, incremented when an admin re-runs a voided round; it scopes the ledger
+idempotency keys), `NextRetryAt` (nullable), `LastError` (nullable), `WinningNumber` (nullable), `PotBefore` /
 `PotAfter` (nullable), `AnnouncementMessageId` (nullable), `PostingStartedAt` (nullable), `ClaimedAt` (nullable),
-`ClaimOwner` (nullable).
+`ClaimOwner` (nullable), `VoidReason` / `VoidedAt` / `VoidedByDiscordId` (nullable, the void audit trail).
 
 `Status` is one of `scheduled`, `drawing`, `drawn`, `announced`, `completed`, `skipped`, `failed`, `voided`.
 `FailedStep` is one of `draw`, `announcement`, `cleanup`.
@@ -64,7 +65,8 @@ entry; there is no separate balance document.
 
 `lottery_settings` — `Key` (`"lottery"`), `RunDay`, `RunTime` (`HH:mm`), `RunTimezone`, `ReminderDay`,
 `ReminderTime`, `ReminderTimezone`, `RemindersEnabled`, `PauseAutomation`, `WinTemplate`, `NoWinTemplate`,
-`Version`, `UpdatedByDiscordId` (nullable). Deployment config (token, channel ids) stays in appsettings/env.
+`Version`, `UpdatedByDiscordId` (nullable), `LastDryRunRoundKey` (nullable — the last scheduled dry-run slot, so the
+promotion does not replay it live). Deployment config (token, channel ids) stays in appsettings/env.
 
 `lottery_settings_history` — `SettingsKey`, `Version`, `ActorDiscordId` (nullable), `ChangedAt`, `OldValues`,
 `NewValues`. Old/new values are `Dictionary<string, object?>` keyed by settings property name (e.g.

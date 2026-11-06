@@ -16,4 +16,10 @@ public interface ILotteryEntryRepository : IBaseRepository<LotteryEntry>
 	/// </summary>
 	/// <returns><c>true</c> when the entry was created, <c>false</c> when it was already present.</returns>
 	Task<bool> AddIfMissingAsync(LotteryEntry entry);
+
+	/// <summary>
+	///     Removes the frozen guess set of one round. A voided round re-run for the same date (spec §5.1 "Redo") must
+	///     draw from the guesses that exist now, not from the guess set its voided attempt froze.
+	/// </summary>
+	Task<long> DeleteByRoundKeyAsync(string roundKey);
 }

@@ -42,9 +42,19 @@ public static class LotteryPotMath
 	///     The amount a signed correction may actually apply: it is clamped so the balance never drops below
 	///     <paramref name="floor" /> (1,000,000 Gil). A correction that would cross the floor is applied partially and
 	///     a correction at the floor becomes a no-op, which the ledger still records for the audit trail.
+	///     <para>
+	///         A debit never grows the pot. When the balance already sits under the floor — the win window between the
+	///         payout and the reset — the old <c>floor - balance</c> clamp returned a positive amount and credited the
+	///         pot; a debit therefore applies zero there, while a credit still applies its full amount.
+	///     </para>
 	/// </summary>
 	public static long ApplyCorrection(long balance, long requestedAmount, long floor)
 	{
+		// A credit is never clamped: it moves the pot up by exactly what was requested, even from under the floor.
+		if (requestedAmount >= 0) return requestedAmount;
+
+		if (balance <= floor) return 0;
+
 		var next = balance + requestedAmount;
 		return next < floor ? floor - balance : requestedAmount;
 	}
@@ -53,35 +63,42 @@ public static class LotteryPotMath
 /// <summary>
 ///     The deterministic idempotency keys of the pot ledger (spec §5.4 and §6). A retried operation reuses its key, so
 ///     the unique index turns a duplicate write into a no-op instead of a double payment. The shape is
-///     <c>{roundKey}:{step}</c>; the opening balance uses the fixed <c>base-pot</c> key.
+///     <c>{roundKey}:{step}</c> for a round's first run and <c>{roundKey}:{step}:{attempt}</c> for a re-run after a
+///     void. The opening balance has no key here: it is a manual insert (§6 "no auto set").
 /// </summary>
 public static class LotteryPotLedgerKeys
 {
-	/// <summary>Establishes the base pot on a deployment that has no ledger yet.</summary>
-	public const string BasePot = "base-pot";
+	/// <summary>
+	///     A re-run of the same round key (the first attempt is 0) namespaces its keys with <c>:{attempt}</c>, so a void
+	///     followed by a fresh draw writes new movements instead of replaying the voided attempt's keys.
+	/// </summary>
+	private static string Scoped(string key, int attempt)
+	{
+		return attempt <= 0 ? key : $"{key}:{attempt}";
+	}
 
 	/// <summary>The +increment entry of a round without a winner.</summary>
-	public static string WeeklyIncrement(string roundKey)
+	public static string WeeklyIncrement(string roundKey, int attempt = 0)
 	{
-		return $"{roundKey}:weekly_increment";
+		return Scoped($"{roundKey}:weekly_increment", attempt);
 	}
 
 	/// <summary>The −pot prize debit of a winning round.</summary>
-	public static string Payout(string roundKey)
+	public static string Payout(string roundKey, int attempt = 0)
 	{
-		return $"{roundKey}:payout";
+		return Scoped($"{roundKey}:payout", attempt);
 	}
 
 	/// <summary>The +base-pot entry that returns the pot to its floor after a win.</summary>
-	public static string Reset(string roundKey)
+	public static string Reset(string roundKey, int attempt = 0)
 	{
-		return $"{roundKey}:reset";
+		return Scoped($"{roundKey}:reset", attempt);
 	}
 
 	/// <summary>The compensating correction that reverses one of the round's own ledger entries when it is voided.</summary>
-	public static string VoidReversal(string roundKey, string originalType)
+	public static string VoidReversal(string roundKey, string originalType, int attempt = 0)
 	{
-		return $"{roundKey}:void:{originalType}";
+		return Scoped($"{roundKey}:void:{originalType}", attempt);
 	}
 }
 

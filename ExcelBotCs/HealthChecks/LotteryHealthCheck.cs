@@ -25,10 +25,10 @@ public sealed class LotteryHealthCheck : IHealthCheck
 	public static readonly TimeSpan DefaultReadTimeout = TimeSpan.FromSeconds(3);
 
 	private readonly ILotteryRoundRunner _runner;
-	private readonly LotteryStartupCheckService? _startupCheck;
+	private readonly LotteryStartupCheckService _startupCheck;
 	private readonly TimeSpan _readTimeout;
 
-	public LotteryHealthCheck(ILotteryRoundRunner runner, LotteryStartupCheckService? startupCheck = null,
+	public LotteryHealthCheck(ILotteryRoundRunner runner, LotteryStartupCheckService startupCheck,
 		TimeSpan? readTimeout = null)
 	{
 		_runner = runner;
@@ -45,7 +45,7 @@ public sealed class LotteryHealthCheck : IHealthCheck
 		try
 		{
 			var snapshot = await _runner.GetStatusAsync(budget.Token);
-			return Describe(snapshot, _startupCheck?.Result);
+			return Describe(snapshot, _startupCheck.Result);
 		}
 		catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested)
 		{
@@ -53,8 +53,9 @@ public sealed class LotteryHealthCheck : IHealthCheck
 		}
 		catch (Exception exception)
 		{
-			// The mongodb check reports the database; this detail only says it could not read the lottery state.
-			return Unavailable($"The lottery status could not be read: {exception.Message}");
+			// The mongodb check reports the database; this detail only says it could not read the lottery state, and it
+			// stays coarse because /health is anonymous — the raw driver message can name hosts and timeouts.
+			return Unavailable($"The lottery status could not be read; {CoarseReason(exception.Message)}.");
 		}
 	}
 
@@ -96,7 +97,7 @@ public sealed class LotteryHealthCheck : IHealthCheck
 
 		var pending = snapshot.PendingRound;
 		if (pending is not null)
-			reasons.Add(DescribePendingRound(pending, snapshot.LastError));
+			reasons.Add(DescribePendingRound(pending));
 
 		var startupState = StartupState(startup, reasons);
 
@@ -119,10 +120,13 @@ public sealed class LotteryHealthCheck : IHealthCheck
 			if (pending.NextRetryAt is { } retryAt) data["nextRetryAtUtc"] = retryAt.ToString("O");
 		}
 
-		if (snapshot.LastError is not null) data["lastError"] = snapshot.LastError;
+		// The raw exception text is admin detail: /health is anonymous, so the report carries a coarse reason only. The
+		// authenticated admin status endpoint (`GET /api/lottery/admin/status`) returns the full `LastError`.
+		if (snapshot.LastError is not null) data["lastErrorReason"] = CoarseReason(snapshot.LastError);
 		if (snapshot.NextRoundKey is not null) data["nextRoundKey"] = snapshot.NextRoundKey;
 		if (snapshot.NextRunAtUtc is { } nextRun) data["nextRunAtUtc"] = nextRun.ToString("O");
-		if (startup is { IsDegraded: true }) data["problems"] = startup.Problems.ToArray();
+		// Same rule for the startup problems: their count, never their text.
+		if (startup is { IsDegraded: true }) data["problemCount"] = startup.Problems.Count;
 
 		if (reasons.Count > 0)
 			return HealthCheckResult.Degraded(string.Join(" ", reasons), data: data);
@@ -146,7 +150,9 @@ public sealed class LotteryHealthCheck : IHealthCheck
 				return "pending";
 
 			case { IsDegraded: true }:
-				reasons.Add($"The lottery startup check is degraded: {string.Join("; ", startup.Problems)}");
+				// The count, not the text: the problems can name ids and URLs, and this report is anonymous.
+				reasons.Add($"The lottery startup check is degraded ({startup.Problems.Count} problem(s)); fix the " +
+				            "configuration and restart. The detail is on the admin status endpoint.");
 				return "degraded";
 
 			default:
@@ -154,15 +160,31 @@ public sealed class LotteryHealthCheck : IHealthCheck
 		}
 	}
 
-	private static string DescribePendingRound(LotteryRound pending, string? lastError)
+	private static string DescribePendingRound(LotteryRound pending)
 	{
-		var where = pending.FailedStep is null
+		return pending.FailedStep is null
 			? $"Round {pending.RoundKey} is {pending.Status} and unfinished; the next round is blocked until it is " +
 			  "resumed or voided."
 			: $"Round {pending.RoundKey} failed at the {pending.FailedStep} step after {pending.Attempts} attempt(s); " +
 			  "retry or void it on /lottery/admin.";
+	}
 
-		return lastError is null ? where : $"{where} Last error: {lastError}";
+	/// <summary>
+	///     The coarse, non-leaking reason the anonymous report shows for a recorded error: a category, never the
+	///     dependency's own message (which can contain ids, URLs or a token fragment).
+	/// </summary>
+	public static string CoarseReason(string lastError)
+	{
+		if (lastError.Contains("discord", StringComparison.OrdinalIgnoreCase) ||
+		    lastError.Contains("channel", StringComparison.OrdinalIgnoreCase))
+			return "a Discord error is recorded";
+
+		if (lastError.Contains("mongo", StringComparison.OrdinalIgnoreCase) ||
+		    lastError.Contains("database", StringComparison.OrdinalIgnoreCase) ||
+		    lastError.Contains("timeout", StringComparison.OrdinalIgnoreCase))
+			return "a database error is recorded";
+
+		return "an error is recorded";
 	}
 
 	/// <summary>Degraded, never unhealthy: an unreadable status must not fail the container's probe.</summary>

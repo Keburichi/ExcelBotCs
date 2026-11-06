@@ -16,7 +16,6 @@ public sealed record LotteryAdminStatus(
 	bool Degraded,
 	bool Blocked,
 	long Pot,
-	int PrizeCount,
 	int PendingPayouts,
 	int PoolPrizes,
 	int OptedIn,
@@ -316,3 +315,10 @@ public sealed record ManualActionResponse(
 	string Message,
 	string? RoundKey,
 	long? Pot);
+
+/// <summary>
+///     One <c>POST /api/lottery/admin/reschedule</c> body (spec §5.1 "Reschedule"): the round to move (omitted means the
+///     round that would run next) and its new scheduled instant as an offset, so the server can convert it to UTC and
+///     derive the round key from the local date.
+/// </summary>
+public sealed record RescheduleRequest(string? RoundKey, DateTimeOffset? ScheduledAtUtc);

@@ -282,4 +282,32 @@ async function assign(prizeId: string) {
   white-space: nowrap;
   border: 0;
 }
+
+/* Tablet: an item stacks so its actions keep a full row. */
+@media (max-width: 768px) {
+  .card {
+    padding: 1rem;
+  }
+
+  .prize {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .prize__actions {
+    width: 100%;
+  }
+}
+
+/* Phone: the per-item actions stack. */
+@media (max-width: 480px) {
+  .card {
+    padding: 0.875rem;
+  }
+
+  .prize__actions {
+    flex-direction: column;
+    align-items: stretch;
+  }
+}
 </style>

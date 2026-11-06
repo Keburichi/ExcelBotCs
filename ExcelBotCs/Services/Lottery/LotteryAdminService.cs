@@ -120,7 +120,7 @@ public class LotteryAdminService : ILotteryAdminService
 			return LotteryPotAdjustmentResult.Applied(current, amount, existing.Amount, existing, true);
 		}
 
-		var balance = await _pot.EnsureBalanceAsync(settings.BasePot, cancellationToken);
+		var balance = await _pot.GetBalanceAsync(settings.BasePot, cancellationToken);
 		var applied = LotteryPotMath.ApplyCorrection(balance, signed!.Value, settings.BasePot);
 
 		var entry = await _pot.AppendAsync(null, LotteryPotLedgerType.Correction, applied, balance + applied,

@@ -17,23 +17,15 @@ public class LotteryPotLedgerService : ILotteryPotLedgerService
 		_logger = logger;
 	}
 
+	/// <summary>
+	///     The pot is the newest <c>BalanceAfter</c>, or the configured base pot on a ledger with no entries. It never
+	///     writes an opening entry: the cutover seed is manual (§6 "no auto set"), so a forgotten seed surfaces as the
+	///     base pot instead of silently becoming a seeded one.
+	/// </summary>
 	public async Task<long> GetBalanceAsync(long basePot, CancellationToken cancellationToken = default)
 	{
 		var latest = (await _ledger.GetLatestAsync(1)).FirstOrDefault();
 		return latest?.BalanceAfter ?? basePot;
-	}
-
-	public async Task<long> EnsureBalanceAsync(long basePot, CancellationToken cancellationToken = default)
-	{
-		var latest = (await _ledger.GetLatestAsync(1)).FirstOrDefault();
-		if (latest is not null) return latest.BalanceAfter;
-
-		var opening = await AppendAsync(null, LotteryPotLedgerType.Reset, basePot, basePot,
-			"Opening balance: the lottery starts at the base pot.", null, LotteryPotLedgerKeys.BasePot,
-			cancellationToken);
-
-		_logger.LogInformation("Established the opening lottery pot at {Balance} Gil", opening.BalanceAfter);
-		return opening.BalanceAfter;
 	}
 
 	public async Task<LotteryPotLedgerEntry?> FindAsync(string idempotencyKey,

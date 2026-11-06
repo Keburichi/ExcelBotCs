@@ -13,11 +13,29 @@ namespace ExcelBotCs.HealthChecks;
 ///         mapped explicitly in <c>Program</c> — <see cref="HealthStatus.Degraded" /> is a 200, so a degraded lottery
 ///         detail can never take the container down.
 ///     </para>
+///     <para>
+///         The endpoint is anonymous, so it redacts the data keys that can carry raw dependency errors (see
+///         <see cref="SensitiveDataKeys" />). The authenticated admin status endpoint keeps that detail.
+///     </para>
 /// </summary>
 public static class HealthResponseWriter
 {
 	/// <summary>The content type of the report.</summary>
 	public const string ContentType = "application/json; charset=utf-8";
+
+	/// <summary>What a redacted data value reads as.</summary>
+	public const string Redacted = "[redacted]";
+
+	/// <summary>
+	///     Data keys that are never written to the anonymous report: they can carry raw exception text from a
+	///     dependency — the lottery round's <c>lastError</c> and the startup check's <c>problems</c> are the two that do
+	///     today. <c>/health</c> is unauthenticated, so no exception message leaves it; the admin status endpoint is the
+	///     surface for the detail.
+	/// </summary>
+	private static readonly HashSet<string> SensitiveDataKeys = new(StringComparer.OrdinalIgnoreCase)
+	{
+		"lastError", "problems", "exception", "error", "stackTrace"
+	};
 
 	public static async Task WriteAsync(HttpContext context, HealthReport report)
 	{
@@ -57,7 +75,10 @@ public static class HealthResponseWriter
 				foreach (var (key, value) in entry.Data)
 				{
 					writer.WritePropertyName(key);
-					JsonSerializer.Serialize(writer, value);
+					if (SensitiveDataKeys.Contains(key))
+						writer.WriteStringValue(Redacted);
+					else
+						JsonSerializer.Serialize(writer, value);
 				}
 
 				writer.WriteEndObject();

@@ -313,6 +313,35 @@ public class LotteryReminderServiceTests : MongoDbTest
 	}
 
 	[Fact]
+	public async Task TickAsync_DuringADryRunWeek_SuppressesTheScheduledReminder()
+	{
+		// Spec §12 step 6 / criterion 20: the dry-run week has no live side effects, so nobody is pinged.
+		await SeedTwoRecipientsAsync();
+		_settings.Settings = TestLotterySettings.Create(remindersEnabled: true, dryRun: true);
+		_time.Set(AtReminder);
+
+		var outcome = await _service.TickAsync();
+
+		outcome.Disposition.ShouldBe(LotteryReminderDisposition.DryRun);
+		outcome.RoundKey.ShouldBeNull();
+		_posted.ShouldBeEmpty();
+		_directMessages.ShouldBeEmpty();
+	}
+
+	[Fact]
+	public async Task RemindNowAsync_DuringADryRunWeek_StillPostsTheManualReminder()
+	{
+		// The manual reminder is an explicit human action; the dry-run gate covers only the scheduled tick (§5.7).
+		await SeedTwoRecipientsAsync();
+		_settings.Settings = TestLotterySettings.Create(remindersEnabled: true, dryRun: true);
+
+		var outcome = await _service.RemindNowAsync();
+
+		outcome.Disposition.ShouldBe(LotteryReminderDisposition.Sent);
+		_posted.ShouldHaveSingleItem().Mentions.ShouldBe([11UL, 22UL]);
+	}
+
+	[Fact]
 	public async Task TickAsync_AtTheReminderInstant_PostsTheOptedInAudienceWithTheExactCopyAndMentions()
 	{
 		await SeedTwoRecipientsAsync();

@@ -25,4 +25,13 @@ public interface ILotterySettingsService
 	/// </summary>
 	Task<LotterySettingsSaveResult> SaveAsync(LotterySettingsUpdate update, ulong? actorDiscordId,
 		CancellationToken cancellationToken = default);
+
+	/// <summary>
+	///     The round key of the last scheduled dry-run tick, or <c>null</c>. The planner treats that slot as satisfied, so
+	///     promoting a dry-run deployment does not replay the previewed week live (§12 step 7).
+	/// </summary>
+	Task<string?> GetLastDryRunRoundKeyAsync(CancellationToken cancellationToken = default);
+
+	/// <summary>Persists the dry-run marker after a scheduled dry-run tick; it is not an audited settings change.</summary>
+	Task MarkDryRunRoundAsync(string roundKey, CancellationToken cancellationToken = default);
 }

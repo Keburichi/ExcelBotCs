@@ -71,6 +71,12 @@ public static class LotteryRunDisposition
 	/// <summary>The action is not allowed in the round's current state.</summary>
 	public const string NotAllowed = "not-allowed";
 
+	/// <summary>The target date already has a round, so the round cannot be moved there (a 409).</summary>
+	public const string RescheduleConflict = "reschedule-conflict";
+
+	/// <summary>The request itself is invalid (a malformed round key or a missing scheduled instant); a 400.</summary>
+	public const string InvalidRequest = "invalid-request";
+
 	/// <summary>Whether the call achieved what it was asked to do.</summary>
 	public static bool IsSuccess(string disposition)
 	{

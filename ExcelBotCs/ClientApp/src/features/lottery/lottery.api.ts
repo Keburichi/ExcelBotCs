@@ -26,7 +26,7 @@ import type {
   ReminderPreference,
 } from './lottery.types'
 import { MembersApi } from '@/features/members/members.api'
-import { http } from '@/services/http'
+import { http, httpOutcome } from '@/services/http'
 
 /**
  * The result of an admin call: the HTTP status and the parsed body, plus a message the page can show. Admin
@@ -170,41 +170,30 @@ export const LotteryAdminApi = {
     }),
   retry: () => adminRequest<ManualActionResponse>('/api/lottery/admin/retry', { method: 'POST' }),
   dryRun: () => adminRequest<ManualActionResponse>('/api/lottery/admin/dry-run', { method: 'POST' }),
+  reschedule: (roundKey: string | null, scheduledAtUtc: string | Date) =>
+    adminRequest<ManualActionResponse>('/api/lottery/admin/reschedule', {
+      method: 'POST',
+      body: JSON.stringify({
+        RoundKey: roundKey,
+        ScheduledAtUtc: scheduledAtUtc instanceof Date ? scheduledAtUtc.toISOString() : scheduledAtUtc,
+      }),
+    }),
 }
 
 async function adminRequest<T>(input: RequestInfo, init?: RequestInit): Promise<AdminApiResult<T>> {
-  try {
-    const response = await fetch(input, {
-      credentials: 'same-origin',
-      headers: { 'Content-Type': 'application/json', ...(init?.headers ?? {}) },
-      ...init,
-    })
+  // `httpOutcome` is the shared, non-throwing transport: same credentials, JSON headers and parsing as `http`, but the
+  // typed body of a 4xx survives so the page can show the server's own sentence.
+  const outcome = await httpOutcome<T>(input, init)
 
-    const text = await response.text()
-    let body: unknown = null
-    if (text) {
-      try {
-        body = JSON.parse(text)
-      }
-      catch {
-        body = null
-      }
-    }
-
-    return {
-      Ok: response.ok,
-      Status: response.status,
-      Data: body as T | null,
-      Message: response.ok ? '' : messageOf(body, response.status),
-    }
-  }
-  catch {
-    return {
-      Ok: false,
-      Status: 0,
-      Data: null,
-      Message: 'The request could not be sent. Check your connection and try again.',
-    }
+  return {
+    Ok: outcome.Ok,
+    Status: outcome.Status,
+    Data: outcome.Data,
+    Message: outcome.Ok
+      ? ''
+      : outcome.Unreachable
+        ? 'The request could not be sent. Check your connection and try again.'
+        : messageOf(outcome.Data, outcome.Status),
   }
 }
 

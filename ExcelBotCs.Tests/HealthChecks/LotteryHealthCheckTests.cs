@@ -69,7 +69,10 @@ public class LotteryHealthCheckTests
         result.Status.ShouldBe(HealthStatus.Degraded);
         result.Description.ShouldContain("2026-11-10");
         result.Description.ShouldContain("announcement");
-        result.Description.ShouldContain("Discord is unreachable");
+        // The anonymous report never carries the dependency's raw error text, only a coarse reason.
+        result.Description.ShouldNotContain("Discord is unreachable");
+        result.Data.ContainsKey("lastError").ShouldBeFalse();
+        result.Data["lastErrorReason"].ShouldBe("a Discord error is recorded");
         result.Data["degraded"].ShouldBe(true);
         result.Data["pendingRoundKey"].ShouldBe("2026-11-10");
         result.Data["pendingStatus"].ShouldBe(LotteryRoundStatus.Drawn);
@@ -130,18 +133,25 @@ public class LotteryHealthCheckTests
     }
 
     [Fact]
-    public async Task CheckHealthAsync_WhenTheStartupCheckIsDegraded_DegradesTheDetailWithTheProblems()
+    public async Task CheckHealthAsync_WhenTheStartupCheckIsDegraded_ReportsTheCountNotTheProblems()
     {
-        var startupResult = LotteryStartupResult.Degraded(["DiscordBot:GuildId is not configured."]);
+        // Spec §5.10/§14 + the anonymous-endpoint rule: the problem texts can name ids and URLs, so the report carries
+        // the count; the admin status endpoint keeps the detail.
+        var startupResult = LotteryStartupResult.Degraded([
+            "DiscordBot:GuildId is not configured.",
+            "WebBaseUrl 'http://localhost:5000' is not an absolute http(s) URL."
+        ]);
 
         var check = CreateCheck(Snapshot(), await StartupCheckAsync(startupResult));
 
         var result = await check.CheckHealthAsync(_context);
 
         result.Status.ShouldBe(HealthStatus.Degraded);
-        result.Description.ShouldContain("GuildId");
+        result.Description.ShouldNotContain("GuildId");
+        result.Description.ShouldContain("2 problem(s)");
         result.Data["startupCheck"].ShouldBe("degraded");
-        result.Data["problems"].ShouldBe(new[] { "DiscordBot:GuildId is not configured." });
+        result.Data["problemCount"].ShouldBe(2);
+        result.Data.ContainsKey("problems").ShouldBeFalse();
     }
 
     [Fact]
@@ -170,7 +180,9 @@ public class LotteryHealthCheckTests
         var result = await check.CheckHealthAsync(_context);
 
         result.Status.ShouldBe(HealthStatus.Degraded);
-        result.Description.ShouldContain("MongoDB is unreachable");
+        // The anonymous detail stays coarse; the raw driver message never leaves the authenticated admin surface.
+        result.Description.ShouldNotContain("MongoDB is unreachable");
+        result.Description.ShouldContain("could not be read");
         result.Data["state"].ShouldBe("unknown");
     }
 

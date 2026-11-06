@@ -36,7 +36,10 @@ public class LotteryController : AuthorizedController
     [Route("guess/{number:int}")]
     public async Task<IActionResult> Guess(int number)
     {
-        var guessResponse = await _lotteryService.GuessAsync(await GetCurrentUserDiscordId(), number);
+        var (actor, error) = await ResolveActorAsync();
+        if (error is not null) return error;
+
+        var guessResponse = await _lotteryService.GuessAsync(actor, number);
         return Ok(new { guessResponse = LotteryResponseFormatter.FormatGuessResponse(guessResponse) });
     }
 
@@ -52,7 +55,10 @@ public class LotteryController : AuthorizedController
     [Route("view")]
     public async Task<IActionResult> View()
     {
-        var view = await _lotteryService.ViewAsync(await GetCurrentUserDiscordId());
+        var (actor, error) = await ResolveActorAsync();
+        if (error is not null) return error;
+
+        var view = await _lotteryService.ViewAsync(actor);
 
         if (view is ViewResponse r)
             return Ok(new
@@ -74,10 +80,10 @@ public class LotteryController : AuthorizedController
     [Route("change")]
     public async Task<IActionResult> ChangeGuess([FromBody] ChangeGuessRequest request)
     {
-        var changeResponse = await _lotteryService.ChangeGuessAsync(
-            await GetCurrentUserDiscordId(),
-            request.OldNumber,
-            request.NewNumber);
+        var (actor, error) = await ResolveActorAsync();
+        if (error is not null) return error;
+
+        var changeResponse = await _lotteryService.ChangeGuessAsync(actor, request.OldNumber, request.NewNumber);
         return Ok(new
         {
             changeResponse =
@@ -112,7 +118,10 @@ public class LotteryController : AuthorizedController
     [Route("reminders")]
     public async Task<IActionResult> GetReminders()
     {
-        var preference = await _reminderService.GetPreferenceAsync(await GetCurrentUserDiscordId());
+        var (actor, error) = await ResolveActorAsync();
+        if (error is not null) return error;
+
+        var preference = await _reminderService.GetPreferenceAsync(actor);
         return Ok(new ReminderPreferenceResponse(preference.Enabled));
     }
 
@@ -122,8 +131,10 @@ public class LotteryController : AuthorizedController
     public async Task<IActionResult> SetReminders([FromBody] SetRemindersRequest request)
     {
         // [ApiController] rejects a missing/invalid Enabled before this runs and returns typed validation errors.
-        var preference = await _reminderService.SetPreferenceAsync(await GetCurrentUserDiscordId(),
-            request.Enabled!.Value);
+        var (actor, error) = await ResolveActorAsync();
+        if (error is not null) return error;
+
+        var preference = await _reminderService.SetPreferenceAsync(actor, request.Enabled!.Value);
         return Ok(new ReminderPreferenceResponse(preference.Enabled));
     }
 
@@ -163,7 +174,10 @@ public class LotteryController : AuthorizedController
     [AdminAuth]
     public async Task<IActionResult> RunLottery()
     {
-        await _lotteryService.RunLotteryAsync(await GetCurrentUserDiscordId());
+        var (actor, error) = await ResolveActorAsync();
+        if (error is not null) return error;
+
+        await _lotteryService.RunLotteryAsync(actor);
         return Ok(new { message = "Lottery executed successfully" });
     }
 
@@ -197,10 +211,14 @@ public class LotteryController : AuthorizedController
         return BadRequest(new { message = "No users to award" });
     }
 
-    private async Task<ulong> GetCurrentUserDiscordId()
+    /// <summary>
+    ///     The member this request acts as. A session without a resolvable Discord id is a typed 401 instead of a
+    ///     <c>ulong.Parse</c> that threw a 500 (the previous copy) or an actor 0 that the audit trail cannot explain.
+    /// </summary>
+    private async Task<(ulong Actor, IActionResult? Error)> ResolveActorAsync()
     {
-        var user = await _currentMemberAccessor.GetCurrentAsync();
-        return ulong.Parse(user?.DiscordId ?? "0");
+        var actor = await _currentMemberAccessor.TryGetActorIdAsync();
+        return actor is { } id ? (id, null) : (0, this.MissingActor());
     }
 }
 

@@ -95,7 +95,7 @@ public class LotteryRoundRunnerTests : MongoDbTest
 		_pot = new LotteryPotLedgerService(_ledger, Mock.Of<ILogger<LotteryPotLedgerService>>());
 		_runner = new LotteryRoundRunner(_settings, _rounds, entries ?? _flakyEntries, _winners, _pot, _guesses,
 			_extraGuesses, _members.Object, _numbers, _publisher, _time, Mock.Of<ILogger<LotteryRoundRunner>>(),
-			startupCheck, _alerts);
+			startupCheck ?? TestStartupCheck.Healthy(), _alerts);
 	}
 
 	/// <summary>Runs the real background startup wrapper so the gate sees the result production would see.</summary>
@@ -230,7 +230,6 @@ public class LotteryRoundRunnerTests : MongoDbTest
 		await SeedCompletedRoundAsync("2026-11-03");
 
 		// A top-up makes the pot 1,000,001 Gil: it does not divide evenly between two winners.
-		await _pot.EnsureBalanceAsync(BasePot);
 		await _pot.AppendAsync(null, LotteryPotLedgerType.Correction, 1, BasePot + 1, "test top-up", null,
 			"test:odd-pot");
 
@@ -753,9 +752,10 @@ public class LotteryRoundRunnerTests : MongoDbTest
 		_publisher.Published[0].Winners[0].DiscordId.ShouldBe(7001UL);
 		_publisher.Published[0].PotAfter.ShouldBe(BasePot);
 
-		// The minute-by-minute tick does not post the same preview again.
+		// The minute-by-minute tick does not post the same preview again: the persisted dry-run marker makes the planner
+		// treat the previewed slot as satisfied, so there is nothing left to do for it.
 		var again = await _runner.TickAsync();
-		again.Action.ShouldBe(LotteryRunDisposition.DryRun);
+		again.Action.ShouldBe(LotteryTickAction.Nothing);
 		_publisher.Published.Count.ShouldBe(1);
 	}
 
@@ -795,7 +795,6 @@ public class LotteryRoundRunnerTests : MongoDbTest
 		await SeedCompletedRoundAsync("2026-11-03");
 		await SeedGuessAsync(7001UL, 50);
 		await SeedHistoricalWinnerAsync();
-		await _pot.EnsureBalanceAsync(BasePot);
 		await _pot.AppendAsync(null, LotteryPotLedgerType.Correction, Increment, BasePot + Increment, "test seed",
 			null, "test:rollback-seed");
 
@@ -927,9 +926,124 @@ public class LotteryRoundRunnerTests : MongoDbTest
 		(await ReadRoundAsync("2026-11-12"))!.Status.ShouldBe(LotteryRoundStatus.Completed);
 	}
 
+	[Fact]
+	public async Task RunNowAsync_OnAVoidedDueRound_DrawsAgainWithAttemptScopedLedgerKeys()
+	{
+		// Spec §5.1 "Redo": a wrong round is voided (ledger reversed, post annotated) and a new round is run for the
+		// same date — but only when the admin asks for it.
+		await SeedCompletedRoundAsync("2026-11-03");
+		await SeedGuessAsync(7001UL, 50);
+		_numbers.DefaultNumber = 50;
+		(await _runner.RunNowAsync(9001UL)).Disposition.ShouldBe(LotteryRunDisposition.Ran);
+		(await _runner.VoidAsync("2026-11-10", 9001UL, "wrong number drawn")).Disposition
+			.ShouldBe(LotteryRunDisposition.Voided);
+
+		// No silent re-draw: the scheduler leaves the voided date alone.
+		(await _runner.TickAsync()).Action.ShouldBe(LotteryTickAction.Nothing);
+		(await ReadRoundAsync("2026-11-10"))!.Status.ShouldBe(LotteryRoundStatus.Voided);
+
+		// The re-run draws a fresh number for the same date from the guesses that exist now.
+		await SeedGuessAsync(7002UL, 42);
+		_numbers.DefaultNumber = 42;
+
+		var rerun = await _runner.RunNowAsync(9001UL);
+
+		rerun.Disposition.ShouldBe(LotteryRunDisposition.Ran);
+
+		var round = await ReadRoundAsync("2026-11-10");
+		round!.Status.ShouldBe(LotteryRoundStatus.Completed);
+		round.Attempt.ShouldBe(1);
+		round.WinningNumber.ShouldBe(42);
+		// The voided attempt's audit trail stays next to the round it undid.
+		round.VoidReason.ShouldBe("wrong number drawn");
+		round.VoidedByDiscordId.ShouldBe(9001UL);
+
+		// The winners are the fresh draw's rows, never the voided attempt's.
+		var winners = await _winners.GetByRoundKeyAsync("2026-11-10");
+		winners.ShouldHaveSingleItem();
+		winners[0].DiscordId.ShouldBe(7002UL);
+		winners[0].Guess.ShouldBe(42);
+
+		// Attempt 1 wrote its own ledger keys next to attempt 0's movements and their reversals.
+		(await _ledger.GetByIdempotencyKeyAsync("2026-11-10:payout")).ShouldNotBeNull();
+		(await _ledger.GetByIdempotencyKeyAsync("2026-11-10:reset")).ShouldNotBeNull();
+		(await _ledger.GetByIdempotencyKeyAsync("2026-11-10:void:payout")).ShouldNotBeNull();
+		(await _ledger.GetByIdempotencyKeyAsync("2026-11-10:void:reset")).ShouldNotBeNull();
+		(await _ledger.GetByIdempotencyKeyAsync("2026-11-10:payout:1")).ShouldNotBeNull();
+		(await _ledger.GetByIdempotencyKeyAsync("2026-11-10:reset:1")).ShouldNotBeNull();
+
+		// The ledger is balanced: the round's movements, reversals and re-run cancel out exactly.
+		var entries = await _ledger.GetByRoundKeyAsync("2026-11-10");
+		entries.Sum(entry => entry.Amount).ShouldBe(0);
+		(await _pot.GetBalanceAsync(BasePot)).ShouldBe(BasePot);
+	}
+
+	[Fact]
+	public async Task RunNowAsync_WhenTheVoidedRoundIsNoLongerDue_RunsTheNextSlotAndLeavesTheVoidedDateAlone()
+	{
+		await SeedCompletedRoundAsync("2026-11-03");
+		_numbers.DefaultNumber = 50;
+		await _runner.TickAsync();
+		await _runner.VoidAsync("2026-11-10", 9001UL, "wrong number drawn");
+
+		// A week later the voided date is no longer the due slot: "Run now" targets the new date, never the old void.
+		_time.Set(TestInstants.Utc("2026-11-17T19:05:00"));
+		_numbers.DefaultNumber = 42;
+
+		var result = await _runner.RunNowAsync(9001UL);
+
+		result.Disposition.ShouldBe(LotteryRunDisposition.Ran);
+		var voided = await ReadRoundAsync("2026-11-10");
+		voided!.Status.ShouldBe(LotteryRoundStatus.Voided);
+		voided.Attempt.ShouldBe(0);
+		(await ReadRoundAsync("2026-11-17"))!.Status.ShouldBe(LotteryRoundStatus.Completed);
+	}
+
+	[Fact]
+	public async Task TickAsync_AfterPromotingADryRunWeek_DoesNotReplayThatSlotLive()
+	{
+		// Spec §12 step 7: "the first live run is the next scheduled round". The dry run persists no round row, so the
+		// marker it writes is what stops the previewed date from being drawn for real after DryRun=false.
+		await SeedCompletedRoundAsync("2026-11-03");
+		await SeedGuessAsync(7001UL, 50);
+		_settings.Settings = TestLotterySettings.Create(dryRun: true);
+		_numbers.DefaultNumber = 50;
+		_time.Set(TestInstants.Utc("2026-11-10T19:05:00"));
+
+		(await _runner.TickAsync()).Action.ShouldBe(LotteryRunDisposition.DryRun);
+		_settings.LastDryRunRoundKey.ShouldBe("2026-11-10");
+
+		// Promote: the previewed date is treated as satisfied, so nothing is drawn live for it.
+		_settings.Settings = TestLotterySettings.Create();
+		(await _runner.TickAsync()).Action.ShouldBe(LotteryTickAction.Nothing);
+		(await ReadRoundAsync("2026-11-10")).ShouldBeNull();
+
+		// The next scheduled slot is the first live round.
+		_time.Set(TestInstants.Utc("2026-11-17T19:05:00"));
+		var next = await _runner.TickAsync();
+
+		next.Action.ShouldBe(LotteryRunDisposition.Ran);
+		(await ReadRoundAsync("2026-11-17"))!.Status.ShouldBe(LotteryRoundStatus.Completed);
+		// The previewed date was never drawn: at most it is recorded as a skipped historical slot.
+		(await ReadRoundAsync("2026-11-10"))?.Status.ShouldNotBe(LotteryRoundStatus.Completed);
+	}
+
 	#endregion
 
 	#region Status
+
+	[Fact]
+	public async Task GetPotAsync_OnALedgerWithoutTheManualSeed_ReturnsTheBasePotAndWritesNothing()
+	{
+		// Spec §6: "Opening pot (exactly one document at cutover; no auto set)". An unseeded deployment must stay
+		// unseeded: the balance is the configured base pot and no ledger row appears behind the operator's back.
+		(await _ledger.GetLatestAsync(10)).ShouldBeEmpty();
+
+		var pot = await _runner.GetPotAsync();
+
+		pot.ShouldBe(BasePot);
+		(await _ledger.GetLatestAsync(10)).ShouldBeEmpty();
+	}
 
 	[Fact]
 	public async Task GetStatusAsync_ReportsThePotTheNextRunAndThePendingRound()
@@ -1030,7 +1144,6 @@ public class LotteryRoundRunnerTests : MongoDbTest
 
 	private async Task SeedPotAsync()
 	{
-		await _pot.EnsureBalanceAsync(BasePot);
 		await _pot.AppendAsync(null, LotteryPotLedgerType.WeeklyIncrement, Increment, BasePot + Increment,
 			"seed", null, "test:seed-increment");
 	}

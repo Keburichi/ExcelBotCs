@@ -81,6 +81,13 @@ public interface ILotteryRoundRepository : IBaseRepository<LotteryRound>
 	/// <summary>Voids an unfinished or completed round and annotates it with the reason, actor and time.</summary>
 	Task<bool> TryMarkVoidedAsync(string roundKey, string reason, ulong? actorDiscordId, DateTime nowUtc);
 
+	/// <summary>
+	///     Re-opens a voided round for a fresh draw of the same date (spec §5.1 "Redo"): back to <c>scheduled</c>, the
+	///     voided result cleared and <c>Attempt</c> incremented so the new run's ledger keys are attempt-scoped. The void
+	///     reason, actor and time are preserved for the audit trail.
+	/// </summary>
+	Task<bool> TryReopenVoidedAsync(string roundKey, DateTime nowUtc);
+
 	/// <summary>Moves a single scheduled round to a new date; the round key follows it. Guesses carry.</summary>
 	Task<bool> TryRescheduleAsync(string currentRoundKey, string newRoundKey, DateTime scheduledAtUtc);
 

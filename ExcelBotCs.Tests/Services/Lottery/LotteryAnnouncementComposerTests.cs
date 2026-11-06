@@ -164,6 +164,33 @@ public class LotteryAnnouncementComposerTests
 	}
 
 	[Fact]
+	public void Compose_SharedDraw_LeavesACustomTemplateWithoutTheTakePhrasingIntact()
+	{
+		// The split wording is a verb transform on the default copy, not a rewrite of arbitrary admin text: a template
+		// that words the prize line differently must be emitted exactly as written, even for a shared draw.
+		const string custom = "the winning number was {number}! {winners} share the {prize} pot{bonusItems}.";
+		var first = Winner("2026-11-10", 42, 7001, "Aurora", 8_333_334);
+		var bea = Winner("2026-11-10", 42, 7002, "Bea", 8_333_333);
+		var cass = Winner("2026-11-10", 42, 7003, "Cass", 8_333_333);
+
+		var message = LotteryAnnouncementComposer.Compose(new LotteryAnnouncementRenderRequest(
+			custom,
+			LotterySettingsDefaults.NoWinTemplate,
+			42,
+			25_000_000,
+			1_000_000,
+			[first, bea, cass],
+			[first, bea, cass],
+			[],
+			Deployment));
+
+		message.Text.ShouldContain(
+			"the winning number was 42! <@7001>, <@7002>, and <@7003> share the 25,000,000 Gil pot.");
+		message.Text.ShouldNotContain("They split the ");
+		message.Text.ShouldNotContain("They take the ");
+	}
+
+	[Fact]
 	public void Compose_ListsTheLastFiveInTheOrderTheyWereGiven()
 	{
 		var message = LotteryAnnouncementComposer.Compose(new LotteryAnnouncementRenderRequest(

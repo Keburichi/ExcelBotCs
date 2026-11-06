@@ -19,8 +19,10 @@ public interface ILotteryRoundRunner
 	/// <summary>
 	///     The admin "Run now" escape hatch, on the live path with a real actor. It runs the most recent due round — the
 	///     draw that should have run — when that round has not run yet, so a missed or never-scheduled draw can be
-	///     started by hand. An already completed, skipped or voided due round returns "already run"; a pending or failed
-	///     round returns "blocked" (retry or void first). It is not affected by the kill switch or the dry-run flag.
+	///     started by hand. A voided due round is re-opened and drawn again (spec §5.1 "Redo"), with its ledger keys
+	///     scoped to the new attempt; an already completed or skipped due round returns "already run"; a pending or
+	///     failed round returns "blocked" (retry or void first). It is not affected by the kill switch or the dry-run
+	///     flag.
 	/// </summary>
 	Task<LotteryRunResult> RunNowAsync(ulong actorDiscordId, CancellationToken cancellationToken = default);
 
@@ -60,6 +62,9 @@ public interface ILotteryRoundRunner
 	/// <summary>The admin/health read model: automation state, pot, last round, blocking round and the next run.</summary>
 	Task<LotteryStatusSnapshot> GetStatusAsync(CancellationToken cancellationToken = default);
 
-	/// <summary>The current pot derived from the ledger, establishing the opening balance if the ledger is empty.</summary>
+	/// <summary>
+	///     The current pot derived from the ledger — the newest <c>BalanceAfter</c>, or the base pot when the ledger is
+	///     empty. It never writes: the opening balance is a manual seed (spec §6 "no auto set").
+	/// </summary>
 	Task<long> GetPotAsync(CancellationToken cancellationToken = default);
 }

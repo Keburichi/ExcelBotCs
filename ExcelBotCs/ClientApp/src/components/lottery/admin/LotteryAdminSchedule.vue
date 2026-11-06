@@ -50,6 +50,11 @@ const dirty = computed(() => {
 
 const optInsLoading = ref(false)
 
+// "Move one round" (spec §5.1 "Reschedule"): an optional round key (blank moves the next round) and the new instant.
+// The input is a local wall-clock datetime; it is sent as a UTC instant and the server derives the round key from the
+// new local date.
+const reschedule = reactive({ RoundKey: '', ScheduledAtLocal: '' })
+
 function fillFromSettings() {
   const value = settings.value
   if (!value)
@@ -95,6 +100,25 @@ async function save() {
 
 async function sendTest() {
   await admin.sendTestReminder()
+}
+
+async function moveRound() {
+  const instant = new Date(reschedule.ScheduledAtLocal)
+  if (Number.isNaN(instant.getTime())) {
+    window.alert('Pick a valid date and time for the round.')
+    return
+  }
+
+  const key = reschedule.RoundKey.trim() || null
+  const target = key ?? 'the next round'
+  if (!window.confirm(`Move ${target} to ${instant.toLocaleString()}? Guesses stay with the round.`))
+    return
+
+  const moved = await admin.rescheduleRound(key, instant)
+  if (moved) {
+    reschedule.RoundKey = ''
+    reschedule.ScheduledAtLocal = ''
+  }
 }
 
 async function removeOptIn(discordId: string) {
@@ -200,6 +224,43 @@ async function removeOptIn(discordId: string) {
             @clicked="save"
           />
           <span v-if="dirty" class="dirty-note">Unsaved changes — Save is the only commit.</span>
+        </div>
+      </section>
+
+      <section class="card" aria-label="Move a round">
+        <h2 class="card__title">
+          Move one round
+        </h2>
+        <p class="hint">
+          Moves one scheduled round to a new date and time. Its round key follows the new local date, guesses stay with
+          it and the pot is untouched until the run. Leave the round blank to move the next round.
+        </p>
+
+        <div class="grid">
+          <div class="field">
+            <label for="reschedule-round">Round to move</label>
+            <input
+              id="reschedule-round"
+              v-model="reschedule.RoundKey"
+              type="text"
+              placeholder="YYYY-MM-DD (blank = the next round)"
+            >
+          </div>
+
+          <div class="field">
+            <label for="reschedule-at">New date and time</label>
+            <input id="reschedule-at" v-model="reschedule.ScheduledAtLocal" type="datetime-local">
+          </div>
+        </div>
+
+        <div class="save-row">
+          <BaseButton
+            state="secondary"
+            size="small"
+            title="Move round"
+            :disabled="busy || !reschedule.ScheduledAtLocal"
+            @clicked="moveRound"
+          />
         </div>
       </section>
 
@@ -416,5 +477,28 @@ async function removeOptIn(discordId: string) {
   margin: 0.75rem 0 0 0;
   color: var(--muted);
   font-size: 0.85rem;
+}
+
+/* Tablet: the opt-in rows stack so the name and its tags keep their own line. */
+@media (max-width: 768px) {
+  .card {
+    padding: 1rem;
+  }
+
+  .optin {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+}
+
+/* Phone: tighter cards and grid gaps. */
+@media (max-width: 480px) {
+  .card {
+    padding: 0.875rem;
+  }
+
+  .grid {
+    gap: 0.75rem;
+  }
 }
 </style>

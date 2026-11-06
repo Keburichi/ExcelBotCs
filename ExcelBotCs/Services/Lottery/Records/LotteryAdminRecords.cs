@@ -23,11 +23,7 @@ public sealed record LotteryAdminStatusResult(
 	int PoolPrizes,
 	int OptedIn,
 	int EligibleReminders,
-	LotterySettingsChange? LastSettingsChange)
-{
-	/// <summary>The in-pool prize count is the "prize count" of the pot summary (§5.5).</summary>
-	public int PrizeCount => PoolPrizes;
-}
+	LotterySettingsChange? LastSettingsChange);
 
 /// <summary>
 ///     The two directions an admin pot adjustment may take (spec §8: <c>post /pot {amount, reason, direction}</c>).

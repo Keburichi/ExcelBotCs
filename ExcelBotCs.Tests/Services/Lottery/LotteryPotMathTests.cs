@@ -108,13 +108,48 @@ public class LotteryPotMathTests
 	}
 
 	[Fact]
+	public void ApplyCorrection_UnderTheFloor_ADebitAppliesNothingInsteadOfCreditingTheFloorGap()
+	{
+		// The win window: the payout has debited the pot to 0 and the reset has not been written yet. Voiding the round
+		// reverses the payout with a debit; `floor - balance` would turn that into a +1,000,000 credit.
+		LotteryPotMath.ApplyCorrection(0, -1_000_000, BasePot).ShouldBe(0);
+		LotteryPotMath.ApplyCorrection(BasePot - 1, -1, BasePot).ShouldBe(0);
+		LotteryPotMath.ApplyCorrection(-5, -1_000, BasePot).ShouldBe(0);
+	}
+
+	[Fact]
+	public void ApplyCorrection_UnderTheFloor_ACreditStillApplies()
+	{
+		// The reverse direction of the same window: refunding a paid-out prize while the pot is under the floor must
+		// still move the pot by exactly the requested amount, never snap it to the floor.
+		LotteryPotMath.ApplyCorrection(0, 1_000_000, BasePot).ShouldBe(1_000_000);
+		LotteryPotMath.ApplyCorrection(0, 100, BasePot).ShouldBe(100);
+	}
+
+	[Fact]
 	public void LedgerKeys_AreDeterministicPerRoundAndStep()
 	{
-		LotteryPotLedgerKeys.BasePot.ShouldBe("base-pot");
 		LotteryPotLedgerKeys.WeeklyIncrement("2026-11-10").ShouldBe("2026-11-10:weekly_increment");
 		LotteryPotLedgerKeys.Payout("2026-11-10").ShouldBe("2026-11-10:payout");
 		LotteryPotLedgerKeys.Reset("2026-11-10").ShouldBe("2026-11-10:reset");
 		LotteryPotLedgerKeys.VoidReversal("2026-11-10", "payout").ShouldBe("2026-11-10:void:payout");
+	}
+
+	[Fact]
+	public void LedgerKeys_AreAttemptScopedFromTheFirstReRun()
+	{
+		// The first run keeps the plain keys (the shape the existing ledger already uses).
+		LotteryPotLedgerKeys.Payout("2026-11-10", 0).ShouldBe("2026-11-10:payout");
+		LotteryPotLedgerKeys.Reset("2026-11-10", 0).ShouldBe("2026-11-10:reset");
+		LotteryPotLedgerKeys.WeeklyIncrement("2026-11-10", 0).ShouldBe("2026-11-10:weekly_increment");
+		LotteryPotLedgerKeys.VoidReversal("2026-11-10", "payout", 0).ShouldBe("2026-11-10:void:payout");
+
+		// A re-run after a void suffixes every key, reversal keys included, so nothing collides with attempt 0.
+		LotteryPotLedgerKeys.Payout("2026-11-10", 1).ShouldBe("2026-11-10:payout:1");
+		LotteryPotLedgerKeys.Reset("2026-11-10", 1).ShouldBe("2026-11-10:reset:1");
+		LotteryPotLedgerKeys.WeeklyIncrement("2026-11-10", 1).ShouldBe("2026-11-10:weekly_increment:1");
+		LotteryPotLedgerKeys.VoidReversal("2026-11-10", "payout", 1).ShouldBe("2026-11-10:void:payout:1");
+		LotteryPotLedgerKeys.Payout("2026-11-10", 2).ShouldBe("2026-11-10:payout:2");
 	}
 
 	[Fact]

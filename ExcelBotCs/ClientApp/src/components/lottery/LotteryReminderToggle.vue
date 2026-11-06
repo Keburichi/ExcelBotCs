@@ -155,4 +155,19 @@ async function toggle() {
 .switch--on .switch__thumb {
   left: calc(100% - 1.17rem);
 }
+
+/* Tablet: a tighter toggle row. */
+@media (max-width: 768px) {
+  .reminder-toggle {
+    padding: 0.75rem 1rem;
+  }
+}
+
+/* Phone: the switch wraps under the copy instead of shrinking the hint to one word per line. */
+@media (max-width: 480px) {
+  .reminder-toggle {
+    flex-wrap: wrap;
+    gap: 0.75rem;
+  }
+}
 </style>

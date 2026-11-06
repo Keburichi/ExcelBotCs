@@ -199,6 +199,13 @@ public class LotteryReminderService : ILotteryReminderService
 			return new LotteryReminderOutcome(LotteryReminderDisposition.RemindersDisabled,
 				"Lottery reminders are turned off in the settings.");
 
+		// A dry-run week must have no live side effects (spec §12, criterion 20): the reminder pings real opted-in
+		// members, so the scheduled post is suppressed with the rest of the automated path. The officer's manual
+		// /lottery remind and the admin test send stay live — they are explicit human actions.
+		if (settings.DryRun)
+			return new LotteryReminderOutcome(LotteryReminderDisposition.DryRun,
+				"Lottery automation is a dry run, so the scheduled reminder was not posted.");
+
 		var resolved = await ResolveTargetAsync(cancellationToken);
 		if (resolved.Target is not { } target)
 			return new LotteryReminderOutcome(resolved.SilentDisposition!, resolved.Message!);

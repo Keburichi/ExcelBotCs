@@ -31,4 +31,11 @@ public class LotterySettings : BaseEntity
 	public int Version { get; set; }
 
 	public ulong? UpdatedByDiscordId { get; set; }
+
+	/// <summary>
+	///     The round key of the last scheduled dry-run tick. A dry run writes no round row, so without this marker the
+	///     planner would see that date as a missed slot and draw it live after the promotion (§12 step 7: "the first live
+	///     run is the next scheduled round"). Written only by the dry-run tick; never by the manual dry run.
+	/// </summary>
+	public string? LastDryRunRoundKey { get; set; }
 }

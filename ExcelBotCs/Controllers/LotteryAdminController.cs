@@ -70,8 +70,11 @@ public class LotteryAdminController : AuthorizedController
 			request.WinTemplate ?? string.Empty,
 			request.NoWinTemplate ?? string.Empty);
 
-		var result = await _admin.SaveSettingsAsync(update, request.ResetTemplates,
-			await GetCurrentUserDiscordId(), HttpContext.RequestAborted);
+		var actor = await _currentMemberAccessor.TryGetActorIdAsync();
+		if (actor is null) return this.MissingActor();
+
+		var result = await _admin.SaveSettingsAsync(update, request.ResetTemplates, actor.Value,
+			HttpContext.RequestAborted);
 
 		if (!result.Success)
 			return BadRequest(new LotterySettingsSaveResponse(false, false, null,
@@ -83,8 +86,11 @@ public class LotteryAdminController : AuthorizedController
 	[HttpPost("pot")]
 	public async Task<IActionResult> AdjustPot([FromBody] PotAdjustmentRequest request)
 	{
+		var actor = await _currentMemberAccessor.TryGetActorIdAsync();
+		if (actor is null) return this.MissingActor();
+
 		var result = await _admin.AdjustPotAsync(request.Amount, request.Direction, request.Reason,
-			request.IdempotencyKey, await GetCurrentUserDiscordId(), HttpContext.RequestAborted);
+			request.IdempotencyKey, actor.Value, HttpContext.RequestAborted);
 
 		if (!result.Success)
 			return BadRequest(ToPotDto(result));
@@ -123,20 +129,17 @@ public class LotteryAdminController : AuthorizedController
 	public async Task<IActionResult> UpdatePayout(string roundKey, string winnerId,
 		[FromBody] PayoutUpdateRequest request)
 	{
-		var result = await _admin.UpdatePayoutAsync(roundKey, winnerId, request.Status, request.Note,
-			await GetCurrentUserDiscordId(), HttpContext.RequestAborted);
+		var actor = await _currentMemberAccessor.TryGetActorIdAsync();
+		if (actor is null) return this.MissingActor();
+
+		var result = await _admin.UpdatePayoutAsync(roundKey, winnerId, request.Status, request.Note, actor.Value,
+			HttpContext.RequestAborted);
 
 		var body = new PayoutUpdateResponse(result.Success, result.Code, result.Message,
 			result.Row is null ? null : ToPayoutDto(result.Row),
 			result.ReturnedPrizes.Select(prize => prize.Name).ToList());
 
-		return result.Code switch
-		{
-			LotteryPayoutUpdateCode.NotFound => NotFound(body),
-			LotteryPayoutUpdateCode.InvalidStatus => BadRequest(body),
-			LotteryPayoutUpdateCode.InvalidTransition => Conflict(body),
-			_ => Ok(body)
-		};
+		return StatusCode(ToStatusCode(result.Code), body);
 	}
 
 	[HttpGet("prizes")]
@@ -149,16 +152,15 @@ public class LotteryAdminController : AuthorizedController
 	[HttpPost("prizes")]
 	public async Task<IActionResult> AddPrize([FromBody] CreatePrizeRequest request)
 	{
-		var result = await _admin.AddPrizeAsync(request.Name, await GetCurrentUserDiscordId(),
-			HttpContext.RequestAborted);
+		var actor = await _currentMemberAccessor.TryGetActorIdAsync();
+		if (actor is null) return this.MissingActor();
+
+		var result = await _admin.AddPrizeAsync(request.Name, actor.Value, HttpContext.RequestAborted);
 
 		var body = ToPrizeResponse(result);
-		return result.Code switch
-		{
-			LotteryPrizeCode.Duplicate => Conflict(body),
-			LotteryPrizeCode.Invalid => BadRequest(body),
-			_ => Created($"/api/lottery/admin/prizes/{result.Prize?.Id}", body)
-		};
+		if (result.Success) return Created($"/api/lottery/admin/prizes/{result.Prize?.Id}", body);
+
+		return StatusCode(ToStatusCode(result.Code), body);
 	}
 
 	[HttpDelete("prizes/{id}")]
@@ -168,18 +170,17 @@ public class LotteryAdminController : AuthorizedController
 
 		if (result.Success) return NoContent();
 
-		return result.Code switch
-		{
-			LotteryPrizeCode.NotFound => NotFound(ToPrizeResponse(result)),
-			_ => Conflict(ToPrizeResponse(result))
-		};
+		return StatusCode(ToStatusCode(result.Code), ToPrizeResponse(result));
 	}
 
 	[HttpPost("prizes/{id}/assign")]
 	public async Task<IActionResult> AssignPrize(string id, [FromBody] AssignPrizeRequest request)
 	{
-		var result = await _admin.AssignPrizeAsync(id, request.RoundKey, request.WinnerId,
-			await GetCurrentUserDiscordId(), HttpContext.RequestAborted);
+		var actor = await _currentMemberAccessor.TryGetActorIdAsync();
+		if (actor is null) return this.MissingActor();
+
+		var result = await _admin.AssignPrizeAsync(id, request.RoundKey, request.WinnerId, actor.Value,
+			HttpContext.RequestAborted);
 
 		var body = new PrizeResponse(
 			result.Success,
@@ -189,14 +190,7 @@ public class LotteryAdminController : AuthorizedController
 			result.Winner is null ? null : ToPayoutDto(result.Winner),
 			result.Errors.Select(error => new LotteryFieldError(error.Field, error.Message)).ToList());
 
-		return result.Code switch
-		{
-			LotteryPrizeCode.NotFound => NotFound(body),
-			LotteryPrizeCode.Invalid => BadRequest(body),
-			LotteryPrizeCode.InvalidTransition => Conflict(body),
-			LotteryPrizeCode.Awarded => Conflict(body),
-			_ => Ok(body)
-		};
+		return StatusCode(ToStatusCode(result.Code), body);
 	}
 
 	[HttpGet("optins")]
@@ -227,8 +221,10 @@ public class LotteryAdminController : AuthorizedController
 	[HttpPost("reminders/test")]
 	public async Task<IActionResult> SendTestReminder()
 	{
-		var outcome = await _admin.SendTestReminderAsync(await GetCurrentUserDiscordId(),
-			HttpContext.RequestAborted);
+		var actor = await _currentMemberAccessor.TryGetActorIdAsync();
+		if (actor is null) return this.MissingActor();
+
+		var outcome = await _admin.SendTestReminderAsync(actor.Value, HttpContext.RequestAborted);
 
 		return Ok(new ReminderTestResponse(outcome.Posted, outcome.Disposition, outcome.Message, outcome.RoundKey,
 			outcome.Recipients));
@@ -251,21 +247,29 @@ public class LotteryAdminController : AuthorizedController
 	[HttpPost("run")]
 	public async Task<IActionResult> Run()
 	{
-		return ToActionResult(await _runner.RunNowAsync(await GetCurrentUserDiscordId(),
-			HttpContext.RequestAborted));
+		var actor = await _currentMemberAccessor.TryGetActorIdAsync();
+		if (actor is null) return this.MissingActor();
+
+		return ToActionResult(await _runner.RunNowAsync(actor.Value, HttpContext.RequestAborted));
 	}
 
 	[HttpPost("skip")]
 	public async Task<IActionResult> Skip([FromBody] ManualActionRequest? request)
 	{
-		return ToActionResult(await _runner.SkipAsync(await GetCurrentUserDiscordId(), request?.Reason,
+		var actor = await _currentMemberAccessor.TryGetActorIdAsync();
+		if (actor is null) return this.MissingActor();
+
+		return ToActionResult(await _runner.SkipAsync(actor.Value, request?.Reason,
 			HttpContext.RequestAborted));
 	}
 
 	[HttpPost("retry")]
 	public async Task<IActionResult> Retry()
 	{
-		return ToActionResult(await _runner.RetryAsync(await GetCurrentUserDiscordId(), HttpContext.RequestAborted));
+		var actor = await _currentMemberAccessor.TryGetActorIdAsync();
+		if (actor is null) return this.MissingActor();
+
+		return ToActionResult(await _runner.RetryAsync(actor.Value, HttpContext.RequestAborted));
 	}
 
 	[HttpPost("dry-run")]
@@ -279,7 +283,8 @@ public class LotteryAdminController : AuthorizedController
 	{
 		var reason = request?.Reason?.Trim();
 		if (string.IsNullOrEmpty(reason))
-			return BadRequest(Action(LotteryRunDisposition.NotAllowed, false,
+			// A missing reason is a malformed request, not a state conflict: the shared mapping answers it with a 400.
+			return ToActionResult(new LotteryRunResult(LotteryRunDisposition.InvalidRequest,
 				"A reason is required to void a draw: it goes on the round and in the audit trail."));
 
 		var roundKey = request?.RoundKey?.Trim();
@@ -291,11 +296,48 @@ public class LotteryAdminController : AuthorizedController
 		}
 
 		if (string.IsNullOrEmpty(roundKey))
-			return NotFound(Action(LotteryRunDisposition.NotFound, false,
+			return ToActionResult(new LotteryRunResult(LotteryRunDisposition.NotFound,
 				"There is no draw to void."));
 
-		return ToActionResult(await _runner.VoidAsync(roundKey, await GetCurrentUserDiscordId(), reason,
-			HttpContext.RequestAborted));
+		var actor = await _currentMemberAccessor.TryGetActorIdAsync();
+		if (actor is null) return this.MissingActor();
+
+		return ToActionResult(await _runner.VoidAsync(roundKey, actor.Value, reason, HttpContext.RequestAborted));
+	}
+
+	/// <summary>
+	///     Moves one scheduled round to a new instant (spec §5.1 "Reschedule"). The round key follows the new local date
+	///     and the guesses stay; the pot is untouched until the run. A target date that already has a round is a typed
+	///     conflict, not a silent merge.
+	/// </summary>
+	[HttpPost("reschedule")]
+	public async Task<IActionResult> Reschedule([FromBody] RescheduleRequest request)
+	{
+		var actor = await _currentMemberAccessor.TryGetActorIdAsync();
+		if (actor is null) return this.MissingActor();
+
+		if (request.ScheduledAtUtc is not { } scheduledAt)
+			return ToActionResult(new LotteryRunResult(LotteryRunDisposition.InvalidRequest,
+				"A new scheduled instant is required to move a round."));
+
+		return ToActionResult(await _runner.RescheduleAsync(scheduledAt.UtcDateTime, actor.Value,
+			request.RoundKey, HttpContext.RequestAborted));
+	}
+
+	/// <summary>
+	///     The one status mapping for the typed prize and payout codes, so the five hand-written switches this replaces
+	///     cannot drift apart: an unknown target is a 404, an invalid request a 400, a state conflict a 409.
+	/// </summary>
+	private static int ToStatusCode(string code)
+	{
+		return code switch
+		{
+			LotteryPrizeCode.NotFound or LotteryPayoutUpdateCode.NotFound => StatusCodes.Status404NotFound,
+			LotteryPrizeCode.Invalid or LotteryPayoutUpdateCode.InvalidStatus => StatusCodes.Status400BadRequest,
+			LotteryPrizeCode.Duplicate or LotteryPrizeCode.Awarded or LotteryPrizeCode.InvalidTransition
+				or LotteryPayoutUpdateCode.InvalidTransition => StatusCodes.Status409Conflict,
+			_ => StatusCodes.Status200OK
+		};
 	}
 
 	/// <summary>
@@ -310,9 +352,11 @@ public class LotteryAdminController : AuthorizedController
 		return result.Disposition switch
 		{
 			LotteryRunDisposition.NotFound => NotFound(body),
+			LotteryRunDisposition.InvalidRequest => BadRequest(body),
 			LotteryRunDisposition.Failed => StatusCode(StatusCodes.Status500InternalServerError, body),
 			LotteryRunDisposition.Blocked or LotteryRunDisposition.AlreadyRunning or
-				LotteryRunDisposition.AlreadyRun or LotteryRunDisposition.NotAllowed => Conflict(body),
+				LotteryRunDisposition.AlreadyRun or LotteryRunDisposition.NotAllowed or
+				LotteryRunDisposition.RescheduleConflict => Conflict(body),
 			_ => Ok(body)
 		};
 	}
@@ -321,12 +365,6 @@ public class LotteryAdminController : AuthorizedController
 		string? roundKey = null, long? pot = null)
 	{
 		return new ManualActionResponse(disposition, success, message, roundKey, pot);
-	}
-
-	private async Task<ulong> GetCurrentUserDiscordId()
-	{
-		var member = await _currentMemberAccessor.GetCurrentAsync();
-		return ulong.TryParse(member?.DiscordId, out var discordId) ? discordId : 0;
 	}
 
 	#region Mapping
@@ -345,7 +383,6 @@ public class LotteryAdminController : AuthorizedController
 			status.Snapshot.IsDegraded,
 			status.Snapshot.PendingRound is not null,
 			status.Snapshot.Pot,
-			status.PrizeCount,
 			status.PendingPayouts,
 			status.PoolPrizes,
 			status.OptedIn,
