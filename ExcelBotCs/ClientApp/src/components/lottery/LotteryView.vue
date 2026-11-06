@@ -1,13 +1,12 @@
 <script lang="ts" setup>
 import { computed, onMounted } from 'vue'
 import BaseButton from '@/components/BaseButton.vue'
-import { useAuth } from '@/composables/useAuth'
 import { useLottery } from '@/composables/useLottery'
-import LotteryAdmin from './LotteryAdmin.vue'
 import LotteryGuesses from './LotteryGuesses.vue'
 import LotteryNumberGrid from './LotteryNumberGrid.vue'
+import LotteryReminderToggle from './LotteryReminderToggle.vue'
+import LotteryTabs from './LotteryTabs.vue'
 
-const { isAdmin } = useAuth()
 const lottery = useLottery()
 
 const remainingGuesses = computed(() =>
@@ -31,6 +30,8 @@ function handleSelect(num: number) {
 
 <template>
   <section class="lottery">
+    <LotteryTabs />
+
     <div class="lottery-intro">
       <p class="lottery-desc">
         Every member gets one free guess each week. Attend FC events to earn additional guesses.
@@ -38,27 +39,31 @@ function handleSelect(num: number) {
         1,000,000 each week nobody hits the winning number.
       </p>
 
-      <div v-if="!lottery.loading.value" class="lottery-status">
-        <span class="status-label">Your guesses</span>
-        <template v-if="lottery.totalGuesses.value > 0">
-          <span class="status-pips">
-            <span
-              v-for="i in lottery.totalGuesses.value"
-              :key="i"
-              class="pip"
-              :class="i <= lottery.usedGuesses.value ? 'pip--used' : 'pip--available'"
-            >
-              <span v-if="i <= lottery.myGuesses.value.length" class="pip-number">
-                {{ lottery.myGuesses.value[i - 1] }}
+      <div class="lottery-side">
+        <div v-if="!lottery.loading.value" class="lottery-status">
+          <span class="status-label">Your guesses</span>
+          <template v-if="lottery.totalGuesses.value > 0">
+            <span class="status-pips">
+              <span
+                v-for="i in lottery.totalGuesses.value"
+                :key="i"
+                class="pip"
+                :class="i <= lottery.usedGuesses.value ? 'pip--used' : 'pip--available'"
+              >
+                <span v-if="i <= lottery.myGuesses.value.length" class="pip-number">
+                  {{ lottery.myGuesses.value[i - 1] }}
+                </span>
               </span>
             </span>
-          </span>
-          <span v-if="remainingGuesses > 0" class="status-count">
-            {{ remainingGuesses }} of {{ lottery.totalGuesses.value }} remaining
-          </span>
-          <span v-else class="status-count">All guesses used</span>
-        </template>
-        <span v-else class="status-count">No guesses available</span>
+            <span v-if="remainingGuesses > 0" class="status-count">
+              {{ remainingGuesses }} of {{ lottery.totalGuesses.value }} remaining
+            </span>
+            <span v-else class="status-count">All guesses used</span>
+          </template>
+          <span v-else class="status-count">No guesses available</span>
+        </div>
+
+        <LotteryReminderToggle />
       </div>
     </div>
 
@@ -110,10 +115,6 @@ function handleSelect(num: number) {
 
       <div class="lottery-secondary">
         <LotteryGuesses :guesses="lottery.allGuesses.value" />
-
-        <div v-if="isAdmin" class="admin-divider">
-          <LotteryAdmin @refresh="lottery.load" />
-        </div>
       </div>
     </div>
   </section>
@@ -142,12 +143,20 @@ function handleSelect(num: number) {
   max-width: 52ch;
 }
 
+.lottery-side {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  flex-shrink: 0;
+  width: 20rem;
+  max-width: 100%;
+}
+
 .lottery-status {
   display: flex;
   flex-direction: column;
   justify-content: center;
   gap: 0.5rem;
-  flex-shrink: 0;
   padding: 0.875rem 1.25rem;
   border-radius: 12px;
   background: color-mix(in oklab, var(--link) 6%, var(--card));
@@ -263,11 +272,6 @@ function handleSelect(num: number) {
   display: flex;
   flex-direction: column;
   gap: 2rem;
-}
-
-.admin-divider {
-  padding-top: 2rem;
-  border-top: 1px solid var(--border);
 }
 
 @media (max-width: 900px) {

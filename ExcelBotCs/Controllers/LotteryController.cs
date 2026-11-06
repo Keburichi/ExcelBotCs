@@ -1,3 +1,4 @@
+using System.Globalization;
 using ExcelBotCs.Attributes;
 using ExcelBotCs.Models.DTO;
 using ExcelBotCs.Services;
@@ -15,13 +16,18 @@ namespace ExcelBotCs.Controllers;
 public class LotteryController : AuthorizedController
 {
     private readonly ICurrentMemberAccessor _currentMemberAccessor;
+    private readonly ILotteryHistoryService _historyService;
     private readonly ILotteryService _lotteryService;
+    private readonly ILotteryReminderService _reminderService;
     private readonly IMemberService _memberService;
 
     public LotteryController(ILogger<LotteryController> logger, ILotteryService lotteryService,
+        ILotteryReminderService reminderService, ILotteryHistoryService historyService,
         ICurrentMemberAccessor currentMemberAccessor, IMemberService memberService) : base(logger)
     {
         _lotteryService = lotteryService;
+        _reminderService = reminderService;
+        _historyService = historyService;
         _currentMemberAccessor = currentMemberAccessor;
         _memberService = memberService;
     }
@@ -30,7 +36,10 @@ public class LotteryController : AuthorizedController
     [Route("guess/{number:int}")]
     public async Task<IActionResult> Guess(int number)
     {
-        var guessResponse = await _lotteryService.GuessAsync(await GetCurrentUserDiscordId(), number);
+        var (actor, error) = await ResolveActorAsync();
+        if (error is not null) return error;
+
+        var guessResponse = await _lotteryService.GuessAsync(actor, number);
         return Ok(new { guessResponse = LotteryResponseFormatter.FormatGuessResponse(guessResponse) });
     }
 
@@ -46,7 +55,10 @@ public class LotteryController : AuthorizedController
     [Route("view")]
     public async Task<IActionResult> View()
     {
-        var view = await _lotteryService.ViewAsync(await GetCurrentUserDiscordId());
+        var (actor, error) = await ResolveActorAsync();
+        if (error is not null) return error;
+
+        var view = await _lotteryService.ViewAsync(actor);
 
         if (view is ViewResponse r)
             return Ok(new
@@ -68,10 +80,10 @@ public class LotteryController : AuthorizedController
     [Route("change")]
     public async Task<IActionResult> ChangeGuess([FromBody] ChangeGuessRequest request)
     {
-        var changeResponse = await _lotteryService.ChangeGuessAsync(
-            await GetCurrentUserDiscordId(),
-            request.OldNumber,
-            request.NewNumber);
+        var (actor, error) = await ResolveActorAsync();
+        if (error is not null) return error;
+
+        var changeResponse = await _lotteryService.ChangeGuessAsync(actor, request.OldNumber, request.NewNumber);
         return Ok(new
         {
             changeResponse =
@@ -98,12 +110,74 @@ public class LotteryController : AuthorizedController
             .ToList());
     }
 
+    /// <summary>
+    ///     The member-facing reminder toggle (spec §5.7). Default off; the web record is the source of truth, and the
+    ///     response is the resulting state so the toggle never has to guess.
+    /// </summary>
+    [HttpGet]
+    [Route("reminders")]
+    public async Task<IActionResult> GetReminders()
+    {
+        var (actor, error) = await ResolveActorAsync();
+        if (error is not null) return error;
+
+        var preference = await _reminderService.GetPreferenceAsync(actor);
+        return Ok(new ReminderPreferenceResponse(preference.Enabled));
+    }
+
+    /// <summary>Sets the caller's reminder opt-in and returns the resulting state. Member auth comes from the controller.</summary>
+    [HttpPut]
+    [Route("reminders")]
+    public async Task<IActionResult> SetReminders([FromBody] SetRemindersRequest request)
+    {
+        // [ApiController] rejects a missing/invalid Enabled before this runs and returns typed validation errors.
+        var (actor, error) = await ResolveActorAsync();
+        if (error is not null) return error;
+
+        var preference = await _reminderService.SetPreferenceAsync(actor, request.Enabled!.Value);
+        return Ok(new ReminderPreferenceResponse(preference.Enabled));
+    }
+
+    /// <summary>
+    ///     The member history timeline (spec §5.8, §8, #113): winners newest first, keyset paginated so a shared draw is
+    ///     never split or duplicated, with the pot, draw and winner totals the page shows. Payout status is admin-only
+    ///     and does not appear here.
+    /// </summary>
+    [HttpGet]
+    [Route("history")]
+    public async Task<IActionResult> GetHistory([FromQuery] string? cursor = null, [FromQuery] int? limit = null)
+    {
+        var result = await _historyService.GetPageAsync(cursor, limit, HttpContext.RequestAborted);
+
+        if (result is LotteryHistoryInvalidCursorResult invalid)
+            return BadRequest(new LotteryHistoryError("invalid_cursor", invalid.Message));
+
+        var page = (LotteryHistoryPageResult)result;
+        return Ok(new LotteryHistoryPage(
+            page.Items.Select(item => new LotteryHistoryItem(
+                item.Id,
+                item.RoundKey,
+                item.Date,
+                item.DisplayName,
+                item.DiscordId?.ToString(CultureInfo.InvariantCulture),
+                item.AvatarUrl,
+                item.Guess,
+                item.GilPrize,
+                item.PrizeItems)).ToList(),
+            page.NextCursor,
+            new LotteryHistoryTotals(page.Totals.Winners, page.Totals.Draws, page.Totals.CurrentPot,
+                page.Totals.LastDrawRoundKey)));
+    }
+
     [HttpPost]
     [Route("run")]
     [AdminAuth]
     public async Task<IActionResult> RunLottery()
     {
-        await _lotteryService.RunLotteryAsync(await GetCurrentUserDiscordId());
+        var (actor, error) = await ResolveActorAsync();
+        if (error is not null) return error;
+
+        await _lotteryService.RunLotteryAsync(actor);
         return Ok(new { message = "Lottery executed successfully" });
     }
 
@@ -137,13 +211,22 @@ public class LotteryController : AuthorizedController
         return BadRequest(new { message = "No users to award" });
     }
 
-    private async Task<ulong> GetCurrentUserDiscordId()
+    /// <summary>
+    ///     The member this request acts as. A session without a resolvable Discord id is a typed 401 instead of a
+    ///     <c>ulong.Parse</c> that threw a 500 (the previous copy) or an actor 0 that the audit trail cannot explain.
+    /// </summary>
+    private async Task<(ulong Actor, IActionResult? Error)> ResolveActorAsync()
     {
-        var user = await _currentMemberAccessor.GetCurrentAsync();
-        return ulong.Parse(user?.DiscordId ?? "0");
+        var actor = await _currentMemberAccessor.TryGetActorIdAsync();
+        return actor is { } id ? (id, null) : (0, this.MissingActor());
     }
 }
 
 public record ChangeGuessRequest(int OldNumber, int NewNumber);
 
 public record AwardUsersRequest(string Reason, List<string> UserNames);
+/// <summary>The reminder toggle request; <c>Enabled</c> is required so a typo cannot silently turn reminders off.</summary>
+public sealed record SetRemindersRequest([System.ComponentModel.DataAnnotations.Required] bool? Enabled);
+
+/// <summary>The reminder toggle response: the state the member now has.</summary>
+public sealed record ReminderPreferenceResponse(bool Enabled);

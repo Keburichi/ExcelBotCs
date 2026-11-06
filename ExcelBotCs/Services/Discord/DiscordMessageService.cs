@@ -2,7 +2,9 @@ using Discord;
 using ExcelBotCs.Discord;
 using ExcelBotCs.Models.Config;
 using ExcelBotCs.Models.Database.Events;
+using ExcelBotCs.Modules.Lottery;
 using ExcelBotCs.Services.Discord.Interfaces;
+using ExcelBotCs.Services.Discord.Records;
 using Microsoft.Extensions.Options;
 
 namespace ExcelBotCs.Services.Discord;
@@ -12,13 +14,15 @@ public class DiscordMessageService : IDiscordMessageService
     private readonly IDiscordBotClient _discordClient;
     private readonly IOptions<DiscordBotOptions> _config;
     private readonly IDiscordMessageCreator _componentCreator;
+    private readonly IOptions<WebBaseUrlOptions> _webOptions;
 
     public DiscordMessageService(IDiscordBotClient discordClient, IOptions<DiscordBotOptions> config,
-        IDiscordMessageCreator componentCreator)
+        IDiscordMessageCreator componentCreator, IOptions<WebBaseUrlOptions> webOptions)
     {
         _discordClient = discordClient;
         _config = config;
         _componentCreator = componentCreator;
+        _webOptions = webOptions;
     }
 
     public async Task PostInAnnouncementChannelAsync(string message)
@@ -118,6 +122,109 @@ public class DiscordMessageService : IDiscordMessageService
             return;
 
         await channel.SendMessageAsync(message);
+    }
+
+    public async Task PostInLogChannelAsync(string message)
+    {
+        // Spec §7: alerts and audit notices belong in DiscordBot:LogChannel; when it is unset (0) — the shipped
+        // appsettings value — the lottery channel is the documented fallback (§5.10).
+        var channel = await GetLogOrLotteryChannelAsync();
+        if (channel == null)
+            return;
+
+        await channel.SendMessageAsync(message);
+    }
+
+    public async Task<IUserMessage?> PostLotteryAnnouncementAsync(string message)
+    {
+        var channel = await GetTextChannelFromChannelId(_config.Value.LotteryChannel);
+        if (channel == null)
+            return null;
+
+        // The announcement must ping the configured lottery member role (spec §5.6); no @everyone and no stray
+        // mentions, so the allowed set is explicit.
+        return await channel.SendMessageAsync(message, allowedMentions: new AllowedMentions
+        {
+            AllowedTypes = AllowedMentionTypes.Roles | AllowedMentionTypes.Users,
+            RoleIds = _config.Value.LotteryMemberRoleId != 0 ? [_config.Value.LotteryMemberRoleId] : null
+        });
+    }
+
+    public async Task<IUserMessage?> PostDryRunAsync(string message)
+    {
+        var channel = await GetLogOrLotteryChannelAsync();
+        if (channel == null)
+            return null;
+
+        // A dry run is a review copy: it must never ping the member role or a member (criterion 20).
+        return await channel.SendMessageAsync(message, allowedMentions: AllowedMentions.None);
+    }
+
+    public async Task<IUserMessage?> PostLotteryReminderAsync(string message,
+        IReadOnlyCollection<ulong> mentionedUserIds)
+    {
+        var channel = await GetTextChannelFromChannelId(_config.Value.LotteryChannel);
+        if (channel == null)
+            return null;
+
+        // Only the audience the composer rendered may be pinged (spec §5.7, §11); no roles, no @everyone.
+        return await channel.SendMessageAsync(message,
+            allowedMentions: LotteryReminderComponents.MentionsFor(mentionedUserIds),
+            components: LotteryReminderComponents.Build(_webOptions.Value.BaseUrl));
+    }
+
+    public async Task<bool> SendLotteryReminderDirectMessageAsync(ulong discordUserId, string message)
+    {
+        // The admin test send goes to the requesting admin only (#100): a DM, never the channel and never a ping.
+        var user = _discordClient.GetUser(discordUserId);
+        if (user == null)
+            return false;
+
+        var channel = await user.CreateDMChannelAsync();
+        if (channel == null)
+            return false;
+
+        await channel.SendMessageAsync(message, allowedMentions: AllowedMentions.None,
+            components: LotteryReminderComponents.Build(_webOptions.Value.BaseUrl));
+        return true;
+    }
+
+    public async Task PostAdminAlertAsync(string message, ulong? adminRoleId)
+    {
+        var channel = await GetLogOrLotteryChannelAsync();
+        if (channel == null)
+            return;
+
+        var allowedMentions = adminRoleId is { } roleId && roleId != 0
+            ? new AllowedMentions { AllowedTypes = AllowedMentionTypes.Roles, RoleIds = [roleId] }
+            : AllowedMentions.None;
+
+        await channel.SendMessageAsync(message, allowedMentions: allowedMentions);
+    }
+
+    public async Task<IReadOnlyList<DiscordChannelMessage>> GetRecentLotteryChannelMessagesAsync(int limit = 50)
+    {
+        var channel = await GetTextChannelFromChannelId(_config.Value.LotteryChannel);
+        if (channel == null)
+            return [];
+
+        var batches = await channel.GetMessagesAsync(limit, CacheMode.AllowDownload).ToListAsync();
+
+        return batches
+            .SelectMany(batch => batch)
+            .Select(message => new DiscordChannelMessage(
+                message.Id,
+                message.Author.Id,
+                message.Author.IsBot,
+                message.Content,
+                message.CreatedAt))
+            .ToList();
+    }
+
+    private async Task<ITextChannel?> GetLogOrLotteryChannelAsync()
+    {
+        var channelId = _config.Value.LogChannel != 0 ? _config.Value.LogChannel : _config.Value.LotteryChannel;
+        return await GetTextChannelFromChannelId(channelId) as ITextChannel;
     }
 
     public async Task<List<IMessage>> GetAnnouncementChannelMessagesAsync()

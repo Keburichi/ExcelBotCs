@@ -82,6 +82,17 @@ public class DiscordBotService : BackgroundService
                 await _interaction.RemoveModuleAsync(module);
 
         await _interaction.AddModulesAsync(Assembly.GetEntryAssembly(), _serviceProvider);
+
+        // RegisterCommandsGloballyAsync(true) replaces the global command set and deletes commands this
+        // process does not know about. That is only safe from the one process designated to own
+        // registration; a second checkout registering a stale module set would wipe the live commands.
+        if (!_config.RegisterCommands)
+        {
+            _logger.LogInformation(
+                "Discord command registration disabled (DiscordBot:RegisterCommands=false) — keeping existing global commands");
+            return;
+        }
+
         await _interaction.RegisterCommandsGloballyAsync(true);
     }
 

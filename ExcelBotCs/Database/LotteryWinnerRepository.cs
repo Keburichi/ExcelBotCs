@@ -1,0 +1,150 @@
+using ExcelBotCs.Database.Interfaces;
+using ExcelBotCs.Models.Config;
+using ExcelBotCs.Modules.Lottery;
+using Microsoft.Extensions.Options;
+using MongoDB.Driver;
+
+namespace ExcelBotCs.Database;
+
+public class LotteryWinnerRepository : BaseRepository<LotteryWinner>, ILotteryWinnerRepository
+{
+	public LotteryWinnerRepository(IMongoClient mongoClient, IOptions<DatabaseOptions> databaseOptions)
+		: base(mongoClient, databaseOptions)
+	{
+	}
+
+	protected override string GetCollectionName()
+	{
+		return "lottery_winners";
+	}
+
+	public override IReadOnlyList<CreateIndexModel<LotteryWinner>> GetIndexModels()
+	{
+		// No unique index: historical rows share a round with DiscordId null and a shared draw has two winners.
+		return
+		[
+			Index("ix_lottery_winners_RoundKey", Ascending(w => w.RoundKey)),
+			Index("ix_lottery_winners_DiscordId", Ascending(w => w.DiscordId)),
+			Index("ix_lottery_winners_Guess", Ascending(w => w.Guess))
+		];
+	}
+
+	public async Task<List<LotteryWinner>> GetByRoundKeyAsync(string roundKey)
+	{
+		return await Collection.Find(w => w.RoundKey == roundKey)
+			.SortBy(w => w.DateCreated)
+			.ToListAsync();
+	}
+
+	public async Task<List<LotteryWinner>> GetLatestAsync(int limit)
+	{
+		return await Collection.Find(_ => true)
+			.SortByDescending(w => w.RoundKey)
+			.ThenBy(w => w.DateCreated)
+			.Limit(limit)
+			.ToListAsync();
+	}
+
+	public async Task<List<LotteryWinner>> GetHistoryPageAsync(LotteryWinnerPageAnchor? after, int limit)
+	{
+		// Newest round first, then creation order and finally the id within the round. The id makes the order total,
+		// so the keyset filter below can resume in the middle of a shared draw without losing or repeating a row.
+		var sort = Builders<LotteryWinner>.Sort
+			.Descending(w => w.RoundKey)
+			.Ascending(w => w.DateCreated)
+			.Ascending(w => w.Id);
+
+		var filter = Builders<LotteryWinner>.Filter.Empty;
+		if (after is not null)
+		{
+			var inSameRound = Builders<LotteryWinner>.Filter.Eq(w => w.RoundKey, after.RoundKey);
+			var afterTheAnchor = Builders<LotteryWinner>.Filter.Or(
+				Builders<LotteryWinner>.Filter.Gt(w => w.DateCreated, after.DateCreatedUtc),
+				Builders<LotteryWinner>.Filter.And(
+					Builders<LotteryWinner>.Filter.Eq(w => w.DateCreated, after.DateCreatedUtc),
+					Builders<LotteryWinner>.Filter.Gt(w => w.Id, after.Id)));
+
+			filter = Builders<LotteryWinner>.Filter.Or(
+				Builders<LotteryWinner>.Filter.Lt(w => w.RoundKey, after.RoundKey),
+				Builders<LotteryWinner>.Filter.And(inSameRound, afterTheAnchor));
+		}
+
+		return await Collection.Find(filter).Sort(sort).Limit(limit).ToListAsync();
+	}
+
+	public async Task<LotteryWinnerHistoryCounts> GetHistoryCountsAsync()
+	{
+		var winners = (int)await Collection.CountDocumentsAsync(FilterDefinition<LotteryWinner>.Empty);
+
+		var roundKeys = await (await Collection.DistinctAsync(w => w.RoundKey, FilterDefinition<LotteryWinner>.Empty))
+			.ToListAsync();
+
+		var newest = roundKeys.Count == 0 ? null : roundKeys.Max(StringComparer.Ordinal);
+		return new LotteryWinnerHistoryCounts(winners, roundKeys.Count, newest);
+	}
+
+	public async Task<bool> AddIfMissingAsync(LotteryWinner winner)
+	{
+		// Winners have no unique index (historical rows share a round with a null DiscordId and a shared draw has
+		// several rows), so the natural key is matched explicitly. A retried draw resumes instead of paying twice.
+		var filter = Builders<LotteryWinner>.Filter.Eq(w => w.RoundKey, winner.RoundKey) &
+		             Builders<LotteryWinner>.Filter.Eq(w => w.DiscordId, winner.DiscordId) &
+		             Builders<LotteryWinner>.Filter.Eq(w => w.Guess, winner.Guess);
+
+		var createdAt = winner.DateCreated == default ? DateTime.UtcNow : winner.DateCreated;
+
+		var update = Builders<LotteryWinner>.Update
+			.SetOnInsert(w => w.RoundKey, winner.RoundKey)
+			.SetOnInsert(w => w.DiscordId, winner.DiscordId)
+			.SetOnInsert(w => w.DisplayName, winner.DisplayName)
+			.SetOnInsert(w => w.Guess, winner.Guess)
+			.SetOnInsert(w => w.GilPrize, winner.GilPrize)
+			.SetOnInsert(w => w.BonusItems, winner.BonusItems)
+			.SetOnInsert(w => w.PayoutStatus, winner.PayoutStatus)
+			.SetOnInsert(w => w.DateCreated, createdAt)
+			.SetOnInsert(w => w.DateModified, createdAt);
+
+		var result = await Collection.UpdateOneAsync(filter, update, new UpdateOptions { IsUpsert = true });
+		return result.UpsertedId != null;
+	}
+
+	public async Task<int> CountByPayoutStatusAsync(string payoutStatus)
+	{
+		return (int)await Collection.CountDocumentsAsync(w => w.PayoutStatus == payoutStatus);
+	}
+
+	public async Task<List<LotteryWinner>> GetPayoutPageAsync(string? payoutStatus,
+		LotteryWinnerPageAnchor? after, int limit)
+	{
+		var sort = Builders<LotteryWinner>.Sort
+			.Descending(w => w.RoundKey)
+			.Ascending(w => w.DateCreated)
+			.Ascending(w => w.Id);
+
+		var filter = Builders<LotteryWinner>.Filter.Empty;
+		if (payoutStatus is not null)
+			filter &= Builders<LotteryWinner>.Filter.Eq(w => w.PayoutStatus, payoutStatus);
+
+		if (after is not null)
+		{
+			var inSameRound = Builders<LotteryWinner>.Filter.Eq(w => w.RoundKey, after.RoundKey);
+			var afterTheAnchor = Builders<LotteryWinner>.Filter.Or(
+				Builders<LotteryWinner>.Filter.Gt(w => w.DateCreated, after.DateCreatedUtc),
+				Builders<LotteryWinner>.Filter.And(
+					Builders<LotteryWinner>.Filter.Eq(w => w.DateCreated, after.DateCreatedUtc),
+					Builders<LotteryWinner>.Filter.Gt(w => w.Id, after.Id)));
+
+			filter &= Builders<LotteryWinner>.Filter.Or(
+				Builders<LotteryWinner>.Filter.Lt(w => w.RoundKey, after.RoundKey),
+				Builders<LotteryWinner>.Filter.And(inSameRound, afterTheAnchor));
+		}
+
+		return await Collection.Find(filter).Sort(sort).Limit(limit).ToListAsync();
+	}
+
+	public async Task<long> DeleteByRoundKeyAsync(string roundKey)
+	{
+		var result = await Collection.DeleteManyAsync(w => w.RoundKey == roundKey);
+		return result.DeletedCount;
+	}
+}

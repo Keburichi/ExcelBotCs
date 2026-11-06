@@ -30,6 +30,12 @@ public abstract class IntegrationTestBase : MongoDbTest
     protected HttpClient Client = null!;
     protected WebApplicationFactory<Program> Factory = null!;
 
+    /// <summary>
+    ///     The fake Discord seam the host's services are given. Tests assert on it when what reached Discord is part of
+    ///     the behaviour under test (for example the <c>[DRY RUN]</c> announcement of spec §5.6).
+    /// </summary>
+    protected Mock<IDiscordMessageService> DiscordMessages { get; private set; } = null!;
+
     protected IntegrationTestBase(MongoDbFixture fixture) : base(fixture)
     {
     }
@@ -94,12 +100,26 @@ public abstract class IntegrationTestBase : MongoDbTest
 
                     services.RemoveAll<IDiscordMessageService>();
                     var mockDiscordMessageService = new Mock<IDiscordMessageService>();
+                    DiscordMessages = mockDiscordMessageService;
                     mockDiscordMessageService.Setup(x => x.PostInLotteryChannelAsync(It.IsAny<string>()))
                         .Returns(Task.CompletedTask);
+                    // The admin page's "Send test reminder" is a DM to the requesting admin; the fake accepts it so
+                    // the success path is testable without a live Discord socket.
+                    mockDiscordMessageService.Setup(x =>
+                            x.SendLotteryReminderDirectMessageAsync(It.IsAny<ulong>(), It.IsAny<string>()))
+                        .ReturnsAsync(true);
                     mockDiscordMessageService.Setup(x => x.PostInAnnouncementChannelAsync(It.IsAny<string>()))
                         .Returns(Task.CompletedTask);
                     mockDiscordMessageService.Setup(x => x.PostInEventChannelAsync(It.IsAny<string>()))
                         .Returns(Task.CompletedTask);
+                    // The lottery announcement and dry-run paths expect a posted message back; a fake one keeps the
+                    // admin run/dry-run endpoints testable end to end without a live Discord socket.
+                    var postedMessage = new Mock<IUserMessage>();
+                    postedMessage.SetupGet(message => message.Id).Returns(900000000000000001);
+                    mockDiscordMessageService.Setup(x => x.PostLotteryAnnouncementAsync(It.IsAny<string>()))
+                        .ReturnsAsync(postedMessage.Object);
+                    mockDiscordMessageService.Setup(x => x.PostDryRunAsync(It.IsAny<string>()))
+                        .ReturnsAsync(postedMessage.Object);
                     mockDiscordMessageService.Setup(x => x.PostInUpcomingRosterChannelAsync(It.IsAny<string>()))
                         .ReturnsAsync((IUserMessage?)null);
                     mockDiscordMessageService.Setup(x => x.DeleteUpcomingRosterMessageAsync(It.IsAny<string>()))
@@ -107,6 +127,8 @@ public abstract class IntegrationTestBase : MongoDbTest
                     mockDiscordMessageService.Setup(x => x.GetAnnouncementChannelMessagesAsync())
                         .ReturnsAsync(new List<IMessage>());
                     services.AddSingleton(mockDiscordMessageService.Object);
+
+                    OnConfigureTestServices(services);
                 });
             });
 
@@ -114,6 +136,15 @@ public abstract class IntegrationTestBase : MongoDbTest
         SetAuthenticatedUser(GenerateRandomDiscordId(), "Default Test User");
 
         await OnAfterIntegrationSetupAsync();
+    }
+
+    /// <summary>
+    ///     The last word on the test service collection, for a test that must replace a host registration before the
+    ///     container is built — the lottery clock and RNG, for example, so a scheduled round runs on a fake Tuesday
+    ///     (criterion 25). The default does nothing.
+    /// </summary>
+    protected virtual void OnConfigureTestServices(IServiceCollection services)
+    {
     }
 
     protected override async Task BeforeTearDownAsync()

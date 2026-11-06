@@ -1,4 +1,5 @@
 using System.Net;
+using System.Text.Json;
 using ExcelBotCs.TestFramework.Database;
 using ExcelBotCs.Tests.Utils;
 
@@ -30,12 +31,21 @@ public class HealthEndpointIntegrationTests : IntegrationTestBase
     }
 
     [Fact]
-    public async Task GetHealth_ReturnsHealthyBody()
+    public async Task GetHealth_ReturnsTheJsonReportOfEveryCheck()
     {
         var response = await Client.GetAsync("/health");
         var body = await response.Content.ReadAsStringAsync();
 
-        body.ShouldBe("Healthy");
+        // #115: the body is the per-check report, so the lottery detail sits next to the core checks. The status code
+        // is the probe contract (asserted above); the body is diagnostics.
+        using var report = JsonDocument.Parse(body);
+        var checks = report.RootElement.GetProperty("checks");
+
+        checks.TryGetProperty("discord-bot", out _).ShouldBeTrue();
+        checks.TryGetProperty("mongodb", out _).ShouldBeTrue();
+        checks.TryGetProperty("lottery", out var lottery).ShouldBeTrue();
+        lottery.GetProperty("status").GetString().ShouldBeOneOf("Healthy", "Degraded");
+        lottery.TryGetProperty("data", out _).ShouldBeTrue();
     }
 
     // --- Request ID header tests (use /health as a no-auth endpoint for convenience) ---

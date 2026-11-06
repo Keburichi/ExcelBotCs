@@ -16,13 +16,15 @@ namespace ExcelBotCs.Modules.Lottery;
 public class LotteryInteraction : InteractionModuleBase<SocketInteractionContext>
 {
     private readonly ILotteryService _lotteryService;
+    private readonly ILotteryReminderService _reminderService;
     private readonly IDiscordBotClient _discordClient;
     private readonly DiscordBotOptions _discordBotOptions;
 
-    public LotteryInteraction(ILotteryService lotteryService, IDiscordBotClient discordClient,
-        IOptions<DiscordBotOptions> discordBotOptions)
+    public LotteryInteraction(ILotteryService lotteryService, ILotteryReminderService reminderService,
+        IDiscordBotClient discordClient, IOptions<DiscordBotOptions> discordBotOptions)
     {
         _lotteryService = lotteryService;
+        _reminderService = reminderService;
         _discordClient = discordClient;
         _discordBotOptions = discordBotOptions.Value;
     }
@@ -88,10 +90,11 @@ public class LotteryInteraction : InteractionModuleBase<SocketInteractionContext
 
         await RespondAsync("Lottery running...", ephemeral: true);
 
-        await _lotteryService.RunLotteryAsync(Context.GuildUser().Id);
+        var result = await _lotteryService.RunLotteryAsync(Context.GuildUser().Id);
+        await FollowupAsync(result.Message, ephemeral: true);
     }
 
-    [SlashCommand("remind", "Reminds users to use any remaining guesses")]
+    [SlashCommand("remind", "Reminds members with unused guesses who opted in")]
     public async Task Remind()
     {
         if (!Context.GuildUser().IsOfficer(_discordBotOptions))
@@ -102,8 +105,37 @@ public class LotteryInteraction : InteractionModuleBase<SocketInteractionContext
 
         await DeferAsync(true);
 
-        await _lotteryService.RemindAsync(Context.GuildUser().Id);
-        await FollowupAsync("Reminders sent!", ephemeral: true);
+        // The same opted-in audience and copy as the scheduled reminder; with nobody eligible nothing is posted and
+        // the officer gets the reason ephemerally instead (spec §5.7).
+        var outcome = await _reminderService.RemindNowAsync();
+        await FollowupAsync(outcome.Message, ephemeral: true);
+    }
+
+    [SlashCommand("reminders", "Turn the pre-draw lottery reminder on or off")]
+    public async Task Reminders(
+        [Summary("state", "on or off")]
+        [Choice("on", "on")]
+        [Choice("off", "off")]
+        string state)
+    {
+        var enabled = string.Equals(state, "on", StringComparison.OrdinalIgnoreCase);
+        var preference = await _reminderService.SetPreferenceAsync(Context.User.Id, enabled);
+
+        await RespondAsync(preference.Enabled
+            ? "Lottery reminders are on. You will be pinged before the draw when you have guesses left."
+            : "Lottery reminders are off. You can turn them back on from the lottery page.", ephemeral: true);
+    }
+
+    /// <summary>
+    ///     The reminder's "Turn off reminders" button. It changes only the caller's opt-in, is idempotent, replies
+    ///     ephemerally and never edits the post — so it also works for a member who has left the FC (spec §5.7).
+    /// </summary>
+    [ComponentInteraction(LotteryReminderComponents.OptOutCustomId)]
+    public async Task TurnOffReminders()
+    {
+        await _reminderService.SetPreferenceAsync(Context.User.Id, false);
+        await RespondAsync("Lottery reminders are off. You can turn them back on from the lottery page.",
+            ephemeral: true);
     }
 
     [SlashCommand("award", "Grants extra guesses for the current lottery period")]
@@ -169,7 +201,7 @@ public class LotteryInteraction : InteractionModuleBase<SocketInteractionContext
                     return;
                 }
 
-                await _lotteryService.AwardUsersAsync(success);
+                await _lotteryService.AwardUsersAsync(success, Context.GuildUser().Id);
                 await FollowupAsync($"An extra lottery guess have been granted to: {success.PrettyUsersAwarded}",
                     ephemeral: true);
                 break;
@@ -203,7 +235,7 @@ public class LotteryInteraction : InteractionModuleBase<SocketInteractionContext
             return;
         }
 
-        await _lotteryService.AwardUsersAsync(success);
+        await _lotteryService.AwardUsersAsync(success, Context.GuildUser().Id);
         await socketMsg.UpdateAsync(msg =>
         {
             msg.Components = null;

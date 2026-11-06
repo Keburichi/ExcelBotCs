@@ -41,6 +41,19 @@ public class LotteryControllerIntegrationTests : IntegrationTestBase
     }
 
     [Fact]
+    public async Task Guess_WithAnUnresolvableDiscordId_ReturnsATypedUnauthorizedInsteadOfA500OrActorZero()
+    {
+        // The member endpoints share one actor helper with the admin ones: a member whose stored Discord id cannot be
+        // parsed is a typed 401, never a `ulong.Parse` 500 and never a guess attributed to actor 0.
+        await CreateAndAuthenticateAsMember("not-a-snowflake");
+
+        var response = await Client.PostAsync("api/Lottery/guess/42", null);
+
+        response.StatusCode.ShouldBe(HttpStatusCode.Unauthorized);
+        (await response.Content.ReadAsStringAsync()).ShouldContain("unauthenticated");
+    }
+
+    [Fact]
     public async Task GetUnusedNumbers_CheckPermissions()
     {
         // No Auth = Unauthorized
@@ -657,6 +670,86 @@ public class LotteryControllerIntegrationTests : IntegrationTestBase
 
         // Assert
         response.StatusCode.ShouldBeOneOf(HttpStatusCode.OK, HttpStatusCode.BadRequest);
+    }
+
+    #endregion
+
+    #region Reminder opt-in
+
+    [Fact]
+    public async Task Reminders_CheckPermissions()
+    {
+        // No Auth = Unauthorized (for both verbs).
+        SetUnauthenticated();
+        (await Client.GetAsync("api/Lottery/reminders")).StatusCode.ShouldBe(HttpStatusCode.Unauthorized);
+        (await Client.PutAsJsonAsync("api/Lottery/reminders", new { enabled = true })).StatusCode
+            .ShouldBe(HttpStatusCode.Unauthorized);
+
+        // Authenticated but not a member = Forbidden.
+        SetAuthenticatedUser("12355");
+        (await Client.GetAsync("api/Lottery/reminders")).StatusCode.ShouldBe(HttpStatusCode.Forbidden);
+        (await Client.PutAsJsonAsync("api/Lottery/reminders", new { enabled = true })).StatusCode
+            .ShouldBe(HttpStatusCode.Forbidden);
+
+        // Member and admin = Ok.
+        await AuthenticateAsMember();
+        (await Client.GetAsync("api/Lottery/reminders")).StatusCode.ShouldBe(HttpStatusCode.OK);
+        (await Client.PutAsJsonAsync("api/Lottery/reminders", new { enabled = true })).StatusCode
+            .ShouldBe(HttpStatusCode.OK);
+
+        await AuthenticateAsAdmin();
+        (await Client.GetAsync("api/Lottery/reminders")).StatusCode.ShouldBe(HttpStatusCode.OK);
+        (await Client.PutAsJsonAsync("api/Lottery/reminders", new { enabled = false })).StatusCode
+            .ShouldBe(HttpStatusCode.OK);
+    }
+
+    [Fact]
+    public async Task Reminders_DefaultOffAndRoundTrip()
+    {
+        await AuthenticateAsMember();
+
+        var initial = await Client.GetFromJsonAsync<ReminderPreferenceResponse>("api/Lottery/reminders");
+        initial!.Enabled.ShouldBeFalse();
+
+        var enabled = await Client.PutAsJsonAsync("api/Lottery/reminders", new { enabled = true });
+        enabled.EnsureSuccessStatusCode();
+        (await enabled.Content.ReadFromJsonAsync<ReminderPreferenceResponse>())!.Enabled.ShouldBeTrue();
+
+        var stored = await Client.GetFromJsonAsync<ReminderPreferenceResponse>("api/Lottery/reminders");
+        stored!.Enabled.ShouldBeTrue();
+
+        var disabled = await Client.PutAsJsonAsync("api/Lottery/reminders", new { enabled = false });
+        (await disabled.Content.ReadFromJsonAsync<ReminderPreferenceResponse>())!.Enabled.ShouldBeFalse();
+    }
+
+    [Fact]
+    public async Task Reminders_ArePerMember()
+    {
+        var first = await CreateAndAuthenticateAsMember(GenerateRandomDiscordId());
+        await Client.PutAsJsonAsync("api/Lottery/reminders", new { enabled = true });
+
+        var second = await CreateAndAuthenticateAsMember(GenerateRandomDiscordId());
+        var secondState = await Client.GetFromJsonAsync<ReminderPreferenceResponse>("api/Lottery/reminders");
+
+        secondState!.Enabled.ShouldBeFalse();
+
+        // The first member's record is untouched.
+        SetAuthenticatedUser(first.DiscordId, first.DiscordName!);
+        (await Client.GetFromJsonAsync<ReminderPreferenceResponse>("api/Lottery/reminders"))!.Enabled
+            .ShouldBeTrue();
+    }
+
+    [Fact]
+    public async Task Reminders_PutWithoutAValidEnabledFlag_ReturnsTypedValidationErrors()
+    {
+        await AuthenticateAsMember();
+
+        var response = await Client.PutAsJsonAsync("api/Lottery/reminders", new { });
+
+        response.StatusCode.ShouldBe(HttpStatusCode.BadRequest);
+        var content = await response.Content.ReadAsStringAsync();
+        content.ShouldContain("errors");
+        content.ShouldContain("Enabled");
     }
 
     #endregion

@@ -18,8 +18,17 @@ public interface ILotteryService
 
     Task<IViewResponse> ViewAsync(ulong discordUserId);
 
-    Task RunLotteryAsync(ulong discordUserId);
-    Task RemindAsync(ulong discordUserId);
+    /// <summary>
+    ///     The manual admin run: the same round engine the scheduler uses, with the admin as the actor. It is the live
+    ///     escape hatch and is not affected by the automation kill switch or the dry-run flag.
+    /// </summary>
+    Task<LotteryRunResult> RunLotteryAsync(ulong discordUserId);
     Task<IAwardResponse> TryAwardUsersAsync(string reason, List<ulong> userIds);
-    Task AwardUsersAsync(SuccessAwardResponse success);
+
+    /// <summary>
+    ///     Grants the extra guesses: writes the legacy <c>extra_lottery_guesses</c> rows that drive the weekly allowance
+    ///     and the <c>lottery_awards</c> audit rows keyed by the current round, then announces the award.
+    ///     <paramref name="actorDiscordId" /> is the officer or admin granting it.
+    /// </summary>
+    Task AwardUsersAsync(SuccessAwardResponse success, ulong? actorDiscordId = null);
 }
