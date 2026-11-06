@@ -4,11 +4,13 @@ using System.Text.Json;
 using ExcelBotCs.Database.Interfaces;
 using ExcelBotCs.Models.DTO;
 using ExcelBotCs.Modules.Lottery;
+using ExcelBotCs.Services.Discord.Interfaces;
 using ExcelBotCs.Services.Lottery.Interfaces;
 using ExcelBotCs.Services.Lottery.Records;
 using ExcelBotCs.TestFramework.Database;
 using ExcelBotCs.Tests.Utils;
 using Microsoft.Extensions.DependencyInjection;
+using Moq;
 
 namespace ExcelBotCs.Tests.Controllers;
 
@@ -1264,10 +1266,12 @@ public class LotteryAdminIntegrationTests : IntegrationTestBase
     }
 
     [Fact]
-    public async Task DryRun_PostsToTheLogAndWritesNothing()
+    public async Task DryRun_PostsThePrefixedAnnouncementToTheLogAndWritesNothing()
     {
         await AuthenticateAsAdmin();
         await SeedPotAsync(4_000_000);
+        await SeedGuessAsync(4242, 42);
+        await SeedExtraGuessAsync(4242);
 
         var response = await Client.PostAsJsonAsync(DryRunUrl, new ManualActionRequest(null, null));
 
@@ -1276,13 +1280,28 @@ public class LotteryAdminIntegrationTests : IntegrationTestBase
         body.Success.ShouldBeTrue();
         body.Disposition.ShouldBe(LotteryRunDisposition.DryRun);
 
-        // A dry run is a preview of the post: no round, no winner, no ledger movement (spec §13 criterion 20).
+        // criterion 20, the whole contract: the *same* announcement, prefixed, on the mentions-suppressed log seam —
+        // never the live announcement post.
+        var posted = DiscordMessages.Invocations
+            .Where(call => call.Method.Name == nameof(IDiscordMessageService.PostDryRunAsync))
+            .Select(call => (string)call.Arguments[0]!)
+            .ShouldHaveSingleItem();
+        posted.ShouldStartWith("[DRY RUN] ");
+        posted.ShouldContain("Hello ");
+        DiscordMessages.Verify(
+            messages => messages.PostLotteryAnnouncementAsync(It.IsAny<string>()), Times.Never);
+
+        // And no writes: no round, no frozen entries, no winners, no ledger movement, no guess flush, same pot.
         (await Factory.Services.GetRequiredService<ILotteryRoundRepository>().GetLatestAsync(10)).ShouldBeEmpty();
+        (await Factory.Services.GetRequiredService<ILotteryEntryRepository>().GetAsync()).ShouldBeEmpty();
         (await Factory.Services.GetRequiredService<ILotteryWinnerRepository>().GetAsync()).ShouldBeEmpty();
         var ledger = await Factory.Services.GetRequiredService<ILotteryPotLedgerService>()
             .GetByRoundKeyAsync("anything");
         ledger.ShouldBeEmpty();
         (await GetStatusAsync()).Pot.ShouldBe(4_000_000);
+        (await Factory.Services.GetRequiredService<ILotteryGuessRepository>().GetAsync()).ShouldHaveSingleItem();
+        (await Factory.Services.GetRequiredService<IExtraLotteryGuessRepository>().GetAsync())
+            .ShouldHaveSingleItem();
     }
 
     [Fact]
@@ -1330,6 +1349,39 @@ public class LotteryAdminIntegrationTests : IntegrationTestBase
         body.Disposition.ShouldBe(LotteryRunDisposition.Blocked);
         body.RoundKey.ShouldBe("2026-07-28");
         body.Message.ShouldContain("2026-07-28");
+    }
+
+    [Fact]
+    public async Task Run_WithAutomationRolledBackToEnabledFalse_StillWorksAndDeletesNothing()
+    {
+        // Rollback (criterion 22): the deployment kill switch is off in this configuration, so the scheduler would do
+        // nothing — but the manual run is the documented escape hatch and no existing data may change.
+        await AuthenticateAsAdmin();
+        await SeedPotAsync(3_000_000);
+        await SeedWinnerAsync("2026-03-17", "Keburichi", 92, 33_000_000, LotteryPayoutStatus.Paid,
+            ["Cosmic Mount"]);
+
+        var status = await GetStatusAsync();
+        status.AutomationStatus.ShouldBe(LotteryAutomationStatus.DisabledKind);
+        status.SchedulerEnabled.ShouldBeFalse();
+
+        var response = await Client.PostAsJsonAsync(RunUrl, new ManualActionRequest(null, null));
+
+        response.StatusCode.ShouldBe(HttpStatusCode.OK);
+        var body = await ReadAsync<ManualAction>(response);
+        body.Disposition.ShouldBe(LotteryRunDisposition.Ran);
+
+        // Nobody guessed, so the manual round grew the pot by the weekly increment.
+        (await GetStatusAsync()).Pot.ShouldBe(4_000_000);
+        (await Factory.Services.GetRequiredService<ILotteryRoundRepository>()
+            .GetByRoundKeyAsync(body.RoundKey!))!.Status.ShouldBe(LotteryRoundStatus.Completed);
+
+        // The seeded history survives untouched: a rollback is a flag, never a data migration.
+        var seeded = (await Factory.Services.GetRequiredService<ILotteryWinnerRepository>().GetAsync())
+            .ShouldHaveSingleItem();
+        seeded.DisplayName.ShouldBe("Keburichi");
+        seeded.BonusItems.ShouldBe(["Cosmic Mount"]);
+        seeded.PayoutStatus.ShouldBe(LotteryPayoutStatus.Paid);
     }
 
     [Fact]
@@ -1511,6 +1563,26 @@ public class LotteryAdminIntegrationTests : IntegrationTestBase
             LotterySettingsDefaults.WinTemplate,
             LotterySettingsDefaults.NoWinTemplate,
             false);
+    }
+
+    private async Task SeedGuessAsync(ulong discordId, int number)
+    {
+        await Factory.Services.GetRequiredService<ILotteryGuessRepository>().UpsertAsync(new LotteryGuess
+        {
+            DiscordId = discordId,
+            Number = number,
+            DateCreated = DateTime.UtcNow
+        });
+    }
+
+    private async Task SeedExtraGuessAsync(ulong discordId)
+    {
+        await Factory.Services.GetRequiredService<IExtraLotteryGuessRepository>().CreateAsync(new ExtraLotteryGuess
+        {
+            DiscordId = discordId,
+            Reason = "test event award",
+            DateCreated = DateTime.UtcNow
+        });
     }
 
     private async Task SeedPotAsync(long balance)

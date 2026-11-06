@@ -5,6 +5,10 @@ They are exposed as command-line switches instead of HTTP endpoints: the applica
 container (so it reads the real database configuration) and then exits **without starting the web server or the
 Discord gateway**.
 
+The full operator sequence around them — deploy with the automation off, seed, backfill, dry-run week, promote,
+monitor and roll back — is the [cutover runbook](cutover-runbook.md). This page is the reference for the two
+commands themselves.
+
 ## Index migration
 
 Collections are created by the repositories themselves; the indexes need an explicit step because the base
@@ -85,6 +89,8 @@ database, drop the new lottery collections — never `lottery_results` — and s
 
 ## Related
 
+- [cutover, rollout and rollback runbook](cutover-runbook.md) — the sequence these commands sit in
 - [data model and indexes](data-model.md)
 - [manual seed](manual-seed.md) — the 35 historical winners and the opening pot
+- [configuration](configuration.md) — the deployment flags, dry run and the health detail
 - [the spec](../user-stories/automated-weekly-lottery.md) §6 and §12

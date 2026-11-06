@@ -89,12 +89,31 @@ public class LotteryRoundRunnerTests : MongoDbTest
 		BuildRunner();
 	}
 
-	private void BuildRunner(ILotteryEntryRepository? entries = null)
+	private void BuildRunner(ILotteryEntryRepository? entries = null,
+		LotteryStartupCheckService? startupCheck = null)
 	{
 		_pot = new LotteryPotLedgerService(_ledger, Mock.Of<ILogger<LotteryPotLedgerService>>());
 		_runner = new LotteryRoundRunner(_settings, _rounds, entries ?? _flakyEntries, _winners, _pot, _guesses,
 			_extraGuesses, _members.Object, _numbers, _publisher, _time, Mock.Of<ILogger<LotteryRoundRunner>>(),
-			alerts: _alerts);
+			startupCheck, _alerts);
+	}
+
+	/// <summary>Runs the real background startup wrapper so the gate sees the result production would see.</summary>
+	private static async Task<LotteryStartupCheckService> StartupCheckServiceAsync(
+		LotteryStartupResult? result = null)
+	{
+		var check = new Mock<ILotteryStartupCheck>();
+		if (result is null)
+			check.Setup(c => c.CheckAsync(It.IsAny<CancellationToken>()))
+				.Returns(new TaskCompletionSource<LotteryStartupResult>().Task);
+		else
+			check.Setup(c => c.CheckAsync(It.IsAny<CancellationToken>())).ReturnsAsync(result);
+
+		var service = new LotteryStartupCheckService(check.Object,
+			Microsoft.Extensions.Logging.Abstractions.NullLogger<LotteryStartupCheckService>.Instance);
+		await service.StartAsync(CancellationToken.None);
+
+		return service;
 	}
 
 	#region Scheduled round
@@ -645,6 +664,53 @@ public class LotteryRoundRunnerTests : MongoDbTest
 	}
 
 	[Fact]
+	public async Task TickAsync_WhileTheStartupCheckIsStillRunning_SchedulesNothing()
+	{
+		// The startup check is what proves the deployment and the stored settings are usable; until it answers, the
+		// scheduler must not draw anything (spec §5.10, criterion 19).
+		BuildRunner(startupCheck: await StartupCheckServiceAsync());
+
+		var result = await _runner.TickAsync();
+
+		result.Action.ShouldBe(LotteryTickAction.Nothing);
+		result.Message.ShouldContain("startup check");
+		(await _rounds.GetAsync()).ShouldBeEmpty();
+		_numbers.Draws.ShouldBe(0);
+		_publisher.Published.ShouldBeEmpty();
+	}
+
+	[Fact]
+	public async Task TickAsync_WhenStartupValidationIsDegraded_DisablesTheSchedulerAndKeepsTheData()
+	{
+		// Criterion 19 end to end: bad configuration degrades the startup check, and the degraded verdict is what stops
+		// the schedule. The scheduler is off; nothing was drawn, written or posted.
+		BuildRunner(startupCheck: await StartupCheckServiceAsync(
+			LotteryStartupResult.Degraded(["DiscordBot:GuildId is not configured."])));
+
+		var result = await _runner.TickAsync();
+
+		result.Action.ShouldBe(LotteryTickAction.Nothing);
+		result.Message.ShouldContain("degraded");
+		(await _rounds.GetAsync()).ShouldBeEmpty();
+		(await _ledger.GetLatestAsync(10)).ShouldBeEmpty();
+		_numbers.Draws.ShouldBe(0);
+		_publisher.Published.ShouldBeEmpty();
+	}
+
+	[Fact]
+	public async Task TickAsync_AfterAHealthyStartupCheck_RunsTheDueRound()
+	{
+		await SeedCompletedRoundAsync("2026-11-03");
+		_numbers.DefaultNumber = 42;
+		BuildRunner(startupCheck: await StartupCheckServiceAsync(LotteryStartupResult.Healthy));
+
+		var result = await _runner.TickAsync();
+
+		result.Action.ShouldBe(LotteryRunDisposition.Ran);
+		(await _rounds.GetByRoundKeyAsync("2026-11-10"))!.Status.ShouldBe(LotteryRoundStatus.Completed);
+	}
+
+	[Fact]
 	public async Task TickAsync_WhenPaused_DoesNothing()
 	{
 		_settings.Settings = TestLotterySettings.Create(pauseAutomation: true);
@@ -661,6 +727,7 @@ public class LotteryRoundRunnerTests : MongoDbTest
 	{
 		await SeedCompletedRoundAsync("2026-11-03");
 		await SeedGuessAsync(7001UL, 50);
+		await SeedExtraGuessAsync(7001UL);
 		_settings.Settings = TestLotterySettings.Create(dryRun: true);
 		_numbers.DefaultNumber = 50;
 
@@ -670,16 +737,94 @@ public class LotteryRoundRunnerTests : MongoDbTest
 		_publisher.Published.ShouldHaveSingleItem();
 		_publisher.Published[0].DryRun.ShouldBeTrue();
 
-		// criterion 20: no round, entries, winners, ledger or flush.
+		// criterion 20, the whole contract: no round, no frozen entries, no winners, no ledger movement, no pot change
+		// and no guess flush. The preview is the only effect.
 		(await _rounds.GetByRoundKeyAsync("2026-11-10")).ShouldBeNull();
+		(await _entries.GetByRoundKeyAsync("2026-11-10")).ShouldBeEmpty();
 		(await _ledger.GetLatestAsync(10)).ShouldBeEmpty();
 		(await _winners.GetAsync()).ShouldBeEmpty();
+		(await _pot.GetBalanceAsync(BasePot)).ShouldBe(BasePot);
 		(await _guesses.GetAsync()).ShouldHaveSingleItem();
+		(await _extraGuesses.GetAsync()).ShouldHaveSingleItem();
+
+		// The preview describes the round that would have run: the simulated winner and the pot afterwards.
+		_publisher.Published[0].Round.RoundKey.ShouldBe("2026-11-10");
+		_publisher.Published[0].Winners.ShouldHaveSingleItem();
+		_publisher.Published[0].Winners[0].DiscordId.ShouldBe(7001UL);
+		_publisher.Published[0].PotAfter.ShouldBe(BasePot);
 
 		// The minute-by-minute tick does not post the same preview again.
 		var again = await _runner.TickAsync();
 		again.Action.ShouldBe(LotteryRunDisposition.DryRun);
 		_publisher.Published.Count.ShouldBe(1);
+	}
+
+	[Fact]
+	public async Task PreviewAsync_ForTheAdminDryRunAction_PublishesAPreviewAndWritesNothing()
+	{
+		// The admin "Dry run now" button goes through the same preview path as the scheduled dry-run tick; this pins
+		// that manual call to the same no-write contract (criterion 20) whatever the deployment flags say.
+		await SeedCompletedRoundAsync("2026-11-03");
+		await SeedGuessAsync(7002UL, 17);
+		await SeedExtraGuessAsync(7002UL);
+		_numbers.DefaultNumber = 17;
+
+		var result = await _runner.PreviewAsync();
+
+		result.Disposition.ShouldBe(LotteryRunDisposition.DryRun);
+		result.Message.ShouldContain("Nothing was saved");
+
+		_publisher.Published.ShouldHaveSingleItem();
+		_publisher.Published[0].DryRun.ShouldBeTrue();
+		_publisher.Published[0].Winners.ShouldHaveSingleItem();
+
+		(await _rounds.GetByRoundKeyAsync(_publisher.Published[0].Round.RoundKey)).ShouldBeNull();
+		(await _entries.GetAsync()).ShouldBeEmpty();
+		(await _winners.GetAsync()).ShouldBeEmpty();
+		(await _ledger.GetLatestAsync(10)).ShouldBeEmpty();
+		(await _pot.GetBalanceAsync(BasePot)).ShouldBe(BasePot);
+		(await _guesses.GetAsync()).ShouldHaveSingleItem();
+		(await _extraGuesses.GetAsync()).ShouldHaveSingleItem();
+	}
+
+	[Fact]
+	public async Task TickAsync_WhenAutomationIsRolledBackWithEnabledFalse_StopsSchedulingButTheManualRunStillWorks()
+	{
+		// Rollback (criterion 22): flipping Lottery:Automation:Enabled to false is the whole rollback of the
+		// scheduler — the draw history, the pot and the manual escape hatch all stay.
+		await SeedCompletedRoundAsync("2026-11-03");
+		await SeedGuessAsync(7001UL, 50);
+		await SeedHistoricalWinnerAsync();
+		await _pot.EnsureBalanceAsync(BasePot);
+		await _pot.AppendAsync(null, LotteryPotLedgerType.Correction, Increment, BasePot + Increment, "test seed",
+			null, "test:rollback-seed");
+
+		_settings.Settings = TestLotterySettings.Create(automationEnabled: false);
+		_numbers.DefaultNumber = 50;
+
+		var tick = await _runner.TickAsync();
+
+		// The scheduler is off: nothing was drawn, scheduled, flushed or posted.
+		tick.Action.ShouldBe(LotteryTickAction.Disabled);
+		_numbers.Draws.ShouldBe(0);
+		(await _rounds.GetAsync()).ShouldHaveSingleItem().RoundKey.ShouldBe("2026-11-03");
+		(await _winners.GetAsync()).ShouldHaveSingleItem().DisplayName.ShouldBe("Historical Winner");
+		(await _pot.GetBalanceAsync(BasePot)).ShouldBe(BasePot + Increment);
+		(await _guesses.GetAsync()).ShouldHaveSingleItem();
+		_publisher.Published.ShouldBeEmpty();
+
+		// The manual admin run is not gated by the kill switch: it is the documented escape hatch.
+		var manual = await _runner.RunNowAsync(9001UL);
+
+		manual.Disposition.ShouldBe(LotteryRunDisposition.Ran);
+		(await _rounds.GetByRoundKeyAsync("2026-11-10"))!.Status.ShouldBe(LotteryRoundStatus.Completed);
+		_publisher.Published.ShouldHaveSingleItem();
+		_publisher.Published[0].DryRun.ShouldBeFalse();
+
+		// Rollback deletes nothing: the pre-existing round, historical winner and pot entry are still there.
+		(await _rounds.GetByRoundKeyAsync("2026-11-03"))!.Status.ShouldBe(LotteryRoundStatus.Completed);
+		(await _winners.GetAsync()).ShouldContain(winner => winner.DisplayName == "Historical Winner");
+		(await _ledger.GetByIdempotencyKeyAsync("test:rollback-seed")).ShouldNotBeNull();
 	}
 
 	#endregion
@@ -839,6 +984,34 @@ public class LotteryRoundRunnerTests : MongoDbTest
 			DiscordId = discordId,
 			Number = number,
 			DateCreated = TestInstants.UtcTime(createdAtUtc)
+		});
+	}
+
+	/// <summary>An extra guess from an FC event; the dry run must not flush it either (criterion 20).</summary>
+	private async Task SeedExtraGuessAsync(ulong discordId)
+	{
+		await _extraGuesses.CreateAsync(new ExtraLotteryGuess
+		{
+			DiscordId = discordId,
+			Reason = "test event award",
+			DateCreated = TestInstants.UtcTime("2026-11-01T10:00:00")
+		});
+	}
+
+	/// <summary>A winner row as the manual cutover seed inserts it (§6 "Manual seed shapes").</summary>
+	private async Task SeedHistoricalWinnerAsync()
+	{
+		await _winners.CreateAsync(new LotteryWinner
+		{
+			RoundKey = "2026-07-21",
+			DiscordId = null,
+			DisplayName = "Historical Winner",
+			Guess = 56,
+			GilPrize = 80_000_000,
+			BonusItems = ["Chaotic Mount"],
+			PayoutStatus = LotteryPayoutStatus.Paid,
+			PayoutNote = "historical record",
+			DateCreated = TestInstants.UtcTime("2026-07-21T18:00:00")
 		});
 	}
 
