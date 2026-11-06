@@ -70,7 +70,21 @@ public static class ServiceExtensions
 
         // Lottery startup guard (§5.10): bad or missing config degrades the scheduler and raises one alert.
         services.AddSingleton<ILotteryStartupCheck, LotteryStartupCheck>();
-        services.AddHostedService<LotteryStartupCheckService>();
+        services.AddSingleton<LotteryStartupCheckService>();
+        services.AddHostedService(provider => provider.GetRequiredService<LotteryStartupCheckService>());
+
+        // Lottery round engine (§5.1, §5.3, §5.10): the clock, the schedule, the pot and the announcement seam.
+        services.AddSingleton(TimeProvider.System);
+        services.AddSingleton<ILotteryNumberGenerator, PrngLotteryNumberGenerator>();
+        services.AddSingleton<ILotteryPotLedgerService, LotteryPotLedgerService>();
+        services.AddSingleton<ILotteryScheduleService, LotteryScheduleService>();
+        services.AddSingleton<ILotteryAnnouncementPublisher, LotteryAnnouncementPublisher>();
+        services.AddSingleton<ILotteryRoundRunner, LotteryRoundRunner>();
+
+        // The in-process scheduler. It is a singleton as well as a hosted service so tests and the admin page can
+        // reach TickOnceAsync; removing the IHostedService registrations leaves the singleton intact.
+        services.AddSingleton<LotterySchedulerService>();
+        services.AddHostedService(provider => provider.GetRequiredService<LotterySchedulerService>());
     }
 
     public static void AddDiscordClient(this IServiceCollection services)

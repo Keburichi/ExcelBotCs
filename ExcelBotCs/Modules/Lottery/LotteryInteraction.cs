@@ -88,7 +88,8 @@ public class LotteryInteraction : InteractionModuleBase<SocketInteractionContext
 
         await RespondAsync("Lottery running...", ephemeral: true);
 
-        await _lotteryService.RunLotteryAsync(Context.GuildUser().Id);
+        var result = await _lotteryService.RunLotteryAsync(Context.GuildUser().Id);
+        await FollowupAsync(result.Message, ephemeral: true);
     }
 
     [SlashCommand("remind", "Reminds users to use any remaining guesses")]
@@ -169,7 +170,7 @@ public class LotteryInteraction : InteractionModuleBase<SocketInteractionContext
                     return;
                 }
 
-                await _lotteryService.AwardUsersAsync(success);
+                await _lotteryService.AwardUsersAsync(success, Context.GuildUser().Id);
                 await FollowupAsync($"An extra lottery guess have been granted to: {success.PrettyUsersAwarded}",
                     ephemeral: true);
                 break;
@@ -203,7 +204,7 @@ public class LotteryInteraction : InteractionModuleBase<SocketInteractionContext
             return;
         }
 
-        await _lotteryService.AwardUsersAsync(success);
+        await _lotteryService.AwardUsersAsync(success, Context.GuildUser().Id);
         await socketMsg.UpdateAsync(msg =>
         {
             msg.Components = null;

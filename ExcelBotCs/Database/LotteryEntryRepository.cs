@@ -52,12 +52,17 @@ public class LotteryEntryRepository : BaseRepository<LotteryEntry>, ILotteryEntr
 
 	public async Task<bool> AddIfMissingAsync(LotteryEntry entry)
 	{
+		// The copy of a live guess keeps the instant the member made it, because the draw gives the rounding remainder
+		// to the winner whose winning entry was recorded earliest. A caller without that information (the archive
+		// backfill) gets the write instant.
+		var createdAt = entry.DateCreated == default ? DateTime.UtcNow : entry.DateCreated;
+
 		var update = Builders<LotteryEntry>.Update
 			.SetOnInsert(e => e.RoundKey, entry.RoundKey)
 			.SetOnInsert(e => e.DiscordId, entry.DiscordId)
 			.SetOnInsert(e => e.Number, entry.Number)
-			.SetOnInsert(e => e.DateCreated, DateTime.UtcNow)
-			.SetOnInsert(e => e.DateModified, DateTime.UtcNow);
+			.SetOnInsert(e => e.DateCreated, createdAt)
+			.SetOnInsert(e => e.DateModified, createdAt);
 
 		var result = await Collection.UpdateOneAsync(
 			e => e.RoundKey == entry.RoundKey && e.DiscordId == entry.DiscordId && e.Number == entry.Number,
