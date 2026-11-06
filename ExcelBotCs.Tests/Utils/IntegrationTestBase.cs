@@ -127,6 +127,8 @@ public abstract class IntegrationTestBase : MongoDbTest
                     mockDiscordMessageService.Setup(x => x.GetAnnouncementChannelMessagesAsync())
                         .ReturnsAsync(new List<IMessage>());
                     services.AddSingleton(mockDiscordMessageService.Object);
+
+                    OnConfigureTestServices(services);
                 });
             });
 
@@ -134,6 +136,15 @@ public abstract class IntegrationTestBase : MongoDbTest
         SetAuthenticatedUser(GenerateRandomDiscordId(), "Default Test User");
 
         await OnAfterIntegrationSetupAsync();
+    }
+
+    /// <summary>
+    ///     The last word on the test service collection, for a test that must replace a host registration before the
+    ///     container is built — the lottery clock and RNG, for example, so a scheduled round runs on a fake Tuesday
+    ///     (criterion 25). The default does nothing.
+    /// </summary>
+    protected virtual void OnConfigureTestServices(IServiceCollection services)
+    {
     }
 
     protected override async Task BeforeTearDownAsync()

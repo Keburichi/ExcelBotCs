@@ -73,6 +73,12 @@ public static class LotteryReminderDisposition
 	/// <summary>The admin paused automation.</summary>
 	public const string Paused = "paused";
 
+	/// <summary>The startup check has not finished yet, so nothing is scheduled or reminded until it does.</summary>
+	public const string StartupPending = "startup-pending";
+
+	/// <summary>The startup check found bad or missing configuration; the scheduler is off until it is fixed.</summary>
+	public const string StartupDegraded = "startup-degraded";
+
 	/// <summary>There is no upcoming draw to remind about.</summary>
 	public const string NoUpcomingRound = "no-upcoming-round";
 

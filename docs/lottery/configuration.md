@@ -91,7 +91,11 @@ character limit, fallback at run time) belong to #111; this ticket only owns the
 | `false` | any | any | `disabled` | Disabled | stopped |
 
 `Enabled = false` is the final override. `SchedulerEnabled` is the flag the scheduler must read; `PauseAutomation`
-stops only the scheduler — the manual admin **Run now** stays live (it is not implemented yet).
+stops only the scheduled path — the manual admin **Run now** and the officer's `/lottery remind` stay live.
+
+The status is also what the `lottery` health detail reports: a non-live status is an operator decision, so it appears
+there as an informational `automationNote` and does not degrade the probe (see
+[the health detail](#the-lottery-health-detail) below).
 
 ## Audit
 
@@ -119,9 +123,18 @@ when any of these is wrong:
 - `lottery_settings` cannot be read, or contains fields that had to be repaired.
 
 All problems go out as **one** error log line, which `DiscordLogger` mirrors into the log channel — one alert, no
-second mechanism. The scheduler must not schedule while `LotteryStartupResult.IsDegraded` is true. With
-`DiscordBot:Enabled=false` the check is skipped (info log): a botless checkout has no automation and nobody to
-alert.
+second mechanism. With `DiscordBot:Enabled=false` the check is skipped (info log): a botless checkout has no
+automation and nobody to alert.
+
+A degraded (or still-running) check disables **all** automation, not just the draw:
+
+- the round tick does nothing (`LotteryTickAction.Nothing`);
+- the reminder tick does nothing and returns `startup-pending` or `startup-degraded` — it deliberately logs at debug
+  level, because the startup check already owns the single alert and an error log per tick would be alert spam;
+- the manual escape hatches stay live: the admin **Run now** / **Dry run now** and the officer's `/lottery remind`.
+
+The `lottery` health detail reports the verdict as `startupCheck: "pending"` or `"degraded"` (with the `problems`
+array) and is itself degraded.
 
 ## Dry run (spec §5.6, §13 criterion 20)
 
@@ -163,9 +176,12 @@ the [cutover runbook](cutover-runbook.md#cutover-gotcha-enabling-mid-week-runs-a
 the round engine's `ILotteryRoundRunner.GetStatusAsync()` snapshot and the startup verdict, with a bounded read
 (3 seconds, like the Mongo check's 5) so a slow database cannot hang a probe.
 
-- `Healthy` only while the automation is `live`, no round is pending and the startup check passed;
-- `Degraded` for a `dry-run`, `paused` or `disabled` scheduler, a pending/failed round (with the round key, failed
-  step, attempts, next retry and last error) and a degraded or still-pending startup check;
+- `Healthy` when no round is pending or failed (the last round completed or was skipped and the next is scheduled)
+  and the startup check passed;
+- `Degraded` for a pending/failed round (with the round key, failed step, attempts, next retry and last error) and for
+  a degraded or still-pending startup check;
+- a `dry-run`, `paused` or `disabled` scheduler does **not** degrade the detail: those are operator decisions, so they
+  are reported in the informational `automationNote` field and in the description (spec §5.10 as clarified by #105);
 - **never** `Unhealthy`. `Program` maps `Degraded` to `200` and only an `Unhealthy` **core** check (Discord, MongoDB)
   to `503`, so the lottery detail can never fail the container.
 
@@ -184,5 +200,6 @@ probe contract.
 - Constants: `LotterySettingsDefaults.*` (operational) and `LotteryAutomationOptions.*`
   (`Lottery:Automation:*`, deployment). Do not re-declare `1_000_000` or a day name anywhere else.
 - Alerts and notices use `IDiscordMessageService.PostInLogChannelAsync` (log channel, lottery-channel fallback).
-- The scheduler starts only when `LotteryStartupResult.IsDegraded == false` and
-  `LotteryAutomationStatus.SchedulerEnabled == true`.
+- The scheduled path (the round tick **and** the reminder tick) starts only when
+  `LotteryStartupResult.IsDegraded == false` and `LotteryAutomationStatus.SchedulerEnabled == true`. The manual
+  actions are exempt by design.

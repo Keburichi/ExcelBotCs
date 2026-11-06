@@ -27,7 +27,7 @@ public interface ILotteryReminderService
 
 	/// <summary>
 	///     One scheduler tick: posts this week's reminder when it is due and nothing has been posted for the round yet.
-	///     Honours the deployment kill switch, the pause and the reminder toggle. Never throws.
+	///     Honours the startup verdict, the deployment kill switch, the pause and the reminder toggle. Never throws.
 	/// </summary>
 	Task<LotteryReminderOutcome> TickAsync(CancellationToken cancellationToken = default);
 

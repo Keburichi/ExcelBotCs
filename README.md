@@ -165,10 +165,25 @@ RSA keys for JWT signing are generated automatically on first start and stored i
 
 **Lottery automation**
 
-The automated weekly lottery is off by default and is promoted by deploy, never by a button. The full operator
-procedure (create indexes, seed the history, backfill the archive, dry-run a week, promote, monitor, roll back) is
-the [cutover runbook](docs/lottery/cutover-runbook.md); the flags, dry run and health detail are explained in
+The weekly lottery runs itself: a scheduler draws at the configured day and time (default **Tuesday 20:00
+Europe/Berlin**), pays the pot from the auditable Gil ledger, posts the announcement under 2,000 characters with the
+last five winners, pings the opted-in members once before the draw, and keeps the full winner history on the web.
+Failures are retried, alerted to the log channel and shown on the admin page; a pending round blocks the next one, so
+a bad week can never double-draw or double-pay. Payouts stay manual in-game — the system records the status only.
+
+The automation is off by default and is promoted by deploy, never by a button. The full operator procedure (create
+indexes, seed the history, backfill the archive, dry-run a week, promote, monitor, roll back) is the
+[cutover runbook](docs/lottery/cutover-runbook.md); the flags, dry run and health detail are explained in
 [configuration](docs/lottery/configuration.md).
+
+| Where | What |
+|---|---|
+| `/lottery` | the Play tab: guess, change a guess, see the pot and the reminder toggle |
+| `/lottery/history` | the member History tab: timeline of every winner, summary cards, lazy loading in batches of 10 |
+| `/lottery/admin` | the admin page (admin-only): Overview, Schedule & reminders, Pot & payouts, Messages, Guesses — see the [admin guide](docs/lottery/admin-guide.md) |
+
+Discord: `/lottery guess`, `change`, `view`, `unused`, `whoguessed`, `luckydip` and `reminders` for members;
+`/lottery run`, `remind` and `award` stay officer-gated.
 
 | Variable | Required | Default | Description |
 |---|---|---|---|
@@ -182,11 +197,15 @@ the [cutover runbook](docs/lottery/cutover-runbook.md); the flags, dry run and h
 | `DiscordBot__LogChannel` | No | `0` | Alerts, audit notices and the `[DRY RUN]` post; falls back to the lottery channel when `0` |
 | `WebBaseUrl` | No | falls back to `Jwt:Issuer` | Public base URL for the history page and admin links the bot posts |
 
-`/health` also reports a `lottery` detail next to the Discord and MongoDB checks. It is informational: it degrades
-(dry run, paused, disabled, an unfinished round) but never fails the endpoint — only an unhealthy Discord gateway or
-MongoDB returns a `503`. See [reading `/health`](docs/lottery/cutover-runbook.md#reading-health).
+`/health` also reports a `lottery` detail next to the Discord and MongoDB checks. It is informational and follows the
+accepted rule: **healthy** while no round is pending and the startup check passed, **degraded** when a round is
+pending or failed or the startup check is degraded. The rollout flags (dry run, paused, disabled) are reported in the
+detail without degrading it, and the detail never fails the endpoint — only an unhealthy Discord gateway or MongoDB
+returns a `503`. See [reading `/health`](docs/lottery/cutover-runbook.md#reading-health).
 
-Other lottery docs: [data model and indexes](docs/lottery/data-model.md),
+Other lottery docs: [the admin guide](docs/lottery/admin-guide.md),
+[which test proves which acceptance criterion](docs/lottery/acceptance.md),
+[data model and indexes](docs/lottery/data-model.md),
 [manual 35-winner and opening-pot seed](docs/lottery/manual-seed.md),
 [index migration and backfill commands](docs/lottery/operations.md).
 

@@ -26,6 +26,12 @@ namespace ExcelBotCs.Services.Lottery;
 ///         Delivery is best effort: <see cref="MaxAttempts" /> posts over <see cref="RetryDelays" />, one needs-admin
 ///         alert when they are exhausted, and no path throws into the scheduler (spec §5.10).
 ///     </para>
+///     <para>
+///         Automation gates: the scheduled tick honours the startup verdict exactly like the round engine — a
+///         still-running or degraded startup check posts nothing, because a degraded start must disable the draw and
+///         the reminder together (criterion 19). The officer's manual reminder and the admin test send are escape
+///         hatches and ignore the verdict, just as the manual Run now ignores the kill switch.
+///     </para>
 /// </summary>
 public class LotteryReminderService : ILotteryReminderService
 {
@@ -58,6 +64,7 @@ public class LotteryReminderService : ILotteryReminderService
 	private readonly ILotteryRoundRepository _rounds;
 	private readonly ILotteryScheduleService _schedules;
 	private readonly ILotterySettingsService _settings;
+	private readonly LotteryStartupCheckService? _startupCheck;
 	private readonly TimeProvider _time;
 
 	private string? _exhaustedRoundKey;
@@ -67,7 +74,8 @@ public class LotteryReminderService : ILotteryReminderService
 	public LotteryReminderService(ILotterySettingsService settings, ILotteryScheduleService schedules,
 		ILotteryReminderOptinRepository optIns, ILotteryRoundRepository rounds, ILotteryGuessRepository guesses,
 		IExtraLotteryGuessRepository extraGuesses, IMemberService members, IDiscordMessageService messages,
-		ILotteryAlertService alerts, TimeProvider time, ILogger<LotteryReminderService> logger)
+		ILotteryAlertService alerts, TimeProvider time, ILogger<LotteryReminderService> logger,
+		LotteryStartupCheckService? startupCheck = null)
 	{
 		_settings = settings;
 		_schedules = schedules;
@@ -80,6 +88,7 @@ public class LotteryReminderService : ILotteryReminderService
 		_alerts = alerts;
 		_time = time;
 		_logger = logger;
+		_startupCheck = startupCheck;
 	}
 
 	#region Opt-in
@@ -166,6 +175,16 @@ public class LotteryReminderService : ILotteryReminderService
 
 	private async Task<LotteryReminderOutcome> TickCoreAsync(CancellationToken cancellationToken)
 	{
+		// The startup verdict gates every automated post, the reminder included (spec §5.10, criterion 19). The
+		// startup check owns the single alert; logging again here would enqueue one line per tick through DiscordLogger.
+		if (_startupCheck is { Result: null })
+			return new LotteryReminderOutcome(LotteryReminderDisposition.StartupPending,
+				"The lottery startup check has not finished yet; no reminder was posted on this tick.");
+
+		if (_startupCheck?.Result is { IsDegraded: true })
+			return new LotteryReminderOutcome(LotteryReminderDisposition.StartupDegraded,
+				"Lottery automation starts degraded; no reminder is posted until the configuration is fixed.");
+
 		var settings = await _settings.GetEffectiveAsync(cancellationToken);
 
 		if (!settings.AutomationEnabled)
