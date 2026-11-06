@@ -2,6 +2,7 @@ using Discord;
 using ExcelBotCs.Discord;
 using ExcelBotCs.Models.Config;
 using ExcelBotCs.Models.Database.Events;
+using ExcelBotCs.Modules.Lottery;
 using ExcelBotCs.Services.Discord.Interfaces;
 using ExcelBotCs.Services.Discord.Records;
 using Microsoft.Extensions.Options;
@@ -13,13 +14,15 @@ public class DiscordMessageService : IDiscordMessageService
     private readonly IDiscordBotClient _discordClient;
     private readonly IOptions<DiscordBotOptions> _config;
     private readonly IDiscordMessageCreator _componentCreator;
+    private readonly IOptions<WebBaseUrlOptions> _webOptions;
 
     public DiscordMessageService(IDiscordBotClient discordClient, IOptions<DiscordBotOptions> config,
-        IDiscordMessageCreator componentCreator)
+        IDiscordMessageCreator componentCreator, IOptions<WebBaseUrlOptions> webOptions)
     {
         _discordClient = discordClient;
         _config = config;
         _componentCreator = componentCreator;
+        _webOptions = webOptions;
     }
 
     public async Task PostInAnnouncementChannelAsync(string message)
@@ -155,6 +158,35 @@ public class DiscordMessageService : IDiscordMessageService
 
         // A dry run is a review copy: it must never ping the member role or a member (criterion 20).
         return await channel.SendMessageAsync(message, allowedMentions: AllowedMentions.None);
+    }
+
+    public async Task<IUserMessage?> PostLotteryReminderAsync(string message,
+        IReadOnlyCollection<ulong> mentionedUserIds)
+    {
+        var channel = await GetTextChannelFromChannelId(_config.Value.LotteryChannel);
+        if (channel == null)
+            return null;
+
+        // Only the audience the composer rendered may be pinged (spec §5.7, §11); no roles, no @everyone.
+        return await channel.SendMessageAsync(message,
+            allowedMentions: LotteryReminderComponents.MentionsFor(mentionedUserIds),
+            components: LotteryReminderComponents.Build(_webOptions.Value.BaseUrl));
+    }
+
+    public async Task<bool> SendLotteryReminderDirectMessageAsync(ulong discordUserId, string message)
+    {
+        // The admin test send goes to the requesting admin only (#100): a DM, never the channel and never a ping.
+        var user = _discordClient.GetUser(discordUserId);
+        if (user == null)
+            return false;
+
+        var channel = await user.CreateDMChannelAsync();
+        if (channel == null)
+            return false;
+
+        await channel.SendMessageAsync(message, allowedMentions: AllowedMentions.None,
+            components: LotteryReminderComponents.Build(_webOptions.Value.BaseUrl));
+        return true;
     }
 
     public async Task PostAdminAlertAsync(string message, ulong? adminRoleId)

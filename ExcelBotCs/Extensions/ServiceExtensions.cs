@@ -83,6 +83,10 @@ public static class ServiceExtensions
         services.AddSingleton<ILotteryAnnouncementPreviewer, LotteryAnnouncementPreviewer>();
         services.AddSingleton<ILotteryRoundRunner, LotteryRoundRunner>();
 
+        // The reminder opt-in, audience and post (§5.7). Registering it here is what makes the scheduler's reminder
+        // tick, the slash commands and the member API resolve in production.
+        services.AddSingleton<ILotteryReminderService, LotteryReminderService>();
+
         // The in-process scheduler. It is a singleton as well as a hosted service so tests and the admin page can
         // reach TickOnceAsync; removing the IHostedService registrations leaves the singleton intact.
         services.AddSingleton<LotterySchedulerService>();

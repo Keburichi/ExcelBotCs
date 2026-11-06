@@ -23,7 +23,6 @@ public interface ILotteryService
     ///     escape hatch and is not affected by the automation kill switch or the dry-run flag.
     /// </summary>
     Task<LotteryRunResult> RunLotteryAsync(ulong discordUserId);
-    Task RemindAsync(ulong discordUserId);
     Task<IAwardResponse> TryAwardUsersAsync(string reason, List<ulong> userIds);
 
     /// <summary>

@@ -36,6 +36,20 @@ public interface IDiscordMessageService
     Task<IUserMessage?> PostDryRunAsync(string message);
 
     /// <summary>
+    ///     Posts the weekly reminder to <c>DiscordBot:LotteryChannel</c> with the two §5.7 buttons, allowing mentions of
+    ///     <paramref name="mentionedUserIds" /> only. <c>null</c> means the channel could not be resolved and nothing
+    ///     was posted, which the reminder treats as a failed attempt rather than a silent success.
+    /// </summary>
+    Task<IUserMessage?> PostLotteryReminderAsync(string message, IReadOnlyCollection<ulong> mentionedUserIds);
+
+    /// <summary>
+    ///     Sends the reminder copy to one member — the admin test send (#114) — as a direct message, never to the
+    ///     channel and with every mention suppressed. Returns <c>false</c> when the member cannot be resolved or the
+    ///     DM cannot be created; the caller reports the failure instead of claiming the test was sent.
+    /// </summary>
+    Task<bool> SendLotteryReminderDirectMessageAsync(ulong discordUserId, string message);
+
+    /// <summary>
     ///     Posts an admin alert to the log channel (fallback lottery channel). Only
     ///     <paramref name="adminRoleId" /> is mentionable, and no ping at all when it is <c>null</c> (spec §5.10).
     /// </summary>

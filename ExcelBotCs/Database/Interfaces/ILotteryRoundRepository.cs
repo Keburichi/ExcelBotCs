@@ -23,6 +23,13 @@ public interface ILotteryRoundRepository : IBaseRepository<LotteryRound>
 	Task<LotteryRound?> GetNewestScheduledDueAsync(DateTime nowUtc);
 
 	/// <summary>
+	///     The soonest <c>scheduled</c> round whose scheduled instant is still in the future, if any. Rounds are created
+	///     lazily, so this is normally <c>null</c>; a hit is a round the admin rescheduled, and the reminder follows its
+	///     new instant instead of the configured weekday (§5.7).
+	/// </summary>
+	Task<LotteryRound?> GetNextScheduledAsync(DateTime nowUtc);
+
+	/// <summary>
 	///     Creates the round for a slot as <c>scheduled</c> if it does not exist. The unique <c>RoundKey</c> index
 	///     settles two schedulers racing to create it; both callers get the same document.
 	/// </summary>

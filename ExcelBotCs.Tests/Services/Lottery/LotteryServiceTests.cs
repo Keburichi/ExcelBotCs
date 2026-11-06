@@ -23,7 +23,6 @@ public class LotteryServiceTests : MongoDbTest
 {
     private ILotteryGuessRepository _lotteryGuessRepository = null!;
     private IExtraLotteryGuessRepository _extraLotteryGuessRepository = null!;
-    private ILotteryResultRepository _lotteryResultRepository = null!;
     private ILotteryRoundRepository _lotteryRoundRepository = null!;
     private ILotteryEntryRepository _lotteryEntryRepository = null!;
     private ILotteryWinnerRepository _lotteryWinnerRepository = null!;
@@ -45,7 +44,6 @@ public class LotteryServiceTests : MongoDbTest
     {
         _lotteryGuessRepository = new LotteryGuessRepository(mongoClient, databaseOptions);
         _extraLotteryGuessRepository = new ExtraLotteryGuessRepository(mongoClient, databaseOptions);
-        _lotteryResultRepository = new LotteryResultRepository(mongoClient, databaseOptions);
         _lotteryRoundRepository = new LotteryRoundRepository(mongoClient, databaseOptions);
         _lotteryEntryRepository = new LotteryEntryRepository(mongoClient, databaseOptions);
         _lotteryWinnerRepository = new LotteryWinnerRepository(mongoClient, databaseOptions);
@@ -79,8 +77,8 @@ public class LotteryServiceTests : MongoDbTest
             _memberService.Object, _numbers, _publisher, _time, Mock.Of<ILogger<LotteryRoundRunner>>());
 
         _lotteryService = new LotteryService(rng, _lotteryGuessRepository, _extraLotteryGuessRepository,
-            _lotteryResultRepository, _memberService.Object, _discordMessageService.Object, runner,
-            _lotteryRoundRepository, _lotteryAwardRepository, schedule);
+            _memberService.Object, _discordMessageService.Object, runner, _lotteryRoundRepository,
+            _lotteryAwardRepository, schedule);
     }
 
     protected override Task BeforeTearDownAsync()
@@ -834,46 +832,6 @@ public class LotteryServiceTests : MongoDbTest
             ScheduledAt = TestInstants.UtcTime("2026-11-10T19:00:00"),
             Status = status
         });
-    }
-
-    #endregion
-
-    #region RemindAsync Tests
-
-    [Fact]
-    public async Task RemindAsync_NoFcMembers()
-    {
-        var userId = Convert.ToUInt64(GenerateRandomDiscordId());
-        _memberService.Setup(x => x.GetByDiscordId(userId))
-            .ReturnsAsync(new Member { DiscordId = userId.ToString(), Roles = new List<MemberRole> { new() { IsAdmin = true } } });
-        _memberService.Setup(x => x.GetFcMembers()).ReturnsAsync([]);
-
-        await _lotteryService.RemindAsync(userId);
-
-        _discordMessageService.Verify(x => x.PostInLotteryChannelAsync(
-            It.Is<string>(s => s.Contains("Use your guesses"))), Times.Once);
-    }
-
-    [Fact]
-    public async Task RemindAsync_WithMembersWithoutGuesses()
-    {
-        var userId = Convert.ToUInt64(GenerateRandomDiscordId());
-        var fcMember = new Member
-        {
-            DiscordId = userId.ToString(),
-            DiscordName = "TestUser",
-            Roles = new List<MemberRole> { new() { IsMember = true } }
-        };
-        _memberService.Setup(x => x.GetByDiscordId(userId))
-            .ReturnsAsync(new Member { DiscordId = userId.ToString(), Roles = new List<MemberRole> { new() { IsAdmin = true } } });
-        _memberService.Setup(x => x.GetFcMembers()).ReturnsAsync([fcMember]);
-
-        await _lotteryService.RemindAsync(userId);
-
-        // RemindAsync only includes users who have participated in previous lotteries
-        // Since there are no previous lotteries in this test, the message won't contain the userId
-        _discordMessageService.Verify(x => x.PostInLotteryChannelAsync(
-            It.Is<string>(s => s.Contains("Use your guesses"))), Times.Once);
     }
 
     #endregion
